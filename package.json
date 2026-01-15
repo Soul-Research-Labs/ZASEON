@@ -5,6 +5,7 @@
   "scripts": {
     "compile": "hardhat compile --config hardhat.config.cjs",
     "test": "hardhat test --config hardhat.config.cjs",
+    "test:integration": "hardhat test --config hardhat.config.cjs test/integration/e2e.test.js",
     "coverage": "hardhat coverage --config hardhat.config.cjs",
     "clean": "hardhat clean --config hardhat.config.cjs"
   },
