@@ -1,0 +1,606 @@
+/**
+ * @fileoverview Chain-specific adapters for proof translation
+ * Handles differences in verification between EVM, Cosmos, and Substrate chains
+ */
+
+import { ethers, Provider, Signer } from "ethers";
+import {
+  Groth16Proof,
+  CurveType,
+  TranslationResult,
+  toBytesBN254,
+  toBytesBLS12381,
+  toSolidityBN254,
+  CURVE_PARAMS,
+} from "../ProofTranslator";
+
+/*//////////////////////////////////////////////////////////////
+                          INTERFACES
+//////////////////////////////////////////////////////////////*/
+
+export interface ChainAdapter {
+  /**
+   * Chain identifier
+   */
+  readonly chainType: ChainType;
+  readonly chainId: number | string;
+  readonly name: string;
+
+  /**
+   * Supported curve for this chain
+   */
+  readonly supportedCurve: CurveType;
+
+  /**
+   * Format proof for this chain's verifier
+   */
+  formatProof(proof: Groth16Proof): any;
+
+  /**
+   * Encode public signals for this chain
+   */
+  encodePublicSignals(signals: bigint[]): any;
+
+  /**
+   * Create verification transaction/message
+   */
+  createVerificationTx(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<any>;
+
+  /**
+   * Submit proof for on-chain verification
+   */
+  submitProof(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<VerificationResult>;
+
+  /**
+   * Check if proof was verified
+   */
+  checkVerification(txHash: string): Promise<boolean>;
+}
+
+export type ChainType = "evm" | "cosmos" | "substrate" | "solana";
+
+export interface VerificationResult {
+  success: boolean;
+  txHash: string;
+  gasUsed?: bigint;
+  error?: string;
+}
+
+/*//////////////////////////////////////////////////////////////
+                        EVM ADAPTER
+//////////////////////////////////////////////////////////////*/
+
+export class EVMChainAdapter implements ChainAdapter {
+  readonly chainType: ChainType = "evm";
+  readonly supportedCurve: CurveType = "bn254";
+
+  constructor(
+    public readonly chainId: number,
+    public readonly name: string,
+    private provider: Provider,
+    private signer?: Signer
+  ) {}
+
+  formatProof(proof: Groth16Proof): {
+    pA: [string, string];
+    pB: [[string, string], [string, string]];
+    pC: [string, string];
+  } {
+    return toSolidityBN254(proof);
+  }
+
+  encodePublicSignals(signals: bigint[]): string[] {
+    return signals.map((s) => s.toString());
+  }
+
+  async createVerificationTx(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<ethers.TransactionRequest> {
+    const formatted = this.formatProof(proof);
+    const signals = this.encodePublicSignals(publicSignals);
+
+    const iface = new ethers.Interface([
+      "function verifyProof(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[] pubSignals) view returns (bool)",
+    ]);
+
+    const data = iface.encodeFunctionData("verifyProof", [
+      formatted.pA,
+      formatted.pB,
+      formatted.pC,
+      signals,
+    ]);
+
+    return {
+      to: verifierAddress,
+      data,
+    };
+  }
+
+  async submitProof(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<VerificationResult> {
+    if (!this.signer) {
+      throw new Error("Signer required for submitting proofs");
+    }
+
+    try {
+      const tx = await this.createVerificationTx(
+        proof,
+        publicSignals,
+        verifierAddress
+      );
+      const response = await this.signer.sendTransaction(tx);
+      const receipt = await response.wait();
+
+      return {
+        success: receipt!.status === 1,
+        txHash: receipt!.hash,
+        gasUsed: receipt!.gasUsed,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        txHash: "",
+        error: error.message,
+      };
+    }
+  }
+
+  async checkVerification(txHash: string): Promise<boolean> {
+    const receipt = await this.provider.getTransactionReceipt(txHash);
+    return receipt?.status === 1;
+  }
+
+  /**
+   * Static call to check proof without submitting
+   */
+  async verifyProofOffchain(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<boolean> {
+    const formatted = this.formatProof(proof);
+    const signals = this.encodePublicSignals(publicSignals);
+
+    const contract = new ethers.Contract(
+      verifierAddress,
+      [
+        "function verifyProof(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[] pubSignals) view returns (bool)",
+      ],
+      this.provider
+    );
+
+    return contract.verifyProof(
+      formatted.pA,
+      formatted.pB,
+      formatted.pC,
+      signals
+    );
+  }
+}
+
+/*//////////////////////////////////////////////////////////////
+                    EVM BLS12-381 ADAPTER
+//////////////////////////////////////////////////////////////*/
+
+export class EVMBLS12381Adapter implements ChainAdapter {
+  readonly chainType: ChainType = "evm";
+  readonly supportedCurve: CurveType = "bls12-381";
+
+  constructor(
+    public readonly chainId: number,
+    public readonly name: string,
+    private provider: Provider,
+    private signer?: Signer
+  ) {}
+
+  formatProof(proof: Groth16Proof): Uint8Array {
+    return toBytesBLS12381(proof);
+  }
+
+  encodePublicSignals(signals: bigint[]): Uint8Array {
+    const bytes = new Uint8Array(signals.length * 32);
+    for (let i = 0; i < signals.length; i++) {
+      const hex = signals[i].toString(16).padStart(64, "0");
+      for (let j = 0; j < 32; j++) {
+        bytes[i * 32 + j] = parseInt(hex.substr(j * 2, 2), 16);
+      }
+    }
+    return bytes;
+  }
+
+  async createVerificationTx(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<ethers.TransactionRequest> {
+    const proofBytes = this.formatProof(proof);
+    const signalsBytes = this.encodePublicSignals(publicSignals);
+
+    const iface = new ethers.Interface([
+      "function verifyProof(bytes proof, bytes publicInputs) view returns (bool)",
+    ]);
+
+    const data = iface.encodeFunctionData("verifyProof", [
+      ethers.hexlify(proofBytes),
+      ethers.hexlify(signalsBytes),
+    ]);
+
+    return {
+      to: verifierAddress,
+      data,
+    };
+  }
+
+  async submitProof(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<VerificationResult> {
+    if (!this.signer) {
+      throw new Error("Signer required for submitting proofs");
+    }
+
+    try {
+      const tx = await this.createVerificationTx(
+        proof,
+        publicSignals,
+        verifierAddress
+      );
+      const response = await this.signer.sendTransaction(tx);
+      const receipt = await response.wait();
+
+      return {
+        success: receipt!.status === 1,
+        txHash: receipt!.hash,
+        gasUsed: receipt!.gasUsed,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        txHash: "",
+        error: error.message,
+      };
+    }
+  }
+
+  async checkVerification(txHash: string): Promise<boolean> {
+    const receipt = await this.provider.getTransactionReceipt(txHash);
+    return receipt?.status === 1;
+  }
+
+  /**
+   * Check if EIP-2537 precompiles are available
+   */
+  async isEIP2537Supported(): Promise<boolean> {
+    try {
+      // Try calling G1ADD precompile with identity operation
+      const G1_ADD = "0x0a";
+      const identityPoint = "0x" + "00".repeat(96) + "00".repeat(96); // Two zero points
+
+      await this.provider.call({
+        to: G1_ADD,
+        data: identityPoint,
+      });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/*//////////////////////////////////////////////////////////////
+                      COSMOS ADAPTER
+//////////////////////////////////////////////////////////////*/
+
+export interface CosmosProofMessage {
+  typeUrl: string;
+  value: {
+    proof: string; // base64 encoded
+    publicInputs: string[]; // decimal strings
+    verifierModuleAddress: string;
+  };
+}
+
+export class CosmosChainAdapter implements ChainAdapter {
+  readonly chainType: ChainType = "cosmos";
+  readonly supportedCurve: CurveType = "bn254";
+
+  constructor(
+    public readonly chainId: string,
+    public readonly name: string,
+    private rpcEndpoint: string,
+    private signerAddress?: string
+  ) {}
+
+  formatProof(proof: Groth16Proof): string {
+    // Cosmos uses base64-encoded proof bytes
+    const bytes = toBytesBN254(proof);
+    return Buffer.from(bytes).toString("base64");
+  }
+
+  encodePublicSignals(signals: bigint[]): string[] {
+    return signals.map((s) => s.toString());
+  }
+
+  async createVerificationTx(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<CosmosProofMessage> {
+    return {
+      typeUrl: "/pil.zkverifier.v1.MsgVerifyProof",
+      value: {
+        proof: this.formatProof(proof),
+        publicInputs: this.encodePublicSignals(publicSignals),
+        verifierModuleAddress: verifierAddress,
+      },
+    };
+  }
+
+  async submitProof(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<VerificationResult> {
+    // Cosmos submission requires external signing library
+    // This is a placeholder for CosmJS integration
+    throw new Error(
+      "Cosmos proof submission requires CosmJS. Use createVerificationTx() and sign externally."
+    );
+  }
+
+  async checkVerification(txHash: string): Promise<boolean> {
+    // Query Cosmos RPC for transaction result
+    try {
+      const response = await fetch(`${this.rpcEndpoint}/tx?hash=0x${txHash}`);
+      const result = await response.json();
+      return result.result?.tx_result?.code === 0;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/*//////////////////////////////////////////////////////////////
+                     SUBSTRATE ADAPTER
+//////////////////////////////////////////////////////////////*/
+
+export interface SubstrateProofCall {
+  section: string;
+  method: string;
+  args: {
+    proof: string; // hex encoded
+    publicInputs: string[]; // hex encoded
+  };
+}
+
+export class SubstrateChainAdapter implements ChainAdapter {
+  readonly chainType: ChainType = "substrate";
+  readonly supportedCurve: CurveType = "bls12-377"; // Substrate commonly uses BLS12-377
+
+  constructor(
+    public readonly chainId: string,
+    public readonly name: string,
+    private wsEndpoint: string
+  ) {}
+
+  formatProof(proof: Groth16Proof): string {
+    // Substrate uses hex-encoded proof bytes
+    // Note: BLS12-377 has same structure as BLS12-381 but different modulus
+    const params = CURVE_PARAMS["bls12-377"];
+    const bytes = new Uint8Array(params.proofSize);
+
+    let offset = 0;
+    const coordSize = 48;
+
+    // A (96 bytes)
+    offset = this.writeCoord(bytes, offset, proof.pi_a.x, coordSize);
+    offset = this.writeCoord(bytes, offset, proof.pi_a.y, coordSize);
+
+    // B (192 bytes)
+    offset = this.writeCoord(bytes, offset, proof.pi_b.x[0], coordSize);
+    offset = this.writeCoord(bytes, offset, proof.pi_b.x[1], coordSize);
+    offset = this.writeCoord(bytes, offset, proof.pi_b.y[0], coordSize);
+    offset = this.writeCoord(bytes, offset, proof.pi_b.y[1], coordSize);
+
+    // C (96 bytes)
+    offset = this.writeCoord(bytes, offset, proof.pi_c.x, coordSize);
+    this.writeCoord(bytes, offset, proof.pi_c.y, coordSize);
+
+    return "0x" + Buffer.from(bytes).toString("hex");
+  }
+
+  private writeCoord(
+    bytes: Uint8Array,
+    offset: number,
+    value: bigint,
+    size: number
+  ): number {
+    const hex = value.toString(16).padStart(size * 2, "0");
+    for (let i = 0; i < size; i++) {
+      bytes[offset + i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return offset + size;
+  }
+
+  encodePublicSignals(signals: bigint[]): string[] {
+    return signals.map((s) => "0x" + s.toString(16).padStart(64, "0"));
+  }
+
+  async createVerificationTx(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<SubstrateProofCall> {
+    return {
+      section: "zkVerifier",
+      method: "verifyProof",
+      args: {
+        proof: this.formatProof(proof),
+        publicInputs: this.encodePublicSignals(publicSignals),
+      },
+    };
+  }
+
+  async submitProof(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddress: string
+  ): Promise<VerificationResult> {
+    // Substrate submission requires Polkadot.js API
+    throw new Error(
+      "Substrate proof submission requires Polkadot.js. Use createVerificationTx() and sign externally."
+    );
+  }
+
+  async checkVerification(txHash: string): Promise<boolean> {
+    // Query Substrate RPC for extrinsic result
+    // This is a placeholder
+    throw new Error("Not implemented - requires Polkadot.js API");
+  }
+}
+
+/*//////////////////////////////////////////////////////////////
+                      ADAPTER FACTORY
+//////////////////////////////////////////////////////////////*/
+
+export type AdapterConfig = {
+  chainType: ChainType;
+  chainId: number | string;
+  name: string;
+  rpcEndpoint: string;
+  signer?: any;
+};
+
+export function createChainAdapter(config: AdapterConfig): ChainAdapter {
+  switch (config.chainType) {
+    case "evm":
+      const provider = new ethers.JsonRpcProvider(config.rpcEndpoint);
+      return new EVMChainAdapter(
+        config.chainId as number,
+        config.name,
+        provider,
+        config.signer
+      );
+
+    case "cosmos":
+      return new CosmosChainAdapter(
+        config.chainId as string,
+        config.name,
+        config.rpcEndpoint
+      );
+
+    case "substrate":
+      return new SubstrateChainAdapter(
+        config.chainId as string,
+        config.name,
+        config.rpcEndpoint
+      );
+
+    default:
+      throw new Error(`Unsupported chain type: ${config.chainType}`);
+  }
+}
+
+/*//////////////////////////////////////////////////////////////
+                    MULTI-CHAIN MANAGER
+//////////////////////////////////////////////////////////////*/
+
+export class MultiChainProofManager {
+  private adapters: Map<string, ChainAdapter> = new Map();
+
+  registerAdapter(key: string, adapter: ChainAdapter): void {
+    this.adapters.set(key, adapter);
+  }
+
+  getAdapter(key: string): ChainAdapter {
+    const adapter = this.adapters.get(key);
+    if (!adapter) {
+      throw new Error(`No adapter registered for: ${key}`);
+    }
+    return adapter;
+  }
+
+  /**
+   * Submit proof to multiple chains
+   */
+  async submitToMultipleChains(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddresses: Record<string, string>
+  ): Promise<Record<string, VerificationResult>> {
+    const results: Record<string, VerificationResult> = {};
+
+    for (const [chainKey, verifierAddress] of Object.entries(
+      verifierAddresses
+    )) {
+      try {
+        const adapter = this.getAdapter(chainKey);
+        results[chainKey] = await adapter.submitProof(
+          proof,
+          publicSignals,
+          verifierAddress
+        );
+      } catch (error: any) {
+        results[chainKey] = {
+          success: false,
+          txHash: "",
+          error: error.message,
+        };
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Verify proof across multiple chains in parallel
+   */
+  async verifyAcrossChains(
+    proof: Groth16Proof,
+    publicSignals: bigint[],
+    verifierAddresses: Record<string, string>
+  ): Promise<Record<string, boolean>> {
+    const promises = Object.entries(verifierAddresses).map(
+      async ([chainKey, verifierAddress]) => {
+        const adapter = this.getAdapter(chainKey);
+        if (adapter instanceof EVMChainAdapter) {
+          const result = await adapter.verifyProofOffchain(
+            proof,
+            publicSignals,
+            verifierAddress
+          );
+          return [chainKey, result] as const;
+        }
+        // Non-EVM chains require actual submission
+        return [chainKey, false] as const;
+      }
+    );
+
+    const results = await Promise.all(promises);
+    return Object.fromEntries(results);
+  }
+}
+
+export default {
+  EVMChainAdapter,
+  EVMBLS12381Adapter,
+  CosmosChainAdapter,
+  SubstrateChainAdapter,
+  createChainAdapter,
+  MultiChainProofManager,
+};
