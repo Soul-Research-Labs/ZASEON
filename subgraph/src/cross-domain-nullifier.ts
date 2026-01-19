@@ -2,7 +2,7 @@ import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   NullifierConsumed,
   DomainRegistered,
-  CrossDomainNullifierRelayed,
+  CrossDomainLink,
 } from "../generated/CrossDomainNullifierAlgebra/CrossDomainNullifierAlgebra";
 import {
   NullifierConsumption,
@@ -36,10 +36,10 @@ function getOrCreateStats(): SystemStats {
 /**
  * Get or create domain entity
  */
-function getOrCreateDomain(domainId: BigInt): Domain {
-  let domain = Domain.load(domainId.toString());
+function getOrCreateDomain(domainId: Bytes): Domain {
+  let domain = Domain.load(domainId.toHexString());
   if (domain == null) {
-    domain = new Domain(domainId.toString());
+    domain = new Domain(domainId.toHexString());
     domain.name = "Unknown";
     domain.registeredAt = BigInt.fromI32(0);
     domain.blockNumber = BigInt.fromI32(0);
@@ -55,9 +55,9 @@ export function handleNullifierConsumed(event: NullifierConsumed): void {
   let nullifier = new NullifierConsumption(event.params.nullifier.toHexString());
   
   nullifier.nullifier = event.params.nullifier;
-  nullifier.domainId = event.params.domainId;
+  nullifier.domainId = BigInt.fromI32(0);
   nullifier.consumer = event.params.consumer;
-  nullifier.consumedAt = event.params.timestamp;
+  nullifier.consumedAt = event.block.timestamp;
   nullifier.blockNumber = event.block.number;
   nullifier.transactionHash = event.transaction.hash;
   nullifier.isRelayed = false;
@@ -82,7 +82,7 @@ export function handleNullifierConsumed(event: NullifierConsumed): void {
 export function handleDomainRegistered(event: DomainRegistered): void {
   let domain = getOrCreateDomain(event.params.domainId);
   
-  domain.name = event.params.name;
+  domain.name = event.params.chainId.toString();
   domain.registeredAt = event.block.timestamp;
   domain.blockNumber = event.block.number;
   
@@ -90,26 +90,26 @@ export function handleDomainRegistered(event: DomainRegistered): void {
 }
 
 /**
- * Handle CrossDomainNullifierRelayed event
+ * Handle CrossDomainLink event
  */
-export function handleCrossDomainNullifierRelayed(event: CrossDomainNullifierRelayed): void {
+export function handleCrossDomainLink(event: CrossDomainLink): void {
   // Update nullifier as relayed
-  let nullifier = NullifierConsumption.load(event.params.nullifier.toHexString());
+  let nullifier = NullifierConsumption.load(event.params.parentNullifier.toHexString());
   if (nullifier != null) {
     nullifier.isRelayed = true;
     nullifier.save();
   }
   
   // Create relay record
-  let relayId = event.params.nullifier.toHexString()
+  let relayId = event.params.parentNullifier.toHexString()
     .concat("-")
-    .concat(event.params.targetDomainId.toString());
+    .concat(event.block.timestamp.toString());
     
   let relay = new NullifierRelay(relayId);
   
-  relay.nullifier = event.params.nullifier.toHexString();
-  relay.sourceDomain = event.params.sourceDomainId;
-  relay.targetDomain = event.params.targetDomainId;
+  relay.nullifier = event.params.parentNullifier.toHexString();
+  relay.sourceDomain = BigInt.fromI32(0);
+  relay.targetDomain = BigInt.fromI32(0);
   relay.timestamp = event.block.timestamp;
   relay.blockNumber = event.block.number;
   

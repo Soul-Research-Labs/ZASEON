@@ -113,3 +113,13 @@ export function updateContractAddresses(chainId: number, addresses: Partial<Cont
   }
   Object.assign(CONTRACT_ADDRESSES[chainId], addresses);
 }
+
+// Default contracts export for static access (use useContracts hook in components for reactive updates)
+export const CONTRACTS = {
+  proofCarryingContainer: CONTRACT_ADDRESSES[31337].proofCarryingContainer || '',
+  policyBoundProofs: CONTRACT_ADDRESSES[31337].policyBoundProofs || '',
+  executionAgnosticStateCommitments: CONTRACT_ADDRESSES[31337].executionAgnosticStateCommitments || '',
+  crossDomainNullifierAlgebra: CONTRACT_ADDRESSES[31337].crossDomainNullifierAlgebra || '',
+  orchestrator: CONTRACT_ADDRESSES[31337].pilv2Orchestrator || '',
+  verifierRegistry: CONTRACT_ADDRESSES[31337].verifierRegistry || '',
+};

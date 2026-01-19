@@ -39,14 +39,16 @@ function getOrCreateStats(): SystemStats {
 /**
  * Get or create user entity
  */
-function getOrCreateUser(address: Bytes): User {
-  let user = User.load(address.toHexString());
+function getOrCreateUser(address: Bytes, timestamp: BigInt): User {
+  let userId = address.toHexString();
+  let user = User.load(userId);
   if (user == null) {
-    user = new User(address.toHexString());
+    user = new User(userId);
     user.totalOperations = BigInt.fromI32(0);
     user.successfulOperations = BigInt.fromI32(0);
     user.failedOperations = BigInt.fromI32(0);
     user.containersCreated = [];
+    user.firstOperationAt = timestamp;
     
     // Update stats
     let stats = getOrCreateStats();
@@ -57,6 +59,22 @@ function getOrCreateUser(address: Bytes): User {
 }
 
 /**
+ * Get or create policy entity
+ */
+function getOrCreatePolicy(policyHash: Bytes): Policy {
+  let policyId = policyHash.toHexString();
+  let policy = Policy.load(policyId);
+  if (policy == null) {
+    policy = new Policy(policyId);
+    policy.isActive = false;
+    policy.addedAt = BigInt.fromI32(0);
+    policy.blockNumber = BigInt.fromI32(0);
+    policy.transactionHash = Bytes.empty();
+  }
+  return policy;
+}
+
+/**
  * Handle ContainerCreated event
  */
 export function handleContainerCreated(event: ContainerCreated): void {
@@ -64,8 +82,13 @@ export function handleContainerCreated(event: ContainerCreated): void {
   
   container.stateCommitment = event.params.stateCommitment;
   container.nullifier = event.params.nullifier;
-  container.policyHash = event.params.policyHash;
-  container.chainId = BigInt.fromI32(event.params.chainId);
+  
+  // Always create policy and set reference
+  let policy = getOrCreatePolicy(event.params.policyHash);
+  policy.save();
+  container.policy = policy.id;
+  
+  container.chainId = event.params.chainId;
   container.createdAt = event.block.timestamp;
   container.blockNumber = event.block.number;
   container.transactionHash = event.transaction.hash;
@@ -76,13 +99,10 @@ export function handleContainerCreated(event: ContainerCreated): void {
   container.save();
   
   // Update user
-  let user = getOrCreateUser(event.transaction.from);
+  let user = getOrCreateUser(event.transaction.from, event.block.timestamp);
   let containers = user.containersCreated;
   containers.push(container.id);
   user.containersCreated = containers;
-  if (user.firstOperationAt == null) {
-    user.firstOperationAt = event.block.timestamp;
-  }
   user.lastOperationAt = event.block.timestamp;
   user.save();
   
@@ -148,7 +168,6 @@ export function handleContainerConsumed(event: ContainerConsumed): void {
   // Update stats
   let stats = getOrCreateStats();
   stats.totalConsumed = stats.totalConsumed.plus(BigInt.fromI32(1));
-  stats.totalNullifiers = stats.totalNullifiers.plus(BigInt.fromI32(1));
   stats.lastUpdated = event.block.timestamp;
   stats.save();
 }
@@ -157,7 +176,7 @@ export function handleContainerConsumed(event: ContainerConsumed): void {
  * Handle PolicyAdded event
  */
 export function handlePolicyAdded(event: PolicyAdded): void {
-  let policy = new Policy(event.params.policyHash.toHexString());
+  let policy = getOrCreatePolicy(event.params.policyHash);
   
   policy.isActive = true;
   policy.addedAt = event.block.timestamp;

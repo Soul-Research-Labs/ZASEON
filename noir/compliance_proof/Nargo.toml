@@ -1,0 +1,8 @@
+[package]
+name = "compliance_proof"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Privacy-preserving KYC/AML compliance verification"
+
+[dependencies]

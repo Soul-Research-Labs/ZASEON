@@ -54,12 +54,12 @@ dataSources:
         - name: PolicyBoundProofs
           file: ./abis/PolicyBoundProofs.json
       eventHandlers:
-        - event: PolicyCreated(indexed bytes32,indexed bytes32,address,uint256)
-          handler: handlePolicyCreated
+        - event: PolicyRegistered(indexed bytes32,indexed bytes32,string)
+          handler: handlePolicyRegistered
         - event: PolicyDeactivated(indexed bytes32)
           handler: handlePolicyDeactivated
-        - event: ComplianceVerified(indexed bytes32,indexed address,bool)
-          handler: handleComplianceVerified
+        - event: ProofVerified(indexed bytes32,indexed bytes32,indexed address,bool)
+          handler: handleProofVerified
       file: ./src/policy-bound-proofs.ts
 
   # ExecutionAgnosticStateCommitments (EASC)
@@ -81,10 +81,10 @@ dataSources:
         - name: ExecutionAgnosticStateCommitments
           file: ./abis/ExecutionAgnosticStateCommitments.json
       eventHandlers:
-        - event: CommitmentCreated(indexed bytes32,indexed bytes32,indexed bytes32,address)
+        - event: CommitmentCreated(indexed bytes32,indexed bytes32,bytes32,indexed address)
           handler: handleCommitmentCreated
-        - event: StateTransitionRecorded(indexed bytes32,bytes32,bytes32,uint256)
-          handler: handleStateTransitionRecorded
+        - event: CommitmentFinalized(indexed bytes32,uint32)
+          handler: handleCommitmentFinalized
       file: ./src/state-commitments.ts
 
   # CrossDomainNullifierAlgebra (CDNA)
@@ -106,12 +106,12 @@ dataSources:
         - name: CrossDomainNullifierAlgebra
           file: ./abis/CrossDomainNullifierAlgebra.json
       eventHandlers:
-        - event: NullifierConsumed(indexed bytes32,indexed uint256,indexed address,uint256)
+        - event: NullifierConsumed(indexed bytes32,indexed bytes32,indexed address)
           handler: handleNullifierConsumed
-        - event: DomainRegistered(indexed uint256,string)
+        - event: DomainRegistered(indexed bytes32,indexed uint64,indexed bytes32,bytes32)
           handler: handleDomainRegistered
-        - event: CrossDomainNullifierRelayed(indexed bytes32,indexed uint256,indexed uint256)
-          handler: handleCrossDomainNullifierRelayed
+        - event: CrossDomainLink(indexed bytes32,indexed bytes32,indexed bytes32,bytes32)
+          handler: handleCrossDomainLink
       file: ./src/cross-domain-nullifier.ts
 
   # PILv2Orchestrator
@@ -134,10 +134,48 @@ dataSources:
         - name: PILv2Orchestrator
           file: ./abis/PILv2Orchestrator.json
       eventHandlers:
-        - event: OperationExecuted(indexed bytes32,indexed address,bool,string)
-          handler: handleOperationExecuted
-        - event: PrimitiveUpdated(indexed bytes32,indexed address,indexed address)
-          handler: handlePrimitiveUpdated
-        - event: PrimitiveStatusChanged(indexed bytes32,bool)
-          handler: handlePrimitiveStatusChanged
+        - event: CoordinatedTransitionCreated(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleCoordinatedTransitionCreated
+        - event: CoordinatedTransitionCompleted(indexed bytes32)
+          handler: handleCoordinatedTransitionCompleted
+        - event: CrossChainTransferInitiated(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleCrossChainTransferInitiated
       file: ./src/orchestrator.ts
+
+  # ZKBoundStateLocks (ZK-SLocks)
+  - kind: ethereum
+    name: ZKBoundStateLocks
+    network: sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ZKBoundStateLocks
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ZKSLock
+        - ZKSLockDomain
+        - ZKSLockOptimisticUnlock
+        - ZKSLockUnlockReceipt
+        - ZKSLockStats
+      abis:
+        - name: ZKBoundStateLocks
+          file: ./abis/ZKBoundStateLocks.json
+      eventHandlers:
+        - event: LockCreated(indexed bytes32,indexed bytes32,bytes32,bytes32,bytes32,indexed address,uint64)
+          handler: handleLockCreated
+        - event: LockUnlocked(indexed bytes32,indexed bytes32,bytes32,indexed bytes32,address)
+          handler: handleLockUnlocked
+        - event: OptimisticUnlockInitiated(indexed bytes32,indexed address,uint256,uint64)
+          handler: handleOptimisticUnlockInitiated
+        - event: OptimisticUnlockFinalized(indexed bytes32,indexed address)
+          handler: handleOptimisticUnlockFinalized
+        - event: LockDisputed(indexed bytes32,indexed address,bytes32,uint256)
+          handler: handleLockDisputed
+        - event: DomainRegistered(indexed bytes32,uint16,uint16,uint32,string)
+          handler: handleDomainRegistered
+        - event: VerifierRegistered(indexed bytes32,indexed address)
+          handler: handleVerifierRegistered
+      file: ./src/zk-bound-state-locks.ts

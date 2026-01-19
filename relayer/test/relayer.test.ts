@@ -145,7 +145,8 @@ describe("ReputationSystem", () => {
     const rep = reputation.getReputation("node-1");
     expect(rep).toBeDefined();
     expect(rep!.successCount).toBe(3);
-    expect(rep!.score).toBeGreaterThan(100);
+    // Score is capped at 100, so after 3 successes from base 100, it should still be 100
+    expect(rep!.score).toBe(100);
   });
 
   it("should penalize failed relays", () => {

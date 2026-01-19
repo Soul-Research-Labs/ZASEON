@@ -105,6 +105,24 @@ export class RelayerService {
     return `packet-${Date.now()}`;
   }
 
+  async queuePacket(packet: Packet): Promise<void> {
+    // Validate packet before queuing
+    if (!packet.encryptedState || packet.encryptedState.length === 0) {
+      throw new Error("Invalid packet: empty encryptedState");
+    }
+    if (!packet.sourceChain || !packet.destChain) {
+      throw new Error("Invalid packet: missing chain info");
+    }
+    if (!packet.proof) {
+      throw new Error("Invalid packet: missing proof");
+    }
+    this.pendingPackets.push(packet);
+  }
+
+  getPendingPackets(): Packet[] {
+    return [...this.pendingPackets];
+  }
+
   private async processPendingPackets() {
     if (this.pendingPackets.length === 0) return;
     const packet = this.pendingPackets.shift()!;

@@ -1,13 +1,12 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
-  OperationExecuted,
-  PrimitiveUpdated,
-  PrimitiveStatusChanged,
+  CoordinatedTransitionCreated,
+  CoordinatedTransitionCompleted,
+  CrossChainTransferInitiated,
 } from "../generated/PILv2Orchestrator/PILv2Orchestrator";
 import {
   Operation,
   User,
-  PrimitiveStatus,
   SystemStats,
 } from "../generated/schema";
 
@@ -36,14 +35,16 @@ function getOrCreateStats(): SystemStats {
 /**
  * Get or create user entity
  */
-function getOrCreateUser(address: Bytes): User {
-  let user = User.load(address.toHexString());
+function getOrCreateUser(address: Bytes, timestamp: BigInt): User {
+  let userId = address.toHexString();
+  let user = User.load(userId);
   if (user == null) {
-    user = new User(address.toHexString());
+    user = new User(userId);
     user.totalOperations = BigInt.fromI32(0);
     user.successfulOperations = BigInt.fromI32(0);
     user.failedOperations = BigInt.fromI32(0);
     user.containersCreated = [];
+    user.firstOperationAt = timestamp;
     
     // Update stats
     let stats = getOrCreateStats();
@@ -54,17 +55,17 @@ function getOrCreateUser(address: Bytes): User {
 }
 
 /**
- * Handle OperationExecuted event
+ * Handle CoordinatedTransitionCreated event
  */
-export function handleOperationExecuted(event: OperationExecuted): void {
-  let operation = new Operation(event.params.operationId.toHexString());
+export function handleCoordinatedTransitionCreated(event: CoordinatedTransitionCreated): void {
+  let operation = new Operation(event.params.transitionId.toHexString());
   
-  // Get or create user
-  let user = getOrCreateUser(event.params.user);
+  // Get or create user from transaction sender
+  let user = getOrCreateUser(event.transaction.from, event.block.timestamp);
   
   operation.user = user.id;
-  operation.success = event.params.success;
-  operation.message = event.params.message;
+  operation.success = true;
+  operation.message = "Coordinated transition created";
   operation.timestamp = event.block.timestamp;
   operation.blockNumber = event.block.number;
   operation.transactionHash = event.transaction.hash;
@@ -73,83 +74,63 @@ export function handleOperationExecuted(event: OperationExecuted): void {
   
   // Update user stats
   user.totalOperations = user.totalOperations.plus(BigInt.fromI32(1));
-  if (event.params.success) {
-    user.successfulOperations = user.successfulOperations.plus(BigInt.fromI32(1));
-  } else {
-    user.failedOperations = user.failedOperations.plus(BigInt.fromI32(1));
-  }
-  if (user.firstOperationAt == null) {
-    user.firstOperationAt = event.block.timestamp;
-  }
+  user.successfulOperations = user.successfulOperations.plus(BigInt.fromI32(1));
   user.lastOperationAt = event.block.timestamp;
   user.save();
   
   // Update global stats
   let stats = getOrCreateStats();
   stats.totalOperations = stats.totalOperations.plus(BigInt.fromI32(1));
-  if (event.params.success) {
-    stats.successfulOperations = stats.successfulOperations.plus(BigInt.fromI32(1));
-  }
+  stats.successfulOperations = stats.successfulOperations.plus(BigInt.fromI32(1));
   stats.lastUpdated = event.block.timestamp;
   stats.save();
 }
 
 /**
- * Handle PrimitiveUpdated event
+ * Handle CoordinatedTransitionCompleted event
  */
-export function handlePrimitiveUpdated(event: PrimitiveUpdated): void {
-  let primitive = PrimitiveStatus.load(event.params.primitiveId.toHexString());
-  if (primitive == null) {
-    primitive = new PrimitiveStatus(event.params.primitiveId.toHexString());
-    primitive.name = getPrimitiveName(event.params.primitiveId);
-    primitive.isActive = true;
+export function handleCoordinatedTransitionCompleted(event: CoordinatedTransitionCompleted): void {
+  let operation = Operation.load(event.params.transitionId.toHexString());
+  if (operation == null) {
+    return;
   }
   
-  primitive.contractAddress = event.params.newAddress;
-  primitive.lastUpdated = event.block.timestamp;
-  
-  primitive.save();
+  operation.message = "Coordinated transition completed";
+  operation.save();
 }
 
 /**
- * Handle PrimitiveStatusChanged event
+ * Handle CrossChainTransferInitiated event
  */
-export function handlePrimitiveStatusChanged(event: PrimitiveStatusChanged): void {
-  let primitive = PrimitiveStatus.load(event.params.primitiveId.toHexString());
-  if (primitive == null) {
-    primitive = new PrimitiveStatus(event.params.primitiveId.toHexString());
-    primitive.name = getPrimitiveName(event.params.primitiveId);
-    primitive.contractAddress = Bytes.fromHexString("0x0000000000000000000000000000000000000000");
-  }
+export function handleCrossChainTransferInitiated(event: CrossChainTransferInitiated): void {
+  let operationId = event.params.containerId.toHexString()
+    .concat("-")
+    .concat(event.block.timestamp.toString());
+    
+  let operation = new Operation(operationId);
   
-  primitive.isActive = event.params.active;
-  primitive.lastUpdated = event.block.timestamp;
+  // Get or create user from transaction sender
+  let user = getOrCreateUser(event.transaction.from, event.block.timestamp);
   
-  primitive.save();
-}
-
-/**
- * Get primitive name from ID
- */
-function getPrimitiveName(primitiveId: Bytes): string {
-  // These are keccak256 hashes of the primitive names
-  // PC3 = keccak256("PC3")
-  // PBP = keccak256("PBP")
-  // EASC = keccak256("EASC")
-  // CDNA = keccak256("CDNA")
+  operation.user = user.id;
+  operation.success = true;
+  operation.message = "Cross-chain transfer initiated";
+  operation.timestamp = event.block.timestamp;
+  operation.blockNumber = event.block.number;
+  operation.transactionHash = event.transaction.hash;
   
-  let id = primitiveId.toHexString();
+  operation.save();
   
-  // Using first 8 chars to identify
-  if (id.startsWith("0x8d8f")) {
-    return "PC3";
-  } else if (id.startsWith("0x5f3e")) {
-    return "PBP";
-  } else if (id.startsWith("0x6e7a")) {
-    return "EASC";
-  } else if (id.startsWith("0x4c12")) {
-    return "CDNA";
-  }
+  // Update user stats
+  user.totalOperations = user.totalOperations.plus(BigInt.fromI32(1));
+  user.successfulOperations = user.successfulOperations.plus(BigInt.fromI32(1));
+  user.lastOperationAt = event.block.timestamp;
+  user.save();
   
-  return "Unknown";
+  // Update global stats
+  let stats = getOrCreateStats();
+  stats.totalOperations = stats.totalOperations.plus(BigInt.fromI32(1));
+  stats.successfulOperations = stats.successfulOperations.plus(BigInt.fromI32(1));
+  stats.lastUpdated = event.block.timestamp;
+  stats.save();
 }

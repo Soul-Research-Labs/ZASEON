@@ -5,6 +5,13 @@
 
 import { ethers, Contract, Signer, Provider } from "ethers";
 
+/**
+ * Helper to check if a value is a Signer (duck typing for ethers v6)
+ */
+function isSigner(value: any): value is Signer {
+  return value && typeof value.getAddress === 'function' && typeof value.signMessage === 'function';
+}
+
 /*//////////////////////////////////////////////////////////////
                         SHARED TYPES
 //////////////////////////////////////////////////////////////*/
@@ -105,7 +112,7 @@ export class ProofCarryingContainerClient {
       abi || defaultABI,
       providerOrSigner
     );
-    this.signer = Signer.isSigner(providerOrSigner) ? providerOrSigner : null;
+    this.signer = isSigner(providerOrSigner) ? providerOrSigner : null;
   }
 
   /**
@@ -307,7 +314,7 @@ export class PolicyBoundProofsClient {
       abi || defaultABI,
       providerOrSigner
     );
-    this.signer = Signer.isSigner(providerOrSigner) ? providerOrSigner : null;
+    this.signer = isSigner(providerOrSigner) ? providerOrSigner : null;
   }
 
   /**
@@ -512,7 +519,7 @@ export class ExecutionAgnosticStateCommitmentsClient {
       abi || defaultABI,
       providerOrSigner
     );
-    this.signer = Signer.isSigner(providerOrSigner) ? providerOrSigner : null;
+    this.signer = isSigner(providerOrSigner) ? providerOrSigner : null;
   }
 
   /**
@@ -724,7 +731,7 @@ export class CrossDomainNullifierAlgebraClient {
       abi || defaultABI,
       providerOrSigner
     );
-    this.signer = Signer.isSigner(providerOrSigner) ? providerOrSigner : null;
+    this.signer = isSigner(providerOrSigner) ? providerOrSigner : null;
   }
 
   /**

@@ -1,0 +1,8 @@
+[package]
+name = "nullifier"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Cross-Domain Nullifier Circuit (CDNA) - proves nullifier derivation for double-spend prevention"
+
+[dependencies]

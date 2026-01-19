@@ -1,0 +1,8 @@
+[package]
+name = "merkle_proof"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Optimized Merkle tree inclusion proof for nullifier registry using Poseidon hashing"
+
+[dependencies]

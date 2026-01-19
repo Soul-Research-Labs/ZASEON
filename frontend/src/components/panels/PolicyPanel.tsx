@@ -37,7 +37,7 @@ export default function PolicyPanel() {
         policyType,
         BigInt(threshold || '0'),
         true, // active
-        Math.floor(Date.now() / 1000) + 86400 * 365, // 1 year expiry
+        BigInt(Math.floor(Date.now() / 1000) + 86400 * 365), // 1 year expiry
       ],
     });
   };

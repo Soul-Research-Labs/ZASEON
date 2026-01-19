@@ -1,25 +1,35 @@
 # Echidna Configuration for PIL v2 Extensive Fuzzing
-# Run individual contracts:
-#   echidna . --contract EchidnaPC3 --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaPBP --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaEASC --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaCDNA --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaTimelock --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaVerifierRegistry --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaOrchestrator --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaVerifiers --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaAtomicSwap --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaCompliance --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaCrossChainHub --config test/fuzzing/echidna.config.yaml
-#   echidna . --contract EchidnaIntegration --config test/fuzzing/echidna.config.yaml
+#
+# ================== BASIC CONTRACTS ==================
+# echidna . --contract EchidnaPC3 --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaPBP --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaEASC --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaCDNA --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaTimelock --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaVerifierRegistry --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaOrchestrator --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaVerifiers --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaAtomicSwap --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaCompliance --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaCrossChainHub --config test/fuzzing/echidna.config.yaml
+# echidna . --contract EchidnaIntegration --config test/fuzzing/echidna.config.yaml
+#
+# ================== SECURITY VULNERABILITY TESTS ==================
+# echidna . --contract SecurityVulnerabilityTests --config test/fuzzing/echidna.config.yaml
+#
+# ================== ADVANCED FUZZING HARNESSES ==================
+# echidna . --contract AdvancedFuzzingHarness --config test/fuzzing/echidna.config.yaml
+#
+# ================== CHAOS ENGINEERING ==================
+# echidna . --contract ChaosEngineeringTests --config test/fuzzing/echidna.config.yaml
 
 # Test configuration - aggressive settings for extensive fuzzing
 testMode: assertion
-testLimit: 100000      # Increased from 50000
-seqLen: 150            # Increased from 100 for longer sequences
+testLimit: 200000      # Increased from 100000 for deeper exploration
+seqLen: 200            # Increased from 150 for longer sequences
 
 # Shrinking - more aggressive shrinking
-shrinkLimit: 10000     # Increased from 5000
+shrinkLimit: 15000     # Increased from 10000
 
 # Contract deployment - multiple senders for better coverage
 deployer: "0x10000"

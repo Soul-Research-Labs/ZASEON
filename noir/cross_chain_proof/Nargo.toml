@@ -1,0 +1,8 @@
+[package]
+name = "cross_chain_proof"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Optimized circuit for cross-chain proof relay"
+
+[dependencies]

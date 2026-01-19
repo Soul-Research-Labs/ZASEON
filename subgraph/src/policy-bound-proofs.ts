@@ -1,8 +1,8 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
-  PolicyCreated,
+  PolicyRegistered,
   PolicyDeactivated,
-  ComplianceVerified,
+  ProofVerified,
 } from "../generated/PolicyBoundProofs/PolicyBoundProofs";
 import { PolicyDefinition, ComplianceProof, SystemStats } from "../generated/schema";
 
@@ -29,14 +29,14 @@ function getOrCreateStats(): SystemStats {
 }
 
 /**
- * Handle PolicyCreated event
+ * Handle PolicyRegistered event
  */
-export function handlePolicyCreated(event: PolicyCreated): void {
+export function handlePolicyRegistered(event: PolicyRegistered): void {
   let policy = new PolicyDefinition(event.params.policyId.toHexString());
   
-  policy.policyType = event.params.policyType;
-  policy.creator = event.params.creator;
-  policy.threshold = event.params.threshold;
+  policy.policyType = event.params.policyHash;
+  policy.creator = Bytes.empty();
+  policy.threshold = BigInt.fromI32(0);
   policy.isActive = true;
   policy.createdAt = event.block.timestamp;
   policy.blockNumber = event.block.number;
@@ -71,20 +71,20 @@ export function handlePolicyDeactivated(event: PolicyDeactivated): void {
 }
 
 /**
- * Handle ComplianceVerified event
+ * Handle ProofVerified event
  */
-export function handleComplianceVerified(event: ComplianceVerified): void {
-  let proofId = event.params.policyId.toHexString()
+export function handleProofVerified(event: ProofVerified): void {
+  let proofId = event.params.proofHash.toHexString()
     .concat("-")
-    .concat(event.params.subject.toHexString())
+    .concat(event.params.verifier.toHexString())
     .concat("-")
     .concat(event.block.timestamp.toString());
     
   let proof = new ComplianceProof(proofId);
   
-  proof.policy = event.params.policyId.toHexString();
-  proof.subject = event.params.subject;
-  proof.compliant = event.params.compliant;
+  proof.policy = event.params.policyHash.toHexString();
+  proof.subject = event.params.verifier;
+  proof.compliant = event.params.success;
   proof.timestamp = event.block.timestamp;
   proof.blockNumber = event.block.number;
   

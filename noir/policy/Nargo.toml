@@ -1,0 +1,8 @@
+[package]
+name = "policy"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Policy Compliance Circuit - proves user complies with policy without revealing actual data"
+
+[dependencies]

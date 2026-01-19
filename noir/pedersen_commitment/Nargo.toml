@@ -1,0 +1,8 @@
+[package]
+name = "pedersen_commitment"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "State commitment using Pedersen hash for hiding property"
+
+[dependencies]

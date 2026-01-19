@@ -1,7 +1,7 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   CommitmentCreated,
-  StateTransitionRecorded,
+  CommitmentFinalized,
 } from "../generated/ExecutionAgnosticStateCommitments/ExecutionAgnosticStateCommitments";
 import { StateCommitment, StateTransition, SystemStats } from "../generated/schema";
 
@@ -33,8 +33,8 @@ function getOrCreateStats(): SystemStats {
 export function handleCommitmentCreated(event: CommitmentCreated): void {
   let commitment = new StateCommitment(event.params.commitmentId.toHexString());
   
-  commitment.stateRoot = event.params.stateRoot;
-  commitment.executionEnvHash = event.params.executionEnvHash;
+  commitment.stateRoot = event.params.stateHash;
+  commitment.executionEnvHash = event.params.nullifier;
   commitment.creator = event.params.creator;
   commitment.createdAt = event.block.timestamp;
   commitment.lastUpdated = event.block.timestamp;
@@ -51,33 +51,15 @@ export function handleCommitmentCreated(event: CommitmentCreated): void {
 }
 
 /**
- * Handle StateTransitionRecorded event
+ * Handle CommitmentFinalized event
  */
-export function handleStateTransitionRecorded(event: StateTransitionRecorded): void {
+export function handleCommitmentFinalized(event: CommitmentFinalized): void {
   let commitment = StateCommitment.load(event.params.commitmentId.toHexString());
   if (commitment == null) {
     return;
   }
   
-  // Create transition record
-  let transitionId = event.params.commitmentId.toHexString()
-    .concat("-")
-    .concat(event.params.transitionIndex.toString());
-    
-  let transition = new StateTransition(transitionId);
-  
-  transition.commitment = commitment.id;
-  transition.previousRoot = event.params.previousRoot;
-  transition.newRoot = event.params.newRoot;
-  transition.index = event.params.transitionIndex;
-  transition.timestamp = event.block.timestamp;
-  transition.blockNumber = event.block.number;
-  
-  transition.save();
-  
-  // Update commitment
-  commitment.stateRoot = event.params.newRoot;
   commitment.lastUpdated = event.block.timestamp;
-  commitment.transitionCount = commitment.transitionCount.plus(BigInt.fromI32(1));
+  commitment.transitionCount = event.params.attestationCount;
   commitment.save();
 }

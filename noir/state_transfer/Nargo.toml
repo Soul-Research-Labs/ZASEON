@@ -1,0 +1,8 @@
+[package]
+name = "state_transfer"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=1.0.0"
+description = "Optimized circuit for proving valid state ownership transfer"
+
+[dependencies]

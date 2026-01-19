@@ -110,6 +110,21 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Accumulated fees
     uint256 public accumulatedFees;
 
+    /// @notice Circuit breaker: max proofs per hour to prevent mass exploitation
+    uint256 public maxProofsPerHour = 1000;
+
+    /// @notice Circuit breaker: max value per hour
+    uint256 public maxValuePerHour = 1000 ether;
+
+    /// @notice Hourly proof counter
+    uint256 public hourlyProofCount;
+
+    /// @notice Hourly value counter
+    uint256 public hourlyValueRelayed;
+
+    /// @notice Last reset timestamp
+    uint256 public lastRateLimitReset;
+
     /// @notice Fee per proof submission (in wei)
     uint256 public proofSubmissionFee = 0.001 ether;
 
@@ -121,6 +136,9 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Relayer slashed count
     mapping(address => uint256) public relayerSlashCount;
+
+    /// @notice Relayer pending proof count (TOCTOU protection)
+    mapping(address => uint256) public relayerPendingProofs;
 
     /// @notice This chain's ID
     uint256 public immutable CHAIN_ID;
@@ -212,17 +230,39 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Minimum required roles for security-critical operations
+    uint256 public constant MIN_ADMIN_THRESHOLD = 2;
+
+    /// @notice Role separation warning flag - must be resolved before mainnet
+    bool public rolesSeparated = false;
+
     constructor() {
         CHAIN_ID = block.chainid;
 
+        // SECURITY: Only grant admin role to deployer
+        // Other roles MUST be assigned to separate addresses before mainnet
+        // This prevents Ronin-style single point of failure
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(RELAYER_ROLE, msg.sender);
-        _grantRole(VERIFIER_ADMIN_ROLE, msg.sender);
-        _grantRole(CHALLENGER_ROLE, msg.sender);
+
+        // CRITICAL: Do NOT auto-grant RELAYER_ROLE, CHALLENGER_ROLE to admin
+        // These must be assigned to independent parties
+        // Deployer only gets emergency powers initially
         _grantRole(EMERGENCY_ROLE, msg.sender);
 
         // Add this chain as supported
         supportedChains[block.chainid] = true;
+    }
+
+    /// @notice Mark roles as properly separated (must be called before enabling full operations)
+    /// @dev Prevents accidental mainnet deployment with centralized control
+    function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Verify critical roles are NOT held by admin
+        require(!hasRole(RELAYER_ROLE, msg.sender), "Admin cannot be relayer");
+        require(
+            !hasRole(CHALLENGER_ROLE, msg.sender),
+            "Admin cannot be challenger"
+        );
+        rolesSeparated = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -237,9 +277,18 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Withdraws relayer stake
     /// @param amount Amount to withdraw
+    /// @dev Includes TOCTOU protection: cannot withdraw while proofs are pending
     function withdrawStake(uint256 amount) external nonReentrant {
         if (relayerStakes[msg.sender] < amount)
             revert InsufficientStake(relayerStakes[msg.sender], amount);
+
+        // TOCTOU protection: ensure relayer has no pending proofs
+        // that could be challenged after stake is withdrawn
+        uint256 pendingCount = relayerPendingProofs[msg.sender];
+        uint256 remainingStake = relayerStakes[msg.sender] - amount;
+        if (pendingCount > 0 && remainingStake < minRelayerStake) {
+            revert InsufficientStake(remainingStake, minRelayerStake);
+        }
 
         relayerStakes[msg.sender] -= amount;
 
@@ -267,6 +316,11 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
         uint64 sourceChainId,
         uint64 destChainId
     ) external payable nonReentrant whenNotPaused returns (bytes32 proofId) {
+        // SECURITY: Require role separation before accepting proofs
+        // Prevents Ronin-style centralized validator attacks
+        require(rolesSeparated, "Roles not separated - unsafe for mainnet");
+        require(hasRole(RELAYER_ROLE, msg.sender), "Not authorized relayer");
+
         return
             _submitProof(
                 proof,
@@ -505,6 +559,13 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
             }
             relayerSlashCount[submission.relayer]++;
 
+            // Decrement pending proofs for TOCTOU protection
+            if (relayerPendingProofs[submission.relayer] > 0) {
+                unchecked {
+                    --relayerPendingProofs[submission.relayer];
+                }
+            }
+
             // Cache challenger address before external call (CEI pattern)
             address challengerAddr = challenge.challenger;
             uint256 reward = challenge.stake + slashAmount;
@@ -548,12 +609,21 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
         submission.status = ProofStatus.Finalized;
         relayerSuccessCount[submission.relayer]++;
 
+        // Decrement pending proofs for TOCTOU protection
+        if (relayerPendingProofs[submission.relayer] > 0) {
+            unchecked {
+                --relayerPendingProofs[submission.relayer];
+            }
+        }
+
         emit ProofFinalized(proofId);
     }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    error RateLimitExceeded(string reason);
 
     function _submitProof(
         bytes calldata proof,
@@ -563,6 +633,21 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
         uint64 destChainId,
         bool instant
     ) internal returns (bytes32 proofId) {
+        // CIRCUIT BREAKER: Reset hourly counters if an hour has passed
+        if (block.timestamp >= lastRateLimitReset + 1 hours) {
+            hourlyProofCount = 0;
+            hourlyValueRelayed = 0;
+            lastRateLimitReset = block.timestamp;
+        }
+
+        // CIRCUIT BREAKER: Check rate limits (prevents Ronin/Nomad-style mass drainage)
+        if (hourlyProofCount >= maxProofsPerHour) {
+            revert RateLimitExceeded("Max proofs per hour exceeded");
+        }
+        unchecked {
+            ++hourlyProofCount;
+        }
+
         // Validate fee
         uint256 requiredFee = instant
             ? proofSubmissionFee * 3
@@ -605,7 +690,9 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
             stake: minRelayerStake
         });
 
+        // Track pending proofs for TOCTOU protection
         unchecked {
+            ++relayerPendingProofs[msg.sender];
             ++totalProofs;
         }
         accumulatedFees += msg.value;
@@ -737,6 +824,17 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
         uint256 _fee
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         proofSubmissionFee = _fee;
+    }
+
+    /// @notice Updates circuit breaker limits (admin only)
+    /// @param _maxProofsPerHour Maximum proofs per hour
+    /// @param _maxValuePerHour Maximum value per hour
+    function setRateLimits(
+        uint256 _maxProofsPerHour,
+        uint256 _maxValuePerHour
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        maxProofsPerHour = _maxProofsPerHour;
+        maxValuePerHour = _maxValuePerHour;
     }
 
     /// @notice Withdraws accumulated fees\n    /// @param to Recipient address\n    /// @dev Uses nonReentrant to prevent race condition\n    function withdrawFees(address to) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {\n        uint256 amount = accumulatedFees;\n        if (amount == 0) revert WithdrawFailed();\n        \n        // CEI pattern: clear state before external call\n        accumulatedFees = 0;\n        \n        (bool success, ) = to.call{value: amount}(\"\");\n        if (!success) revert WithdrawFailed();\n    }\n\n    /// @notice Pauses the contract
