@@ -103,6 +103,18 @@ contract ConfidentialStateContainerV3 is
     /// @notice Nonce for signature replay prevention
     mapping(address => uint256) public nonces;
 
+    /// @notice EIP-712 domain separator (includes chain ID for replay protection)
+    bytes32 public immutable DOMAIN_SEPARATOR;
+
+    /// @notice EIP-712 type hash for state registration
+    bytes32 public constant REGISTER_STATE_TYPEHASH =
+        keccak256(
+            "RegisterState(bytes32 commitment,bytes32 nullifier,address owner,uint256 nonce,uint256 deadline,uint256 chainId)"
+        );
+
+    /// @notice Chain ID for this deployment (immutable for gas savings)
+    uint256 public immutable CHAIN_ID;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -179,6 +191,20 @@ contract ConfidentialStateContainerV3 is
         if (_verifier == address(0)) revert ZeroAddress();
 
         verifier = IProofVerifier(_verifier);
+
+        // Initialize chain ID and EIP-712 domain separator
+        CHAIN_ID = block.chainid;
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256("ConfidentialStateContainer"),
+                keccak256("3"),
+                block.chainid,
+                address(this)
+            )
+        );
 
         // Pack config: proofValidityWindow | maxStateSize
         _packedConfig =
@@ -295,20 +321,26 @@ contract ConfidentialStateContainerV3 is
     ) external nonReentrant whenNotPaused {
         if (block.timestamp > deadline) revert SignatureExpired();
 
+        // Verify chain ID matches to prevent cross-chain replay
+        if (block.chainid != CHAIN_ID) revert InvalidSignature();
+
+        // EIP-712 compliant struct hash with chain ID
         bytes32 structHash = keccak256(
             abi.encode(
-                keccak256(
-                    "RegisterState(bytes32 commitment,bytes32 nullifier,address owner,uint256 nonce,uint256 deadline)"
-                ),
+                REGISTER_STATE_TYPEHASH,
                 commitment,
                 nullifier,
                 owner,
                 nonces[owner]++,
-                deadline
+                deadline,
+                block.chainid
             )
         );
 
-        bytes32 digest = structHash.toEthSignedMessageHash();
+        // Create EIP-712 digest
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
         address signer = digest.recover(signature);
 
         if (signer != owner) revert InvalidSignature();
@@ -652,9 +684,12 @@ contract ConfidentialStateContainerV3 is
         state.status = StateStatus.Frozen;
         state.updatedAt = uint48(block.timestamp);
 
-        // Decrement active states (lower 128 bits)
-        unchecked {
-            --_packedCounters;
+        // Decrement active states (lower 128 bits) with underflow protection
+        uint128 activeCount = uint128(_packedCounters);
+        if (activeCount > 0) {
+            unchecked {
+                --_packedCounters;
+            }
         }
 
         emit StateStatusChanged(commitment, oldStatus, StateStatus.Frozen);

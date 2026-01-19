@@ -505,14 +505,14 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
             }
             relayerSlashCount[submission.relayer]++;
 
+            // Cache challenger address before external call (CEI pattern)
+            address challengerAddr = challenge.challenger;
             uint256 reward = challenge.stake + slashAmount;
-            (bool success, ) = challenge.challenger.call{value: reward}("");
-            if (!success) {
-                // If transfer fails, add to their "claimable" balance
-                relayerStakes[challenge.challenger] += reward;
-            }
 
-            emit ChallengeResolved(proofId, true, challenge.challenger, reward);
+            // Credit rewards to claimable balance (pull pattern - safer than push)
+            relayerStakes[challengerAddr] += reward;
+
+            emit ChallengeResolved(proofId, true, challengerAddr, reward);
             emit ProofRejected(proofId, challenge.reason);
         }
     }
@@ -739,16 +739,7 @@ contract CrossChainProofHubV3 is AccessControl, ReentrancyGuard, Pausable {
         proofSubmissionFee = _fee;
     }
 
-    /// @notice Withdraws accumulated fees
-    /// @param to Recipient address
-    function withdrawFees(address to) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 amount = accumulatedFees;
-        accumulatedFees = 0;
-        (bool success, ) = to.call{value: amount}("");
-        if (!success) revert WithdrawFailed();
-    }
-
-    /// @notice Pauses the contract
+    /// @notice Withdraws accumulated fees\n    /// @param to Recipient address\n    /// @dev Uses nonReentrant to prevent race condition\n    function withdrawFees(address to) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {\n        uint256 amount = accumulatedFees;\n        if (amount == 0) revert WithdrawFailed();\n        \n        // CEI pattern: clear state before external call\n        accumulatedFees = 0;\n        \n        (bool success, ) = to.call{value: amount}(\"\");\n        if (!success) revert WithdrawFailed();\n    }\n\n    /// @notice Pauses the contract
     function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }

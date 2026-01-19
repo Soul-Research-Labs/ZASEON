@@ -66,7 +66,35 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Total fees collected per token
     mapping(address => uint256) public collectedFees;
 
+    /// @notice Commit-reveal for front-running protection
+    mapping(bytes32 => mapping(address => bytes32)) public claimCommitments;
+    mapping(bytes32 => mapping(address => uint256)) public commitTimestamps;
+
+    /// @notice Pending fee withdrawals for timelock
+    mapping(bytes32 => uint256) public pendingFeeWithdrawals;
+
+    /// @notice Fee withdrawal timelock delay
+    uint256 public constant FEE_WITHDRAWAL_DELAY = 2 days;
+
+    /// @notice Timestamp buffer for miner manipulation protection
+    uint256 public constant TIMESTAMP_BUFFER = 60;
+
     /// @notice Events
+    event ClaimCommitted(
+        bytes32 indexed swapId,
+        address indexed committer,
+        bytes32 commitHash
+    );
+    event FeeWithdrawalRequested(
+        bytes32 indexed withdrawalId,
+        address token,
+        uint256 amount
+    );
+    event FeeWithdrawalExecuted(
+        bytes32 indexed withdrawalId,
+        address token,
+        uint256 amount
+    );
     event SwapCreated(
         bytes32 indexed swapId,
         address indexed initiator,
@@ -98,8 +126,14 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
     error SwapExpired();
     error NotInitiator();
     error TransferFailed();
+    error ZeroAddress();
+    error CommitTooRecent();
+    error InvalidCommitHash();
+    error WithdrawalNotReady();
+    error WithdrawalNotFound();
 
     constructor(address _feeRecipient) Ownable(msg.sender) {
+        if (_feeRecipient == address(0)) revert ZeroAddress();
         feeRecipient = _feeRecipient;
     }
 
@@ -214,7 +248,75 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
         );
     }
 
-    /// @notice Claims a swap by revealing the secret
+    /// @notice Commit to claiming a swap (step 1 of commit-reveal to prevent front-running)
+    /// @param swapId The swap identifier
+    /// @param commitHash keccak256(abi.encodePacked(secret, salt, msg.sender))
+    function commitClaim(
+        bytes32 swapId,
+        bytes32 commitHash
+    ) external whenNotPaused {
+        Swap storage swap = swaps[swapId];
+        if (swap.status != SwapStatus.Created) revert SwapNotPending();
+        // Use timestamp buffer to protect against miner manipulation
+        if (block.timestamp + TIMESTAMP_BUFFER >= swap.timeLock)
+            revert SwapExpired();
+
+        claimCommitments[swapId][msg.sender] = commitHash;
+        commitTimestamps[swapId][msg.sender] = block.timestamp;
+
+        emit ClaimCommitted(swapId, msg.sender, commitHash);
+    }
+
+    /// @notice Reveal and claim a swap (step 2 of commit-reveal)
+    /// @param swapId The swap identifier
+    /// @param secret The secret that hashes to hashLock
+    /// @param salt Random salt used in commit
+    function revealClaim(
+        bytes32 swapId,
+        bytes32 secret,
+        bytes32 salt
+    ) external nonReentrant whenNotPaused {
+        Swap storage swap = swaps[swapId];
+
+        if (swap.status != SwapStatus.Created) revert SwapNotPending();
+        if (block.timestamp + TIMESTAMP_BUFFER >= swap.timeLock)
+            revert SwapExpired();
+
+        // Verify commit was made at least 1 block ago (prevent same-block reveal)
+        if (commitTimestamps[swapId][msg.sender] == 0)
+            revert InvalidCommitHash();
+        if (block.timestamp < commitTimestamps[swapId][msg.sender] + 12)
+            revert CommitTooRecent();
+
+        // Verify commit hash matches
+        bytes32 expectedCommit = keccak256(
+            abi.encodePacked(secret, salt, msg.sender)
+        );
+        if (claimCommitments[swapId][msg.sender] != expectedCommit)
+            revert InvalidCommitHash();
+
+        // Verify secret
+        if (keccak256(abi.encodePacked(secret)) != swap.hashLock)
+            revert InvalidSecret();
+
+        // Clear commit data
+        delete claimCommitments[swapId][msg.sender];
+        delete commitTimestamps[swapId][msg.sender];
+
+        swap.status = SwapStatus.Claimed;
+
+        // Transfer to recipient
+        if (swap.token == address(0)) {
+            (bool success, ) = swap.recipient.call{value: swap.amount}("");
+            if (!success) revert TransferFailed();
+        } else {
+            IERC20(swap.token).safeTransfer(swap.recipient, swap.amount);
+        }
+
+        emit SwapClaimed(swapId, msg.sender, secret);
+    }
+
+    /// @notice Legacy claim function for backwards compatibility (recipient only)
     /// @param swapId The swap identifier
     /// @param secret The secret that hashes to hashLock
     function claim(
@@ -223,8 +325,12 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
     ) external nonReentrant whenNotPaused {
         Swap storage swap = swaps[swapId];
 
+        // Only allow recipient to use direct claim (still has some MEV risk)
+        require(msg.sender == swap.recipient, "Use commit-reveal pattern");
+
         if (swap.status != SwapStatus.Created) revert SwapNotPending();
-        if (block.timestamp >= swap.timeLock) revert SwapExpired();
+        if (block.timestamp + TIMESTAMP_BUFFER >= swap.timeLock)
+            revert SwapExpired();
         if (keccak256(abi.encodePacked(secret)) != swap.hashLock)
             revert InvalidSecret();
 
@@ -314,9 +420,37 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
         emit FeeRecipientUpdated(oldRecipient, newRecipient);
     }
 
-    /// @notice Withdraws collected fees
+    /// @notice Request fee withdrawal (starts timelock)
     /// @param token Token address (address(0) for ETH)
-    function withdrawFees(address token) external onlyOwner {
+    /// @return withdrawalId The withdrawal request ID
+    function requestFeeWithdrawal(
+        address token
+    ) external onlyOwner returns (bytes32 withdrawalId) {
+        uint256 amount = collectedFees[token];
+        require(amount > 0, "No fees to withdraw");
+
+        withdrawalId = keccak256(
+            abi.encodePacked(token, amount, block.timestamp)
+        );
+        pendingFeeWithdrawals[withdrawalId] = block.timestamp;
+
+        emit FeeWithdrawalRequested(withdrawalId, token, amount);
+    }
+
+    /// @notice Execute fee withdrawal after timelock
+    /// @param token Token address (address(0) for ETH)
+    /// @param withdrawalId The withdrawal request ID
+    function executeFeeWithdrawal(
+        address token,
+        bytes32 withdrawalId
+    ) external onlyOwner {
+        uint256 requestTime = pendingFeeWithdrawals[withdrawalId];
+        if (requestTime == 0) revert WithdrawalNotFound();
+        if (block.timestamp < requestTime + FEE_WITHDRAWAL_DELAY)
+            revert WithdrawalNotReady();
+
+        delete pendingFeeWithdrawals[withdrawalId];
+
         uint256 amount = collectedFees[token];
         collectedFees[token] = 0;
 
@@ -326,6 +460,20 @@ contract PILAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable {
         } else {
             IERC20(token).safeTransfer(feeRecipient, amount);
         }
+
+        emit FeeWithdrawalExecuted(withdrawalId, token, amount);
+    }
+
+    /// @notice Emergency fee withdrawal (legacy, still has timelock via governance)
+    /// @param token Token address (address(0) for ETH)
+    /// @dev Deprecated: Use requestFeeWithdrawal + executeFeeWithdrawal
+    function withdrawFees(address token) external onlyOwner {
+        // For backwards compatibility, initiate a withdrawal request
+        bytes32 withdrawalId = keccak256(
+            abi.encodePacked(token, collectedFees[token], block.timestamp)
+        );
+        pendingFeeWithdrawals[withdrawalId] = block.timestamp;
+        emit FeeWithdrawalRequested(withdrawalId, token, collectedFees[token]);
     }
 
     /// @notice Pause the contract

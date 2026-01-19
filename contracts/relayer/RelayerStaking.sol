@@ -56,6 +56,10 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
     uint256 public rewardPerShare;
     uint256 public constant PRECISION = 1e18;
 
+    // Flash loan protection: minimum stake duration before rewards accrue
+    uint256 public constant MIN_STAKE_DURATION = 1 days;
+    mapping(address => uint256) public stakingTimestamp;
+
     // Events
     event Staked(address indexed relayer, uint256 amount);
     event UnstakeRequested(address indexed relayer, uint256 amount);
@@ -86,9 +90,17 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
 
         Relayer storage relayer = relayers[msg.sender];
 
-        // Claim pending rewards first
-        if (relayer.stakedAmount > 0) {
+        // Claim pending rewards first (only if eligible)
+        if (
+            relayer.stakedAmount > 0 &&
+            block.timestamp >= stakingTimestamp[msg.sender] + MIN_STAKE_DURATION
+        ) {
             _claimRewards(msg.sender);
+        }
+
+        // Update staking timestamp for flash loan protection
+        if (relayer.stakedAmount == 0) {
+            stakingTimestamp[msg.sender] = block.timestamp;
         }
 
         relayer.stakedAmount += amount;
@@ -220,9 +232,18 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
 
     /**
      * @dev Internal function to claim rewards
+     * @notice Includes flash loan protection - minimum stake duration required
      */
     function _claimRewards(address relayerAddress) internal {
         Relayer storage relayer = relayers[relayerAddress];
+
+        // Flash loan protection: require minimum stake duration
+        if (
+            block.timestamp <
+            stakingTimestamp[relayerAddress] + MIN_STAKE_DURATION
+        ) {
+            return; // Silently return if stake is too new
+        }
 
         uint256 pending = ((relayer.stakedAmount * rewardPerShare) /
             PRECISION) - relayer.rewardDebt;

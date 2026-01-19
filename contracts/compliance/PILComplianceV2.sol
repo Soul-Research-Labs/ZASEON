@@ -109,6 +109,8 @@ contract PILComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     event AddressUnsanctioned(address indexed user);
     event JurisdictionRestricted(bytes2 indexed jurisdiction);
     event JurisdictionUnrestricted(bytes2 indexed jurisdiction);
+    event MinRequiredTierUpdated(KYCTier oldTier, KYCTier newTier);
+    event KYCValidityDurationUpdated(uint256 oldDuration, uint256 newDuration);
 
     /// @notice Custom errors
     error NotAuthorizedProvider();
@@ -288,13 +290,19 @@ contract PILComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Updates minimum required KYC tier
     /// @param tier The new minimum tier
     function setMinRequiredTier(KYCTier tier) external onlyOwner {
+        KYCTier oldTier = minRequiredTier;
         minRequiredTier = tier;
+        emit MinRequiredTierUpdated(oldTier, tier);
     }
 
     /// @notice Updates KYC validity duration
     /// @param duration The new duration in seconds
     function setKYCValidityDuration(uint256 duration) external onlyOwner {
+        require(duration >= 1 days, "Duration too short");
+        require(duration <= 730 days, "Duration too long");
+        uint256 oldDuration = kycValidityDuration;
         kycValidityDuration = duration;
+        emit KYCValidityDurationUpdated(oldDuration, duration);
     }
 
     /// @notice Gets a user's audit history

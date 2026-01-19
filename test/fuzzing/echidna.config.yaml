@@ -1,28 +1,40 @@
-# Echidna Configuration for PIL Fuzzing
-# Run: echidna . --contract EchidnaPC3 --config test/fuzzing/echidna.config.yaml
+# Echidna Configuration for PIL v2 Extensive Fuzzing
+# Run individual contracts:
+#   echidna . --contract EchidnaPC3 --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaPBP --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaEASC --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaCDNA --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaTimelock --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaVerifierRegistry --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaOrchestrator --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaVerifiers --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaAtomicSwap --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaCompliance --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaCrossChainHub --config test/fuzzing/echidna.config.yaml
+#   echidna . --contract EchidnaIntegration --config test/fuzzing/echidna.config.yaml
 
-# Test configuration
+# Test configuration - aggressive settings for extensive fuzzing
 testMode: assertion
-testLimit: 50000
-seqLen: 100
+testLimit: 100000      # Increased from 50000
+seqLen: 150            # Increased from 100 for longer sequences
 
-# Shrinking
-shrinkLimit: 5000
+# Shrinking - more aggressive shrinking
+shrinkLimit: 10000     # Increased from 5000
 
-# Contract deployment
+# Contract deployment - multiple senders for better coverage
 deployer: "0x10000"
-sender: ["0x10000", "0x20000", "0x30000"]
+sender: ["0x10000", "0x20000", "0x30000", "0x40000", "0x50000"]
 
-# Coverage
+# Coverage tracking
 coverage: true
 corpusDir: "echidna-corpus"
 
-# Gas limits
-gasLimit: 12500000
-maxGasPerTx: 10000000
+# Gas limits - generous limits for complex operations
+gasLimit: 15000000
+maxGasPerTx: 12000000
 
-# Timeouts
-timeout: 300
+# Timeouts - longer timeouts for thorough testing
+timeout: 600           # 10 minutes per contract
 
 # Solidity compiler
 solcArgs: "--optimize --optimize-runs 200"
@@ -31,11 +43,17 @@ solcArgs: "--optimize --optimize-runs 200"
 filterBlacklist: true
 filterFunctions: []
 
-# Dictionary
-dictFreq: 0.40
+# Dictionary frequency - higher for better value discovery
+dictFreq: 0.50         # Increased from 0.40
 
-# Assertions
+# Assertions - strict checking
 checkAsserts: true
 
-# Property testing
+# Property testing prefix
 prefix: "echidna_"
+
+# Multi-ABI mode for testing contract interactions
+multi-abi: false
+
+# Seed for reproducibility (comment out for random)
+# seed: 12345

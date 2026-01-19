@@ -142,7 +142,9 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant MAX_BATCH_SIZE = 100;
+    /// @notice Maximum batch size (reduced from 100 to prevent DoS with 32-depth tree)
+    /// @dev Each nullifier insertion does 32 hash operations, so 20 * 32 = 640 operations max
+    uint256 public constant MAX_BATCH_SIZE = 20;
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR

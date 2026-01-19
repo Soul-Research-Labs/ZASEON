@@ -94,8 +94,13 @@ contract PILGovernance is AccessControl, ReentrancyGuard {
     error AlreadyVoted();
     error InvalidVoteType();
     error InsufficientVotingPower();
+    error ZeroAddress();
+
+    // Constants for magic numbers
+    uint256 public constant PROPOSAL_EXPIRY_PERIOD = 14 days;
 
     constructor(address _governanceToken) {
+        if (_governanceToken == address(0)) revert ZeroAddress();
         governanceToken = _governanceToken;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -240,12 +245,19 @@ contract PILGovernance is AccessControl, ReentrancyGuard {
             revert TimelockNotMet();
         }
 
+        // Cache data before external calls (CEI pattern)
+        address[] memory cachedTargets = proposal.targets;
+        uint256[] memory cachedValues = proposal.values;
+        bytes[] memory cachedCalldatas = proposal.calldatas;
+
+        // Mark as executed BEFORE external calls to prevent reentrancy
         proposal.executed = true;
 
-        for (uint256 i = 0; i < proposal.targets.length; i++) {
-            (bool success, ) = proposal.targets[i].call{
-                value: proposal.values[i]
-            }(proposal.calldatas[i]);
+        // Now execute with cached data
+        for (uint256 i = 0; i < cachedTargets.length; i++) {
+            (bool success, ) = cachedTargets[i].call{value: cachedValues[i]}(
+                cachedCalldatas[i]
+            );
             require(success, "Execution failed");
         }
 
@@ -253,8 +265,15 @@ contract PILGovernance is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Cancel a proposal
-    function cancel(uint256 proposalId) external onlyRole(CANCELLER_ROLE) {
+    /// @dev Uses nonReentrant to prevent cross-function reentrancy during execute()
+    function cancel(
+        uint256 proposalId
+    ) external nonReentrant onlyRole(CANCELLER_ROLE) {
         Proposal storage proposal = proposals[proposalId];
+        // Prevent canceling already executed proposals
+        if (proposal.executed) {
+            revert ProposalNotActive();
+        }
         proposal.canceled = true;
         emit ProposalCanceled(proposalId);
     }
@@ -290,7 +309,7 @@ contract PILGovernance is AccessControl, ReentrancyGuard {
             return ProposalState.Succeeded;
         }
 
-        if (block.timestamp >= proposal.eta + 14 days) {
+        if (block.timestamp >= proposal.eta + PROPOSAL_EXPIRY_PERIOD) {
             return ProposalState.Expired;
         }
 

@@ -662,10 +662,27 @@ describe("PILAtomicSwapV2", function () {
           value: ethers.parseEther("100"),
         });
 
+      // Request fee withdrawal (starts timelock)
+      const tx = await atomicSwap.connect(owner).requestFeeWithdrawal(ethers.ZeroAddress);
+      const receipt = await tx.wait();
+      
+      // Get withdrawal ID from event
+      const event = receipt.logs.find(log => {
+        try {
+          return atomicSwap.interface.parseLog(log)?.name === 'FeeWithdrawalRequested';
+        } catch { return false; }
+      });
+      const parsedEvent = atomicSwap.interface.parseLog(event);
+      const withdrawalId = parsedEvent.args[0];
+      
+      // Fast forward past the 2-day timelock
+      await ethers.provider.send("evm_increaseTime", [2 * 24 * 60 * 60 + 1]);
+      await ethers.provider.send("evm_mine");
+
       const feeRecipientBalanceBefore = await ethers.provider.getBalance(
         feeRecipient.address
       );
-      await atomicSwap.connect(owner).withdrawFees(ethers.ZeroAddress);
+      await atomicSwap.connect(owner).executeFeeWithdrawal(ethers.ZeroAddress, withdrawalId);
       const feeRecipientBalanceAfter = await ethers.provider.getBalance(
         feeRecipient.address
       );
