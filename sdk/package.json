@@ -134,5 +134,11 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "overrides": {
+    "elliptic": "^6.6.1",
+    "@ethersproject/signing-key": {
+      "elliptic": "^6.6.1"
+    }
   }
 }

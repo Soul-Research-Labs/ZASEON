@@ -116,3 +116,4 @@ storybook-static/
 *.bak
 *.orig
 .vercel
+.certora_internal
