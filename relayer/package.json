@@ -17,7 +17,10 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "ts-node": "^10.0.0",
-    "vitest": "^1.0.0",
-    "@vitest/coverage-v8": "^1.0.0"
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
+  },
+  "overrides": {
+    "diff": "^8.0.0"
   }
 }

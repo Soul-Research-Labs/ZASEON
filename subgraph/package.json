@@ -17,10 +17,21 @@
     "test": "graph test"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "^0.64.0",
+    "@graphprotocol/graph-cli": "^0.98.1",
     "@graphprotocol/graph-ts": "^0.32.0"
   },
   "devDependencies": {
     "matchstick-as": "^0.6.0"
+  },
+  "overrides": {
+    "glob": "^11.0.4",
+    "undici": "^7.19.0",
+    "lodash.trimend": "npm:lodash@^4.17.21",
+    "lodash.trim": "npm:lodash@^4.17.21",
+    "semver": "^7.6.0",
+    "cross-spawn": "^7.0.6",
+    "ejs": "^3.1.10",
+    "js-yaml": "^4.1.1",
+    "axios": "^1.7.9"
   }
 }
