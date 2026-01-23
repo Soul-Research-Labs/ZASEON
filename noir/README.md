@@ -1,10 +1,10 @@
 # Noir Circuits for Privacy Interoperability Layer
 
-This directory contains the Noir implementations of all PIL circuits, converted from Circom.
+This directory contains all PIL ZK circuits implemented in Noir.
 
 ## Overview
 
-[Noir](https://noir-lang.org/) is a domain-specific language for creating and verifying zero-knowledge proofs. It offers several advantages over Circom:
+[Noir](https://noir-lang.org/) is a domain-specific language for creating and verifying zero-knowledge proofs. Key advantages:
 
 - **Rust-like syntax** - More familiar to systems programmers
 - **Type safety** - Stronger compile-time guarantees
@@ -226,4 +226,4 @@ MIT License - see [LICENSE](../LICENSE) for details.
 - [Noir Documentation](https://noir-lang.org/docs)
 - [Noir GitHub](https://github.com/noir-lang/noir)
 - [PIL Documentation](../docs/)
-- [Circom Original Circuits](../circuits/)
+- [Circuit Documentation](../circuits/README.md)

@@ -1,0 +1,8 @@
+[package]
+name = "ring_signature"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=0.30.0"
+description = "CLSAG-style ring signature circuit for sender anonymity"
+
+[dependencies]

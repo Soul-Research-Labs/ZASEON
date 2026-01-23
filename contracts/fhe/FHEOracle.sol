@@ -235,7 +235,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
     error OracleAlreadyRegistered();
     error OracleNotFound();
     error OracleNotActive();
-    error OracleSlashed();
+    error OracleSlashedError();
     error TaskNotFound();
     error TaskExpired();
     error TaskAlreadyCompleted();
@@ -319,7 +319,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
         OracleNode storage oracle = oracles[msg.sender];
         if (oracle.nodeAddress == address(0)) revert OracleNotFound();
         if (oracle.isActive) revert OracleNotActive();
-        if (oracle.isSlashed) revert OracleSlashed();
+        if (oracle.isSlashed) revert OracleSlashedError();
 
         uint256 amount = oracle.stake;
         oracle.stake = 0;
@@ -350,7 +350,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
     function reactivateOracle() external payable {
         OracleNode storage oracle = oracles[msg.sender];
         if (oracle.nodeAddress == address(0)) revert OracleNotFound();
-        if (oracle.isSlashed) revert OracleSlashed();
+        if (oracle.isSlashed) revert OracleSlashedError();
         if (oracle.isActive) return;
 
         oracle.stake += msg.value;
@@ -662,7 +662,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
     ) external onlyRole(SLASHER_ROLE) {
         OracleNode storage oracle = oracles[oracleAddr];
         if (oracle.nodeAddress == address(0)) revert OracleNotFound();
-        if (oracle.isSlashed) revert OracleSlashed();
+        if (oracle.isSlashed) revert OracleSlashedError();
 
         uint256 slashAmount = (oracle.stake * SLASH_BPS) / 10000;
         oracle.stake -= slashAmount;

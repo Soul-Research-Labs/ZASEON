@@ -636,9 +636,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 requestId = fheGateway.requestReencryption(
             transfer.encryptedAmount,
             destChain.fhePublicKey,
-            address(this),
-            this.onReencrypted.selector,
-            3600
+            3600 // TTL of 1 hour
         );
 
         reencryptionToTransfer[requestId] = transferId;

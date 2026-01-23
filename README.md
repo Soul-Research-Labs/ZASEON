@@ -14,6 +14,7 @@ Cross-chain middleware for private state transfer and zero-knowledge proof verif
 - **Atomic Swaps** - HTLC-based private cross-chain swaps with stealth commitments
 - **Compliance Layer** - Optional KYC/AML with zero-knowledge selective disclosure
 - **ZK-Bound State Locks (ZK-SLocks)** - Novel primitive for cross-chain confidential state transitions with ZK-proof unlocking
+- **Advanced Privacy Research** - Triptych O(log n) ring signatures, Nova IVC, Seraphis addressing, FHE integration
 
 ### PIL v2 Novel Primitives
 
@@ -72,7 +73,8 @@ Cross-chain middleware for private state transfer and zero-knowledge proof verif
 │   ├── primitives/     # PIL v2 primitives (PC³, PBP, EASC, CDNA)
 │   ├── security/       # Time-locked admin, security infrastructure
 │   └── infrastructure/ # Oracles, rate limiting, governance
-├── circuits/           # Circom ZK circuits
+├── circuits/           # Circuit documentation (see noir/)
+├── noir/               # Noir ZK circuits 
 ├── sdk/                # TypeScript SDK
 ├── specs/              # Formal verification specifications
 ├── relayer/            # Relayer node service
@@ -102,7 +104,7 @@ Plus the **AddedSecurityOrchestrator** that coordinates all modules.
 npx hardhat run scripts/deploy-added-security.ts --network sepolia
 ```
 
-See [ULTRA_SECURITY_OPERATOR_RUNBOOK.md](docs/ULTRA_SECURITY_OPERATOR_RUNBOOK.md) for operational guidance.
+See [ADDED_SECURITY_OPERATOR_RUNBOOK.md](docs/ADDED_SECURITY_OPERATOR_RUNBOOK.md) for operational guidance.
 
 ### Time-Locked Admin Operations
 
@@ -528,6 +530,40 @@ npm run certora             # Formal verification (requires API key)
 
 See [Security Analysis Report](reports/SECURITY_ANALYSIS_REPORT.md) for detailed findings.
 
+## Advanced Privacy Research (January 2026)
+
+PIL implements cutting-edge privacy research from academic literature:
+
+### Privacy Contracts
+
+| Contract | Paper/Source | Purpose |
+|----------|--------------|---------|
+| `TriptychSignatures.sol` | Noether & Goodell 2020 | O(log n) ring signatures for large anonymity sets |
+| `NovaRecursiveVerifier.sol` | Kothapalli et al. 2022 | Incrementally Verifiable Computation |
+| `SeraphisAddressing.sol` | MRL-0015 | 3-key address system with Grootle proofs |
+| `FHEPrivacyIntegration.sol` | TFHE/Zama | Fully homomorphic encryption on encrypted data |
+| `EncryptedStealthAnnouncements.sol` | MEV-resistant | Encrypted stealth address announcements |
+| `PrivacyPreservingRelayerSelection.sol` | VRF-based | Unbiased private relayer selection |
+| `ConstantTimeOperations.sol` | Timing attacks | Constant-time cryptographic operations |
+
+### Noir ZK Circuits
+
+```
+noir/
+├── cross_domain_nullifier/    # Cross-chain nullifier proofs, Merkle membership
+├── private_transfer/          # Private transfers with stealth addresses
+└── ring_signature/            # CLSAG-style ring signatures
+```
+
+### Key Features
+
+- **Triptych**: Ring sizes up to 256 members with O(log n) proof size
+- **Nova IVC**: O(1) verification regardless of computation steps
+- **Seraphis**: Receive/view/spend key separation with forward secrecy
+- **FHE**: 20 encrypted operations (arithmetic, comparison, bitwise)
+
+See [PRIVACY_RESEARCH_IMPLEMENTATION.md](docs/PRIVACY_RESEARCH_IMPLEMENTATION.md) for detailed documentation.
+
 ## Post-Quantum Cryptography (PQC)
 
 PIL includes experimental support for post-quantum cryptographic primitives to future-proof the protocol against quantum computing threats.
@@ -632,11 +668,13 @@ forge test                  # Run Foundry test suite
 | Attack Simulation | 44 | ✅ Passing |
 | Stress Tests | 24 | ✅ Passing |
 | PQC Tests | 33 | ✅ Passing |
-| Integration Tests | 8 | ✅ Passing |
-| Fuzz Tests | 116+ | ✅ Passing |
+| Integration Tests | 18 | ✅ Passing |
+| Fuzz Tests | 140+ | ✅ Passing |
+| Privacy Fuzz Tests | 50+ | ✅ Passing |
 | Invariant Tests | 8 | ✅ Passing |
-| Symbolic Tests | 24 | ✅ Working (finds edge cases) |
-| **Total** | **283+** | **All passing** |
+| Symbolic Tests | 30+ | ✅ Working (finds edge cases) |
+| L2 Adapter Tests | 23 | ✅ Passing |
+| **Total** | **370+** | **All passing** |
 
 ### Security Test Categories
 
@@ -710,6 +748,15 @@ Test coverage includes:
   - [x] Hybrid signature schemes (ECDSA + PQ)
   - [x] PQC-protected ZK-SLocks
   - [x] TypeScript SDK for PQC
+- [x] **Advanced Privacy Research (January 2026)**
+  - [x] Triptych O(log n) ring signatures (Noether & Goodell 2020)
+  - [x] Nova/SuperNova IVC (Kothapalli et al. 2022)
+  - [x] Seraphis 3-key addressing (MRL-0015)
+  - [x] FHE privacy integration (TFHE/Zama style)
+  - [x] Privacy-preserving relayer selection (VRF-based)
+  - [x] Encrypted stealth announcements (MEV-resistant)
+  - [x] Constant-time operations library
+  - [x] Noir ZK circuits (cross-domain nullifier, private transfer, ring signature)
 
 ### 🔄 In Progress (Q1 2026)
 
@@ -731,7 +778,7 @@ Test coverage includes:
 ### 🔮 Future (Q4 2026+)
 
 - [ ] ARM TrustZone support
-- [ ] Recursive SNARK / Nova integration
+- [x] Recursive SNARK / Nova integration ✅ Completed Jan 23, 2026
 - [ ] Private DEX & DeFi applications
 - [ ] Decentralized governance
 - [ ] Enterprise features
@@ -890,6 +937,12 @@ To redeploy to Sepolia:
 ## Documentation
 
 - [Architecture Guide](docs/architecture.md)
+- [Privacy Research Implementation](docs/PRIVACY_RESEARCH_IMPLEMENTATION.md)
+- [Cross-Chain Privacy](docs/CROSS_CHAIN_PRIVACY.md)
+- [L2 Interoperability](docs/L2_INTEROPERABILITY.md)
+- [Security Audit Preparation](docs/SECURITY_AUDIT_PREPARATION.md)
+- [Incident Response Runbook](docs/INCIDENT_RESPONSE_RUNBOOK.md)
+- [Added Security Operator Runbook](docs/ADDED_SECURITY_OPERATOR_RUNBOOK.md)
 - [Gas Optimization Report](docs/gas-optimization-report.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [API Documentation](docs/README.md)

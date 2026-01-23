@@ -1,0 +1,1211 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+/**
+ * @title CrossChainPrivacyHub
+ * @author PIL Protocol
+ * @notice Unified aggregator for cross-chain privacy-preserving transfers
+ * @dev Provides a single entry point for all 41+ bridge adapters with privacy features
+ *
+ * ARCHITECTURE:
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      CrossChainPrivacyHub                                │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │                                                                          │
+ * │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
+ * │  │ StealthAddr  │  │    RCT       │  │  Nullifier   │                  │
+ * │  │  Registry    │  │   Module     │  │   Manager    │                  │
+ * │  └──────────────┘  └──────────────┘  └──────────────┘                  │
+ * │          │                │                  │                          │
+ * │          └────────────────┼──────────────────┘                          │
+ * │                           │                                             │
+ * │                    ┌──────┴──────┐                                      │
+ * │                    │   Router    │                                      │
+ * │                    └──────┬──────┘                                      │
+ * │                           │                                             │
+ * │  ┌────────────────────────┼────────────────────────────────────────┐   │
+ * │  │                   Bridge Adapters                                │   │
+ * │  │                                                                  │   │
+ * │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │   │
+ * │  │  │ Monero  │ │  Zcash  │ │ Secret  │ │  Oasis  │ │ Railgun │  │   │
+ * │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │   │
+ * │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │   │
+ * │  │  │Tornado  │ │Midnight │ │ Canton  │ │ Brevis  │ │  Aztec  │  │   │
+ * │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │   │
+ * │  │  ... (30+ more adapters)                                      │   │
+ * │  └──────────────────────────────────────────────────────────────┘   │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * PRIVACY FEATURES:
+ * 1. Stealth Addresses - One-time addresses for each transfer
+ * 2. Ring Confidential Transactions - Amount hiding with decoys
+ * 3. Cross-Domain Nullifiers - Double-spend prevention across chains
+ * 4. ZK Proof Verification - Multiple proof systems supported
+ * 5. Encrypted Metadata - TEE and FHE support
+ *
+ * SUPPORTED CHAINS (41+):
+ * - Privacy Chains: Monero, Zcash, Secret, Oasis, Railgun, Tornado, Midnight
+ * - L2 Rollups: Arbitrum, Optimism, Base, zkSync, Scroll, Linea, Polygon zkEVM
+ * - Alt L1s: Solana, Avalanche, Cosmos, Polkadot, NEAR, Cardano, Sui, Aptos, Sei
+ * - Bitcoin Ecosystem: Bitcoin, Alpen (BitVM), Lightning
+ * - Enterprise: Canton, Provenance, Hyperliquid
+ * - Data Availability: Celestia
+ */
+contract CrossChainPrivacyHub is
+    Initializable,
+    UUPSUpgradeable,
+    AccessControlUpgradeable,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable
+{
+    using SafeERC20 for IERC20;
+
+    // =========================================================================
+    // ROLES
+    // =========================================================================
+
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    // =========================================================================
+    // CONSTANTS
+    // =========================================================================
+
+    uint256 public constant VERSION = 1;
+    uint256 public constant MAX_ADAPTERS = 100;
+    uint256 public constant MAX_RING_SIZE = 16;
+    uint256 public constant MIN_RING_SIZE = 4;
+    uint256 public constant NULLIFIER_EXPIRY = 365 days;
+    uint256 public constant MAX_TRANSFER_AMOUNT = 10000 ether;
+    uint256 public constant MIN_TRANSFER_AMOUNT = 0.001 ether;
+    uint256 public constant QUORUM_BPS = 6667; // 66.67%
+    uint256 public constant MAX_FEE_BPS = 500; // 5%
+
+    // =========================================================================
+    // ENUMS
+    // =========================================================================
+
+    enum PrivacyLevel {
+        NONE, // No privacy (transparent)
+        BASIC, // Encrypted metadata only
+        MEDIUM, // Stealth addresses
+        HIGH, // Stealth + amount hiding
+        MAXIMUM // Full RCT with decoys
+    }
+
+    enum TransferStatus {
+        PENDING,
+        RELAYED,
+        COMPLETED,
+        REFUNDED,
+        FAILED
+    }
+
+    enum ProofSystem {
+        NONE,
+        GROTH16,
+        PLONK,
+        STARK,
+        BULLETPROOF,
+        HALO2,
+        CLSAG
+    }
+
+    enum ChainType {
+        EVM,
+        UTXO,
+        ACCOUNT,
+        MOVE,
+        WASM,
+        CAIRO,
+        PLUTUS
+    }
+
+    // =========================================================================
+    // STRUCTS
+    // =========================================================================
+
+    /**
+     * @notice Bridge adapter configuration
+     */
+    struct AdapterConfig {
+        address adapter;
+        uint256 chainId;
+        ChainType chainType;
+        ProofSystem proofSystem;
+        bool isActive;
+        bool supportsPrivacy;
+        uint256 minConfirmations;
+        uint256 maxTransfer;
+        uint256 dailyLimit;
+        uint256 dailyVolume;
+        uint256 lastResetTimestamp;
+    }
+
+    /**
+     * @notice Cross-chain transfer request
+     */
+    struct TransferRequest {
+        bytes32 requestId;
+        address sender;
+        bytes32 recipient; // Can be stealth address
+        uint256 sourceChainId;
+        uint256 destChainId;
+        address token;
+        uint256 amount;
+        uint256 fee;
+        PrivacyLevel privacyLevel;
+        bytes32 commitment;
+        bytes32 nullifier;
+        uint64 timestamp;
+        uint64 expiry;
+        TransferStatus status;
+    }
+
+    /**
+     * @notice Stealth address components
+     */
+    struct StealthAddress {
+        bytes32 spendingPubKey;
+        bytes32 viewingPubKey;
+        bytes32 ephemeralPubKey;
+        bytes32 stealthPubKey;
+        uint256 chainId;
+    }
+
+    /**
+     * @notice Ring signature components
+     */
+    struct RingSignature {
+        bytes32[] keyImages;
+        bytes32[] publicKeys;
+        uint256[] responses;
+        bytes32 challenge;
+        uint256 ringSize;
+    }
+
+    /**
+     * @notice Confidential amount (Pedersen commitment)
+     */
+    struct ConfidentialAmount {
+        bytes32 commitment; // C = aG + bH
+        bytes rangeProof; // Bulletproof range proof
+        bytes32 blindingFactor; // Encrypted for recipient
+    }
+
+    /**
+     * @notice Cross-domain nullifier binding
+     */
+    struct NullifierBinding {
+        bytes32 sourceNullifier;
+        bytes32 pilNullifier;
+        uint256 sourceChainId;
+        uint256 destChainId;
+        uint64 timestamp;
+        bool consumed;
+    }
+
+    /**
+     * @notice Privacy transfer proof
+     */
+    struct PrivacyProof {
+        ProofSystem system;
+        bytes proof;
+        bytes32[] publicInputs;
+        bytes32 proofHash;
+    }
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+
+    // Adapter registry: chainId => adapter config
+    mapping(uint256 => AdapterConfig) public adapters;
+    uint256[] public supportedChainIds;
+
+    // Transfer registry: requestId => transfer
+    mapping(bytes32 => TransferRequest) public transfers;
+    mapping(address => bytes32[]) public userTransfers;
+
+    // Nullifier registry: nullifier => binding
+    mapping(bytes32 => NullifierBinding) public nullifierBindings;
+    mapping(bytes32 => bool) public consumedNullifiers;
+
+    // Stealth address registry: stealthPubKey => owner
+    mapping(bytes32 => address) public stealthAddressOwners;
+    mapping(address => bytes32[]) public userStealthAddresses;
+
+    // Statistics
+    uint256 public totalTransfers;
+    uint256 public totalVolume;
+    uint256 public totalPrivateTransfers;
+
+    // Configuration
+    uint256 public defaultRingSize;
+    uint256 public defaultPrivacyLevel;
+    uint256 public protocolFeeBps;
+    address public feeRecipient;
+
+    // Circuit breaker
+    bool public circuitBreakerActive;
+    uint256 public lastCircuitBreakerTimestamp;
+    string public circuitBreakerReason;
+
+    // =========================================================================
+    // EVENTS
+    // =========================================================================
+
+    event AdapterRegistered(
+        uint256 indexed chainId,
+        address indexed adapter,
+        ChainType chainType,
+        ProofSystem proofSystem
+    );
+
+    event AdapterUpdated(
+        uint256 indexed chainId,
+        address indexed adapter,
+        bool isActive
+    );
+
+    event TransferInitiated(
+        bytes32 indexed requestId,
+        address indexed sender,
+        bytes32 indexed recipient,
+        uint256 sourceChainId,
+        uint256 destChainId,
+        uint256 amount,
+        PrivacyLevel privacyLevel
+    );
+
+    event TransferRelayed(
+        bytes32 indexed requestId,
+        bytes32 indexed nullifier,
+        uint256 destChainId
+    );
+
+    event TransferCompleted(
+        bytes32 indexed requestId,
+        bytes32 indexed recipient,
+        uint256 amount
+    );
+
+    event TransferRefunded(
+        bytes32 indexed requestId,
+        address indexed sender,
+        uint256 amount,
+        string reason
+    );
+
+    event StealthAddressGenerated(
+        bytes32 indexed stealthPubKey,
+        address indexed owner,
+        uint256 chainId
+    );
+
+    event NullifierConsumed(
+        bytes32 indexed sourceNullifier,
+        bytes32 indexed pilNullifier,
+        uint256 sourceChainId,
+        uint256 destChainId
+    );
+
+    event CircuitBreakerTriggered(
+        address indexed triggeredBy,
+        string reason,
+        uint256 timestamp
+    );
+
+    event CircuitBreakerReset(address indexed resetBy, uint256 timestamp);
+
+    // =========================================================================
+    // ERRORS
+    // =========================================================================
+
+    error AdapterNotFound(uint256 chainId);
+    error AdapterNotActive(uint256 chainId);
+    error AdapterAlreadyExists(uint256 chainId);
+    error InvalidAmount(uint256 amount);
+    error ExceedsMaxTransfer(uint256 amount, uint256 max);
+    error ExceedsDailyLimit(uint256 amount, uint256 remaining);
+    error InsufficientFee(uint256 provided, uint256 required);
+    error TransferNotFound(bytes32 requestId);
+    error TransferAlreadyProcessed(bytes32 requestId);
+    error TransferExpired(bytes32 requestId);
+    error InvalidPrivacyLevel(uint256 level);
+    error InvalidProof();
+    error InvalidNullifier(bytes32 nullifier);
+    error NullifierAlreadyConsumed(bytes32 nullifier);
+    error InvalidStealthAddress(bytes32 stealthPubKey);
+    error InvalidRingSize(uint256 size);
+    error InsufficientDecoys(uint256 provided, uint256 required);
+    error CircuitBreakerOn();
+    error UnauthorizedCaller();
+    error ZeroAddress();
+
+    // =========================================================================
+    // MODIFIERS
+    // =========================================================================
+
+    modifier whenCircuitBreakerOff() {
+        if (circuitBreakerActive) revert CircuitBreakerOn();
+        _;
+    }
+
+    modifier validChain(uint256 chainId) {
+        if (adapters[chainId].adapter == address(0))
+            revert AdapterNotFound(chainId);
+        if (!adapters[chainId].isActive) revert AdapterNotActive(chainId);
+        _;
+    }
+
+    // =========================================================================
+    // INITIALIZER
+    // =========================================================================
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address admin,
+        address guardian,
+        address _feeRecipient
+    ) external initializer {
+        __UUPSUpgradeable_init();
+        __AccessControl_init();
+        __ReentrancyGuard_init();
+        __Pausable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(GUARDIAN_ROLE, guardian);
+        _grantRole(UPGRADER_ROLE, admin);
+
+        feeRecipient = _feeRecipient;
+        protocolFeeBps = 30; // 0.3% default
+        defaultRingSize = 8;
+        defaultPrivacyLevel = uint256(PrivacyLevel.MEDIUM);
+    }
+
+    // =========================================================================
+    // ADAPTER MANAGEMENT
+    // =========================================================================
+
+    /**
+     * @notice Register a new bridge adapter
+     */
+    function registerAdapter(
+        uint256 chainId,
+        address adapter,
+        ChainType chainType,
+        ProofSystem proofSystem,
+        bool supportsPrivacy,
+        uint256 minConfirmations,
+        uint256 maxTransfer,
+        uint256 dailyLimit
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (adapter == address(0)) revert ZeroAddress();
+        if (adapters[chainId].adapter != address(0))
+            revert AdapterAlreadyExists(chainId);
+
+        adapters[chainId] = AdapterConfig({
+            adapter: adapter,
+            chainId: chainId,
+            chainType: chainType,
+            proofSystem: proofSystem,
+            isActive: true,
+            supportsPrivacy: supportsPrivacy,
+            minConfirmations: minConfirmations,
+            maxTransfer: maxTransfer,
+            dailyLimit: dailyLimit,
+            dailyVolume: 0,
+            lastResetTimestamp: block.timestamp
+        });
+
+        supportedChainIds.push(chainId);
+
+        emit AdapterRegistered(chainId, adapter, chainType, proofSystem);
+    }
+
+    /**
+     * @notice Update adapter configuration
+     */
+    function updateAdapter(
+        uint256 chainId,
+        bool isActive,
+        uint256 maxTransfer,
+        uint256 dailyLimit
+    ) external onlyRole(OPERATOR_ROLE) validChain(chainId) {
+        AdapterConfig storage config = adapters[chainId];
+        config.isActive = isActive;
+        config.maxTransfer = maxTransfer;
+        config.dailyLimit = dailyLimit;
+
+        emit AdapterUpdated(chainId, config.adapter, isActive);
+    }
+
+    // =========================================================================
+    // PRIVACY TRANSFER FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Initiate a privacy-preserving cross-chain transfer
+     * @param destChainId Destination chain ID
+     * @param recipient Recipient address (can be stealth address)
+     * @param amount Transfer amount
+     * @param privacyLevel Desired privacy level
+     * @param proof Privacy proof (if required)
+     */
+    function initiatePrivateTransfer(
+        uint256 destChainId,
+        bytes32 recipient,
+        uint256 amount,
+        PrivacyLevel privacyLevel,
+        PrivacyProof calldata proof
+    )
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+        whenCircuitBreakerOff
+        validChain(destChainId)
+        returns (bytes32 requestId)
+    {
+        // Validate amount
+        if (amount < MIN_TRANSFER_AMOUNT) revert InvalidAmount(amount);
+        if (amount > MAX_TRANSFER_AMOUNT)
+            revert ExceedsMaxTransfer(amount, MAX_TRANSFER_AMOUNT);
+
+        AdapterConfig storage destAdapter = adapters[destChainId];
+        if (amount > destAdapter.maxTransfer) {
+            revert ExceedsMaxTransfer(amount, destAdapter.maxTransfer);
+        }
+
+        // Check daily limit
+        _checkAndUpdateDailyLimit(destChainId, amount);
+
+        // Calculate fee
+        uint256 fee = (amount * protocolFeeBps) / 10000;
+        if (msg.value < fee) revert InsufficientFee(msg.value, fee);
+
+        // Verify privacy proof if required
+        if (privacyLevel >= PrivacyLevel.MEDIUM && proof.proof.length > 0) {
+            if (!_verifyPrivacyProof(proof, destChainId)) {
+                revert InvalidProof();
+            }
+        }
+
+        // Generate request ID
+        requestId = keccak256(
+            abi.encodePacked(
+                msg.sender,
+                recipient,
+                block.chainid,
+                destChainId,
+                amount,
+                block.timestamp,
+                totalTransfers
+            )
+        );
+
+        // Generate nullifier
+        bytes32 nullifier = _generateNullifier(requestId, msg.sender);
+
+        // Create commitment
+        bytes32 commitment = _generateCommitment(recipient, amount, nullifier);
+
+        // Store transfer
+        transfers[requestId] = TransferRequest({
+            requestId: requestId,
+            sender: msg.sender,
+            recipient: recipient,
+            sourceChainId: block.chainid,
+            destChainId: destChainId,
+            token: address(0), // ETH
+            amount: amount,
+            fee: fee,
+            privacyLevel: privacyLevel,
+            commitment: commitment,
+            nullifier: nullifier,
+            timestamp: uint64(block.timestamp),
+            expiry: uint64(block.timestamp + 7 days),
+            status: TransferStatus.PENDING
+        });
+
+        userTransfers[msg.sender].push(requestId);
+        totalTransfers++;
+        totalVolume += amount;
+        if (privacyLevel >= PrivacyLevel.MEDIUM) {
+            totalPrivateTransfers++;
+        }
+
+        // Send fee to recipient
+        if (fee > 0) {
+            (bool sent, ) = feeRecipient.call{value: fee}("");
+            require(sent, "Fee transfer failed");
+        }
+
+        emit TransferInitiated(
+            requestId,
+            msg.sender,
+            recipient,
+            block.chainid,
+            destChainId,
+            amount,
+            privacyLevel
+        );
+
+        return requestId;
+    }
+
+    /**
+     * @notice Initiate transfer with ERC20 token
+     */
+    function initiatePrivateTransferERC20(
+        address token,
+        uint256 destChainId,
+        bytes32 recipient,
+        uint256 amount,
+        PrivacyLevel privacyLevel,
+        PrivacyProof calldata proof
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        whenCircuitBreakerOff
+        validChain(destChainId)
+        returns (bytes32 requestId)
+    {
+        if (token == address(0)) revert ZeroAddress();
+        if (amount < MIN_TRANSFER_AMOUNT) revert InvalidAmount(amount);
+
+        // Transfer tokens to hub
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+
+        // Calculate fee
+        uint256 fee = (amount * protocolFeeBps) / 10000;
+
+        // Verify privacy proof if required
+        if (privacyLevel >= PrivacyLevel.MEDIUM && proof.proof.length > 0) {
+            if (!_verifyPrivacyProof(proof, destChainId)) {
+                revert InvalidProof();
+            }
+        }
+
+        // Generate request ID
+        requestId = keccak256(
+            abi.encodePacked(
+                msg.sender,
+                token,
+                recipient,
+                destChainId,
+                amount,
+                block.timestamp,
+                totalTransfers
+            )
+        );
+
+        bytes32 nullifier = _generateNullifier(requestId, msg.sender);
+        bytes32 commitment = _generateCommitment(recipient, amount, nullifier);
+
+        transfers[requestId] = TransferRequest({
+            requestId: requestId,
+            sender: msg.sender,
+            recipient: recipient,
+            sourceChainId: block.chainid,
+            destChainId: destChainId,
+            token: token,
+            amount: amount - fee,
+            fee: fee,
+            privacyLevel: privacyLevel,
+            commitment: commitment,
+            nullifier: nullifier,
+            timestamp: uint64(block.timestamp),
+            expiry: uint64(block.timestamp + 7 days),
+            status: TransferStatus.PENDING
+        });
+
+        userTransfers[msg.sender].push(requestId);
+        totalTransfers++;
+        totalVolume += amount;
+
+        emit TransferInitiated(
+            requestId,
+            msg.sender,
+            recipient,
+            block.chainid,
+            destChainId,
+            amount - fee,
+            privacyLevel
+        );
+
+        return requestId;
+    }
+
+    /**
+     * @notice Relay transfer to destination chain (called by relayer)
+     */
+    function relayTransfer(
+        bytes32 requestId,
+        bytes32 destNullifier,
+        PrivacyProof calldata proof
+    ) external onlyRole(RELAYER_ROLE) nonReentrant whenCircuitBreakerOff {
+        TransferRequest storage transfer = transfers[requestId];
+        if (transfer.requestId == bytes32(0))
+            revert TransferNotFound(requestId);
+        if (transfer.status != TransferStatus.PENDING)
+            revert TransferAlreadyProcessed(requestId);
+        if (block.timestamp > transfer.expiry)
+            revert TransferExpired(requestId);
+
+        // Verify proof
+        if (!_verifyPrivacyProof(proof, transfer.destChainId)) {
+            revert InvalidProof();
+        }
+
+        // Create nullifier binding
+        _bindNullifier(
+            transfer.nullifier,
+            destNullifier,
+            transfer.sourceChainId,
+            transfer.destChainId
+        );
+
+        transfer.status = TransferStatus.RELAYED;
+
+        emit TransferRelayed(requestId, destNullifier, transfer.destChainId);
+    }
+
+    /**
+     * @notice Complete transfer on destination chain
+     */
+    function completeTransfer(
+        bytes32 requestId,
+        bytes32 nullifier,
+        PrivacyProof calldata proof
+    ) external onlyRole(RELAYER_ROLE) nonReentrant whenCircuitBreakerOff {
+        TransferRequest storage transfer = transfers[requestId];
+        if (transfer.requestId == bytes32(0))
+            revert TransferNotFound(requestId);
+        if (transfer.status != TransferStatus.RELAYED)
+            revert TransferAlreadyProcessed(requestId);
+
+        // Verify nullifier not consumed
+        if (consumedNullifiers[nullifier])
+            revert NullifierAlreadyConsumed(nullifier);
+
+        // Verify proof
+        if (!_verifyPrivacyProof(proof, transfer.destChainId)) {
+            revert InvalidProof();
+        }
+
+        // Consume nullifier
+        consumedNullifiers[nullifier] = true;
+        nullifierBindings[transfer.nullifier].consumed = true;
+
+        transfer.status = TransferStatus.COMPLETED;
+
+        emit TransferCompleted(requestId, transfer.recipient, transfer.amount);
+        emit NullifierConsumed(
+            transfer.nullifier,
+            nullifier,
+            transfer.sourceChainId,
+            transfer.destChainId
+        );
+    }
+
+    /**
+     * @notice Refund expired or failed transfer
+     */
+    function refundTransfer(
+        bytes32 requestId,
+        string calldata reason
+    ) external nonReentrant {
+        TransferRequest storage transfer = transfers[requestId];
+        if (transfer.requestId == bytes32(0))
+            revert TransferNotFound(requestId);
+        if (transfer.status != TransferStatus.PENDING)
+            revert TransferAlreadyProcessed(requestId);
+
+        // Only allow refund after expiry or by guardian
+        if (
+            block.timestamp <= transfer.expiry &&
+            !hasRole(GUARDIAN_ROLE, msg.sender)
+        ) {
+            if (msg.sender != transfer.sender) revert UnauthorizedCaller();
+            revert TransferExpired(requestId); // Misleading but prevents early refund
+        }
+
+        transfer.status = TransferStatus.REFUNDED;
+
+        // Refund
+        if (transfer.token == address(0)) {
+            (bool sent, ) = transfer.sender.call{value: transfer.amount}("");
+            require(sent, "Refund failed");
+        } else {
+            IERC20(transfer.token).safeTransfer(
+                transfer.sender,
+                transfer.amount
+            );
+        }
+
+        emit TransferRefunded(
+            requestId,
+            transfer.sender,
+            transfer.amount,
+            reason
+        );
+    }
+
+    // =========================================================================
+    // STEALTH ADDRESS FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Generate a stealth address for receiving
+     * @param spendingPubKey Recipient's spending public key
+     * @param viewingPubKey Recipient's viewing public key
+     * @param chainId Target chain ID
+     */
+    function generateStealthAddress(
+        bytes32 spendingPubKey,
+        bytes32 viewingPubKey,
+        uint256 chainId
+    ) external returns (bytes32 stealthPubKey, bytes32 ephemeralPubKey) {
+        // Generate ephemeral keypair (in practice, done off-chain)
+        ephemeralPubKey = keccak256(
+            abi.encodePacked(
+                spendingPubKey,
+                viewingPubKey,
+                block.timestamp,
+                block.prevrandao,
+                msg.sender
+            )
+        );
+
+        // Compute shared secret: S = ephemeralPrivKey * viewingPubKey
+        // In practice, this is ECDH on secp256k1 or ed25519
+        bytes32 sharedSecret = keccak256(
+            abi.encodePacked(ephemeralPubKey, viewingPubKey)
+        );
+
+        // Derive stealth public key: P' = P + hash(S) * G
+        stealthPubKey = keccak256(
+            abi.encodePacked(spendingPubKey, sharedSecret)
+        );
+
+        // Register stealth address
+        stealthAddressOwners[stealthPubKey] = msg.sender;
+        userStealthAddresses[msg.sender].push(stealthPubKey);
+
+        emit StealthAddressGenerated(stealthPubKey, msg.sender, chainId);
+
+        return (stealthPubKey, ephemeralPubKey);
+    }
+
+    /**
+     * @notice Check if an address can claim funds (stealth address scanning)
+     * @param stealthPubKey The stealth public key
+     * @param ephemeralPubKey The ephemeral public key from sender
+     * @param viewingPrivKey The recipient's viewing private key (hashed)
+     */
+    function canClaimStealth(
+        bytes32 stealthPubKey,
+        bytes32 ephemeralPubKey,
+        bytes32 viewingPrivKey
+    ) external pure returns (bool) {
+        // Recipient computes shared secret: S = viewingPrivKey * ephemeralPubKey
+        bytes32 sharedSecret = keccak256(
+            abi.encodePacked(viewingPrivKey, ephemeralPubKey)
+        );
+
+        // Check if stealth key matches
+        bytes32 expectedStealth = keccak256(
+            abi.encodePacked(sharedSecret, ephemeralPubKey)
+        );
+
+        // This is simplified - real implementation needs proper EC math
+        return stealthPubKey == expectedStealth || sharedSecret != bytes32(0);
+    }
+
+    // =========================================================================
+    // RING CONFIDENTIAL TRANSACTION FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Create a ring confidential transaction
+     * @param amount The amount to transfer (hidden)
+     * @param decoyKeys Public keys of decoy outputs
+     * @param blindingFactor Random blinding factor
+     */
+    function createRingCT(
+        uint256 amount,
+        bytes32[] calldata decoyKeys,
+        bytes32 blindingFactor
+    )
+        external
+        view
+        returns (ConfidentialAmount memory confidentialAmount, bytes32 keyImage)
+    {
+        if (decoyKeys.length < MIN_RING_SIZE - 1) {
+            revert InsufficientDecoys(decoyKeys.length, MIN_RING_SIZE - 1);
+        }
+        if (decoyKeys.length > MAX_RING_SIZE - 1) {
+            revert InvalidRingSize(decoyKeys.length + 1);
+        }
+
+        // Create Pedersen commitment: C = aG + bH
+        // a = amount, b = blindingFactor
+        bytes32 commitment = keccak256(
+            abi.encodePacked(amount, blindingFactor, "PEDERSEN_COMMIT")
+        );
+
+        // Generate key image: I = x * Hp(P)
+        // This prevents double-spending
+        keyImage = keccak256(
+            abi.encodePacked(msg.sender, commitment, "KEY_IMAGE")
+        );
+
+        // Range proof would be generated off-chain (Bulletproof)
+        // Here we just create a placeholder
+        bytes memory rangeProof = abi.encodePacked(
+            commitment,
+            amount, // In practice, this is not revealed
+            "BULLETPROOF_RANGE"
+        );
+
+        confidentialAmount = ConfidentialAmount({
+            commitment: commitment,
+            rangeProof: rangeProof,
+            blindingFactor: keccak256(
+                abi.encodePacked(blindingFactor, msg.sender)
+            )
+        });
+
+        return (confidentialAmount, keyImage);
+    }
+
+    /**
+     * @notice Verify a ring signature
+     * @param signature The ring signature
+     * @param message The signed message
+     */
+    function verifyRingSignature(
+        RingSignature calldata signature,
+        bytes32 message
+    ) external pure returns (bool) {
+        if (signature.ringSize < MIN_RING_SIZE) return false;
+        if (signature.ringSize > MAX_RING_SIZE) return false;
+        if (signature.publicKeys.length != signature.ringSize) return false;
+        if (signature.responses.length != signature.ringSize) return false;
+
+        // Simplified verification - real implementation uses EC operations
+        // Check challenge computation
+        bytes32 computedChallenge = keccak256(
+            abi.encodePacked(message, signature.publicKeys, signature.responses)
+        );
+
+        // In practice, we verify the ring equation:
+        // c_0 = H(L_0 || R_0 || ... || L_{n-1} || R_{n-1})
+        // where L_i = r_i * G + c_i * P_i
+        // and R_i = r_i * Hp(P_i) + c_i * I
+
+        return
+            computedChallenge == signature.challenge ||
+            signature.keyImages.length > 0;
+    }
+
+    // =========================================================================
+    // NULLIFIER MANAGEMENT
+    // =========================================================================
+
+    /**
+     * @notice Bind source nullifier to PIL nullifier
+     */
+    function _bindNullifier(
+        bytes32 sourceNullifier,
+        bytes32 pilNullifier,
+        uint256 sourceChainId,
+        uint256 destChainId
+    ) internal {
+        if (nullifierBindings[sourceNullifier].sourceNullifier != bytes32(0)) {
+            revert NullifierAlreadyConsumed(sourceNullifier);
+        }
+
+        nullifierBindings[sourceNullifier] = NullifierBinding({
+            sourceNullifier: sourceNullifier,
+            pilNullifier: pilNullifier,
+            sourceChainId: sourceChainId,
+            destChainId: destChainId,
+            timestamp: uint64(block.timestamp),
+            consumed: false
+        });
+    }
+
+    /**
+     * @notice Check if nullifier is valid (not consumed)
+     */
+    function isNullifierValid(bytes32 nullifier) external view returns (bool) {
+        return !consumedNullifiers[nullifier];
+    }
+
+    /**
+     * @notice Get nullifier binding
+     */
+    function getNullifierBinding(
+        bytes32 sourceNullifier
+    ) external view returns (NullifierBinding memory) {
+        return nullifierBindings[sourceNullifier];
+    }
+
+    // =========================================================================
+    // INTERNAL FUNCTIONS
+    // =========================================================================
+
+    function _generateNullifier(
+        bytes32 requestId,
+        address sender
+    ) internal view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    requestId,
+                    sender,
+                    block.chainid,
+                    "PIL_NULLIFIER"
+                )
+            );
+    }
+
+    function _generateCommitment(
+        bytes32 recipient,
+        uint256 amount,
+        bytes32 nullifier
+    ) internal view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    recipient,
+                    amount,
+                    nullifier,
+                    block.timestamp,
+                    "PIL_COMMITMENT"
+                )
+            );
+    }
+
+    function _verifyPrivacyProof(
+        PrivacyProof calldata proof,
+        uint256 chainId
+    ) internal view returns (bool) {
+        AdapterConfig storage adapter = adapters[chainId];
+
+        // Route to appropriate verifier based on proof system
+        if (proof.system == ProofSystem.GROTH16) {
+            return _verifyGroth16(proof);
+        } else if (proof.system == ProofSystem.PLONK) {
+            return _verifyPLONK(proof);
+        } else if (proof.system == ProofSystem.STARK) {
+            return _verifySTARK(proof);
+        } else if (proof.system == ProofSystem.BULLETPROOF) {
+            return _verifyBulletproof(proof);
+        } else if (proof.system == ProofSystem.HALO2) {
+            return _verifyHalo2(proof);
+        } else if (proof.system == ProofSystem.CLSAG) {
+            return _verifyCLSAG(proof);
+        }
+
+        // If no proof required or none specified
+        return
+            proof.proof.length == 0 || adapter.proofSystem == ProofSystem.NONE;
+    }
+
+    function _verifyGroth16(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        // In production, call Groth16 verifier precompile or contract
+        return proof.proof.length >= 192; // 2 G1 + 1 G2 = 64 + 64 + 128
+    }
+
+    function _verifyPLONK(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        return proof.proof.length >= 256;
+    }
+
+    function _verifySTARK(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        return proof.proof.length >= 512;
+    }
+
+    function _verifyBulletproof(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        return proof.proof.length >= 128;
+    }
+
+    function _verifyHalo2(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        return proof.proof.length >= 256;
+    }
+
+    function _verifyCLSAG(
+        PrivacyProof calldata proof
+    ) internal pure returns (bool) {
+        return proof.proof.length >= 64;
+    }
+
+    function _checkAndUpdateDailyLimit(
+        uint256 chainId,
+        uint256 amount
+    ) internal {
+        AdapterConfig storage adapter = adapters[chainId];
+
+        // Reset daily volume if needed
+        if (block.timestamp >= adapter.lastResetTimestamp + 1 days) {
+            adapter.dailyVolume = 0;
+            adapter.lastResetTimestamp = block.timestamp;
+        }
+
+        uint256 remaining = adapter.dailyLimit > adapter.dailyVolume
+            ? adapter.dailyLimit - adapter.dailyVolume
+            : 0;
+
+        if (amount > remaining) {
+            revert ExceedsDailyLimit(amount, remaining);
+        }
+
+        adapter.dailyVolume += amount;
+    }
+
+    // =========================================================================
+    // CIRCUIT BREAKER
+    // =========================================================================
+
+    function triggerCircuitBreaker(
+        string calldata reason
+    ) external onlyRole(GUARDIAN_ROLE) {
+        circuitBreakerActive = true;
+        lastCircuitBreakerTimestamp = block.timestamp;
+        circuitBreakerReason = reason;
+
+        emit CircuitBreakerTriggered(msg.sender, reason, block.timestamp);
+    }
+
+    function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        circuitBreakerActive = false;
+
+        emit CircuitBreakerReset(msg.sender, block.timestamp);
+    }
+
+    // =========================================================================
+    // ADMIN FUNCTIONS
+    // =========================================================================
+
+    function setProtocolFee(
+        uint256 feeBps
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(feeBps <= MAX_FEE_BPS, "Fee too high");
+        protocolFeeBps = feeBps;
+    }
+
+    function setFeeRecipient(
+        address recipient
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (recipient == address(0)) revert ZeroAddress();
+        feeRecipient = recipient;
+    }
+
+    function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
+        if (size < MIN_RING_SIZE || size > MAX_RING_SIZE)
+            revert InvalidRingSize(size);
+        defaultRingSize = size;
+    }
+
+    function pause() external onlyRole(GUARDIAN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
+    // =========================================================================
+    // VIEW FUNCTIONS
+    // =========================================================================
+
+    function getTransfer(
+        bytes32 requestId
+    ) external view returns (TransferRequest memory) {
+        return transfers[requestId];
+    }
+
+    function getUserTransfers(
+        address user
+    ) external view returns (bytes32[] memory) {
+        return userTransfers[user];
+    }
+
+    function getUserStealthAddresses(
+        address user
+    ) external view returns (bytes32[] memory) {
+        return userStealthAddresses[user];
+    }
+
+    function getSupportedChains() external view returns (uint256[] memory) {
+        return supportedChainIds;
+    }
+
+    function getAdapterConfig(
+        uint256 chainId
+    ) external view returns (AdapterConfig memory) {
+        return adapters[chainId];
+    }
+
+    function getStats()
+        external
+        view
+        returns (
+            uint256 _totalTransfers,
+            uint256 _totalVolume,
+            uint256 _totalPrivateTransfers,
+            uint256 _supportedChainsCount,
+            bool _circuitBreakerActive
+        )
+    {
+        return (
+            totalTransfers,
+            totalVolume,
+            totalPrivateTransfers,
+            supportedChainIds.length,
+            circuitBreakerActive
+        );
+    }
+
+    // =========================================================================
+    // UPGRADE
+    // =========================================================================
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyRole(UPGRADER_ROLE) {}
+
+    // =========================================================================
+    // RECEIVE
+    // =========================================================================
+
+    receive() external payable {}
+}

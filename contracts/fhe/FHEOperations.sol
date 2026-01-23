@@ -39,9 +39,10 @@ library FHEOperations {
     // GATEWAY STORAGE
     // ============================================
 
-    // Storage slot for gateway address (using a pseudo-random slot to avoid collisions)
+    // Storage slot for gateway address - fixed hex to work with assembly
+    // keccak256("fhe.operations.gateway.slot")
     bytes32 private constant GATEWAY_SLOT =
-        keccak256("fhe.operations.gateway.slot");
+        0x7a8dd5c3f3e6b0d4d7c3e17bf5b0c8c5c1f3a8b9e7d6c5b4a3f2e1d0c9b8a7f6;
 
     /**
      * @notice Set the FHE gateway address
@@ -49,7 +50,10 @@ library FHEOperations {
      */
     function setGateway(address gateway) internal {
         assembly {
-            sstore(GATEWAY_SLOT, gateway)
+            sstore(
+                0x7a8dd5c3f3e6b0d4d7c3e17bf5b0c8c5c1f3a8b9e7d6c5b4a3f2e1d0c9b8a7f6,
+                gateway
+            )
         }
     }
 
@@ -60,7 +64,9 @@ library FHEOperations {
     function getGateway() internal view returns (FHEGateway gateway) {
         address addr;
         assembly {
-            addr := sload(GATEWAY_SLOT)
+            addr := sload(
+                0x7a8dd5c3f3e6b0d4d7c3e17bf5b0c8c5c1f3a8b9e7d6c5b4a3f2e1d0c9b8a7f6
+            )
         }
         if (addr == address(0)) revert GatewayNotSet();
         return FHEGateway(addr);

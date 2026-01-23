@@ -6,9 +6,24 @@ use std::hash::poseidon;
 ///      N = H(secret, app_id, chain_id, epoch, transition_id)
 /// 
 /// Enables cross-chain double-spend prevention without global state.
+///
+/// FEATURES:
+/// 1. Cross-chain nullifier derivation (A→B ≠ B→A)
+/// 2. Merkle tree membership proofs (16-depth tree)
+/// 3. Private transfers with balance verification
+/// 4. Range proofs for value validation
+/// 5. Epoch-based nullifier evolution
 
 /// CDNA version prefix (ASCII for "CDNA_v1" padded)
 global CDNA_PREFIX: Field = 0x434e4441_76310000;
+
+/// Merkle tree depth for UTXO set
+global MERKLE_DEPTH: u32 = 16;
+
+/// Domain separators
+global COMMITMENT_DOMAIN: Field = 0x434f4d4d4954; // "COMMIT"
+global NULLIFIER_DOMAIN: Field = 0x4e554c4c;      // "NULL"
+global TRANSFER_DOMAIN: Field = 0x5452414e5346;   // "TRANSF"
 
 struct DomainContext {
     chain_id: Field,
@@ -16,9 +31,35 @@ struct DomainContext {
     epoch_id: Field,
 }
 
+/// Commitment for hiding value
+struct Commitment {
+    value: Field,
+    blinding: Field,
+}
+
+/// Input UTXO for cross-domain transfer
+struct TransferInput {
+    secret: Field,
+    commitment: Commitment,
+    merkle_path: [Field; 16],
+    merkle_indices: [u1; 16],
+}
+
+/// Output UTXO for cross-domain transfer
+struct TransferOutput {
+    value: Field,
+    blinding: Field,
+    recipient: Field,
+}
+
 /// Compute domain separator for nullifier scope
 fn compute_domain_separator(domain: DomainContext) -> Field {
     poseidon::bn254::hash_4([CDNA_PREFIX, domain.chain_id, domain.app_id, domain.epoch_id])
+}
+
+/// Compute a Pedersen-style commitment using Poseidon
+fn compute_commitment(c: Commitment) -> Field {
+    poseidon::bn254::hash_3([COMMITMENT_DOMAIN, c.value, c.blinding])
 }
 
 /// Compute a domain-separated nullifier
@@ -29,6 +70,50 @@ fn compute_domain_nullifier(
 ) -> Field {
     let separator = compute_domain_separator(domain);
     poseidon::bn254::hash_4([secret, separator, transition_id, 0])
+}
+
+/// Compute nullifier from secret and commitment (for transfer inputs)
+fn compute_nullifier_from_commitment(secret: Field, commitment_hash: Field, domain: DomainContext) -> Field {
+    let separator = compute_domain_separator(domain);
+    poseidon::bn254::hash_4([NULLIFIER_DOMAIN, secret, commitment_hash, separator])
+}
+
+/// Verify Merkle tree membership proof
+/// Returns true if the leaf is in the tree with the given root
+fn verify_merkle_proof(
+    leaf: Field,
+    root: Field,
+    path: [Field; 16],
+    indices: [u1; 16]
+) -> bool {
+    let mut current_hash = leaf;
+    
+    for i in 0..16 {
+        let path_element = path[i];
+        let index = indices[i];
+        
+        // If index is 0, current_hash is on the left
+        // If index is 1, current_hash is on the right
+        let (left, right) = if index == 0 {
+            (current_hash, path_element)
+        } else {
+            (path_element, current_hash)
+        };
+        
+        current_hash = poseidon::bn254::hash_2([left, right]);
+    }
+    
+    current_hash == root
+}
+
+/// Range check: verify value fits in 64 bits
+fn range_check_64(value: Field) -> bool {
+    let bits: [u1; 64] = value.to_be_bits();
+    let mut reconstructed: Field = 0;
+    for i in 0..64 {
+        reconstructed = reconstructed * 2 + bits[i] as Field;
+    }
+    reconstructed == value
 }
 
 /// Verify a domain nullifier
@@ -211,4 +296,141 @@ fn test_different_domains_different_nullifiers() {
     
     // Different chains should produce different nullifiers
     assert(null1 != null2);
+}
+
+#[test]
+fn test_commitment_determinism() {
+    let c = Commitment { value: 1000, blinding: 12345 };
+    let hash1 = compute_commitment(c);
+    let hash2 = compute_commitment(c);
+    assert(hash1 == hash2);
+}
+
+#[test]
+fn test_merkle_proof_verification() {
+    // Single-element tree test
+    let leaf = poseidon::bn254::hash_1([42]);
+    
+    // Build a simple Merkle path to a root
+    let mut path: [Field; 16] = [0; 16];
+    let mut indices: [u1; 16] = [0; 16];
+    
+    // Compute expected root by hashing up the tree
+    let mut current = leaf;
+    for i in 0..16 {
+        path[i] = 0; // Zero sibling
+        current = poseidon::bn254::hash_2([current, 0]);
+    }
+    
+    // Verify the proof
+    assert(verify_merkle_proof(leaf, current, path, indices));
+}
+
+#[test]
+fn test_range_check() {
+    // Valid 64-bit values
+    assert(range_check_64(0));
+    assert(range_check_64(1000000));
+    assert(range_check_64(18446744073709551615)); // 2^64 - 1
+}
+
+// =============================================================================
+// CROSS-DOMAIN TRANSFER WITH MERKLE PROOFS
+// =============================================================================
+
+/// Verify input UTXO for cross-domain transfer
+fn verify_transfer_input(
+    input: TransferInput,
+    domain: DomainContext,
+    merkle_root: Field
+) -> (Field, Field) {
+    // Compute commitment hash
+    let commitment_hash = compute_commitment(input.commitment);
+    
+    // Verify Merkle membership
+    let in_tree = verify_merkle_proof(
+        commitment_hash,
+        merkle_root,
+        input.merkle_path,
+        input.merkle_indices
+    );
+    assert(in_tree);
+    
+    // Compute nullifier
+    let nullifier = compute_nullifier_from_commitment(
+        input.secret,
+        commitment_hash,
+        domain
+    );
+    
+    // Range check value
+    assert(range_check_64(input.commitment.value));
+    
+    // Return (nullifier, value) for balance checking
+    (nullifier, input.commitment.value)
+}
+
+/// Verify output UTXO for cross-domain transfer
+fn verify_transfer_output(
+    output: TransferOutput,
+    target_domain: DomainContext
+) -> (Field, Field) {
+    // Compute commitment
+    let commitment = Commitment {
+        value: output.value,
+        blinding: output.blinding
+    };
+    let commitment_hash = compute_commitment(commitment);
+    
+    // Range check value
+    assert(range_check_64(output.value));
+    
+    // Return (commitment_hash, value) for balance checking
+    (commitment_hash, output.value)
+}
+
+/// Cross-domain private transfer with Merkle proofs
+/// Proves:
+/// 1. Input is in source domain's UTXO tree
+/// 2. Nullifier is correctly derived for double-spend prevention
+/// 3. Output commitment is valid
+/// 4. Balance is conserved (input_value >= output_value + fee)
+fn verify_cross_domain_transfer(
+    // Input UTXO
+    input: TransferInput,
+    // Output UTXO
+    output: TransferOutput,
+    // Fee
+    fee: Field,
+    // Source domain
+    source_domain: DomainContext,
+    source_merkle_root: Field,
+    // Target domain
+    target_domain: DomainContext,
+    // Expected public outputs
+    expected_nullifier: Field,
+    expected_output_commitment: Field
+) -> bool {
+    // Verify input
+    let (computed_nullifier, input_value) = verify_transfer_input(
+        input,
+        source_domain,
+        source_merkle_root
+    );
+    assert(computed_nullifier == expected_nullifier);
+    
+    // Verify output
+    let (computed_output_commitment, output_value) = verify_transfer_output(
+        output,
+        target_domain
+    );
+    assert(computed_output_commitment == expected_output_commitment);
+    
+    // Balance check: input >= output + fee
+    assert(input_value == output_value + fee);
+    
+    // Range check fee
+    assert(range_check_64(fee));
+    
+    true
 }

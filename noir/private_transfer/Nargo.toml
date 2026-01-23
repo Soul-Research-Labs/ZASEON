@@ -1,0 +1,8 @@
+[package]
+name = "private_transfer"
+type = "bin"
+authors = ["Privacy Interoperability Layer"]
+compiler_version = ">=0.30.0"
+description = "Private transfer circuit with hidden amounts, stealth addresses, and balance verification"
+
+[dependencies]
