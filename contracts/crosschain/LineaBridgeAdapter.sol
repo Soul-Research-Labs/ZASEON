@@ -75,6 +75,15 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Proof finality tracking
     mapping(bytes32 => ProofFinality) public proofFinality;
 
+    /// @notice Linea nullifiers (for double-spend prevention)
+    mapping(bytes32 => bool) public lineaNullifiers;
+
+    /// @notice Cross-domain nullifiers (Linea -> PIL binding)
+    mapping(bytes32 => bytes32) public crossDomainNullifiers;
+
+    /// @notice PIL bindings
+    mapping(bytes32 => bytes32) public pilBindings;
+
     // ============ Structs ============
 
     struct OutgoingMessage {
@@ -152,6 +161,24 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     event FeeUpdated(uint256 baseFee, uint256 feePerByte);
     event LimitUpdated(string limitType, uint256 value);
 
+    event NullifierRegistered(
+        bytes32 indexed nullifier,
+        bytes32 indexed messageHash,
+        uint256 blockNumber
+    );
+
+    event CrossDomainNullifierRegistered(
+        bytes32 indexed crossDomainNullifier,
+        bytes32 indexed lineaNullifier,
+        uint256 targetDomain
+    );
+
+    event PILBindingCreated(
+        bytes32 indexed pilBinding,
+        bytes32 indexed lineaNullifier,
+        bytes32 pilDomain
+    );
+
     // ============ Errors ============
 
     error InvalidAddress();
@@ -168,6 +195,8 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     error ClaimFailed();
     error UnauthorizedCaller();
     error InvalidProof();
+    error NullifierAlreadyUsed();
+    error NullifierNotRegistered();
 
     // ============ Modifiers ============
 
@@ -593,6 +622,157 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
             )
         );
         success; // Silence unused warning
+    }
+
+    // ============ Nullifier Functions ============
+
+    /**
+     * @notice Register a Linea nullifier from a finalized message
+     * @param messageHash The message hash
+     * @param blockNumber The L2 block number
+     * @param commitment The commitment value
+     * @return nullifier The derived nullifier
+     */
+    function registerNullifier(
+        bytes32 messageHash,
+        uint256 blockNumber,
+        bytes32 commitment
+    ) external onlyRole(BRIDGE_OPERATOR_ROLE) returns (bytes32 nullifier) {
+        nullifier = _deriveLineaNullifier(messageHash, blockNumber, commitment);
+
+        if (lineaNullifiers[nullifier]) {
+            revert NullifierAlreadyUsed();
+        }
+
+        lineaNullifiers[nullifier] = true;
+
+        emit NullifierRegistered(nullifier, messageHash, blockNumber);
+    }
+
+    /**
+     * @notice Register a cross-domain nullifier for PIL binding
+     * @param lineaNullifier The Linea nullifier
+     * @param targetDomain The target domain ID
+     * @return crossDomainNf The derived cross-domain nullifier
+     */
+    function registerCrossDomainNullifier(
+        bytes32 lineaNullifier,
+        uint256 targetDomain
+    ) external onlyRole(BRIDGE_OPERATOR_ROLE) returns (bytes32 crossDomainNf) {
+        if (!lineaNullifiers[lineaNullifier]) {
+            revert NullifierNotRegistered();
+        }
+
+        crossDomainNf = _deriveCrossDomainNullifier(
+            lineaNullifier,
+            targetDomain
+        );
+
+        if (crossDomainNullifiers[crossDomainNf] != bytes32(0)) {
+            revert NullifierAlreadyUsed();
+        }
+
+        crossDomainNullifiers[crossDomainNf] = lineaNullifier;
+
+        emit CrossDomainNullifierRegistered(
+            crossDomainNf,
+            lineaNullifier,
+            targetDomain
+        );
+    }
+
+    /**
+     * @notice Create a PIL binding from a Linea nullifier
+     * @param lineaNullifier The Linea nullifier
+     * @param pilDomain The PIL domain identifier
+     * @return pilBinding The derived PIL binding
+     */
+    function createPILBinding(
+        bytes32 lineaNullifier,
+        bytes32 pilDomain
+    ) external onlyRole(BRIDGE_OPERATOR_ROLE) returns (bytes32 pilBinding) {
+        if (!lineaNullifiers[lineaNullifier]) {
+            revert NullifierNotRegistered();
+        }
+
+        pilBinding = _derivePILBinding(lineaNullifier, pilDomain);
+
+        if (pilBindings[pilBinding] != bytes32(0)) {
+            revert NullifierAlreadyUsed();
+        }
+
+        pilBindings[pilBinding] = lineaNullifier;
+
+        emit PILBindingCreated(pilBinding, lineaNullifier, pilDomain);
+    }
+
+    /**
+     * @notice Check if a nullifier has been used
+     * @param nullifier The nullifier to check
+     * @return True if the nullifier has been used
+     */
+    function isNullifierUsed(bytes32 nullifier) external view returns (bool) {
+        return lineaNullifiers[nullifier];
+    }
+
+    /**
+     * @notice Get the Linea nullifier from a cross-domain nullifier
+     * @param crossDomainNf The cross-domain nullifier
+     * @return The original Linea nullifier
+     */
+    function getLineaNullifier(
+        bytes32 crossDomainNf
+    ) external view returns (bytes32) {
+        return crossDomainNullifiers[crossDomainNf];
+    }
+
+    /**
+     * @notice Get the Linea nullifier from a PIL binding
+     * @param pilBinding The PIL binding
+     * @return The original Linea nullifier
+     */
+    function getNullifierFromBinding(
+        bytes32 pilBinding
+    ) external view returns (bytes32) {
+        return pilBindings[pilBinding];
+    }
+
+    // ============ Internal Nullifier Derivation ============
+
+    function _deriveLineaNullifier(
+        bytes32 messageHash,
+        uint256 blockNumber,
+        bytes32 commitment
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    messageHash,
+                    blockNumber,
+                    commitment,
+                    "LINEA_NULLIFIER"
+                )
+            );
+    }
+
+    function _deriveCrossDomainNullifier(
+        bytes32 lineaNullifier,
+        uint256 targetDomain
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(lineaNullifier, targetDomain, "LINEA2PIL")
+            );
+    }
+
+    function _derivePILBinding(
+        bytes32 lineaNullifier,
+        bytes32 pilDomain
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(lineaNullifier, pilDomain, "PIL_BINDING")
+            );
     }
 
     receive() external payable {}
