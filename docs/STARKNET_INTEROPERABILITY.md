@@ -1,13 +1,6 @@
 # Starknet Interoperability Documentation
 
-## Overview
-
-The Privacy Interoperability Layer (PIL) provides comprehensive interoperability with Starknet L2, enabling:
-
-- **STARK Proof Verification**: On-chain verification of Cairo program executions
-- **Cross-Domain Nullifiers**: Privacy-preserving nullifier synchronization between L1 and Starknet L2
-- **State Synchronization**: Trustless state root caching and storage proof verification
-- **L1↔L2 Messaging**: Bi-directional message passing with Starknet
+> PIL integration with Starknet L2: STARK proofs, cross-domain nullifiers, state sync, L1↔L2 messaging.
 
 ## Architecture
 
@@ -362,25 +355,15 @@ bridgeAdapter.withdrawFromL2(
 
 ## Gas Optimization
 
-### Recommendations
+| Operation | Gas | Optimization |
+|-----------|-----|-------------|
+| Poseidon hash | ~20K | Use for ZK ops |
+| Pedersen hash | ~30K | Legacy only |
+| FRI verification | ~500K+ | Batch verify |
+| Nullifier registration | ~50K | Batch txs |
+| State root caching | ~80K | Cache only needed |
 
-| Operation | Gas Cost | Optimization |
-|-----------|----------|--------------|
-| Poseidon hash | ~20,000 | Use for ZK operations |
-| Pedersen hash | ~30,000 | Only for legacy compat |
-| FRI verification | ~500,000+ | Batch verify proofs |
-| Nullifier registration | ~50,000 | Batch in transactions |
-| State root caching | ~80,000 | Cache only needed blocks |
-
-### Batch Operations
-
-```solidity
-// Batch verify proofs (saves ~40% gas vs individual)
-bool[] memory results = proofVerifier.batchVerifyProofs(proofIds);
-
-// Batch nullifier sync
-nullifierContract.submitSyncBatch(nullifiers, stateRoot, blockNumber);
-```
+**Tip:** Batch operations save ~40% gas vs individual calls.
 
 ## Security Considerations
 
@@ -415,24 +398,14 @@ nullifierContract.submitSyncBatch(nullifiers, stateRoot, blockNumber);
 
 ## Testing
 
-### Unit Tests
-
 ```bash
-# Run Starknet test suite
+# Unit tests
 npx hardhat test test/starknet/StarknetBridge.test.ts
-```
 
-### Fuzz Tests
-
-```bash
-# Run Foundry fuzz tests
+# Fuzz tests
 forge test --match-contract StarknetBridgeFuzz -vvv
-```
 
-### Integration Tests
-
-```bash
-# Run full integration suite
+# Integration tests
 npx hardhat test test/integration/StarknetIntegration.test.ts
 ```
 
@@ -552,28 +525,12 @@ contract StarknetStateSync {
 
 ## Roadmap
 
-### Current (v1.0)
-- ✅ STARK proof verification
-- ✅ Cross-domain nullifiers
-- ✅ State synchronization
-- ✅ L1↔L2 messaging
+**v1.0 (Current):** ✅ STARK proofs • Cross-domain nullifiers • State sync • L1↔L2 messaging
 
-### Planned (v1.1)
-- [ ] Recursive proof verification
-- [ ] STWO prover support
-- [ ] Optimized Poseidon constants
-- [ ] Cairo 2.0 support
+**v1.1 (Planned):** Recursive proofs • STWO prover • Cairo 2.0
 
-### Future (v2.0)
-- [ ] Native Cairo contract integration
-- [ ] Cross-L2 messaging (Starknet ↔ other L2s)
-- [ ] Shared sequencer support
-- [ ] Based rollup integration
+**v2.0 (Future):** Native Cairo integration • Cross-L2 messaging • Shared sequencer
 
 ## Resources
 
-- [Starknet Documentation](https://docs.starknet.io/)
-- [STARK Math](https://starkware.co/stark-math/)
-- [FRI Protocol](https://eprint.iacr.org/2017/620.pdf)
-- [Poseidon Hash](https://eprint.iacr.org/2019/458.pdf)
-- [Cairo Programming Language](https://www.cairo-lang.org/)
+[Starknet Docs](https://docs.starknet.io/) • [STARK Math](https://starkware.co/stark-math/) • [FRI Protocol](https://eprint.iacr.org/2017/620.pdf) • [Poseidon](https://eprint.iacr.org/2019/458.pdf) • [Cairo Lang](https://www.cairo-lang.org/)

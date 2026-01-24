@@ -1,54 +1,10 @@
 # Cross-Chain Privacy Architecture
 
-> Comprehensive guide to PIL's cross-chain privacy infrastructure
+> Unified cross-chain privacy for 41+ blockchain networks.
 
-## Table of Contents
+**Features:** Stealth Addresses • Ring Signatures • Confidential Amounts • Cross-Domain Nullifiers • Multi-proof support (Groth16, PLONK, STARK, Bulletproof, Halo2, CLSAG)
 
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Privacy Levels](#privacy-levels)
-4. [Core Components](#core-components)
-5. [Cryptographic Primitives](#cryptographic-primitives)
-6. [Stealth Addresses](#stealth-addresses)
-7. [Ring Confidential Transactions](#ring-confidential-transactions)
-8. [Cross-Domain Nullifier Algebra](#cross-domain-nullifier-algebra)
-9. [Supported Chains](#supported-chains)
-10. [Integration Guide](#integration-guide)
-11. [Security Considerations](#security-considerations)
-
----
-
-## Overview
-
-The Privacy Interoperability Layer (PIL) provides **unified cross-chain privacy** for 41+ blockchain networks. It enables private value transfers, unlinkable addresses, hidden amounts, and cross-domain double-spend prevention.
-
-### Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Stealth Addresses** | One-time addresses for unlinkable payments |
-| **Ring Signatures** | Hide sender among decoys |
-| **Confidential Amounts** | Pedersen commitments hide transfer values |
-| **Cross-Domain Nullifiers** | Prevent double-spending across chains |
-| **Unified Proof Verification** | Support for Groth16, PLONK, STARK, Bulletproof, Halo2, CLSAG |
-
-### Privacy Guarantees
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    PIL Privacy Guarantees                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ✓ Sender Privacy     - Ring signatures hide real sender                │
-│  ✓ Receiver Privacy   - Stealth addresses create unlinkable recipients  │
-│  ✓ Amount Privacy     - Pedersen commitments hide transfer values       │
-│  ✓ Transaction Graph  - Cross-domain nullifiers break linkability       │
-│  ✓ Metadata Privacy   - Encrypted note data                             │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
+**Privacy Guarantees:** Sender (ring sigs) • Receiver (stealth addresses) • Amount (Pedersen) • Graph (CDNA) • Metadata (encrypted)
 
 ## Architecture
 
@@ -640,62 +596,25 @@ const success = await ringCT.verifyAndExecuteRCT(
 
 ## Security Considerations
 
-### Threat Model
-
 | Threat | Mitigation |
 |--------|------------|
-| **Double Spend** | Nullifier registry with cross-domain bindings |
-| **Front-running** | Commit-reveal for stealth address announcements |
-| **Transaction Graph Analysis** | Ring signatures with realistic decoy selection |
-| **Amount Correlation** | Fixed denominations or Bulletproof range proofs |
-| **Timing Analysis** | Delayed relay with random jitter |
-| **Key Compromise** | View keys separate from spending keys |
+| Double Spend | Cross-domain nullifier registry |
+| Front-running | Commit-reveal for stealth announcements |
+| Graph Analysis | Ring signatures + realistic decoys |
+| Amount Correlation | Fixed denominations / Bulletproofs |
+| Timing Analysis | Delayed relay + random jitter |
+| Key Compromise | Separate view/spending keys |
 
-### Best Practices
+**Best Practices:** Use max privacy for high-value • Wait for anonymity set • Fresh addresses per tx • Verify proofs
 
-1. **Use Maximum Privacy** for high-value transfers
-2. **Wait for Anonymity Set** before withdrawing
-3. **Use Fresh Addresses** for each transaction
-4. **Verify Proofs** before accepting transfers
-5. **Monitor Nullifiers** for attempted double-spends
-
-### Formal Verification
-
-All privacy contracts have been formally verified:
-
-- **K Framework**: `specs/k/cross-chain-privacy.k`
-- **Certora CVL**: `certora/specs/CrossChainPrivacy.spec`
-- **Halmos**: Symbolic execution for invariants
-- **Echidna**: Fuzz testing for edge cases
+**Formal Verification:** K Framework • Certora CVL • Halmos symbolic • Echidna fuzz
 
 ---
 
-## Appendix: Contract Addresses
+## Contract Addresses
 
-### Mainnet (Coming Soon)
-
-| Contract | Address |
-|----------|---------|
-| CrossChainPrivacyHub | TBD |
-| StealthAddressRegistry | TBD |
-| RingConfidentialTransactions | TBD |
-| UnifiedNullifierManager | TBD |
-
-### Sepolia Testnet
-
-| Contract | Address |
-|----------|---------|
-| CrossChainPrivacyHub | `0x...` (deploy pending) |
-| StealthAddressRegistry | `0x...` (deploy pending) |
-| RingConfidentialTransactions | `0x...` (deploy pending) |
-| UnifiedNullifierManager | `0x...` (deploy pending) |
-
----
+**Mainnet:** TBD | **Sepolia:** Deploy pending (see [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md))
 
 ## References
 
-- [ERC-5564: Stealth Addresses](https://eips.ethereum.org/EIPS/eip-5564)
-- [Monero RingCT Whitepaper](https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf)
-- [Bulletproofs Paper](https://eprint.iacr.org/2017/1066)
-- [CLSAG Paper](https://eprint.iacr.org/2019/654)
-- [Zcash Protocol Specification](https://zips.z.cash/protocol/protocol.pdf)
+[ERC-5564 Stealth](https://eips.ethereum.org/EIPS/eip-5564) • [Monero RingCT](https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf) • [Bulletproofs](https://eprint.iacr.org/2017/1066) • [CLSAG](https://eprint.iacr.org/2019/654) • [Zcash Spec](https://zips.z.cash/protocol/protocol.pdf)

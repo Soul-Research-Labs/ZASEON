@@ -1,46 +1,17 @@
-# PIL Protocol Mainnet Deployment Guide
+# PIL Deployment Guide
 
-This guide covers the complete process for deploying the Privacy Interoperability Layer (PIL) protocol to Ethereum mainnet and other EVM-compatible chains.
+> Complete process for deploying PIL to Ethereum mainnet and L2 networks.
 
-## Table of Contents
-
-1. [Pre-Deployment Checklist](#pre-deployment-checklist)
-2. [Environment Setup](#environment-setup)
-3. [Trusted Setup Ceremony](#trusted-setup-ceremony)
-4. [Deployment Steps](#deployment-steps)
-5. [Post-Deployment Verification](#post-deployment-verification)
-6. [Multi-Chain Deployment](#multi-chain-deployment)
-7. [Security Considerations](#security-considerations)
-8. [Troubleshooting](#troubleshooting)
+For **live deployed addresses**, see [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md).
 
 ---
 
 ## Pre-Deployment Checklist
 
-Before deploying to mainnet, ensure the following:
-
-### Code Review
-- [ ] All tests passing (`npx hardhat test`)
-- [ ] Security audit completed and issues addressed
-- [ ] Formal verification specs validated
-- [ ] Code freeze - no changes after audit
-
-### Security
-- [ ] Multi-sig wallets created (Gnosis Safe recommended)
-- [ ] Admin role addresses confirmed
-- [ ] Private keys secured (hardware wallet recommended)
-- [ ] Emergency pause procedures documented
-
-### Infrastructure
-- [ ] RPC endpoints configured (Infura/Alchemy)
-- [ ] Block explorer API keys obtained
-- [ ] Subgraph endpoints ready
-- [ ] Monitoring infrastructure set up
-
-### Funding
-- [ ] Deployer wallet funded with ETH (estimate: 2-5 ETH for full deployment)
-- [ ] Gas prices checked on all target networks
-- [ ] Treasury wallet funded for governance
+**Code:** Tests passing, audit complete, code freeze  
+**Security:** Multi-sig wallets, hardware keys, emergency procedures  
+**Infra:** RPC endpoints, block explorer APIs, monitoring  
+**Funding:** 2-5 ETH for deployment, treasury funded
 
 ---
 
@@ -88,47 +59,15 @@ npx hardhat run scripts/helpers/check-balance.js --network mainnet
 
 ---
 
-## Trusted Setup Ceremony
-
-For ZK circuits using Groth16, a trusted setup is required.
-
-### 1. Generate Circuit Parameters
+## Trusted Setup Ceremony (Groth16)
 
 ```bash
-# Compile circuits
-./scripts/compile-circuits.sh
-
-# Generate initial ceremony contributions
-./scripts/trusted-setup-ceremony.sh init
+./scripts/compile-circuits.sh              # Compile circuits
+./scripts/trusted-setup-ceremony.sh init   # Initialize
+./scripts/trusted-setup-ceremony.sh contribute --name "participant1"  # Each contributor
+./scripts/trusted-setup-ceremony.sh finalize  # Finalize
+./scripts/trusted-setup-ceremony.sh verify    # Verify parameters
 ```
-
-### 2. Conduct Multi-Party Ceremony
-
-Each participant contributes randomness:
-
-```bash
-# Participant 1
-./scripts/trusted-setup-ceremony.sh contribute --name "participant1"
-
-# Participant 2 (different machine)
-./scripts/trusted-setup-ceremony.sh contribute --name "participant2"
-
-# ... more participants for security
-```
-
-### 3. Finalize and Verify
-
-```bash
-# Finalize ceremony
-./scripts/trusted-setup-ceremony.sh finalize
-
-# Verify final parameters
-./scripts/trusted-setup-ceremony.sh verify
-```
-
-### 4. Deploy Verification Keys
-
-The ceremony generates verification keys that are embedded in verifier contracts.
 
 ---
 
@@ -190,164 +129,45 @@ npx hardhat verify --network mainnet DEPLOYED_ADDRESS
 
 ## Post-Deployment Verification
 
-### 1. Contract Verification Checklist
-
 ```bash
-# Run post-deployment checks
-npx hardhat run scripts/verify-deployment.js --network mainnet
-```
-
-This script checks:
-- [ ] All contracts deployed at expected addresses
-- [ ] Access control roles configured correctly
-- [ ] Timelock delay set appropriately
-- [ ] Pause functionality works
-- [ ] Basic operations execute correctly
-
-### 2. Verify on Etherscan
-
-Ensure all contracts show:
-- ✅ Verified source code
-- ✅ Correct compiler version (0.8.20)
-- ✅ Correct optimization settings (200 runs)
-
-### 3. Test Key Operations
-
-```bash
-# Submit a test proof
-npx hardhat run scripts/test-mainnet-operations.js --network mainnet
-```
-
-### 4. Transfer Ownership
-
-After verification, transfer admin roles to multi-sig:
-
-```bash
-npx hardhat run scripts/transfer-ownership.js --network mainnet
+npx hardhat run scripts/verify-deployment.js --network mainnet  # Run checks
+npx hardhat verify --network mainnet DEPLOYED_ADDRESS           # Etherscan
+npx hardhat run scripts/test-mainnet-operations.js              # Test ops
+npx hardhat run scripts/transfer-ownership.js --network mainnet # Transfer to multi-sig
 ```
 
 ---
 
 ## Multi-Chain Deployment
 
-### Supported Networks
-
-| Network | Chain ID | Status |
-|---------|----------|--------|
-| Ethereum | 1 | Primary |
-| Polygon | 137 | Supported |
-| Arbitrum One | 42161 | Supported |
-| Base | 8453 | Supported |
-| Optimism | 10 | Supported |
-
-### Deploy to All Networks
+**Networks:** Ethereum (1), Polygon (137), Arbitrum (42161), Base (8453), Optimism (10)
 
 ```bash
-# Deploy to all supported networks
-./scripts/deploy-multichain.sh --all
-
-# Deploy to specific networks
-./scripts/deploy-multichain.sh --networks polygon,arbitrum
-```
-
-### Cross-Chain Configuration
-
-After deploying to multiple chains:
-
-1. Register cross-chain endpoints in `CrossChainProofHub`
-2. Configure relayer addresses
-3. Set up bridge adapters
-
-```bash
-npx hardhat run scripts/configure-crosschain.js --network mainnet
+./scripts/deploy-multichain.sh --all                  # All networks
+./scripts/deploy-multichain.sh --networks polygon,arbitrum  # Specific
+npx hardhat run scripts/configure-crosschain.js --network mainnet  # Configure bridges
 ```
 
 ---
 
-## Security Considerations
+## Security
 
-### Access Control
-
-| Role | Description | Holder |
-|------|-------------|--------|
-| DEFAULT_ADMIN_ROLE | Can grant/revoke roles | Timelock |
-| PAUSER_ROLE | Emergency pause | Multi-sig (2/3) |
-| UPGRADER_ROLE | Contract upgrades | Timelock |
-| OPERATOR_ROLE | Day-to-day operations | Protocol team |
-
-### Timelock Delays
-
-| Operation | Delay |
-|-----------|-------|
-| Standard operations | 48 hours |
-| Emergency actions | 6 hours |
-| Parameter changes | 24 hours |
-
-### Emergency Procedures
-
-1. **Pause Protocol**
-   ```solidity
-   PILv2Orchestrator.pause()
-   ```
-
-2. **Emergency Upgrade**
-   - Requires 6-hour timelock
-   - Multi-sig approval (3/5)
-
-3. **Circuit Breaker**
-   - Automatic pause if anomaly detected
-   - Requires manual unpause
+**Roles:** `DEFAULT_ADMIN` (Timelock), `PAUSER` (Multi-sig 2/3), `UPGRADER` (Timelock), `OPERATOR` (Team)  
+**Timelock:** 48h standard, 6h emergency, 24h params  
+**Emergency:** `PILv2Orchestrator.pause()` | Circuit breaker auto-pause
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+| Issue | Fix |
+|-------|-----|
+| Insufficient funds | Fund deployer, check gas prices |
+| Verification failed | Match compiler settings exactly |
+| Tx reverted | Check constructor args, deploy dependencies first |
 
-#### "Insufficient funds"
-- Ensure deployer has enough ETH for gas
-- Check gas price hasn't spiked
-
-#### "Contract verification failed"
-- Ensure exact compiler settings match
-- Check flattened source if using imports
-
-#### "Transaction reverted"
-- Check constructor arguments
-- Verify dependencies deployed first
-
-### Support
-
-- Documentation: https://docs.pilprotocol.io
-- Discord: https://discord.gg/pilprotocol
-- GitHub Issues: https://github.com/soul-org/pil/issues
+**Support:** [Discord](https://discord.gg/pilprotocol) | [GitHub Issues](https://github.com/soul-org/pil/issues)
 
 ---
 
-## Appendix: Deployment Addresses
-
-After deployment, addresses are saved to:
-- `deployments/mainnet_<timestamp>.json`
-- `deployments/latest.json` (always points to most recent)
-
-### Mainnet Addresses (Example)
-
-```json
-{
-  "network": "mainnet",
-  "chainId": 1,
-  "contracts": {
-    "Groth16VerifierBN254": "0x...",
-    "PLONKVerifier": "0x...",
-    "FRIVerifier": "0x...",
-    "ProofCarryingContainer": "0x...",
-    "PolicyBoundProofs": "0x...",
-    "ExecutionAgnosticStateCommitments": "0x...",
-    "CrossDomainNullifierAlgebra": "0x...",
-    "PILv2Orchestrator": "0x...",
-    "PILTimelock": "0x...",
-    "PILGovernance": "0x...",
-    "TEEAttestation": "0x..."
-  }
-}
-```
+**Deployment addresses:** `deployments/mainnet_<timestamp>.json` and `deployments/latest.json`

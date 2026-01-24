@@ -1,26 +1,8 @@
 # PIL Kernel Architecture: Aztec-Inspired Constitutional Privacy Layer
 
-## Executive Summary
+> "If privacy invariants are not structurally enforced, they will be violated." — Aztec
 
-The Privacy Interoperability Layer (PIL) implements a **kernel-based architecture** inspired by Aztec's foundational insight:
-
-> **"If privacy invariants are not structurally enforced, they will be violated."**
-
-This document describes the constitutional layer that makes privacy violations **structurally impossible** in cross-chain operations.
-
----
-
-## Table of Contents
-
-1. [Architectural Philosophy](#1-architectural-philosophy)
-2. [PIL Kernel Proof](#2-pil-kernel-proof)
-3. [Linear State Semantics](#3-linear-state-semantics)
-4. [Execution Indirection Layer](#4-execution-indirection-layer)
-5. [Mandatory Containers](#5-mandatory-containers)
-6. [Policy Enforcement](#6-policy-enforcement)
-7. [Recursive Composition](#7-recursive-composition)
-8. [Comparison with Aztec](#8-comparison-with-aztec)
-9. [Implementation Guide](#9-implementation-guide)
+PIL implements a kernel-based architecture making privacy violations **structurally impossible** in cross-chain operations.
 
 ---
 

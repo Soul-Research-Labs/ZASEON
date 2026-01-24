@@ -1,22 +1,6 @@
 # PIL Incident Response Runbook
 
-## Overview
-
-This runbook provides step-by-step procedures for responding to security incidents affecting the Privacy Interoperability Layer (PIL) protocol. All team members with operational responsibilities must be familiar with these procedures.
-
----
-
-## Table of Contents
-
-1. [Incident Classification](#incident-classification)
-2. [Response Team Structure](#response-team-structure)
-3. [Communication Protocols](#communication-protocols)
-4. [Incident Response Procedures](#incident-response-procedures)
-5. [Specific Incident Playbooks](#specific-incident-playbooks)
-6. [Recovery Procedures](#recovery-procedures)
-7. [Post-Incident Activities](#post-incident-activities)
-
----
+> Step-by-step procedures for security incidents. All operational team members must be familiar with these procedures.
 
 ## Incident Classification
 
@@ -30,28 +14,15 @@ This runbook provides step-by-step procedures for responding to security inciden
 | **P3** | Low | Minor issue, no user impact | < 24 hours | Information disclosure |
 | **P4** | Info | Security improvement opportunity | < 1 week | Best practice suggestion |
 
-### Classification Matrix
+### Classification Matrix (Impact × Exploitability)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    INCIDENT CLASSIFICATION MATRIX                    │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Impact Assessment:                                                  │
-│                                                                      │
-│                    │ Exploitability                                 │
-│                    │ None    Low     Med     High    Active         │
-│  ──────────────────┼──────────────────────────────────────          │
-│  Impact            │                                                │
-│  ──────────────────┼──────────────────────────────────────          │
-│  Critical (>$1M)   │  P2      P1      P0      P0      P0            │
-│  High ($100K-$1M)  │  P3      P2      P1      P0      P0            │
-│  Medium ($10K-$100K│  P3      P3      P2      P1      P0            │
-│  Low (<$10K)       │  P4      P3      P3      P2      P1            │
-│  None              │  P4      P4      P3      P3      P2            │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Impact | None | Low | Med | High | Active |
+|--------|------|-----|-----|------|--------|
+| Critical (>$1M) | P2 | P1 | P0 | P0 | P0 |
+| High ($100K-$1M) | P3 | P2 | P1 | P0 | P0 |
+| Medium ($10K-$100K) | P3 | P3 | P2 | P1 | P0 |
+| Low (<$10K) | P4 | P3 | P3 | P2 | P1 |
+| None | P4 | P4 | P3 | P3 | P2 |
 
 ---
 
@@ -69,36 +40,10 @@ This runbook provides step-by-step procedures for responding to security inciden
 
 ### Escalation Path
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                       ESCALATION PATH                                 │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│  Detector (anyone)                                                    │
-│       │                                                               │
-│       ▼                                                               │
-│  On-Call Engineer (15 min SLA)                                        │
-│       │                                                               │
-│       ├─────────────────────────────────┐                            │
-│       ▼                                 ▼                            │
-│  P3/P4: Handle                     P0/P1/P2: Escalate                │
-│  independently                          │                            │
-│                                         ▼                            │
-│                               Incident Commander                      │
-│                                         │                            │
-│                     ┌───────────────────┼───────────────────┐        │
-│                     ▼                   ▼                   ▼        │
-│              Technical Lead      Communications      Operations      │
-│                     │                   │                   │        │
-│                     ▼                   ▼                   ▼        │
-│              Investigation        Announcements       System Access  │
-│                     │                                       │        │
-│                     └───────────────────┬───────────────────┘        │
-│                                         ▼                            │
-│                                 P0 Only: CEO/Board                   │
-│                                                                       │
-└──────────────────────────────────────────────────────────────────────┘
-```
+1. **Detector** → On-Call Engineer (15 min SLA)
+2. **P3/P4**: Handle independently
+3. **P0/P1/P2**: Escalate to Incident Commander → branches to Technical, Communications, Operations
+4. **P0 Only**: CEO/Board involvement
 
 ---
 
@@ -125,169 +70,41 @@ This runbook provides step-by-step procedures for responding to security inciden
 
 ### Communication Templates
 
-#### Status Page Update (During Incident)
-```
-[INCIDENT] - Bridge Operations Temporarily Paused
+**Status Update (During)**: `[INCIDENT] - [COMPONENT] Temporarily Paused. Investigating. Funds safe. Next update: [TIME]`
 
-We are currently investigating an issue affecting [COMPONENT].
-As a precaution, we have paused [OPERATIONS].
-
-User funds are safe. We will provide updates every 30 minutes.
-
-Next update: [TIME]
-
-Questions: support@pil-protocol.io
-```
-
-#### Resolution Announcement
-```
-[RESOLVED] - Issue with [COMPONENT] Resolved
-
-The issue affecting [COMPONENT] has been resolved.
-All operations have resumed normal functionality.
-
-Summary:
-- Duration: [TIME]
-- Impact: [DESCRIPTION]
-- Cause: [BRIEF EXPLANATION]
-- Resolution: [ACTIONS TAKEN]
-
-A detailed post-mortem will be published within 48 hours.
-```
+**Resolution**: `[RESOLVED] - [COMPONENT] Resolved. Duration: [X]. Cause: [BRIEF]. Post-mortem in 48h.`
 
 ---
 
 ## Incident Response Procedures
 
-### Phase 1: Detection & Triage (0-15 minutes)
+### Phase 1: Detection & Triage (0-15 min)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PHASE 1: DETECTION & TRIAGE                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Step 1: Acknowledge Alert                                           │
-│  □ Respond to alert in #security-alerts                             │
-│  □ Claim incident in PagerDuty/OpsGenie                             │
-│  □ Start incident log with timestamp                                │
-│                                                                      │
-│  Step 2: Initial Assessment                                          │
-│  □ Identify affected component(s)                                   │
-│  □ Determine if funds are at risk                                   │
-│  □ Classify severity (P0-P4)                                        │
-│  □ Check if exploit is active                                       │
-│                                                                      │
-│  Step 3: Escalate if P0/P1/P2                                        │
-│  □ Page Incident Commander                                          │
-│  □ Create #incident-YYYY-MM-DD-NNN channel                          │
-│  □ Post initial assessment                                          │
-│                                                                      │
-│  Step 4: Initial Containment (if active exploit)                     │
-│  □ Execute emergency pause (see Playbook 1)                         │
-│  □ Document all actions taken                                       │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **Acknowledge**: Respond to #security-alerts, claim in PagerDuty, start incident log
+2. **Assess**: Identify components, check fund risk, classify severity (P0-P4), check if active
+3. **Escalate (P0/P1/P2)**: Page Incident Commander, create #incident-YYYY-MM-DD channel
+4. **Contain (if active)**: Execute emergency pause (Playbook 1), document all actions
 
-### Phase 2: Containment (15-60 minutes)
+### Phase 2: Containment (15-60 min)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PHASE 2: CONTAINMENT                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Step 1: Assemble Response Team                                      │
-│  □ Incident Commander online                                        │
-│  □ Technical Lead identified                                        │
-│  □ Communications Lead notified                                     │
-│  □ Operations Lead on standby                                       │
-│                                                                      │
-│  Step 2: Isolate Affected Systems                                    │
-│  □ Pause affected contracts if not already done                     │
-│  □ Disable external integrations                                    │
-│  □ Rate limit suspicious addresses                                  │
-│  □ Blacklist known attacker addresses                               │
-│                                                                      │
-│  Step 3: Preserve Evidence                                           │
-│  □ Snapshot current state                                           │
-│  □ Export relevant logs                                             │
-│  □ Record attacker transactions                                     │
-│  □ Document timeline                                                │
-│                                                                      │
-│  Step 4: Initial Communication                                       │
-│  □ Update status page                                               │
-│  □ Post in Discord #announcements                                   │
-│  □ Prepare holding statement                                        │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **Assemble Team**: IC online, Technical Lead, Comms Lead, Ops on standby
+2. **Isolate**: Pause contracts, disable integrations, rate limit, blacklist attackers
+3. **Preserve Evidence**: Snapshot state, export logs, record attacker txs, document timeline
+4. **Communicate**: Update status page, post in Discord, prepare holding statement
 
 ### Phase 3: Investigation (1-4 hours)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PHASE 3: INVESTIGATION                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Step 1: Root Cause Analysis                                         │
-│  □ Identify vulnerability type                                      │
-│  □ Determine attack vector                                          │
-│  □ Analyze attacker transactions                                    │
-│  □ Identify affected addresses/contracts                            │
-│                                                                      │
-│  Step 2: Impact Assessment                                           │
-│  □ Calculate funds at risk                                          │
-│  □ Calculate funds lost (if any)                                    │
-│  □ Identify affected users                                          │
-│  □ Assess data exposure                                             │
-│                                                                      │
-│  Step 3: Develop Fix                                                 │
-│  □ Design patch/fix                                                 │
-│  □ Review with 2+ senior engineers                                  │
-│  □ Test in forked environment                                       │
-│  □ Prepare deployment plan                                          │
-│                                                                      │
-│  Step 4: Validate Other Components                                   │
-│  □ Check for similar vulnerabilities                                │
-│  □ Review related code paths                                        │
-│  □ Verify other contracts not affected                              │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **Root Cause**: ID vulnerability type, attack vector, analyze attacker txs, ID affected contracts
+2. **Impact Assessment**: Calculate funds at risk/lost, identify affected users, assess data exposure
+3. **Develop Fix**: Design patch, review with 2+ seniors, test on fork, prepare deployment
+4. **Validate**: Check for similar vulns, review related code, verify other contracts unaffected
 
 ### Phase 4: Eradication & Recovery (4-24 hours)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PHASE 4: ERADICATION & RECOVERY                   │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Step 1: Deploy Fix                                                  │
-│  □ Execute upgrade through timelock (or emergency if P0)            │
-│  □ Verify fix deployed correctly                                    │
-│  □ Run integration tests                                            │
-│  □ Verify attacker cannot exploit again                             │
-│                                                                      │
-│  Step 2: Restore Services                                            │
-│  □ Gradually re-enable operations                                   │
-│  □ Monitor for anomalies                                            │
-│  □ Verify user access restored                                      │
-│  □ Confirm cross-chain operations working                           │
-│                                                                      │
-│  Step 3: Fund Recovery (if applicable)                               │
-│  □ Contact exchanges to freeze attacker funds                       │
-│  □ Coordinate with on-chain sleuths                                 │
-│  □ Engage law enforcement if appropriate                            │
-│  □ Consider white-hat negotiation                                   │
-│                                                                      │
-│  Step 4: User Communication                                          │
-│  □ Announce resolution                                              │
-│  □ Provide detailed impact summary                                  │
-│  □ Outline compensation plan (if needed)                            │
-│  □ Share timeline for post-mortem                                   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **Deploy Fix**: Execute upgrade (timelock or emergency), verify deployment, run integration tests
+2. **Restore Services**: Gradually re-enable, monitor for anomalies, verify cross-chain ops
+3. **Fund Recovery**: Contact exchanges, coordinate with on-chain sleuths, law enforcement if needed
+4. **Communicate**: Announce resolution, impact summary, compensation plan, post-mortem timeline
 
 ---
 

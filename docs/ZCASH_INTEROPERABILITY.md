@@ -1,8 +1,6 @@
 # Zcash Interoperability Documentation
 
-## Overview
-
-The Privacy Interoperability Layer (PIL) provides comprehensive cross-chain interoperability with Zcash, enabling privacy-preserving asset transfers between Zcash's shielded pools (Sapling and Orchard) and EVM-based chains while maintaining cryptographic guarantees.
+> Privacy-preserving asset transfers between Zcash shielded pools (Sapling/Orchard) and EVM chains.
 
 ## Architecture
 

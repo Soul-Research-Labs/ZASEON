@@ -1,56 +1,20 @@
-# Getting Started with PIL Network
+# Getting Started with PIL
 
-This guide will help you set up and start using the Privacy Interoperability Layer (PIL) for cross-chain privacy-preserving operations.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Quick Start](#quick-start)
-4. [Core Concepts](#core-concepts)
-5. [Your First Private Transaction](#your-first-private-transaction)
-6. [Next Steps](#next-steps)
-
----
+> Quick setup guide. For detailed integration, see [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md).
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- **Node.js** >= 18.0.0
-- **npm** >= 9.0.0 or **yarn** >= 1.22.0
-- **Git** for version control
-- **Docker** (optional, for local development)
-
-### Blockchain Requirements
-
-For development, you'll need access to:
-- A local Hardhat/Anvil node, or
-- Testnet RPC endpoints (Sepolia, Goerli, etc.)
+- Node.js 18+ | npm 9+ | Git
+- RPC endpoint (Sepolia testnet or local Anvil)
 
 ---
 
 ## Installation
 
-### Using npm
-
 ```bash
 npm install @pil/sdk
-```
-
-### Using yarn
-
-```bash
-yarn add @pil/sdk
-```
-
-### From source
-
-```bash
-git clone https://github.com/pil-network/pil-protocol.git
-cd pil-protocol
-npm install
-npm run build
+# or from source
+git clone https://github.com/pil-network/pil-protocol.git && cd pil-protocol && npm install
 ```
 
 ---
@@ -116,142 +80,31 @@ const transfer = await bridge.bridgeWithPrivacy({
 
 ## Core Concepts
 
-### ZK-Bound State Locks (ZK-SLocks)
+**ZK-SLocks:** Atomic state transitions with ZK proofs (Create Lock → Prove → Unlock)  
+**Cross-Domain Nullifiers:** Prevent double-spending across all chains  
+**Privacy Pools:** Join anonymity sets for enhanced privacy
 
-ZK-SLocks provide atomic state transitions with zero-knowledge proofs:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    ZK-SLock Lifecycle                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. CREATE LOCK                                             │
-│     ┌─────────────┐     ┌─────────────┐                    │
-│     │ Old State   │────►│   LOCKED    │                    │
-│     │ Commitment  │     │    STATE    │                    │
-│     └─────────────┘     └──────┬──────┘                    │
-│                                │                            │
-│  2. PROVE TRANSITION           │                            │
-│                         ┌──────▼──────┐                    │
-│                         │  ZK Proof   │                    │
-│                         │ Verification│                    │
-│                         └──────┬──────┘                    │
-│                                │                            │
-│  3. UNLOCK                     │                            │
-│     ┌─────────────┐     ┌──────▼──────┐                    │
-│     │ New State   │◄────│  UNLOCKED   │                    │
-│     │ Commitment  │     │    STATE    │                    │
-│     └─────────────┘     └─────────────┘                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Cross-Domain Nullifiers
-
-Prevent double-spending across chains:
+## Example: Private Transfer
 
 ```typescript
-// Register a nullifier that works across all supported chains
-const nullifier = await pil.cdna.registerNullifier({
-  domain: 'ethereum-mainnet',
-  secret: privateSecret,
-  chainScope: 'global' // Works on all chains
-});
+import { PILSDK, generateProof } from '@pil/sdk';
 
-// Check if nullifier is used on any chain
-const isUsed = await pil.cdna.isNullifierUsed(nullifier.hash);
+const pil = new PILSDK({ rpcUrl: process.env.RPC_URL, privateKey: process.env.PRIVATE_KEY });
+await pil.connect();
+
+// Generate commitment/nullifier
+const secret = pil.crypto.randomBytes(32);
+const nullifier = pil.crypto.poseidon([secret, 0]);
+const commitment = pil.crypto.poseidon([secret, 1]);
+
+// Create lock, prove, unlock
+const lock = await pil.zkSlocks.createLock({ oldStateCommitment: commitment, /* ... */ });
+const proof = await generateProof({ circuit: 'transfer', inputs: { secret, nullifier } });
+await pil.zkSlocks.unlock({ lockId: lock.lockId, zkProof: proof.proof, /* ... */ });
 ```
-
-### Privacy Pools
-
-Join privacy sets for enhanced anonymity:
-
-```typescript
-// Deposit into privacy pool
-await pil.privacyPool.deposit({
-  amount: '1000000000000000000',
-  commitment: commitment,
-  merkleRoot: await pil.privacyPool.getCurrentRoot()
-});
-
-// Withdraw with proof
-await pil.privacyPool.withdraw({
-  proof: zkProof,
-  nullifier: nullifier,
-  recipient: recipientAddress
-});
-```
-
----
-
-## Your First Private Transaction
-
-Here's a complete example of a private cross-chain transfer:
-
-```typescript
-import { PILSDK, BridgeFactory } from '@pil/sdk';
-import { generateProof } from '@pil/sdk/zkprover';
-
-async function privateTransfer() {
-  // 1. Initialize SDK
-  const pil = new PILSDK({
-    rpcUrl: process.env.RPC_URL,
-    privateKey: process.env.PRIVATE_KEY
-  });
-  await pil.connect();
-
-  // 2. Generate commitment and nullifier
-  const secret = pil.crypto.randomBytes(32);
-  const nullifier = pil.crypto.poseidon([secret, 0]);
-  const commitment = pil.crypto.poseidon([secret, 1]);
-
-  // 3. Create privacy-preserving lock
-  const lock = await pil.zkSlocks.createLock({
-    oldStateCommitment: commitment,
-    transitionPredicateHash: pil.crypto.keccak256('transfer'),
-    policyHash: pil.crypto.keccak256('default'),
-    domainSeparator: await pil.zkSlocks.generateDomainSeparator('ethereum', 1),
-    unlockDeadline: Math.floor(Date.now() / 1000) + 7200
-  });
-
-  // 4. Generate ZK proof for state transition
-  const proof = await generateProof({
-    circuit: 'transfer',
-    inputs: {
-      secret,
-      nullifier,
-      recipient: '0x...',
-      amount: '1000000000000000000'
-    }
-  });
-
-  // 5. Unlock with proof
-  const unlockResult = await pil.zkSlocks.unlock({
-    lockId: lock.lockId,
-    zkProof: proof.proof,
-    newStateCommitment: proof.publicInputs.newCommitment,
-    nullifier: nullifier,
-    verifierKeyHash: proof.verifierKeyHash,
-    auxiliaryData: '0x'
-  });
-
-  console.log('Private transfer complete:', unlockResult.txHash);
-}
-```
-
----
 
 ## Next Steps
 
-1. **[Integration Guide](./INTEGRATION_GUIDE.md)** - Deep dive into PIL integration
-2. **[API Reference](./API_REFERENCE.md)** - Complete API documentation
-3. **[Bridge Integration](./BRIDGE_INTEGRATION.md)** - Cross-chain bridge setup
-4. **[Security Best Practices](./SECURITY_AUDIT_CHECKLIST.md)** - Security guidelines
-5. **[Architecture Overview](./architecture.md)** - System design documentation
+[Integration Guide](INTEGRATION_GUIDE.md) • [API Reference](API_REFERENCE.md) • [Architecture](architecture.md)
 
----
-
-## Support
-
-- **Discord**: [Join our community](https://discord.gg/pil-network)
-- **GitHub Issues**: [Report bugs](https://github.com/pil-network/pil-protocol/issues)
-- **Documentation**: [Full docs](https://docs.pil.network)
+**Support:** [Discord](https://discord.gg/pil-network) | [GitHub Issues](https://github.com/pil-network/pil-protocol/issues)

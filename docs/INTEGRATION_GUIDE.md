@@ -1,50 +1,11 @@
 # PIL Integration Guide
 
-This guide covers how to integrate the Privacy Interoperability Layer (PIL) into your application.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Basic Integration](#basic-integration)
-4. [Advanced Usage](#advanced-usage)
-5. [Cross-Chain Operations](#cross-chain-operations)
-6. [Proof Generation](#proof-generation)
-7. [Error Handling](#error-handling)
-8. [Testing](#testing)
-9. [Production Deployment](#production-deployment)
-
----
-
-## Prerequisites
-
-Before integrating PIL, ensure you have:
-
-- Node.js 18+ or Node.js 20+
-- npm or yarn package manager
-- An Ethereum wallet with funds for gas
-- RPC access to target networks
-
----
+Integrate the Privacy Interoperability Layer into your application.
 
 ## Installation
 
-### npm
-
 ```bash
 npm install @pil/sdk ethers
-```
-
-### yarn
-
-```bash
-yarn add @pil/sdk ethers
-```
-
-### pnpm
-
-```bash
-pnpm add @pil/sdk ethers
 ```
 
 ---
@@ -342,52 +303,19 @@ if (!isValid) {
 
 ## Error Handling
 
-### Comprehensive Error Handling
-
 ```typescript
 import { PILError, ErrorCode, isRecoverableError } from '@pil/sdk';
 
-async function safeCreateContainer(params: CreateContainerParams) {
-  const maxRetries = 3;
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await client.getPC3().createContainer(params);
-    } catch (error) {
-      lastError = error as Error;
-
-      if (error instanceof PILError) {
-        // Handle specific errors
-        switch (error.code) {
-          case ErrorCode.PROOF_INVALID:
-            // Don't retry - proof needs to be regenerated
-            throw new Error('Invalid proof. Please regenerate.');
-
-          case ErrorCode.INSUFFICIENT_GAS:
-            // Retry with higher gas
-            console.log(`Attempt ${attempt}: Increasing gas limit...`);
-            params.gasLimit = (params.gasLimit || 500000) * 1.5;
-            break;
-
-          case ErrorCode.NETWORK_ERROR:
-            // Retry with backoff
-            console.log(`Attempt ${attempt}: Network error, retrying...`);
-            await sleep(1000 * attempt);
-            break;
-
-          default:
-            if (!isRecoverableError(error)) {
-              throw error;
-            }
-        }
-      } else {
-        throw error;
-      }
+try {
+  await client.getPC3().createContainer(params);
+} catch (error) {
+  if (error instanceof PILError) {
+    switch (error.code) {
+      case ErrorCode.PROOF_INVALID: throw new Error('Regenerate proof');
+      case ErrorCode.INSUFFICIENT_GAS: /* retry with higher gas */ break;
+      case ErrorCode.NETWORK_ERROR: /* retry with backoff */ break;
     }
   }
-
-  throw lastError;
 }
 ```
 
@@ -395,152 +323,36 @@ async function safeCreateContainer(params: CreateContainerParams) {
 
 ## Testing
 
-### Unit Testing
-
 ```typescript
-import { PILClient, MockProvider } from '@pil/sdk/testing';
-import { expect } from 'chai';
+import { PILClient, MockProvider, LocalTestnet } from '@pil/sdk/testing';
 
-describe('PIL Integration', () => {
-  let client: PILClient;
-  let mockProvider: MockProvider;
+// Unit test with mocks
+const mockProvider = new MockProvider();
+const client = new PILClient({ provider: mockProvider });
 
-  beforeEach(async () => {
-    mockProvider = new MockProvider();
-    client = new PILClient({
-      network: 'localhost',
-      rpcUrl: 'http://localhost:8545',
-      provider: mockProvider,
-    });
-  });
-
-  it('should create a container', async () => {
-    const proof = generateMockProof();
-    
-    const result = await client.getPC3().createContainer({
-      proof,
-      publicInputs: ['0x123'],
-    });
-
-    expect(result.containerId).to.match(/^0x[a-f0-9]{64}$/);
-    expect(result.txHash).to.exist;
-  });
-
-  it('should prevent double-spending', async () => {
-    const nullifier = '0x' + '1'.repeat(64);
-    
-    // First spend succeeds
-    await client.getCDNA().registerNullifier({
-      nullifier,
-      domain: 'test',
-      proof: generateMockProof(),
-    });
-
-    // Second spend fails
-    await expect(
-      client.getCDNA().registerNullifier({
-        nullifier,
-        domain: 'test',
-        proof: generateMockProof(),
-      })
-    ).to.be.rejectedWith('NULLIFIER_ALREADY_USED');
-  });
-});
-```
-
-### Integration Testing
-
-```typescript
-import { PILClient, LocalTestnet } from '@pil/sdk/testing';
-
-describe('PIL E2E', () => {
-  let testnet: LocalTestnet;
-  let client: PILClient;
-
-  before(async () => {
-    // Start local testnet with PIL contracts
-    testnet = await LocalTestnet.start();
-    
-    client = new PILClient({
-      network: 'localhost',
-      rpcUrl: testnet.rpcUrl,
-      privateKey: testnet.accounts[0].privateKey,
-      contracts: testnet.deployedContracts,
-    });
-  });
-
-  after(async () => {
-    await testnet.stop();
-  });
-
-  it('should complete full bridge flow', async () => {
-    // ... E2E test
-  });
-});
+// E2E test with local testnet
+const testnet = await LocalTestnet.start();
+const client = new PILClient({ rpcUrl: testnet.rpcUrl, contracts: testnet.deployedContracts });
 ```
 
 ---
 
-## Production Deployment
+## Production
 
-### Checklist
-
-- [ ] Use environment variables for sensitive data
-- [ ] Configure proper gas limits
-- [ ] Set up monitoring and alerting
-- [ ] Enable transaction retry logic
-- [ ] Use multi-sig for admin operations
-- [ ] Verify contracts on block explorers
-
-### Production Configuration
+**Checklist:** Env vars for secrets, gas limits configured, monitoring, retry logic, multi-sig admin, verified contracts
 
 ```typescript
-const prodConfig: PILClientConfig = {
+const prodConfig = {
   network: 'mainnet',
-  rpcUrl: process.env.MAINNET_RPC_URL!,
-  privateKey: process.env.PRIVATE_KEY,
-  
-  // Production settings
+  rpcUrl: process.env.MAINNET_RPC_URL,
   options: {
-    gasMultiplier: 1.2, // 20% buffer
+    gasMultiplier: 1.2,
     maxRetries: 3,
-    retryDelayMs: 1000,
-    timeout: 60000, // 60 seconds
-    
-    // Use Flashbots for MEV protection
-    flashbots: {
-      enabled: true,
-      relayUrl: 'https://relay.flashbots.net',
-    },
-  },
+    flashbots: { enabled: true, relayUrl: 'https://relay.flashbots.net' }
+  }
 };
 ```
 
-### Monitoring Integration
-
-```typescript
-import { PILClient, MetricsCollector } from '@pil/sdk';
-import { PrometheusExporter } from '@pil/sdk/metrics';
-
-// Set up metrics
-const metrics = new MetricsCollector({
-  exporter: new PrometheusExporter({ port: 9090 }),
-});
-
-const client = new PILClient({
-  ...config,
-  metrics,
-});
-
-// Metrics are automatically collected
-// Access at http://localhost:9090/metrics
-```
-
 ---
 
-## Next Steps
-
-- Read the [API Reference](./API_REFERENCE.md) for complete method documentation
-- Check out [Example Projects](./examples/) for more integration patterns
-- Join our [Discord](https://discord.gg/pil-protocol) for support
-- Review [Security Best Practices](./SECURITY.md) before deploying
+**Next:** [API Reference](API_REFERENCE.md) • [Security](SECURITY.md) • [Discord](https://discord.gg/pil-protocol)

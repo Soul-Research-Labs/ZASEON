@@ -1,25 +1,8 @@
 # Soul Control Plane Architecture
 
-## Cryptographic Cross-Chain Message Orchestration
+> Cross-chain privacy message orchestration with cryptographic enforcement.
 
-> **Core Principle**: Confidentiality is enforced by CRYPTOGRAPHY, not oracle behavior. Soul decomposes cross-chain messaging into orthogonal layers with cryptographic enforcement.
-
----
-
-## Overview
-
-The Soul Control Plane (SCP) is a protocol layer that orchestrates cross-chain privacy-preserving messages. It provides institutional-grade controls while maintaining cryptographic privacy guarantees.
-
-### Core Features
-
-| Feature | Implementation |
-|---------|----------------|
-| Cross-Chain Orchestration | Soul Control Plane |
-| Backend Abstraction | Execution Backend Abstraction (ZK/TEE/MPC) |
-| Message Lifecycle | Proof-bound 5-stage lifecycle |
-| Policy Customization | Per-message policy binding |
-| Failure Handling | Nullifier-safe re-execution |
-| Message Format | Typed confidential containers |
+**Core Features:** Cross-chain orchestration • ZK/TEE/MPC backend abstraction • 5-stage proof-bound lifecycle • Per-message policies • Nullifier-safe re-execution
 
 ---
 

@@ -1,15 +1,8 @@
 # L2 Interoperability Guide
 
-This guide covers PIL's integration with Ethereum Layer 2 networks including Arbitrum, Optimism, and Base.
+> PIL native integration with Arbitrum, Optimism, Base, and zkEVM networks.
 
-## Overview
-
-PIL provides native bridge adapters for major L2 networks, enabling:
-
-- **Proof Relay**: Send ZK proofs from L1 to L2 and vice versa
-- **State Sync**: Synchronize state roots across chains
-- **Nullifier Propagation**: Prevent double-spending across L1/L2
-- **USDC Bridging**: Native USDC via Circle's CCTP (Base)
+**Features:** Proof Relay • State Sync • Nullifier Propagation • USDC via CCTP (Base)
 
 ## Supported Networks
 
@@ -338,53 +331,16 @@ Each adapter needs to be configured with the correct messenger addresses:
 
 ## Security Considerations
 
-### Challenge Periods
-
-All optimistic rollups have a ~7 day challenge period for L2→L1 messages:
-
-- **Arbitrum**: 6-7 days (based on block confirmation)
-- **Optimism**: 7 days (Bedrock)
-- **Base**: 7 days (same as Optimism)
-
-### Message Verification
-
-Always verify the caller is the CrossDomainMessenger:
-
-```solidity
-function receiveProofFromL1(...) external {
-    require(
-        msg.sender == l2CrossDomainMessenger,
-        "Only messenger can call"
-    );
-    // Optionally verify the L1 sender
-    address l1Sender = ICrossDomainMessenger(msg.sender).xDomainMessageSender();
-    require(l1Sender == l1Adapter, "Invalid L1 sender");
-    
-    // Process message...
-}
-```
-
-### Gas Limits
-
-Set appropriate gas limits for cross-domain messages:
-
-- **Proof relay**: 500,000 - 1,000,000 gas
-- **State sync**: 200,000 - 500,000 gas
-- **Simple operations**: 100,000 - 200,000 gas
+| Aspect | Details |
+|--------|--------|
+| **Challenge Period** | All optimistic rollups: ~7 days for L2→L1 messages |
+| **Message Verification** | Always verify `msg.sender == l2CrossDomainMessenger` |
+| **Gas Limits** | Proof relay: 500K-1M gas • State sync: 200K-500K • Simple ops: 100K-200K |
 
 ## Testnet Faucets
 
-To deploy and test on L2 testnets, you need testnet ETH:
+Arbitrum/Optimism/Base Sepolia: [Alchemy Faucets](https://www.alchemy.com/faucets) | Sepolia L1: [sepoliafaucet.com](https://sepoliafaucet.com)
 
-| Network | Faucet |
-|---------|--------|
-| Arbitrum Sepolia | https://www.alchemy.com/faucets/arbitrum-sepolia |
-| Optimism Sepolia | https://www.alchemy.com/faucets/optimism-sepolia |
-| Base Sepolia | https://www.coinbase.com/faucets/base-ethereum-goerli-faucet |
-| Sepolia (bridge from) | https://sepoliafaucet.com |
+## See Also
 
-## Related Documentation
-
-- [BRIDGE_INTEGRATION.md](./BRIDGE_INTEGRATION.md) - General bridge architecture
-- [ETHEREUM_INTEROPERABILITY.md](./ETHEREUM_INTEROPERABILITY.md) - Ethereum L1 integration
-- [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) - Deployment status
+[BRIDGE_INTEGRATION.md](./BRIDGE_INTEGRATION.md) • [ETHEREUM_INTEROPERABILITY.md](./ETHEREUM_INTEROPERABILITY.md) • [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)

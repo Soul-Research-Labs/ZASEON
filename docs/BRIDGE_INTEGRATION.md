@@ -1,19 +1,6 @@
 # PIL Bridge Adapters Integration Guide
 
-This guide covers integrating with PIL's bridge adapters for cross-chain privacy-preserving transfers.
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Supported Chains](#supported-chains)
-3. [Common Interface](#common-interface)
-4. [Chain-Specific Integration](#chain-specific-integration)
-5. [Error Handling](#error-handling)
-6. [Security Considerations](#security-considerations)
-
----
-
-## Overview
+> Cross-chain privacy-preserving transfers via unified `IBridgeAdapter` interface.
 
 PIL Bridge Adapters provide a unified interface for cross-chain operations while handling the complexity of different blockchain protocols. Each adapter implements the `IBridgeAdapter` interface:
 
@@ -321,25 +308,9 @@ try {
   await bridge.transfer(params);
 } catch (error) {
   if (error instanceof PILBridgeError) {
-    switch (error.code) {
-      case ErrorCodes.INSUFFICIENT_BALANCE:
-        // Handle insufficient funds
-        break;
-      case ErrorCodes.PROOF_VERIFICATION_FAILED:
-        // Handle invalid ZK proof
-        break;
-      case ErrorCodes.BRIDGE_PAUSED:
-        // Handle paused bridge
-        break;
-      case ErrorCodes.TIMEOUT_EXCEEDED:
-        // Handle timeout
-        break;
-      case ErrorCodes.INVALID_RECIPIENT:
-        // Handle invalid recipient address
-        break;
-      default:
-        throw error;
-    }
+    // ErrorCodes: INSUFFICIENT_BALANCE, PROOF_VERIFICATION_FAILED, 
+    // BRIDGE_PAUSED, TIMEOUT_EXCEEDED, INVALID_RECIPIENT
+    handleError(error.code);
   }
 }
 ```
@@ -348,72 +319,18 @@ try {
 
 ## Security Considerations
 
-### 1. Proof Verification
-
-Always verify proofs on-chain before completing bridges:
-
-```solidity
-require(verifier.verifyProof(proof, publicInputs), "Invalid proof");
-```
-
-### 2. Timeout Handling
-
-Set appropriate timeouts for cross-chain operations:
-
-```typescript
-const transfer = await bridge.transfer({
-  ...params,
-  timeout: 3600, // 1 hour in seconds
-  refundAddress: '0x...' // Address for timeout refunds
-});
-```
-
-### 3. Challenge Period Awareness
-
-For optimistic bridges (Arbitrum), always wait for challenge periods:
-
-```typescript
-const withdrawal = await arbitrumBridge.initiateWithdrawal(params);
-
-// Check if challenge period has passed
-const canExecute = await withdrawal.canExecuteWithdrawal();
-if (!canExecute) {
-  const remaining = await withdrawal.getRemainingChallengeTime();
-  console.log(`Wait ${remaining} seconds before execution`);
-}
-```
-
-### 4. Replay Protection
-
-All transfers include nonces and chain IDs to prevent replay:
-
-```typescript
-const transferId = keccak256(abi.encodePacked(
-  sourceChainId,
-  targetChainId,
-  nonce,
-  sender,
-  recipient,
-  amount
-));
-```
-
-### 5. Amount Validation
-
-Validate transfer amounts against configured limits:
-
-```typescript
-const limits = await bridge.getLimits(targetChainId);
-if (amount < limits.minAmount || amount > limits.maxAmount) {
-  throw new Error('Amount outside allowed range');
-}
-```
+| Check | Requirement |
+|-------|-------------|
+| **Proof Verification** | Always verify ZK proofs on-chain before completing |
+| **Timeout Handling** | Set appropriate timeouts with refund address |
+| **Challenge Period** | Wait for 7-day challenge period (optimistic bridges) |
+| **Replay Protection** | All transfers include nonces + chain IDs |
+| **Amount Validation** | Validate against min/max limits before transfer |
 
 ---
 
-## Next Steps
+## See Also
 
-- [API Reference](./api/README.md) - Full API documentation
-- [Tutorials](./tutorials/) - Step-by-step guides
-- [Architecture](./architecture.md) - System design details
-- [Security](./SECURITY_AUDIT.md) - Security considerations
+- [API Reference](./API_REFERENCE.md)
+- [L2 Interoperability](./L2_INTEROPERABILITY.md) - L2-specific integration
+- [Architecture](./architecture.md)
