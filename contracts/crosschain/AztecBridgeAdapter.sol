@@ -686,6 +686,8 @@ contract AztecBridgeAdapter is
     ) internal view returns (bool valid) {
         // Check if verifier is configured
         if (address(pilVerifier) == address(0)) {
+            // H-1 Fix: Block placeholder on mainnet
+            _checkMainnetSafety();
             // Fallback: basic validation if no verifier configured
             return proof.length >= 256 && commitment != bytes32(0) && nullifier != bytes32(0);
         }
@@ -713,6 +715,8 @@ contract AztecBridgeAdapter is
     ) internal view returns (bool valid) {
         // Check if PLONK verifier is configured
         if (address(plonkVerifier) == address(0)) {
+            // H-1 Fix: Block placeholder on mainnet
+            _checkMainnetSafety();
             // Fallback: basic validation if no verifier configured
             return proof.length >= 256 && noteHash != bytes32(0) && recipient != bytes32(0) && amount > 0;
         }
@@ -747,6 +751,8 @@ contract AztecBridgeAdapter is
 
         // Check if PLONK verifier is configured
         if (address(plonkVerifier) == address(0)) {
+            // H-1 Fix: Block placeholder on mainnet
+            _checkMainnetSafety();
             // Fallback: basic validation
             return proof.length >= 256 && noteHash != bytes32(0) && nullifier != bytes32(0) && amount > 0;
         }
@@ -907,4 +913,10 @@ contract AztecBridgeAdapter is
     }
 
     receive() external payable {}
+
+    function _checkMainnetSafety() internal view {
+        if (block.chainid == 1) {
+            revert("Placeholder verification not allowed on mainnet");
+        }
+    }
 }

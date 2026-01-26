@@ -704,7 +704,12 @@ contract StealthAddressRegistry is
         uint256 destChainId,
         bytes calldata proof
     ) internal pure returns (bool) {
-        // In production, verify ZK proof of valid derivation
+        // H-4 Fix: ZK derivation proof placeholder - NOT for production
+        // Revert on mainnet to ensure real ZK proof verification is implemented
+        if (block.chainid == 1) {
+            revert InvalidProof();
+        }
+
         return proof.length >= 32 && sourceKey != bytes32(0) && destChainId > 0;
     }
 

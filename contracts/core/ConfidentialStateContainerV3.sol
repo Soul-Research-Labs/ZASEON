@@ -100,6 +100,9 @@ contract ConfidentialStateContainerV3 is
     /// @dev Packed config: proofValidityWindow (128 bits) | maxStateSize (128 bits)
     uint256 private _packedConfig;
 
+    /// @notice Maximum history length per state to prevent unbounded storage growth
+    uint256 public constant MAX_HISTORY_LENGTH = 100;
+
     /// @notice Nonce for signature replay prevention
     mapping(address => uint256) public nonces;
 
@@ -536,16 +539,19 @@ contract ConfidentialStateContainerV3 is
             txHash := keccak256(ptr, 0x60)
         }
 
-        _stateHistory[oldCommitment].push(
-            StateTransition({
-                fromCommitment: oldCommitment,
-                toCommitment: newCommitment,
-                fromOwner: oldOwner,
-                toOwner: newOwner,
-                timestamp: block.timestamp,
-                transactionHash: txHash
-            })
-        );
+        // M-2 Fix: Enforce history limit
+        if (_stateHistory[oldCommitment].length < MAX_HISTORY_LENGTH) {
+            _stateHistory[oldCommitment].push(
+                StateTransition({
+                    fromCommitment: oldCommitment,
+                    toCommitment: newCommitment,
+                    fromOwner: oldOwner,
+                    toOwner: newOwner,
+                    timestamp: block.timestamp,
+                    transactionHash: txHash
+                })
+            );
+        }
 
         // Mark old state as retired
         oldState.status = StateStatus.Retired;

@@ -746,9 +746,11 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes memory signerPubKey = group.signerPublicKeys[signer];
         if (signerPubKey.length == 0) return false;
 
-        // Placeholder verification - in production use proper crypto library
-        // For BLS: verify e(partialSig, G2) = e(H(message), signerPubKey)
-        // For ECDSA: verify Schnorr commitment
+        // H-1 Fix: Placeholder verification for testing only - NOT for production
+        // Revert on mainnet to prevent accidental deployment with signature bypass
+        if (block.chainid == 1) {
+            revert InvalidSignature();
+        }
 
         return partialSig.length > 0;
     }

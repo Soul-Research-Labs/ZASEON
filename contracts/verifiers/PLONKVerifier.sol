@@ -165,8 +165,8 @@ contract PLONKVerifier is IProofVerifier {
         uint256[2] calldata _sigma3,
         uint256[4] calldata _xN
     ) external onlyOwner {
-        if (initialized) revert AlreadyInitialized();
-
+        // M-5 Fix: Allow key rotation by owner (removed AlreadyInitialized check)
+        
         // Validate domain size is power of 2
         if (_domainSize == 0 || (_domainSize & (_domainSize - 1)) != 0) {
             revert InvalidDomainSize(_domainSize);

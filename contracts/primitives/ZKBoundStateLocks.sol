@@ -78,6 +78,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     error ETHTransferFailed();
     error VerifierAlreadyRegistered(bytes32 verifierKeyHash);
     error InvalidVerifierAddress();
+    error DomainAlreadyExists(bytes32 domainSeparator);
 
     /*//////////////////////////////////////////////////////////////
                                DATA TYPES
@@ -610,6 +611,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         string calldata name
     ) external onlyRole(DOMAIN_ADMIN_ROLE) returns (bytes32 domainSeparator) {
         domainSeparator = generateDomainSeparator(chainId, appId, epoch);
+
+        // M-1 Fix: Prevent overwriting existing domains
+        if (domains[domainSeparator].registeredAt != 0) {
+            revert DomainAlreadyExists(domainSeparator);
+        }
 
         domains[domainSeparator] = Domain({
             chainId: chainId,

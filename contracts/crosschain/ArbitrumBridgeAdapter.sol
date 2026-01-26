@@ -388,7 +388,14 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         if (msg.value < totalRequired) revert InsufficientFee();
 
         uint256 ticketId = uint256(
-            keccak256(abi.encodePacked(block.timestamp, transferNonce))
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp,
+                    transferNonce,
+                    msg.sender,
+                    blockhash(block.number - 1)
+                )
+            )
         );
 
         depositId = keccak256(

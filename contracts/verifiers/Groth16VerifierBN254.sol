@@ -131,8 +131,8 @@ contract Groth16VerifierBN254 is IProofVerifier {
         uint256[4] calldata delta,
         uint256[2][] calldata ic
     ) external onlyOwner {
-        if (initialized) revert AlreadyInitialized();
-
+        // M-7 Fix: Allow key rotation by owner (removed AlreadyInitialized check)
+        
         vkAlpha = alpha;
         vkBeta = beta;
         vkGamma = gamma;

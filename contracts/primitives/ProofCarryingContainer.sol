@@ -117,8 +117,9 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Verifier registry for proof verification
     VerifierRegistry public verifierRegistry;
 
-    /// @notice Whether to use real verification (false = placeholder mode for testing)
-    bool public useRealVerification;
+    /// @notice Whether to use real verification (true = production mode, false = testing only)
+    /// @dev SECURITY: Defaults to true. Only set to false in test environments.
+    bool public useRealVerification = true;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -353,7 +354,12 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
                 verifierRegistry.NULLIFIER_PROOF()
             );
         } else {
-            // Placeholder verification for testing/MVP
+            // SECURITY: Placeholder verification for testing only - NOT for production
+            // Revert on mainnet to prevent accidental deployment with placeholder verification
+            if (block.chainid == 1) {
+                revert VerificationFailed("Placeholder verification not allowed on mainnet");
+            }
+            
             result.validityValid =
                 proofs.validityProof.length >= MIN_PROOF_SIZE;
             result.policyValid =
