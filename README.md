@@ -84,55 +84,183 @@ Fewer Chains Win                       Many Chains Coexist
 
 ## Features
 
+### ZK-Bound State Locks (ZK-SLocks)
+
+**The flagship primitive.** Lock confidential state on one chain, unlock on another with only a ZK proof—no secret exposure, no timing correlation.
+
+```
+Chain A                              Chain B
+   │                                    │
+[Lock: C_old] ──── ZK Proof ────→ [Unlock: C_new]
+   │                                    │
+   └── Nullifier (unique per domain) ───┘
+       Cannot link source ↔ destination
+```
+
 ### Core Capabilities
 
-| Feature | Description |
-|---------|-------------|
-| **Confidential State** | AES-256-GCM encrypted state containers with ZK proof verification |
-| **Cross-Chain ZK Bridge** | Transfer and verify proofs across chains (Groth16, PLONK, FRI/STARK) |
-| **L2 Interoperability** | Native adapters for 7 major L2 networks + LayerZero/Hyperlane |
-| **Atomic Swaps** | HTLC-based private cross-chain swaps with stealth commitments |
-| **ZK-Bound State Locks** | Cross-chain confidential state transitions unlocked by ZK proofs |
-| **Post-Quantum Crypto** | NIST-approved Dilithium, SPHINCS+, and Kyber algorithms |
+| Feature | What It Does |
+|---------|--------------|
+| **Confidential State** | AES-256-GCM encrypted containers verified by ZK proofs |
+| **Cross-Chain ZK Bridge** | Transfer proofs across chains (Groth16, PLONK, STARK) |
+| **L2 Interoperability** | Native adapters for 8 L2s + LayerZero/Hyperlane |
+| **Atomic Swaps** | HTLC private swaps with stealth commitments |
+| **Post-Quantum Ready** | NIST-approved Dilithium, SPHINCS+, Kyber |
 
-### PIL v2 Primitives
+---
 
-| Primitive | Purpose |
-|-----------|---------|
-| **PC³** (Proof-Carrying Containers) | Self-authenticating containers with embedded validity proofs |
-| **PBP** (Policy-Bound Proofs) | ZK proofs cryptographically scoped by disclosure policy |
-| **EASC** (Execution-Agnostic State Commitments) | Backend-independent verification (zkVM, TEE, MPC) |
-| **CDNA** (Cross-Domain Nullifier Algebra) | Domain-separated nullifiers for replay protection |
+## PIL v2 Primitives
+
+The four novel cryptographic primitives that make private interoperability possible:
+
+### PC³ — Proof-Carrying Containers
+
+**Problem:** How do you prove state is valid without revealing it?
+
+**Solution:** Self-authenticating containers that carry their own validity proof. The container proves itself—no external oracle needed.
+
+```solidity
+container.getProof()      // Returns embedded ZK proof
+container.verify()        // Self-validates without decryption
+container.transfer(dest)  // Moves to new chain, proof travels with it
+```
+
+---
+
+### PBP — Policy-Bound Proofs
+
+**Problem:** How do you prove compliance without revealing everything?
+
+**Solution:** ZK proofs cryptographically bound to disclosure policies. Prove "I'm not on OFAC list" without revealing "I am Alice."
+
+---
+
+### EASC — Execution-Agnostic State Commitments
+
+**Problem:** Different chains use different proof backends (zkVM, TEE, MPC). How do you verify across all of them?
+
+**Solution:** Backend-independent commitments that verify on any system:
+
+| Backend | Use Case |
+|---------|----------|
+| zkVM | Full ZK verification |
+| TEE | Intel SGX/AMD SEV enclaves |
+| MPC | Multi-party computation |
+| Hybrid | Combined security |
+
+---
+
+### CDNA — Cross-Domain Nullifier Algebra
+
+**Problem:** If the same nullifier appears on two chains, transactions are linkable.
+
+**Solution:** Domain-separated nullifiers—same secret, different nullifier per chain. Prevents replay AND prevents graph analysis.
+
+```
+Same secret key on different chains:
+├─ Chain A nullifier: H(secret || "CHAIN_A") = 0xabc...
+├─ Chain B nullifier: H(secret || "CHAIN_B") = 0xdef...
+└─ Cannot prove they're from the same user
+```
 
 ---
 
 ## Architecture
 
+PIL sits between **privacy chains** and **public chains**, enabling confidential state to flow across both:
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │         PRIVACY INTEROPERABILITY        │
+                    │               LAYER (PIL)               │
+                    └─────────────────────────────────────────┘
+                                       │
+        ┌──────────────────────────────┼──────────────────────────────┐
+        │                              │                              │
+        ▼                              ▼                              ▼
+┌───────────────┐              ┌───────────────┐              ┌───────────────┐
+│ PRIVACY CHAINS│              │  PIL PROTOCOL │              │ PUBLIC CHAINS │
+│               │              │               │              │               │
+│  Aztec        │◄────────────►│  ZK-SLocks    │◄────────────►│  Ethereum     │
+│  Zcash        │   encrypted  │  PC³          │   encrypted  │  Arbitrum     │
+│  Secret       │   containers │  CDNA         │   containers │  Optimism     │
+│  Railgun      │   + proofs   │  PBP + EASC   │   + proofs   │  Base         │
+│  Midnight     │              │               │              │  zkSync       │
+└───────────────┘              └───────────────┘              └───────────────┘
+        │                              │                              │
+        └──────────────────────────────┴──────────────────────────────┘
+                          No metadata leakage
+                          No timing correlation
+                          No address linkage
+```
+
+### PIL Protocol Stack
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 5: ZK-Bound State Locks                              │
-│  Layer 4: PIL v2 (PC³ │ PBP │ EASC │ CDNA)                  │
-│  Layer 3: Execution (AtomicSwap │ Compliance │ FHE │ MPC)   │
-│  Layer 2: Proof Translation (Groth16 │ PLONK │ STARK)       │
-│  Layer 1: Confidential State + Nullifier Registry + TEE     │
+│  Layer 5: ZK-Bound State Locks (ZK-SLocks)                  │
+│           Lock on Aztec → Unlock on Ethereum (or reverse)   │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 4: PIL v2 Primitives                                 │
+│           PC³ │ PBP │ EASC │ CDNA                           │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 3: Execution Layer                                   │
+│           AtomicSwap │ Compliance │ FHE │ MPC               │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 2: Proof Translation                                 │
+│           Groth16 ↔ PLONK ↔ STARK ↔ Bulletproofs            │
+│           (Aztec UltraPLONK ↔ PIL Groth16)                  │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 1: Core Infrastructure                               │
+│           Confidential State │ Nullifier Registry │ TEE     │
 └─────────────────────────────────────────────────────────────┘
-         ↓              ↓              ↓
-      Arbitrum      Optimism        Base        ... 7 L2s
+                              ↓
+   ┌──────────────────────────┴──────────────────────────┐
+   │                                                      │
+   ▼                                                      ▼
+┌─────────────────────────────┐    ┌─────────────────────────────┐
+│     PRIVACY CHAINS          │    │      PUBLIC L2s             │
+│  Aztec │ Secret │ Midnight  │    │  Arbitrum │ Optimism │ Base │
+│  Zcash │ Railgun │ Penumbra │    │  zkSync │ Scroll │ Linea   │
+└─────────────────────────────┘    └─────────────────────────────┘
+```
+
+### How Data Flows: Aztec → Ethereum Example
+
+```
+1. User on Aztec (private)
+   └── Creates encrypted note (UltraPLONK proof)
+           │
+2. PIL Bridge receives note
+   └── Converts Aztec note → PIL commitment
+   └── Generates cross-domain nullifier (CDNA)
+           │
+3. Proof Translation
+   └── UltraPLONK → Groth16 (for EVM verification)
+           │
+4. Arrives on Ethereum
+   └── ZK-SLock verifies proof
+   └── New commitment created
+   └── Nullifier registered (prevents double-spend)
+           │
+5. User controls funds on Ethereum
+   └── No one knows: who, what amount, or when
 ```
 
 ## Project Structure
 
 ```
-contracts/           # 147 Solidity contracts
-├── core/            # State container, nullifier registry
-├── primitives/      # PC³, ZK-SLocks, CDNA, TEE
-├── crosschain/      # 17 L2 bridge adapters
-├── privacy/         # Ring sigs, stealth, FHE, Nova
+contracts/           # 148 Solidity contracts
+├── core/            # ConfidentialStateContainer, NullifierRegistry
+├── primitives/      # ZK-SLocks, PC³, CDNA, EASC, TEE
+├── crosschain/      # 18 bridge adapters (Arbitrum, Optimism, Base, Aztec...)
+├── privacy/         # Ring sigs (Triptych), stealth, FHE, Nova IVC
 ├── pqc/             # Dilithium, Kyber, SPHINCS+
 ├── verifiers/       # Groth16, PLONK, FRI verifiers
 └── security/        # Timelock, circuit breaker, MEV protection
+
 noir/                # 18 Noir ZK circuits
-sdk/                 # TypeScript SDK + React hooks
+sdk/                 # TypeScript SDK + React hooks  
 certora/             # 38 formal verification specs
 test/                # Unit, fuzz, invariant, attack tests
 ```
@@ -180,6 +308,12 @@ PIL provides native adapters for major L2 networks:
 | **Scroll** | 534352 | `ScrollBridgeAdapter` | zkEVM |
 | **Linea** | 59144 | `LineaBridgeAdapter` | zkEVM, PLONK |
 | **Polygon zkEVM** | 1101 | `PolygonZkEVMBridgeAdapter` | zkEVM |
+| **Aztec** | — | `AztecBridgeAdapter` | UltraPLONK, Note-based |
+
+**Privacy chain bridges:**
+- `AztecBridgeAdapter` - PIL ↔ Aztec note conversion with cross-domain nullifiers
+- `RailgunBridgeAdapter` - RAILGUN private transaction integration
+- `MidnightBridgeAdapter` - Midnight Network support (planned)
 
 **Cross-chain messaging protocols:**
 - `LayerZeroAdapter` - 120+ chains via LayerZero V2
@@ -229,10 +363,80 @@ npm run security:all # Full security suite
 npm install @pil/sdk
 ```
 
+### Create Confidential State
+
 ```typescript
-import { PILClient } from '@pil/sdk';
+import { PILClient, ConfidentialState } from '@pil/sdk';
+
 const client = new PILClient({ rpcUrl, contracts });
-await client.bridges.arbitrum.sendProofToL2({ proofHash, proof, publicInputs });
+
+// Create encrypted state container
+const state = await client.createConfidentialState({
+  data: { balance: 1000, owner: '0x...' },
+  encryption: 'AES-256-GCM',
+});
+
+// Generate ZK proof of validity
+const proof = await state.generateProof();
+console.log(state.commitment); // 0xabc... (public)
+console.log(state.encrypted);  // Encrypted blob
+```
+
+### Cross-Chain Transfer with ZK-SLocks
+
+```typescript
+import { ZKSLockClient } from '@pil/sdk';
+
+const zkslocks = new ZKSLockClient(client);
+
+// Lock state on Arbitrum
+const lock = await zkslocks.createLock({
+  sourceChain: 'arbitrum',
+  destChain: 'base',
+  state: confidentialState,
+  unlockCondition: 'zk-proof',
+});
+
+// Generate unlock proof (can be done offline, any time later)
+const unlockProof = await zkslocks.generateUnlockProof(lock);
+
+// Unlock on Base (no timing correlation with lock)
+await zkslocks.unlock({
+  lockId: lock.id,
+  proof: unlockProof,
+  destChain: 'base',
+});
+```
+
+### Bridge to Aztec Network
+
+```typescript
+import { AztecBridgeClient } from '@pil/sdk';
+
+const aztec = new AztecBridgeClient(client);
+
+// Bridge PIL commitment to Aztec note
+const result = await aztec.bridgeToAztec({
+  commitment: pilCommitment,
+  recipient: aztecAddress,
+  amount: parseEther('1.0'),
+  noteType: 'VALUE_NOTE',
+});
+
+console.log(result.aztecNoteHash); // Created on Aztec
+```
+
+### React Hooks
+
+```tsx
+import { usePIL, useConfidentialBalance } from '@pil/sdk/react';
+
+function PrivateBalance() {
+  const { client } = usePIL();
+  const { balance, loading } = useConfidentialBalance(client, commitment);
+  
+  return <span>{loading ? '...' : `${balance} ETH (private)`}</span>;
+}
 ```
 
 ---
