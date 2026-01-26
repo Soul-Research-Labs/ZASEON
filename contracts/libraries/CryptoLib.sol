@@ -7,10 +7,10 @@ pragma solidity ^0.8.20;
  * @dev Optimized for use in ZK proof and ring signature verification
  */
 library CryptoLib {
-    /// @v2-update BN254 curve order (scalar field Fr)
+    /// @dev BN254 curve order (scalar field Fr) - v2 update
     uint256 constant FR_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     
-    /// @v2-update BN254 base field Fq
+    /// @dev BN254 base field Fq - v2 update
     uint256 constant FQ_MODULUS = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     struct G1Point {

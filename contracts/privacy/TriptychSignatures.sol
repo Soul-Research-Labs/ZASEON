@@ -23,23 +23,26 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
     uint256 public constant CURVE_ORDER =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-    /// @notice Generator point G (BN254)
-    CryptoLib.G1Point public constant GENERATOR_G = CryptoLib.G1Point(
-        1,
-        2
-    );
+    /// @notice Get generator point G (BN254)
+    function GENERATOR_G() public pure returns (CryptoLib.G1Point memory) {
+        return CryptoLib.G1Point(1, 2);
+    }
 
-    /// @notice Generator point H (for Pedersen)
-    CryptoLib.G1Point public constant GENERATOR_H = CryptoLib.G1Point(
-        0x183227397098d014dc2822dbedc300582548ea2c116e0d01cf94183d347c7ec2,
-        0x071ae7a27098d014dc2822dbedc300582548ea2c116e0d01cf94183d34791ea0
-    );
+    /// @notice Get generator point H (for Pedersen)
+    function GENERATOR_H() public pure returns (CryptoLib.G1Point memory) {
+        return CryptoLib.G1Point(
+            0x183227397098d014dc2822dbedc300582548ea2c116e0d01cf94183d347c7ec2,
+            0x071ae7a27098d014dc2822dbedc300582548ea2c116e0d01cf94183d34791ea0
+        );
+    }
 
-    /// @notice Generator point U (for key images)
-    CryptoLib.G1Point public constant GENERATOR_U = CryptoLib.G1Point(
-        0x1,
-        0x2 // Placeholder - in production use hash-to-curve
-    );
+    /// @notice Get generator point U (for key images)
+    function GENERATOR_U() public pure returns (CryptoLib.G1Point memory) {
+        return CryptoLib.G1Point(
+            0x1,
+            0x2 // Placeholder - in production use hash-to-curve
+        );
+    }
 
     /// @notice Maximum ring size (must be power of 2)
     uint256 public constant MAX_RING_SIZE = 256;
@@ -258,7 +261,7 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
             // This is still a simplified version of the full Triptych transcript, 
             // but it uses real elliptic curve math.
             
-            CryptoLib.G1Point memory zaG = CryptoLib.g1Mul(GENERATOR_G, uint256(ctx.proof.z_A[j]));
+            CryptoLib.G1Point memory zaG = CryptoLib.g1Mul(GENERATOR_G(), uint256(ctx.proof.z_A[j]));
             
             // X[j] is bytes32, we assume it's a commitment point (simplified mapping)
             // In a full implementation, we'd decode it to a G1Point
@@ -275,10 +278,11 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
     ) internal pure returns (bool) {
         // Key image J should satisfy: J = x * H_p(P) for some ring member P
         // We can't check this directly, but we verify the proof structure
-
+        CryptoLib.G1Point memory genU = GENERATOR_U();
         bytes32 keyImageCheck = keccak256(
             abi.encodePacked(
-                GENERATOR_U,
+                genU.x,
+                genU.y,
                 ctx.keyImage.J,
                 ctx.proof.f,
                 _hashRing(ctx.ring, n)

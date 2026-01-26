@@ -443,7 +443,8 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Return prover's bond
-        payable(proof.challenger).transfer(proof.bondAmount);
+        (bool bondSuccess, ) = payable(proof.challenger).call{value: proof.bondAmount}("");
+        require(bondSuccess, "Bond transfer failed");
 
         // Record resolution
         resolutions[proofId] = DisputeResolution({
@@ -617,7 +618,8 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert ZeroAddress();
-        payable(to).transfer(amount);
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "Transfer failed");
     }
 
     // ============ Internal Functions ============
@@ -711,7 +713,8 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
         bytes32 proofId
     ) internal {
         // Transfer reward to prover
-        payable(prover).transfer(amount);
+        (bool success, ) = payable(prover).call{value: amount}("");
+        require(success, "Reward transfer failed");
 
         emit ProverRewarded(prover, amount, proofId);
     }

@@ -681,7 +681,7 @@ contract UnifiedNullifierManager is
         bytes32 sourceNullifier,
         uint256 destChainId,
         bytes calldata proof
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         // H-4 Fix: ZK derivation proof placeholder - NOT for production
         // Revert on mainnet to ensure real ZK proof verification is implemented
         if (block.chainid == 1) {

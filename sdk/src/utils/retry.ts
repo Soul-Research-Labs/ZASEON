@@ -66,6 +66,8 @@ function calculateDelay(
   // Add jitter
   if (options.jitter) {
     const jitterRange = delay * options.jitterFactor;
+    // Note: Math.random() is used intentionally here for non-security-critical timing jitter.
+    // Cryptographic randomness is not required for retry delay jitter.
     const jitter = (Math.random() * 2 - 1) * jitterRange;
     delay = Math.max(0, delay + jitter);
   }

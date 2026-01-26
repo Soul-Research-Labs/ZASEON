@@ -474,7 +474,8 @@ contract PostQuantumSignatureVerifier is
             verification.finalized = true;
 
             // Return bond to challenger + reward
-            payable(msg.sender).transfer(msg.value);
+            (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+            require(success, "Bond return failed");
         } else {
             // Invalid challenge - burn the bond
             // In production, could distribute to submitter
