@@ -496,7 +496,6 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Send execution via Arbitrum Nitro retryable ticket
      * @param bundleId Bundle identifier
-     * @param destChainId Destination Arbitrum chain ID
      * @param ticket Retryable ticket parameters
      */
     function sendArbitrumExecution(

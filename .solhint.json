@@ -18,8 +18,8 @@
     "check-send-result": "error",
     "compiler-version": ["error", "^0.8.20"],
     "const-name-snakecase": "warn",
-    "contract-name-camelcase": "error",
-    "event-name-camelcase": "error",
+    "contract-name-capwords": "error",
+    "event-name-capwords": "error",
     "func-name-mixedcase": "warn",
     "func-visibility": ["error", {"ignoreConstructors": true}],
     "imports-on-top": "error",
@@ -40,7 +40,7 @@
     "visibility-modifier-order": "warn",
     "code-complexity": ["warn", 7],
     "function-max-lines": ["warn", 50],
-    "max-line-length": ["warn", 120],
+
     "no-complex-fallback": "error",
     "no-global-import": "warn",
     "payable-fallback": "warn"

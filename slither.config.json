@@ -20,7 +20,7 @@
   ],
   "solc": "solc",
   "solc_args": "--via-ir --optimize --optimize-runs 10000",
-  "compile_force_framework": "solc",
+  "compile_force_framework": "hardhat",
   "show_ignored_findings": false,
   "fail_on": "high",
   "legacy_ast": false

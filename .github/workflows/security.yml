@@ -59,13 +59,14 @@ jobs:
         run: mkdir -p results
 
       - name: Run Slither
-        uses: crytic/slither-action@v0.4.0
+        uses: crytic/slither-action@v0.7.0
         id: slither
         with:
           node-version: '20'
           slither-config: slither.config.json
           sarif: results/slither.sarif
           fail-on: high
+          target: '.'
         continue-on-error: true
 
       - name: Upload Slither SARIF
@@ -97,7 +98,7 @@ jobs:
         run: npm ci
 
       - name: Run Solhint
-        run: npx solhint 'contracts/**/*.sol' --config .solhint.json
+        run: npx solhint 'contracts/**/*.sol' --config .solhint.json --max-warnings 0
 
   # ============================================
   # Fuzz Testing
@@ -372,6 +373,9 @@ jobs:
 
       - name: Install Mythril
         run: pip install mythril
+
+      - name: Generate remappings.json
+        run: forge remappings --json > remappings.json
 
       - name: Run Mythril - Core Contracts
         run: |

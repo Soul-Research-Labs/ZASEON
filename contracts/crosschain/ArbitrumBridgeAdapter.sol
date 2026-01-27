@@ -489,7 +489,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint256 l1BatchNumber,
         uint256 l2Timestamp,
         bytes32 outputId,
-        uint256 chainId
+        uint256 /*chainId*/
     ) external onlyRole(EXECUTOR_ROLE) returns (bytes32 withdrawalId) {
         // Find L1 token
         address l1Token;

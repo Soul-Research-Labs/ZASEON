@@ -81,7 +81,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
-    "circomlibjs": "^0.0.8",
+    "circomlibjs": "^0.1.7",
     "ffjavascript": "^0.3.1",
     "forge-std": "^1.1.2",
     "snarkjs": "^0.7.6"
@@ -91,8 +91,8 @@
     "lodash-es": "^4.17.21",
     "diff": "^7.0.0",
     "undici": "^6.23.0",
-    "@ethersproject/signing-key": {
-      "elliptic": "^6.6.1"
-    }
+    "ws": "^8.17.1",
+    "tar": "^6.2.1",
+    "form-data": "^4.0.0"
   }
 }
