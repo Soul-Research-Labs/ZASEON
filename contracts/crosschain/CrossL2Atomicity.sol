@@ -201,7 +201,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
     uint256 public constant MAX_CHAINS_PER_BUNDLE = 10;
 
     /// @notice Bundle storage
-    mapping(bytes32 => AtomicBundle) internal bundles;
+    mapping(bytes32 => AtomicBundle) internal _bundles;
 
     /// @notice Bundle IDs array for iteration
     bytes32[] public bundleIds;

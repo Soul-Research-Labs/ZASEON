@@ -133,7 +133,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => bool) public classicalKeyImages;
 
     /// @notice Registered PQ public keys
-    mapping(bytes32 => MLWEPublicKey) internal pqPublicKeys;
+    mapping(bytes32 => MLWEPublicKey) internal _pqPublicKeys;
     bytes32[] public registeredKeyHashes;
 
     /// @notice Current verification mode

@@ -85,7 +85,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     mapping(bytes32 => ComplianceRequest) public requests;
 
     /// @notice MPC sessions
-    mapping(bytes32 => MPCSession) internal mpcSessions;
+    mapping(bytes32 => MPCSession) internal _mpcSessions;
 
     /// @notice Compliance certificates
     mapping(bytes32 => ComplianceCertificate) public certificates;

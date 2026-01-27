@@ -222,9 +222,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     uint256 private _packedStats;
 
     /// @dev Bit shifts for packed stats
-    uint256 private constant STAT_SHIFT_UNLOCKED = 64;
-    uint256 private constant STAT_SHIFT_OPTIMISTIC = 128;
-    uint256 private constant STAT_SHIFT_DISPUTES = 192;
+    uint256 private constant _STAT_SHIFT_UNLOCKED = 64;
+    uint256 private constant _STAT_SHIFT_OPTIMISTIC = 128;
+    uint256 private constant _STAT_SHIFT_DISPUTES = 192;
 
     /// @notice Get total locks created
     function totalLocksCreated() external view returns (uint256) {

@@ -107,7 +107,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant MAX_GRACE_PERIOD = 90 days;
 
     // ============ State Variables ============
-    mapping(bytes32 => BountySubmission) private submissions;
+    mapping(bytes32 => BountySubmission) private _submissions;
     mapping(Severity => BountyTier) public bountyTiers;
     mapping(address => ResearcherProfile) public researchers;
     mapping(bytes32 => DisputeResolution) public disputes;

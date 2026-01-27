@@ -74,7 +74,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     address[] public signerList;
 
     /// @notice Active signing sessions
-    mapping(bytes32 => SigningSession) internal sessions;
+    mapping(bytes32 => SigningSession) internal _sessions;
 
     /// @notice Session IDs by message hash
     mapping(bytes32 => bytes32) public messageToSession;

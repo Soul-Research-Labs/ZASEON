@@ -7,17 +7,17 @@ pragma solidity ^0.8.20;
 /// @dev Uses bn256Add (0x06), bn256ScalarMul (0x07), and bn256Pairing (0x08) precompiles
 contract Groth16VerifierBN254 {
     /// @notice BN254 curve order (scalar field Fr)
-    uint256 constant FIELD_MODULUS =
+    uint256 constant _FIELD_MODULUS =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice BN254 base field Fq
-    uint256 constant Q_MODULUS =
+    uint256 constant _Q_MODULUS =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /// @notice Precompile addresses
-    uint256 constant PRECOMSoulE_ADD = 0x06;
-    uint256 constant PRECOMSoulE_MUL = 0x07;
-    uint256 constant PRECOMSoulE_PAIRING = 0x08;
+    uint256 constant _PRECOMSoulE_ADD = 0x06;
+    uint256 constant _PRECOMSoulE_MUL = 0x07;
+    uint256 constant _PRECOMSoulE_PAIRING = 0x08;
 
     /// @notice Verification key components (to be set during deployment)
     struct VerificationKey {
@@ -29,7 +29,7 @@ contract Groth16VerifierBN254 {
     }
 
     /// @notice The verification key for this circuit
-    VerificationKey internal vk;
+    VerificationKey internal _vk;
 
     /// @notice Whether the verification key has been initialized
     bool public initialized;

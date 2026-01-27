@@ -115,7 +115,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
 
     // ============ State Variables ============
     mapping(bytes32 => AttestationQuote) public quotes;
-    mapping(address => AttesterNode) private attesterNodes;
+    mapping(address => AttesterNode) private _attesterNodes;
     mapping(bytes32 => TrustedMeasurement) public trustedMeasurements;
     mapping(bytes32 => RemoteAttestationChallenge) public challenges;
     mapping(bytes32 => VerificationResult) public verificationResults;

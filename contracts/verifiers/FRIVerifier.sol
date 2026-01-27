@@ -31,22 +31,22 @@ contract FRIVerifier is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Prime field modulus (Goldilocks field: 2^64 - 2^32 + 1)
-    uint256 constant FIELD_MODULUS = 18446744069414584321;
+    uint256 constant _FIELD_MODULUS = 18446744069414584321;
 
     /// @notice Generator of the multiplicative group
-    uint256 constant GENERATOR = 7;
+    uint256 constant _GENERATOR = 7;
 
     /// @notice Number of FRI layers
-    uint256 constant MAX_FRI_LAYERS = 20;
+    uint256 constant _MAX_FRI_LAYERS = 20;
 
     /// @notice Number of queries for soundness
-    uint256 constant NUM_QUERIES = 30;
+    uint256 constant _NUM_QUERIES = 30;
 
     /// @notice Blow-up factor (rate = 1/blowup)
-    uint256 constant BLOWUP_FACTOR = 8;
+    uint256 constant _BLOWUP_FACTOR = 8;
 
     /// @notice Minimum proof size (header + commitments + queries)
-    uint256 constant MIN_PROOF_SIZE = 512;
+    uint256 constant _MIN_PROOF_SIZE = 512;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTURES

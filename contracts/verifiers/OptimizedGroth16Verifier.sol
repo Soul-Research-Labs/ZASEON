@@ -19,30 +19,30 @@ contract OptimizedGroth16Verifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev BN254 curve order
-    uint256 internal constant Q_MOD =
+    uint256 internal constant _Q_MOD =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /// @dev BN254 scalar field (Fr)
-    uint256 internal constant R_MOD =
+    uint256 internal constant _R_MOD =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @dev Precompile addresses
-    uint256 internal constant PRECOMSoulE_ADD = 0x06;
-    uint256 internal constant PRECOMSoulE_MUL = 0x07;
-    uint256 internal constant PRECOMSoulE_PAIRING = 0x08;
+    uint256 internal constant _PRECOMSoulE_ADD = 0x06;
+    uint256 internal constant _PRECOMSoulE_MUL = 0x07;
+    uint256 internal constant _PRECOMSoulE_PAIRING = 0x08;
 
     /// @dev G1 generator point
-    uint256 internal constant G1_X = 1;
-    uint256 internal constant G1_Y = 2;
+    uint256 internal constant _G1_X = 1;
+    uint256 internal constant _G1_Y = 2;
 
     /// @dev G2 generator point (imaginary, real components)
-    uint256 internal constant G2_X_IM =
+    uint256 internal constant _G2_X_IM =
         11559732032986387107991004021392285783925812861821192530917403151452391805634;
-    uint256 internal constant G2_X_RE =
+    uint256 internal constant _G2_X_RE =
         10857046999023057135944570762232829481370756359578518086990519993285655852781;
-    uint256 internal constant G2_Y_IM =
+    uint256 internal constant _G2_Y_IM =
         4082367875863433681332203403145435568316851327593401208105741076214120093531;
-    uint256 internal constant G2_Y_RE =
+    uint256 internal constant _G2_Y_RE =
         8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     /*//////////////////////////////////////////////////////////////
@@ -50,24 +50,24 @@ contract OptimizedGroth16Verifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Verification key storage (immutable after initialization)
-    uint256 internal immutable VK_ALPHA_X;
-    uint256 internal immutable VK_ALPHA_Y;
-    uint256 internal immutable VK_BETA_X_IM;
-    uint256 internal immutable VK_BETA_X_RE;
-    uint256 internal immutable VK_BETA_Y_IM;
-    uint256 internal immutable VK_BETA_Y_RE;
-    uint256 internal immutable VK_GAMMA_X_IM;
-    uint256 internal immutable VK_GAMMA_X_RE;
-    uint256 internal immutable VK_GAMMA_Y_IM;
-    uint256 internal immutable VK_GAMMA_Y_RE;
-    uint256 internal immutable VK_DELTA_X_IM;
-    uint256 internal immutable VK_DELTA_X_RE;
-    uint256 internal immutable VK_DELTA_Y_IM;
-    uint256 internal immutable VK_DELTA_Y_RE;
-    uint256 internal immutable VK_IC_LENGTH;
+    uint256 internal immutable _VK_ALPHA_X;
+    uint256 internal immutable _VK_ALPHA_Y;
+    uint256 internal immutable _VK_BETA_X_IM;
+    uint256 internal immutable _VK_BETA_X_RE;
+    uint256 internal immutable _VK_BETA_Y_IM;
+    uint256 internal immutable _VK_BETA_Y_RE;
+    uint256 internal immutable _VK_GAMMA_X_IM;
+    uint256 internal immutable _VK_GAMMA_X_RE;
+    uint256 internal immutable _VK_GAMMA_Y_IM;
+    uint256 internal immutable _VK_GAMMA_Y_RE;
+    uint256 internal immutable _VK_DELTA_X_IM;
+    uint256 internal immutable _VK_DELTA_X_RE;
+    uint256 internal immutable _VK_DELTA_Y_IM;
+    uint256 internal immutable _VK_DELTA_Y_RE;
+    uint256 internal immutable _VK_IC_LENGTH;
 
     /// @dev IC points storage (stored in code via immutable array pattern)
-    uint256[] internal vk_ic;
+    uint256[] internal _vk_ic;
 
     /*//////////////////////////////////////////////////////////////
                               ERRORS

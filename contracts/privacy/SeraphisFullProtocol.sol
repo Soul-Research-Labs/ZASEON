@@ -141,7 +141,7 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
     uint256 public enoteCount;
 
     /// @notice Transaction registry
-    mapping(bytes32 => SeraphisTx) internal transactions;
+    mapping(bytes32 => SeraphisTx) internal _transactions;
     bytes32[] public txHashes;
 
     /// @notice Monero adoption tracking

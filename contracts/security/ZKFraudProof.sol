@@ -114,7 +114,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant PROVER_REWARD_PERCENTAGE = 30; // 30% of slashed
 
     // ZK Circuit Constants (Groth16 BN254)
-    uint256 private constant PRIME_Q =
+    uint256 private constant _PRIME_Q =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     // ============ State Variables ============

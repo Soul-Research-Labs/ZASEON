@@ -106,10 +106,10 @@ contract RuntimeSecurityMonitor is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant ANALYSIS_VALIDITY_PERIOD = 7 days;
 
     // Suspicious bytecode patterns (simplified opcodes)
-    bytes1 private constant OP_SELFDESTRUCT = 0xff;
-    bytes1 private constant OP_DELEGATECALL = 0xf4;
-    bytes1 private constant OP_CREATE2 = 0xf5;
-    bytes1 private constant OP_CALL = 0xf1;
+    bytes1 private constant _OP_SELFDESTRUCT = 0xff;
+    bytes1 private constant _OP_DELEGATECALL = 0xf4;
+    bytes1 private constant _OP_CREATE2 = 0xf5;
+    bytes1 private constant _OP_CALL = 0xf1;
 
     // ============ State Variables ============
     mapping(bytes32 => Invariant) public invariants;

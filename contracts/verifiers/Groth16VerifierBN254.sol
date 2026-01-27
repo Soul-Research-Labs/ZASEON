@@ -25,21 +25,21 @@ contract Groth16VerifierBN254 is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice BN254 curve order (scalar field Fr)
-    uint256 constant FIELD_MODULUS =
+    uint256 constant _FIELD_MODULUS =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice BN254 base field Fq
-    uint256 constant Q_MODULUS =
+    uint256 constant _Q_MODULUS =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /// @notice Proof size in bytes (256 = 64 + 128 + 64)
-    uint256 constant PROOF_SIZE = 256;
+    uint256 constant _PROOF_SIZE = 256;
 
     /// @notice G1 point size (64 bytes = 2 * 32)
-    uint256 constant G1_SIZE = 64;
+    uint256 constant _G1_SIZE = 64;
 
     /// @notice G2 point size (128 bytes = 4 * 32)
-    uint256 constant G2_SIZE = 128;
+    uint256 constant _G2_SIZE = 128;
 
     /*//////////////////////////////////////////////////////////////
                          VERIFICATION KEY

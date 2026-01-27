@@ -28,35 +28,35 @@ contract PLONKVerifier is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice BN254 curve order (scalar field Fr)
-    uint256 constant FR_MODULUS =
+    uint256 constant _FR_MODULUS =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice BN254 base field Fq
-    uint256 constant FQ_MODULUS =
+    uint256 constant _FQ_MODULUS =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /// @notice Domain generator for FFT (omega)
     /// @dev omega^n = 1 where n is the domain size
-    uint256 constant OMEGA =
+    uint256 constant _OMEGA =
         19540430494807482326159819597004422086093766032135589407132600596362845576832;
 
     /// @notice Minimum proof size in bytes
-    uint256 constant MIN_PROOF_SIZE = 768;
+    uint256 constant _MIN_PROOF_SIZE = 768;
 
     /// @notice G1 generator
-    uint256 constant G1_X = 1;
-    uint256 constant G1_Y = 2;
+    uint256 constant _G1_X = 1;
+    uint256 constant _G1_Y = 2;
 
     /// @notice G2 generator x-coordinates (imaginary, real)
-    uint256 constant G2_X_IM =
+    uint256 constant _G2_X_IM =
         11559732032986387107991004021392285783925812861821192530917403151452391805634;
-    uint256 constant G2_X_RE =
+    uint256 constant _G2_X_RE =
         10857046999023057135944570762232829481370756359578518086990519993285655852781;
 
     /// @notice G2 generator y-coordinates (imaginary, real)
-    uint256 constant G2_Y_IM =
+    uint256 constant _G2_Y_IM =
         4082367875863433681332203403145435568316851327593401208105741076214120093531;
-    uint256 constant G2_Y_RE =
+    uint256 constant _G2_Y_RE =
         8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     /*//////////////////////////////////////////////////////////////

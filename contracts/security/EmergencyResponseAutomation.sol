@@ -150,7 +150,7 @@ contract EmergencyResponseAutomation is
     uint256 public constant MIN_CONFIRMATION_DELAY = 1 minutes;
 
     // ============ State Variables ============
-    mapping(bytes32 => Incident) private incidents;
+    mapping(bytes32 => Incident) private _incidents;
     mapping(bytes32 => Runbook) public runbooks;
     mapping(bytes32 => AutomatedAction) public actions;
     mapping(bytes32 => ExecutionRecord[]) public executionHistory;

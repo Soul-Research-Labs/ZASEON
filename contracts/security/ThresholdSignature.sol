@@ -115,13 +115,13 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant COMMITMENT_SIZE = 32;
 
     // BLS12-381 curve order
-    uint256 private constant BLS_CURVE_ORDER =
+    uint256 private constant _BLS_CURVE_ORDER =
         0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001;
 
     // ============ State Variables ============
-    mapping(bytes32 => ThresholdGroup) private groups;
-    mapping(bytes32 => SigningSession) private sessions;
-    mapping(bytes32 => DKGRound) private dkgRounds;
+    mapping(bytes32 => ThresholdGroup) private _groups;
+    mapping(bytes32 => SigningSession) private _sessions;
+    mapping(bytes32 => DKGRound) private _dkgRounds;
     mapping(address => SignerInfo) public signerInfo;
     mapping(bytes32 => VerificationResult) public verificationResults;
 

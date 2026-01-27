@@ -176,18 +176,18 @@ contract ConfidentialStateContainerV3 is
     uint256 public constant MAX_BATCH_SIZE = 50;
 
     /// @dev Default proof validity window (1 hour)
-    uint256 private constant DEFAULT_PROOF_VALIDITY = 1 hours;
+    uint256 private constant _DEFAULT_PROOF_VALIDITY = 1 hours;
 
     /// @dev Default max state size (64KB)
-    uint256 private constant DEFAULT_MAX_STATE_SIZE = 65536;
+    uint256 private constant _DEFAULT_MAX_STATE_SIZE = 65536;
 
     /// @dev Bit shift for counter packing
-    uint256 private constant COUNTER_SHIFT = 128;
+    uint256 private constant _COUNTER_SHIFT = 128;
 
     /// @dev Pre-computed shift increment for counter operations
     /// SECURITY: Explicit constant prevents LLVM optimization issues on L2s (ZKsync)
     /// where `1 << 128` could be incorrectly compiled with 64-bit operations
-    uint256 private constant COUNTER_INCREMENT = uint256(1) << 128;
+    uint256 private constant _COUNTER_INCREMENT = uint256(1) << 128;
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR

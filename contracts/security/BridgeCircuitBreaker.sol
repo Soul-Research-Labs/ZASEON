@@ -151,7 +151,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     uint256 public recoveryProposalCount;
 
     /// @notice Recovery proposals
-    mapping(uint256 => RecoveryProposal) internal recoveryProposals;
+    mapping(uint256 => RecoveryProposal) internal _recoveryProposals;
 
     /// @notice Timestamp of last state change
     uint256 public lastStateChange;
