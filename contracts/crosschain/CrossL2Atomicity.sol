@@ -500,7 +500,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
      */
     function sendArbitrumExecution(
         bytes32 bundleId,
-        uint256 /*destChainId*/,
+        uint256, // destChainId (unused)
         RetryableTicket calldata ticket
     ) external payable onlyRole(EXECUTOR_ROLE) {
         AtomicBundle storage bundle = _bundles[bundleId];

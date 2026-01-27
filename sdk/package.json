@@ -1,5 +1,5 @@
 {
-  "name": "@pil/sdk",
+  "name": "@soul/sdk",
   "version": "1.0.0",
   "description": "Soul Protocol SDK - Cross-chain privacy middleware with post-quantum cryptography for Web3",
   "main": "dist/index.js",
@@ -91,20 +91,21 @@
   ],
   "author": "Soul Team",
   "license": "MIT",
-  "homepage": "https://github.com/pil-project/pil-sdk#readme",
+  "homepage": "https://github.com/Soul-Research-Labs/Soul#readme",
   "bugs": {
-    "url": "https://github.com/pil-project/pil-sdk/issues"
+    "url": "https://github.com/Soul-Research-Labs/Soul/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pil-project/pil-sdk.git"
+    "url": "git+https://github.com/Soul-Research-Labs/Soul.git"
   },
   "dependencies": {
     "circomlibjs": "^0.1.7",
     "commander": "^11.0.0",
     "ethers": "^6.0.0",
     "ffjavascript": "^0.3.0",
-    "snarkjs": "^0.7.3"
+    "snarkjs": "^0.7.3",
+    "viem": "^2.30.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.0",

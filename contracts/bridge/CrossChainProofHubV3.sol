@@ -23,16 +23,6 @@ contract CrossChainProofHubV3 is
     SecurityModule
 {
     /*//////////////////////////////////////////////////////////////
-                                 ROLES
-    //////////////////////////////////////////////////////////////*/
-
-    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
-    bytes32 public constant VERIFIER_ADMIN_ROLE =
-        keccak256("VERIFIER_ADMIN_ROLE");
-    bytes32 public constant CHALLENGER_ROLE = keccak256("CHALLENGER_ROLE");
-    bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
-
-    /*//////////////////////////////////////////////////////////////
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
@@ -43,6 +33,23 @@ contract CrossChainProofHubV3 is
         Rejected, // Failed verification
         Finalized // Executed on destination
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                 ROLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Role for authorized relayers
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+
+    /// @notice Role for verifier administrators
+    bytes32 public constant VERIFIER_ADMIN_ROLE =
+        keccak256("VERIFIER_ADMIN_ROLE");
+
+    /// @notice Role for authorized challengers
+    bytes32 public constant CHALLENGER_ROLE = keccak256("CHALLENGER_ROLE");
+
+    /// @notice Role for emergency operations
+    bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
 
     /// @notice Proof submission structure
     struct ProofSubmission {
@@ -159,6 +166,12 @@ contract CrossChainProofHubV3 is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a single proof is submitted
+    /// @param proofId The unique identifier of the proof
+    /// @param commitment The state commitment associated with the proof
+    /// @param sourceChainId The chain ID where the proof originated
+    /// @param destChainId The chain ID where the proof is being submitted
+    /// @param relayer The address of the relayer who submitted the proof
     event ProofSubmitted(
         bytes32 indexed proofId,
         bytes32 indexed commitment,
@@ -167,12 +180,21 @@ contract CrossChainProofHubV3 is
         address indexed relayer
     );
 
+    /// @notice Emitted to provide full proof data for off-chain retrieval
+    /// @param proofId The unique identifier of the proof
+    /// @param proof The full ZK proof bytes
+    /// @param publicInputs The public inputs for the proof
     event ProofDataEmitted(
         bytes32 indexed proofId,
         bytes proof,
         bytes publicInputs
     );
 
+    /// @notice Emitted when a batch of proofs is submitted
+    /// @param batchId The unique identifier of the batch
+    /// @param merkleRoot The Merkle root of the proofs in the batch
+    /// @param proofCount The number of proofs included in the batch
+    /// @param relayer The address of the relayer who submitted the batch
     event BatchSubmitted(
         bytes32 indexed batchId,
         bytes32 merkleRoot,
@@ -180,16 +202,35 @@ contract CrossChainProofHubV3 is
         address indexed relayer
     );
 
+    /// @notice Emitted when a proof is successfully verified
+    /// @param proofId The unique identifier of the proof
+    /// @param status The new status of the proof
     event ProofVerified(bytes32 indexed proofId, ProofStatus status);
+
+    /// @notice Emitted when a proof is finalized
+    /// @param proofId The unique identifier of the proof
     event ProofFinalized(bytes32 indexed proofId);
+
+    /// @notice Emitted when a proof is rejected
+    /// @param proofId The unique identifier of the proof
+    /// @param reason The reason for rejection
     event ProofRejected(bytes32 indexed proofId, string reason);
 
+    /// @notice Emitted when a challenge is created
+    /// @param proofId The unique identifier of the challenged proof
+    /// @param challenger The address of the challenger
+    /// @param reason The reason for the challenge
     event ChallengeCreated(
         bytes32 indexed proofId,
         address indexed challenger,
         string reason
     );
 
+    /// @notice Emitted when a challenge is resolved
+    /// @param proofId The unique identifier of the challenged proof
+    /// @param challengerWon True if the challenger won the dispute
+    /// @param winner The address of the winner (relayer or challenger)
+    /// @param reward The amount of stake rewarded or slashed
     event ChallengeResolved(
         bytes32 indexed proofId,
         bool challengerWon,
@@ -197,39 +238,94 @@ contract CrossChainProofHubV3 is
         uint256 reward
     );
 
+    /// @notice Emitted when a relayer deposits stake
+    /// @param relayer The address of the relayer
+    /// @param amount The amount deposited
     event RelayerStakeDeposited(address indexed relayer, uint256 amount);
+
+    /// @notice Emitted when a relayer withdraws stake
+    /// @param relayer The address of the relayer
+    /// @param amount The amount withdrawn
     event RelayerStakeWithdrawn(address indexed relayer, uint256 amount);
+
+    /// @notice Emitted when a relayer is slashed
+    /// @param relayer The address of the relayer
+    /// @param amount The amount slashed
     event RelayerSlashed(address indexed relayer, uint256 amount);
 
+    /// @notice Emitted when a new supported chain is added
+    /// @param chainId The ID of the added chain
     event ChainAdded(uint256 indexed chainId);
+
+    /// @notice Emitted when a supported chain is removed
+    /// @param chainId The ID of the removed chain
     event ChainRemoved(uint256 indexed chainId);
+
+    /// @notice Emitted when a verifier address is set for a proof type
+    /// @param proofType The identifier of the proof type
+    /// @param verifier The address of the new verifier
     event VerifierSet(bytes32 indexed proofType, address verifier);
 
     /*//////////////////////////////////////////////////////////////
                               CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Error thrown when stake is insufficient
     error InsufficientStake(uint256 provided, uint256 required);
+
+    /// @notice Error thrown when a proof is not found
     error ProofNotFound(bytes32 proofId);
+
+    /// @notice Error thrown when a proof already exists
     error ProofAlreadyExists(bytes32 proofId);
+
+    /// @notice Error thrown when a proof is in an invalid state for the operation
     error InvalidProofStatus(
         bytes32 proofId,
         ProofStatus current,
         ProofStatus expected
     );
+
+    /// @notice Error thrown when a challenge period hasn't elapsed
     error ChallengePeriodNotOver(bytes32 proofId, uint256 deadline);
+
+    /// @notice Error thrown when a challenge period has already elapsed
     error ChallengePeriodOver(bytes32 proofId);
+
+    /// @notice Error thrown when a challenge already exists
     error ChallengeAlreadyExists(bytes32 proofId);
+
+    /// @notice Error thrown when a challenge is not found
     error ChallengeNotFound(bytes32 proofId);
+
+    /// @notice Error thrown when a chain is not supported
     error UnsupportedChain(uint256 chainId);
+
+    /// @notice Error thrown when a verifier is not set for a proof type
     error VerifierNotSet(bytes32 proofType);
+
+    /// @notice Error thrown when a proof is invalid
     error InvalidProof();
+
+    /// @notice Error thrown when a batch is too large
     error BatchTooLarge(uint256 size, uint256 maxSize);
+
+    /// @notice Error thrown when a batch is empty
     error EmptyBatch();
+
+    /// @notice Error thrown when a Merkle proof is invalid
     error InvalidMerkleProof();
+
+    /// @notice Error thrown when a relayer is not authorized
     error UnauthorizedRelayer();
+
+    /// @notice Error thrown when a withdraw operation fails
     error WithdrawFailed();
+
+    /// @notice Error thrown when the provided fee is insufficient
     error InsufficientFee(uint256 provided, uint256 required);
+
+    /// @notice Error thrown when a zero address is provided
     error ZeroAddress();
 
     /*//////////////////////////////////////////////////////////////

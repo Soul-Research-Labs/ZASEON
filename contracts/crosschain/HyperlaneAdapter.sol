@@ -259,12 +259,11 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Quote the fee for dispatching a message
-     * @param destinationDomain Target domain ID
      * @param message Message body
      * @return fee Required fee
      */
     function quoteDispatch(
-        uint32 /*destinationDomain*/,
+        uint32, // destinationDomain (unused)
         bytes calldata message
     ) external view returns (uint256 fee) {
         // Simplified fee calculation
