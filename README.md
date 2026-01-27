@@ -1,4 +1,4 @@
-# Privacy Interoperability Layer (PIL)
+# Soul - Privacy Interoperability Layer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.22-blue.svg)](https://docs.soliditylang.org/)
@@ -6,7 +6,7 @@
 
 > **Move privately between chains. No metadata. No lock-in.**
 
-PIL (Privacy Interoperability Layer) makes secrets portable. It's a zero-knowledge middleware that lets you transfer confidential state across blockchains without leaking timing, amounts, or identity—solving the privacy lock-in problem that traps users on single chains. 
+Soul (Privacy Interoperability Layer) makes secrets portable. It's a zero-knowledge middleware that lets you transfer confidential state across blockchains without leaking timing, amounts, or identity—solving the privacy lock-in problem that traps users on single chains. 
 
 ---
 
@@ -37,12 +37,12 @@ This creates a **winner-take-most dynamic**. A handful of privacy chains will ow
 
 ---
 
-## PIL's Solution: Privacy Without Lock-In
+## Soul's Solution: Privacy Without Lock-In
 
-PIL makes **secrets portable** so privacy becomes a feature of the network—not a cage.
+Soul makes **secrets portable** so privacy becomes a feature of the network—not a cage.
 
 ```
-WITHOUT PIL:                            WITH PIL:
+WITHOUT Soul:                            WITH Soul:
 ┌────────────────────────────┐          ┌────────────────────────────┐
 │  Privacy Chain A           │          │  Privacy Chain A           │
 │       ↓                    │          │       ↓                    │
@@ -54,12 +54,13 @@ WITHOUT PIL:                            WITH PIL:
 │  Privacy Chain B           │          │  Privacy Chain B           │
 │                            │          │                            │
 │  Result: LOCK-IN           │          │  Result: FREEDOM TO MOVE   │
+│                            │          │                            │
 └────────────────────────────┘          └────────────────────────────┘
 ```
 
-### How PIL Breaks Each Lock-In Mechanism
+### How Soul Breaks Each Lock-In Mechanism
 
-| Lock-In Vector | PIL's Solution |
+| Lock-In Vector | Soul's Solution |
 |----------------|----------------|
 | **Timing correlation** | ZK-SLocks decouple lock/unlock timing—proof generated offline |
 | **Amount correlation** | Pedersen commitments + Bulletproofs hide amounts |
@@ -69,7 +70,7 @@ WITHOUT PIL:                            WITH PIL:
 ### The Network Effect Reversal
 
 ```
-WITHOUT PIL:                            WITH PIL:
+WITHOUT Soul:                            WITH Soul:
 More Privacy Users                      More Privacy Users
         ↓                                       ↓
 More Lock-in                           Can Move Freely
@@ -78,7 +79,7 @@ Fewer Chains Win                       Many Chains Coexist
 (winner-take-most)                     (privacy as commodity layer)
 ```
 
-**PIL is SMTP for private blockchain transactions.** Just as email moved from walled gardens (AOL, CompuServe) to universal interoperability, PIL enables private transactions to flow across any chain.
+**Soul Protocol is SMTP for private blockchain transactions.** Just as email moved from walled gardens (AOL, CompuServe) to universal interoperability, Soul enables private transactions to flow across any chain.
 
 ---
 
@@ -109,7 +110,7 @@ Chain A                              Chain B
 
 ---
 
-## PIL v2 Primitives
+## Soul v2 Primitives
 
 The four novel cryptographic primitives that make private interoperability possible:
 
@@ -167,19 +168,19 @@ Same secret key on different chains:
 
 ## Architecture
 
-PIL sits between **privacy chains** and **public chains**, enabling confidential state to flow across both:
+Soul sits between **privacy chains** and **public chains**, enabling confidential state to flow across both:
 
 ```
                     ┌─────────────────────────────────────────┐
                     │         PRIVACY INTEROPERABILITY        │
-                    │               LAYER (PIL)               │
+                    │               LAYER (SOUL)               │
                     └─────────────────────────────────────────┘
                                        │
         ┌──────────────────────────────┼──────────────────────────────┐
         │                              │                              │
         ▼                              ▼                              ▼
 ┌───────────────┐              ┌───────────────┐              ┌───────────────┐
-│ PRIVACY CHAINS│              │  PIL PROTOCOL │              │ PUBLIC CHAINS │
+│ PRIVACY CHAINS│              │  SOUL PROTOCOL │              │ PUBLIC CHAINS │
 │               │              │               │              │               │
 │  Aztec        │◄────────────►│  ZK-SLocks    │◄────────────►│  Ethereum     │
 │  Zcash        │   encrypted  │  PC³          │   encrypted  │  Arbitrum     │
@@ -194,14 +195,14 @@ PIL sits between **privacy chains** and **public chains**, enabling confidential
                           No address linkage
 ```
 
-### PIL Protocol Stack
+### Soul Protocol Stack
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 5: ZK-Bound State Locks (ZK-SLocks)                  │
 │           Lock on Aztec → Unlock on Ethereum (or reverse)   │
 ├─────────────────────────────────────────────────────────────┤
-│  Layer 4: PIL v2 Primitives                                 │
+│  Layer 4: Soul v2 Primitives                                │
 │           PC³ │ PBP │ EASC │ CDNA                           │
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 3: Execution Layer                                   │
@@ -209,7 +210,7 @@ PIL sits between **privacy chains** and **public chains**, enabling confidential
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 2: Proof Translation                                 │
 │           Groth16 ↔ PLONK ↔ STARK ↔ Bulletproofs            │
-│           (Aztec UltraPLONK ↔ PIL Groth16)                  │
+│           (Aztec UltraPLONK ↔ Soul Groth16)                  │
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 1: Core Infrastructure                               │
 │           Confidential State │ Nullifier Registry │ TEE     │
@@ -231,8 +232,8 @@ PIL sits between **privacy chains** and **public chains**, enabling confidential
 1. User on Aztec (private)
    └── Creates encrypted note (UltraPLONK proof)
            │
-2. PIL Bridge receives note
-   └── Converts Aztec note → PIL commitment
+2. Soul Bridge receives note
+   └── Converts Aztec note → Soul commitment
    └── Generates cross-domain nullifier (CDNA)
            │
 3. Proof Translation
@@ -268,7 +269,7 @@ test/                # Unit, fuzz, invariant, attack tests
 ## Quick Start
 
 ```bash
-git clone https://github.com/soul-research-labs/PIL.git && cd PIL
+git clone https://github.com/soul-research-labs/Soul.git && cd Soul
 npm install && forge build
 forge test                             # Unit tests
 forge test --match-path "test/fuzz/*"  # Fuzz tests
@@ -286,7 +287,7 @@ npx hardhat run scripts/deploy.js --network localhost
 |----------|----------|
 | `ConfidentialStateContainer` | Encrypted state with ZK verification & nullifier protection |
 | `CrossChainProofHub` | Proof aggregation & relay with gas-optimized batching |
-| `PILAtomicSwap` | HTLC atomic swaps with stealth address support |
+| `SoulAtomicSwap` | HTLC atomic swaps with stealth address support |
 | `ProofCarryingContainer` | PC³ - Self-authenticating containers with embedded proofs |
 | `ZKBoundStateLocks` | Cross-chain state locks unlocked by ZK proofs |
 | `CrossDomainNullifierAlgebra` | Domain-separated nullifiers with composability |
@@ -297,7 +298,7 @@ See [API Reference](docs/API_REFERENCE.md) for full contract documentation.
 
 ## L2 Bridge Adapters
 
-PIL provides native adapters for major L2 networks:
+Soul provides native adapters for major L2 networks:
 
 | Network | Chain ID | Adapter | Key Features |
 |---------|----------|---------|--------------|
@@ -311,7 +312,7 @@ PIL provides native adapters for major L2 networks:
 | **Aztec** | — | `AztecBridgeAdapter` | UltraPLONK, Note-based |
 
 **Privacy chain bridges:**
-- `AztecBridgeAdapter` - PIL ↔ Aztec note conversion with cross-domain nullifiers
+- `AztecBridgeAdapter` - Soul ↔ Aztec note conversion with cross-domain nullifiers
 - `RailgunBridgeAdapter` - RAILGUN private transaction integration
 - `MidnightBridgeAdapter` - Midnight Network support (planned)
 
@@ -341,7 +342,7 @@ PIL provides native adapters for major L2 networks:
 
 | Module | Purpose |
 |--------|---------|
-| `PILTimelock.sol` | 48-hour delay for admin operations |
+| `SoulTimelock.sol` | 48-hour delay for admin operations |
 | `BridgeCircuitBreaker.sol` | Anomaly detection and auto-pause |
 | `BridgeRateLimiter.sol` | Volume and rate limiting |
 | `MEVProtection.sol` | Commit-reveal for MEV resistance |
@@ -360,15 +361,15 @@ npm run security:all # Full security suite
 ## SDK
 
 ```bash
-npm install @pil/sdk
+npm install @soul/sdk
 ```
 
 ### Create Confidential State
 
 ```typescript
-import { PILClient, ConfidentialState } from '@pil/sdk';
+import { SoulClient, ConfidentialState } from '@soul/sdk';
 
-const client = new PILClient({ rpcUrl, contracts });
+const client = new SoulClient({ rpcUrl, contracts });
 
 // Create encrypted state container
 const state = await client.createConfidentialState({
@@ -385,7 +386,7 @@ console.log(state.encrypted);  // Encrypted blob
 ### Cross-Chain Transfer with ZK-SLocks
 
 ```typescript
-import { ZKSLockClient } from '@pil/sdk';
+import { ZKSLockClient } from '@soul/sdk';
 
 const zkslocks = new ZKSLockClient(client);
 
@@ -411,13 +412,13 @@ await zkslocks.unlock({
 ### Bridge to Aztec Network
 
 ```typescript
-import { AztecBridgeClient } from '@pil/sdk';
+import { AztecBridgeClient } from '@soul/sdk';
 
 const aztec = new AztecBridgeClient(client);
 
-// Bridge PIL commitment to Aztec note
+// Bridge Soul commitment to Aztec note
 const result = await aztec.bridgeToAztec({
-  commitment: pilCommitment,
+  commitment: soulCommitment,
   recipient: aztecAddress,
   amount: parseEther('1.0'),
   noteType: 'VALUE_NOTE',
@@ -429,10 +430,10 @@ console.log(result.aztecNoteHash); // Created on Aztec
 ### React Hooks
 
 ```tsx
-import { usePIL, useConfidentialBalance } from '@pil/sdk/react';
+import { useSoul, useConfidentialBalance } from '@soul/sdk/react';
 
 function PrivateBalance() {
-  const { client } = usePIL();
+  const { client } = useSoul();
   const { balance, loading } = useConfidentialBalance(client, commitment);
   
   return <span>{loading ? '...' : `${balance} ETH (private)`}</span>;
@@ -454,7 +455,7 @@ function PrivateBalance() {
 | ProofCarryingContainer (PC³) | [`0x52f8a660ff436c450b5190a84bc2c1a86f1032cc`](https://sepolia.etherscan.io/address/0x52f8a660ff436c450b5190a84bc2c1a86f1032cc) |
 | ZKBoundStateLocks | [`0xf390ae12c9ce8f546ef7c7adaa6a1ab7768a2c78`](https://sepolia.etherscan.io/address/0xf390ae12c9ce8f546ef7c7adaa6a1ab7768a2c78) |
 | NullifierRegistryV3 | [`0x3e21d559f19c76a0bcec378b10dae2cc0e4c2191`](https://sepolia.etherscan.io/address/0x3e21d559f19c76a0bcec378b10dae2cc0e4c2191) |
-| PILAtomicSwapV2 | [`0xdefb9a66dc14a6d247b282555b69da7745b0ab57`](https://sepolia.etherscan.io/address/0xdefb9a66dc14a6d247b282555b69da7745b0ab57) |
+| SoulAtomicSwapV2 | [`0xdefb9a66dc14a6d247b282555b69da7745b0ab57`](https://sepolia.etherscan.io/address/0xdefb9a66dc14a6d247b282555b69da7745b0ab57) |
 
 **Full deployment:** See [`deployments/`](deployments/)
 
