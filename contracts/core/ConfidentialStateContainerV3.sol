@@ -494,14 +494,12 @@ contract ConfidentialStateContainerV3 is
         address newOwner,
         address caller
     ) internal {
-        // Cache length
-        uint256 stateLen = newEncryptedState.length;
-
         // Validations with cached maxStateSize
         if (newOwner == address(0)) revert ZeroAddress();
-        if (stateLen == 0) revert EmptyEncryptedState();
+        if (newEncryptedState.length == 0) revert EmptyEncryptedState();
         uint256 _maxSize = uint128(_packedConfig);
-        if (stateLen > _maxSize) revert StateSizeTooLarge(stateLen, _maxSize);
+        if (newEncryptedState.length > _maxSize) 
+            revert StateSizeTooLarge(newEncryptedState.length, _maxSize);
 
         EncryptedState storage oldState = _states[oldCommitment];
 
@@ -510,27 +508,52 @@ contract ConfidentialStateContainerV3 is
         if (oldOwner == address(0)) revert CommitmentNotFound(oldCommitment);
         if (oldOwner != caller) revert NotStateOwner(caller, oldOwner);
 
-        StateStatus currentStatus = oldState.status;
-        if (currentStatus != StateStatus.Active)
-            revert StateNotActive(oldCommitment, currentStatus);
+        if (oldState.status != StateStatus.Active)
+            revert StateNotActive(oldCommitment, oldState.status);
         if (_nullifiers[newNullifier])
             revert NullifierAlreadyUsed(newNullifier);
 
         // Verify proof
         if (!verifier.verifyProof(proof, publicInputs)) revert InvalidProof();
 
-        // Cache timestamp and version
-        uint48 timestamp = uint48(block.timestamp);
-        uint32 newVersion;
-        bytes32 oldMetadata;
-        unchecked {
-            newVersion = oldState.version + 1;
-        }
-        oldMetadata = oldState.metadata;
+        // Record history before state changes
+        _recordTransitionHistory(oldCommitment, newCommitment, oldOwner, newOwner);
 
-        // Record transition history (use assembly for efficient hash)
+        // Cache timestamp and get new version
+        uint48 timestamp = uint48(block.timestamp);
+        uint32 newVersion = oldState.version + 1;
+        bytes32 oldMetadata = oldState.metadata;
+
+        // Mark old state as retired
+        oldState.status = StateStatus.Retired;
+        oldState.updatedAt = timestamp;
+
+        // Store new state
+        _createNewState(
+            newCommitment, 
+            newNullifier, 
+            oldMetadata, 
+            newOwner, 
+            timestamp, 
+            newVersion, 
+            newEncryptedState
+        );
+
+        emit StateTransferred(oldCommitment, newCommitment, newOwner, newVersion);
+    }
+
+    /// @dev Records state transition history
+    function _recordTransitionHistory(
+        bytes32 oldCommitment,
+        bytes32 newCommitment,
+        address oldOwner,
+        address newOwner
+    ) internal {
+        // M-2 Fix: Enforce history limit
+        if (_stateHistory[oldCommitment].length >= MAX_HISTORY_LENGTH) return;
+
         bytes32 txHash;
-        uint256 ts = timestamp; // Cache for assembly
+        uint256 ts = block.timestamp;
         assembly {
             let ptr := mload(0x40)
             mstore(ptr, oldCommitment)
@@ -539,49 +562,45 @@ contract ConfidentialStateContainerV3 is
             txHash := keccak256(ptr, 0x60)
         }
 
-        // M-2 Fix: Enforce history limit
-        if (_stateHistory[oldCommitment].length < MAX_HISTORY_LENGTH) {
-            _stateHistory[oldCommitment].push(
-                StateTransition({
-                    fromCommitment: oldCommitment,
-                    toCommitment: newCommitment,
-                    fromOwner: oldOwner,
-                    toOwner: newOwner,
-                    timestamp: block.timestamp,
-                    transactionHash: txHash
-                })
-            );
-        }
+        _stateHistory[oldCommitment].push(
+            StateTransition({
+                fromCommitment: oldCommitment,
+                toCommitment: newCommitment,
+                fromOwner: oldOwner,
+                toOwner: newOwner,
+                timestamp: ts,
+                transactionHash: txHash
+            })
+        );
+    }
 
-        // Mark old state as retired
-        oldState.status = StateStatus.Retired;
-        oldState.updatedAt = timestamp;
-
-        // Store new state
-        EncryptedState storage newState = _states[newCommitment];
-        newState.commitment = newCommitment;
-        newState.nullifier = newNullifier;
-        newState.metadata = oldMetadata;
-        newState.owner = newOwner;
+    /// @dev Creates a new state entry
+    function _createNewState(
+        bytes32 commitment,
+        bytes32 nullifier,
+        bytes32 metadata,
+        address owner,
+        uint48 timestamp,
+        uint32 version,
+        bytes calldata encryptedState
+    ) internal {
+        EncryptedState storage newState = _states[commitment];
+        newState.commitment = commitment;
+        newState.nullifier = nullifier;
+        newState.metadata = metadata;
+        newState.owner = owner;
         newState.createdAt = timestamp;
         newState.updatedAt = timestamp;
-        newState.version = newVersion;
+        newState.version = version;
         newState.status = StateStatus.Active;
-        newState.encryptedState = newEncryptedState;
+        newState.encryptedState = encryptedState;
 
         // Register new nullifier
-        _nullifiers[newNullifier] = true;
-        _nullifierToCommitment[newNullifier] = newCommitment;
+        _nullifiers[nullifier] = true;
+        _nullifierToCommitment[nullifier] = commitment;
 
-        // Track new owner's commitments
-        _ownerCommitments[newOwner].push(newCommitment);
-
-        emit StateTransferred(
-            oldCommitment,
-            newCommitment,
-            newOwner,
-            newVersion
-        );
+        // Track owner's commitments
+        _ownerCommitments[owner].push(commitment);
     }
 
     /*//////////////////////////////////////////////////////////////

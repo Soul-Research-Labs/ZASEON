@@ -902,15 +902,8 @@ export const FHEUtils = {
 };
 
 // ============================================
-// Exports
+// Default Export
 // ============================================
-
-export {
-  FHEGatewayClient,
-  EncryptedERC20Client,
-  FHECoprocessorClient,
-  FHEUtils
-};
 
 export default {
   FHEType,

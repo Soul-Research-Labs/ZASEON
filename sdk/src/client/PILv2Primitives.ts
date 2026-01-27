@@ -3,13 +3,19 @@
  * TypeScript clients for interacting with Soul Protocol's novel cryptographic primitives
  */
 
-import { ethers, Contract, Signer, Provider } from "ethers";
+import { ethers, Contract, Signer, Provider, TransactionReceipt, Log } from "ethers";
+
+/** Parsed event log with fragment name */
+export interface ParsedEventLog extends Log {
+  fragment?: { name: string };
+  args?: Record<string, unknown>;
+}
 
 /**
  * Helper to check if a value is a Signer (duck typing for ethers v6)
  */
-function isSigner(value: any): value is Signer {
-  return value && typeof value.getAddress === 'function' && typeof value.signMessage === 'function';
+function isSigner(value: unknown): value is Signer {
+  return value !== null && typeof value === 'object' && 'getAddress' in value && 'signMessage' in value;
 }
 
 /*//////////////////////////////////////////////////////////////
@@ -121,7 +127,7 @@ export class ProofCarryingContainerClient {
   async createContainer(
     params: ContainerCreationParams,
     options?: TransactionOptions
-  ): Promise<{ tx: any; containerId: string }> {
+  ): Promise<{ tx: TransactionReceipt; containerId: string }> {
     if (!this.signer) throw new Error("Signer required for write operations");
 
     const tx = await this.contract.createContainer(
@@ -139,9 +145,9 @@ export class ProofCarryingContainerClient {
     
     // Extract containerId from event
     const event = receipt.logs.find(
-      (log: any) => log.fragment?.name === "ContainerCreated"
-    );
-    const containerId = event?.args?.containerId || "";
+      (log: Log) => (log as ParsedEventLog).fragment?.name === "ContainerCreated"
+    ) as ParsedEventLog | undefined;
+    const containerId = (event?.args?.containerId as string) || "";
 
     return { tx: receipt, containerId };
   }

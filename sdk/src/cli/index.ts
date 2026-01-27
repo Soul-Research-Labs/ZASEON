@@ -312,9 +312,9 @@ bridgeCmd
       const fees = await adapter.estimateFees(parseEther(amount), 1);
       
       console.log(`\nFee Estimate:`);
-      console.log(`  Bridge Fee: ${formatEther(fees.bridgeFee)} ETH`);
-      console.log(`  Gas Fee: ${formatEther(fees.gasEstimate)} ETH`);
-      console.log(`  Total: ${formatEther(fees.totalFee)} ETH`);
+      console.log(`  Protocol Fee: ${formatEther(fees.protocolFee)} ETH`);
+      console.log(`  Gas Fee: ${formatEther(fees.gasFee)} ETH`);
+      console.log(`  Total: ${formatEther(fees.total)} ETH`);
       
       // Confirm
       const rl = readline.createInterface({
@@ -343,7 +343,7 @@ bridgeCmd
       console.log(`\n✓ Transfer initiated!`);
       console.log(`  Transfer ID: ${result.transferId}`);
       console.log(`  TX Hash: ${result.txHash}`);
-      console.log(`  Estimated Time: ${result.estimatedTime} seconds`);
+      console.log(`  Estimated Arrival: ${new Date(result.estimatedArrival).toLocaleString()}`);
       
     } catch (err: any) {
       console.error(`Error: ${err.message}`);
@@ -373,8 +373,8 @@ bridgeCmd
       console.log(`  ID: ${transferId}`);
       console.log(`  State: ${status.state}`);
       console.log(`  Confirmations: ${status.confirmations}/${status.requiredConfirmations}`);
-      console.log(`  Source TX: ${status.sourceTxHash || 'N/A'}`);
-      console.log(`  Dest TX: ${status.destinationTxHash || 'Pending'}`);
+      console.log(`  Source TX: ${status.sourceTx || 'N/A'}`);
+      console.log(`  Dest TX: ${status.targetTx || 'Pending'}`);
       
     } catch (err: any) {
       console.error(`Error: ${err.message}`);
@@ -401,9 +401,9 @@ bridgeCmd
       const fees = await adapter.estimateFees(parseEther(amount), 1);
       
       console.log(`\nFee Estimate for ${amount} ETH to ${chain}:`);
-      console.log(`  Bridge Fee: ${formatEther(fees.bridgeFee)} ETH`);
-      console.log(`  Gas Fee: ${formatEther(fees.gasEstimate)} ETH`);
-      console.log(`  Total: ${formatEther(fees.totalFee)} ETH`);
+      console.log(`  Protocol Fee: ${formatEther(fees.protocolFee)} ETH`);
+      console.log(`  Gas Fee: ${formatEther(fees.gasFee)} ETH`);
+      console.log(`  Total: ${formatEther(fees.total)} ETH`);
       
     } catch (err: any) {
       console.error(`Error: ${err.message}`);

@@ -7,14 +7,35 @@ export interface PILConfig {
   privateKey: string;
 }
 
+/** Payload can be any JSON-serializable object */
+export type PILPayload = Record<string, unknown>;
+
+/** Disclosure policy defines what information can be revealed */
+export interface DisclosurePolicy {
+  allowedFields?: string[];
+  requiredProofs?: string[];
+  complianceLevel?: "none" | "basic" | "enhanced";
+}
+
+/** ZK circuit inputs and witnesses */
+export interface CircuitInputs {
+  publicInputs: string[] | bigint[];
+  privateInputs?: string[] | bigint[];
+}
+
+export interface CircuitWitnesses {
+  witness: string[] | bigint[];
+  auxiliaryData?: Record<string, unknown>;
+}
+
 export interface SendParams {
   sourceChain: string;
   destChain: string;
-  payload: any;
+  payload: PILPayload;
   circuitId: string;
-  disclosurePolicy: any;
-  inputs?: any;
-  witnesses?: any;
+  disclosurePolicy: DisclosurePolicy;
+  inputs?: CircuitInputs;
+  witnesses?: CircuitWitnesses;
   maxDelay?: number;
 }
 
@@ -43,3 +64,4 @@ export class CryptoModule {
     return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   }
 }
+
