@@ -361,7 +361,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
 
         proposalId = recoveryProposalCount++;
 
-        RecoveryProposal storage proposal = recoveryProposals[proposalId];
+        RecoveryProposal storage proposal = _recoveryProposals[proposalId];
         proposal.proposer = msg.sender;
         proposal.targetState = targetState;
         proposal.proposedAt = block.timestamp;
@@ -378,7 +378,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     function approveRecovery(
         uint256 proposalId
     ) external onlyRole(RECOVERY_ROLE) {
-        RecoveryProposal storage proposal = recoveryProposals[proposalId];
+        RecoveryProposal storage proposal = _recoveryProposals[proposalId];
 
         require(!proposal.executed, "Already executed");
         require(
@@ -400,7 +400,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     function executeRecovery(
         uint256 proposalId
     ) external onlyRole(RECOVERY_ROLE) {
-        RecoveryProposal storage proposal = recoveryProposals[proposalId];
+        RecoveryProposal storage proposal = _recoveryProposals[proposalId];
 
         require(!proposal.executed, "Already executed");
         require(
@@ -564,7 +564,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
             bool canExecute
         )
     {
-        RecoveryProposal storage proposal = recoveryProposals[proposalId];
+        RecoveryProposal storage proposal = _recoveryProposals[proposalId];
 
         proposer = proposal.proposer;
         targetState = proposal.targetState;

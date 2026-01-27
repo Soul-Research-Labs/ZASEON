@@ -223,7 +223,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
             )
         );
 
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         group.id = groupId;
         group.sigType = sigType;
         group.threshold = threshold;
@@ -268,7 +268,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @param groupId Group to start DKG for
      */
     function startDKG(bytes32 groupId) external onlyRole(COORDINATOR_ROLE) {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         if (group.createdAt == 0) revert GroupNotFound();
         if (group.keyGenStatus == KeyGenStatus.COMPLETED)
             revert DKGAlreadyCompleted();
@@ -276,10 +276,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         group.keyGenStatus = KeyGenStatus.ROUND_1;
 
         bytes32 roundId = keccak256(abi.encodePacked(groupId, uint8(1)));
-        dkgRounds[roundId].groupId = groupId;
-        dkgRounds[roundId].roundNumber = 1;
-        dkgRounds[roundId].startedAt = block.timestamp;
-        dkgRounds[roundId].expiresAt = block.timestamp + DKG_ROUND_TIMEOUT;
+        _dkgRounds[roundId].groupId = groupId;
+        _dkgRounds[roundId].roundNumber = 1;
+        _dkgRounds[roundId].startedAt = block.timestamp;
+        _dkgRounds[roundId].expiresAt = block.timestamp + DKG_ROUND_TIMEOUT;
 
         emit DKGStarted(groupId, 1);
     }
@@ -293,13 +293,13 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 groupId,
         bytes calldata commitment
     ) external {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         if (group.createdAt == 0) revert GroupNotFound();
         if (group.signerIndex[msg.sender] == 0) revert NotASigner();
         if (group.keyGenStatus != KeyGenStatus.ROUND_1) revert InvalidRound();
 
         bytes32 roundId = keccak256(abi.encodePacked(groupId, uint8(1)));
-        DKGRound storage round = dkgRounds[roundId];
+        DKGRound storage round = _dkgRounds[roundId];
 
         if (block.timestamp > round.expiresAt) revert SessionExpired();
 
@@ -324,13 +324,13 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         address recipient,
         bytes calldata encryptedShare
     ) external {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         if (group.createdAt == 0) revert GroupNotFound();
         if (group.signerIndex[msg.sender] == 0) revert NotASigner();
         if (group.keyGenStatus != KeyGenStatus.ROUND_2) revert InvalidRound();
 
         bytes32 roundId = keccak256(abi.encodePacked(groupId, uint8(2)));
-        DKGRound storage round = dkgRounds[roundId];
+        DKGRound storage round = _dkgRounds[roundId];
 
         round.encryptedShares[msg.sender][recipient] = encryptedShare;
         round.submissionCount++;
@@ -353,7 +353,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata groupPublicKey,
         bytes[] calldata signerPublicKeys
     ) external onlyRole(COORDINATOR_ROLE) {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         if (group.createdAt == 0) revert GroupNotFound();
         if (group.keyGenStatus == KeyGenStatus.COMPLETED)
             revert DKGAlreadyCompleted();
@@ -387,7 +387,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 groupId,
         bytes32 messageHash
     ) external onlyRole(COORDINATOR_ROLE) returns (bytes32 sessionId) {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         if (group.createdAt == 0) revert GroupNotFound();
         if (!group.active) revert GroupNotActive();
         if (group.keyGenStatus != KeyGenStatus.COMPLETED)
@@ -397,7 +397,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
             abi.encodePacked(groupId, messageHash, block.timestamp, group.nonce)
         );
 
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         session.id = sessionId;
         session.groupId = groupId;
         session.messageHash = messageHash;
@@ -421,12 +421,12 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 sessionId,
         bytes calldata partialSig
     ) external nonReentrant {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         if (session.createdAt == 0) revert SessionNotFound();
         if (block.timestamp > session.expiresAt) revert SessionExpired();
         if (session.hasSubmitted[msg.sender]) revert AlreadySigned();
 
-        ThresholdGroup storage group = groups[session.groupId];
+        ThresholdGroup storage group = _groups[session.groupId];
         if (group.signerIndex[msg.sender] == 0) revert NotASigner();
 
         // Verify partial signature
@@ -470,10 +470,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     function aggregateSignatures(
         bytes32 sessionId
     ) external onlyRole(COORDINATOR_ROLE) returns (bytes memory aggregatedSig) {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         if (session.createdAt == 0) revert SessionNotFound();
 
-        ThresholdGroup storage group = groups[session.groupId];
+        ThresholdGroup storage group = _groups[session.groupId];
         if (session.partialSigCount < group.threshold)
             revert InsufficientSignatures();
 
@@ -544,12 +544,12 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     function verifyAggregatedSignature(
         bytes32 sessionId
     ) external returns (bool valid) {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         if (session.createdAt == 0) revert SessionNotFound();
         if (session.status != SigningStatus.COMPLETED)
             revert InsufficientSignatures();
 
-        ThresholdGroup storage group = groups[session.groupId];
+        ThresholdGroup storage group = _groups[session.groupId];
 
         // Verify based on signature type
         if (group.sigType == SignatureType.BLS_THRESHOLD) {
@@ -606,7 +606,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
             bool active
         )
     {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
         return (
             group.sigType,
             group.threshold,
@@ -624,7 +624,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     function getGroupSigners(
         bytes32 groupId
     ) external view returns (address[] memory) {
-        return groups[groupId].signers;
+        return _groups[groupId].signers;
     }
 
     /**
@@ -645,7 +645,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
             bool verified
         )
     {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         return (
             session.groupId,
             session.messageHash,
@@ -665,7 +665,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 sessionId,
         address signer
     ) external view returns (bool) {
-        return sessions[sessionId].hasSubmitted[signer];
+        return _sessions[sessionId].hasSubmitted[signer];
     }
 
     /**
@@ -674,13 +674,13 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     function getActiveGroups() external view returns (bytes32[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < groupIds.length; i++) {
-            if (groups[groupIds[i]].active) count++;
+            if (_groups[groupIds[i]].active) count++;
         }
 
         bytes32[] memory active = new bytes32[](count);
         uint256 index = 0;
         for (uint256 i = 0; i < groupIds.length; i++) {
-            if (groups[groupIds[i]].active) {
+            if (_groups[groupIds[i]].active) {
                 active[index++] = groupIds[i];
             }
         }
@@ -697,7 +697,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     function deactivateGroup(
         bytes32 groupId
     ) external onlyRole(KEY_MANAGER_ROLE) {
-        groups[groupId].active = false;
+        _groups[groupId].active = false;
     }
 
     /**
@@ -717,17 +717,17 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     // ============ Internal Functions ============
 
     function _advanceDKGRound(bytes32 groupId) internal {
-        ThresholdGroup storage group = groups[groupId];
+        ThresholdGroup storage group = _groups[groupId];
 
         if (group.keyGenStatus == KeyGenStatus.ROUND_1) {
             group.keyGenStatus = KeyGenStatus.ROUND_2;
             emit DKGRoundCompleted(groupId, 1);
 
             bytes32 roundId = keccak256(abi.encodePacked(groupId, uint8(2)));
-            dkgRounds[roundId].groupId = groupId;
-            dkgRounds[roundId].roundNumber = 2;
-            dkgRounds[roundId].startedAt = block.timestamp;
-            dkgRounds[roundId].expiresAt = block.timestamp + DKG_ROUND_TIMEOUT;
+            _dkgRounds[roundId].groupId = groupId;
+            _dkgRounds[roundId].roundNumber = 2;
+            _dkgRounds[roundId].startedAt = block.timestamp;
+            _dkgRounds[roundId].expiresAt = block.timestamp + DKG_ROUND_TIMEOUT;
 
             emit DKGStarted(groupId, 2);
         } else if (group.keyGenStatus == KeyGenStatus.ROUND_2) {
@@ -739,7 +739,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
     function _verifyPartialSignature(
         ThresholdGroup storage group,
-        bytes32 messageHash,
+        bytes32 /*messageHash*/,
         bytes calldata partialSig,
         address signer
     ) internal view returns (bool) {
@@ -757,7 +757,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
     function _aggregateBLS(
         bytes[] memory partialSigs,
-        uint256[] memory signerIndices,
+        uint256[] memory /*signerIndices*/,
         uint256 threshold
     ) internal pure returns (bytes memory) {
         // BLS signature aggregation using Lagrange interpolation
@@ -779,7 +779,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
     function _aggregateECDSA(
         bytes[] memory partialSigs,
-        uint256[] memory signerIndices,
+        uint256[] memory /*signerIndices*/,
         uint256 threshold
     ) internal pure returns (bytes memory) {
         // ECDSA threshold signature aggregation (GG20/CGGMP style)
@@ -799,7 +799,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
     function _aggregateFROST(
         bytes[] memory partialSigs,
-        uint256[] memory signerIndices,
+        uint256[] memory /*signerIndices*/,
         uint256 threshold
     ) internal pure returns (bytes memory) {
         // FROST signature aggregation
@@ -818,7 +818,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
     function _aggregateSchnorr(
         bytes[] memory partialSigs,
-        uint256[] memory signerIndices,
+        uint256[] memory /*signerIndices*/,
         uint256 threshold
     ) internal pure returns (bytes memory) {
         bytes memory aggregated = new bytes(64);
@@ -835,7 +835,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _verifyBLS(
-        bytes32 messageHash,
+        bytes32 /*messageHash*/,
         bytes memory signature,
         bytes memory publicKey
     ) internal pure returns (bool) {
@@ -845,7 +845,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _verifyECDSA(
-        bytes32 messageHash,
+        bytes32 /*messageHash*/,
         bytes memory signature,
         bytes memory publicKey
     ) internal pure returns (bool) {
@@ -854,7 +854,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _verifySchnorr(
-        bytes32 messageHash,
+        bytes32 /*messageHash*/,
         bytes memory signature,
         bytes memory publicKey
     ) internal pure returns (bool) {

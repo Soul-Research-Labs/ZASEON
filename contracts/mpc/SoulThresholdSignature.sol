@@ -248,7 +248,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
             abi.encode(messageHash, sessionNonce, block.timestamp)
         );
 
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         session.messageHash = messageHash;
         session.sessionId = sessionId;
         session.startedAt = block.timestamp;
@@ -271,7 +271,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 sessionId,
         bytes32 commitment
     ) external onlyRole(SIGNER_ROLE) {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
 
         require(session.sessionId == sessionId, "Invalid session");
         require(block.timestamp < session.expiresAt, "Session expired");
@@ -300,7 +300,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 sessionId,
         bytes calldata partialSig
     ) external onlyRole(SIGNER_ROLE) {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
 
         require(session.sessionId == sessionId, "Invalid session");
         require(block.timestamp < session.expiresAt, "Session expired");
@@ -357,7 +357,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
             bool expired
         )
     {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         return (
             session.messageHash,
             session.commitmentCount,
@@ -375,7 +375,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     function getAggregatedSignature(
         bytes32 sessionId
     ) external view returns (bytes memory) {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         require(session.completed, "Session not completed");
         return session.aggregatedSignature;
     }
@@ -428,7 +428,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 sessionId = messageToSession[messageHash];
         require(sessionId != bytes32(0), "No session for message");
 
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
         require(session.completed, "Session not completed");
         require(
             keccak256(session.aggregatedSignature) == keccak256(signature),
@@ -513,7 +513,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
      * @param sessionId The session to aggregate
      */
     function _aggregateSignatures(bytes32 sessionId) internal {
-        SigningSession storage session = sessions[sessionId];
+        SigningSession storage session = _sessions[sessionId];
 
         // Collect partial signatures
         bytes memory combined;

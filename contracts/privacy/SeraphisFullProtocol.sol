@@ -327,48 +327,48 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Submit a Seraphis transaction
-     * @param tx The transaction to submit
+     * @param seraphisTx The transaction to submit
      */
     function submitTransaction(
-        SeraphisTx calldata tx
+        SeraphisTx calldata seraphisTx
     ) external nonReentrant whenNotPaused returns (bytes32 txHash) {
         // Verify key images aren't spent
-        for (uint256 i = 0; i < tx.keyImages.length; i++) {
-            if (usedKeyImages[tx.keyImages[i]]) {
-                revert KeyImageAlreadySpent(tx.keyImages[i]);
+        for (uint256 i = 0; i < seraphisTx.keyImages.length; i++) {
+            if (usedKeyImages[seraphisTx.keyImages[i]]) {
+                revert KeyImageAlreadySpent(seraphisTx.keyImages[i]);
             }
         }
 
         // Verify Grootle membership proofs
-        for (uint256 i = 0; i < tx.membershipProofs.length; i++) {
-            if (!_verifyGrootleProof(tx.membershipProofs[i])) {
+        for (uint256 i = 0; i < seraphisTx.membershipProofs.length; i++) {
+            if (!_verifyGrootleProof(seraphisTx.membershipProofs[i])) {
                 revert InvalidGrootleProof();
             }
         }
 
         // Verify balance (sum of inputs = sum of outputs + fee)
-        if (!_verifyBalance(tx)) {
+        if (!_verifyBalance(seraphisTx)) {
             revert InvalidBalanceProof();
         }
 
         // Compute transaction hash
         txHash = keccak256(
-            abi.encode(tx.txPrefix, tx.keyImages, tx.outputs, tx.fee)
+            abi.encode(seraphisTx.txPrefix, seraphisTx.keyImages, seraphisTx.outputs, seraphisTx.fee)
         );
 
         // Mark key images as spent
-        for (uint256 i = 0; i < tx.keyImages.length; i++) {
-            usedKeyImages[tx.keyImages[i]] = true;
-            emit KeyImageSpent(tx.keyImages[i], txHash);
+        for (uint256 i = 0; i < seraphisTx.keyImages.length; i++) {
+            usedKeyImages[seraphisTx.keyImages[i]] = true;
+            emit KeyImageSpent(seraphisTx.keyImages[i], txHash);
         }
 
         // Store outputs as enotes
-        for (uint256 i = 0; i < tx.outputs.length; i++) {
-            enoteRegistry[enoteCount] = keccak256(abi.encode(tx.outputs[i]));
+        for (uint256 i = 0; i < seraphisTx.outputs.length; i++) {
+            enoteRegistry[enoteCount] = keccak256(abi.encode(seraphisTx.outputs[i]));
             emit EnoteCreated(
                 enoteCount,
-                tx.outputs[i].onetime_address,
-                tx.outputs[i].amount_commitment
+                seraphisTx.outputs[i].onetime_address,
+                seraphisTx.outputs[i].amount_commitment
             );
             enoteCount++;
         }
@@ -376,7 +376,7 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
         // Store transaction
         txHashes.push(txHash);
 
-        emit TransactionSubmitted(txHash, tx.txType, tx.outputs.length, tx.fee);
+        emit TransactionSubmitted(txHash, seraphisTx.txType, seraphisTx.outputs.length, seraphisTx.fee);
     }
 
     /**
@@ -608,16 +608,16 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
      * @notice Verify transaction balance
      */
     function _verifyBalance(
-        SeraphisTx calldata tx
+        SeraphisTx calldata seraphisTx
     ) internal pure returns (bool) {
         // In production: verify Pedersen commitment balance
         // sum(input_commitments) = sum(output_commitments) + fee*H
 
         // Simplified check
-        if (tx.keyImages.length == 0) return false;
-        if (tx.outputs.length == 0) return false;
+        if (seraphisTx.keyImages.length == 0) return false;
+        if (seraphisTx.outputs.length == 0) return false;
 
-        return tx.balanceProofs.length > 0;
+        return seraphisTx.balanceProofs.length > 0;
     }
 
     // =========================================================================

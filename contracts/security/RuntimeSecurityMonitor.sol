@@ -627,16 +627,16 @@ contract RuntimeSecurityMonitor is AccessControl, ReentrancyGuard, Pausable {
         for (uint256 i = 0; i < code.length; i++) {
             bytes1 op = code[i];
 
-            if (op == OP_SELFDESTRUCT) {
+            if (op == _OP_SELFDESTRUCT) {
                 analysis.hasSelfDestruct = true;
                 analysis.suspiciousPatterns += 5;
-            } else if (op == OP_DELEGATECALL) {
+            } else if (op == _OP_DELEGATECALL) {
                 analysis.hasDelegateCall = true;
                 analysis.suspiciousPatterns += 2;
-            } else if (op == OP_CREATE2) {
+            } else if (op == _OP_CREATE2) {
                 analysis.hasCreate2 = true;
                 analysis.suspiciousPatterns += 1;
-            } else if (op == OP_CALL) {
+            } else if (op == _OP_CALL) {
                 analysis.hasExternalCalls = true;
             }
         }

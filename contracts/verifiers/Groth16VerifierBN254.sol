@@ -164,7 +164,7 @@ contract Groth16VerifierBN254 is IProofVerifier {
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view override whenInitialized returns (bool) {
-        if (proof.length != PROOF_SIZE) {
+        if (proof.length != _PROOF_SIZE) {
             revert InvalidProofSize(proof.length);
         }
 
@@ -176,7 +176,7 @@ contract Groth16VerifierBN254 is IProofVerifier {
 
         // Validate public inputs are in the field with optimized loop
         for (uint256 i = 0; i < inputLen; ) {
-            if (publicInputs[i] >= FIELD_MODULUS) {
+            if (publicInputs[i] >= _FIELD_MODULUS) {
                 revert InvalidPublicInput(i, publicInputs[i]);
             }
             unchecked {
@@ -205,11 +205,11 @@ contract Groth16VerifierBN254 is IProofVerifier {
         uint256[] memory inputs = new uint256[](1);
         inputs[0] = publicInput;
 
-        if (proof.length != PROOF_SIZE) {
+        if (proof.length != _PROOF_SIZE) {
             revert InvalidProofSize(proof.length);
         }
 
-        if (publicInput >= FIELD_MODULUS) {
+        if (publicInput >= _FIELD_MODULUS) {
             revert InvalidPublicInput(0, publicInput);
         }
 
@@ -360,7 +360,7 @@ contract Groth16VerifierBN254 is IProofVerifier {
         if (point[0] == 0 && point[1] == 0) {
             return point; // Point at infinity
         }
-        return [point[0], Q_MODULUS - (point[1] % Q_MODULUS)];
+        return [point[0], _Q_MODULUS - (point[1] % _Q_MODULUS)];
     }
 
     /**

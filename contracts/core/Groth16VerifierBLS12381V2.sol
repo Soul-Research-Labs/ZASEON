@@ -75,14 +75,14 @@ contract Groth16VerifierBN254 {
     ) external onlyOwner {
         if (initialized) revert AlreadyInitialized();
 
-        vk.alpha = alpha;
-        vk.beta = beta;
-        vk.gamma = gamma;
-        vk.delta = delta;
+        _vk.alpha = alpha;
+        _vk.beta = beta;
+        _vk.gamma = gamma;
+        _vk.delta = delta;
 
-        delete vk.ic;
+        delete _vk.ic;
         for (uint256 i = 0; i < ic.length; i++) {
-            vk.ic.push(ic[i]);
+            _vk.ic.push(ic[i]);
         }
 
         initialized = true;
@@ -104,7 +104,7 @@ contract Groth16VerifierBN254 {
 
         // Must have at least one public input and match IC length
         uint256 numInputs = publicInputs.length / 32;
-        if (numInputs + 1 != vk.ic.length) revert InvalidPublicInputsLength();
+        if (numInputs + 1 != _vk.ic.length) revert InvalidPublicInputsLength();
 
         // Parse proof points
         uint256[8] memory proofData;
@@ -116,7 +116,7 @@ contract Groth16VerifierBN254 {
         uint256[] memory inputs = new uint256[](numInputs);
         for (uint256 i = 0; i < numInputs; i++) {
             inputs[i] = _bytesToUint(publicInputs, i * 32);
-            if (inputs[i] >= FIELD_MODULUS) revert InvalidPublicInput(i);
+            if (inputs[i] >= _FIELD_MODULUS) revert InvalidPublicInput(i);
         }
 
         // Compute vk_x = IC[0] + sum(inputs[i] * IC[i+1])
@@ -152,12 +152,12 @@ contract Groth16VerifierBN254 {
         uint256[] calldata pubSignals
     ) external view returns (bool valid) {
         if (!initialized) revert NotInitialized();
-        if (pubSignals.length + 1 != vk.ic.length)
+        if (pubSignals.length + 1 != _vk.ic.length)
             revert InvalidPublicInputsLength();
 
         // Validate public inputs are in field
         for (uint256 i = 0; i < pubSignals.length; i++) {
-            if (pubSignals[i] >= FIELD_MODULUS) revert InvalidPublicInput(i);
+            if (pubSignals[i] >= _FIELD_MODULUS) revert InvalidPublicInput(i);
         }
 
         // Compute vk_x
@@ -200,7 +200,7 @@ contract Groth16VerifierBN254 {
     /// @notice Returns the number of input commitments
     /// @return count The number of IC points
     function getICCount() external view returns (uint256 count) {
-        return vk.ic.length;
+        return _vk.ic.length;
     }
 
     /// @dev Computes the linear combination for public inputs
@@ -211,12 +211,12 @@ contract Groth16VerifierBN254 {
         uint256[] memory inputs
     ) internal view returns (uint256 x, uint256 y) {
         // Start with IC[0]
-        x = vk.ic[0][0];
-        y = vk.ic[0][1];
+        x = _vk.ic[0][0];
+        y = _vk.ic[0][1];
 
         // Add inputs[i] * IC[i+1] for each input
         for (uint256 i = 0; i < inputs.length; i++) {
-            uint256[2] storage icPoint = vk.ic[i + 1];
+            uint256[2] storage icPoint = _vk.ic[i + 1];
 
             // Scalar multiplication: inputs[i] * IC[i+1]
             (uint256 mulX, uint256 mulY) = _ecMul(
@@ -250,7 +250,7 @@ contract Groth16VerifierBN254 {
 
         // -A (negate Y coordinate: -Y mod Q)
         input[0] = aX;
-        input[1] = aY == 0 ? 0 : Q_MODULUS - aY;
+        input[1] = aY == 0 ? 0 : _Q_MODULUS - aY;
         // B
         input[2] = bX_im;
         input[3] = bX_re;
@@ -258,31 +258,31 @@ contract Groth16VerifierBN254 {
         input[5] = bY_re;
 
         // Alpha
-        input[6] = vk.alpha[0];
-        input[7] = vk.alpha[1];
+        input[6] = _vk.alpha[0];
+        input[7] = _vk.alpha[1];
         // Beta
-        input[8] = vk.beta[0];
-        input[9] = vk.beta[1];
-        input[10] = vk.beta[2];
-        input[11] = vk.beta[3];
+        input[8] = _vk.beta[0];
+        input[9] = _vk.beta[1];
+        input[10] = _vk.beta[2];
+        input[11] = _vk.beta[3];
 
         // vk_x
         input[12] = vkX_x;
         input[13] = vkX_y;
         // Gamma
-        input[14] = vk.gamma[0];
-        input[15] = vk.gamma[1];
-        input[16] = vk.gamma[2];
-        input[17] = vk.gamma[3];
+        input[14] = _vk.gamma[0];
+        input[15] = _vk.gamma[1];
+        input[16] = _vk.gamma[2];
+        input[17] = _vk.gamma[3];
 
         // C
         input[18] = cX;
         input[19] = cY;
         // Delta
-        input[20] = vk.delta[0];
-        input[21] = vk.delta[1];
-        input[22] = vk.delta[2];
-        input[23] = vk.delta[3];
+        input[20] = _vk.delta[0];
+        input[21] = _vk.delta[1];
+        input[22] = _vk.delta[2];
+        input[23] = _vk.delta[3];
 
         // Call pairing precompile
         uint256[1] memory result;

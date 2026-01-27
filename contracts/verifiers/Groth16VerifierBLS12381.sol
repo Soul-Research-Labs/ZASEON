@@ -111,10 +111,10 @@ contract Groth16VerifierBLS12381 {
     ) external onlyOwner {
         if (initialized) revert AlreadyInitialized();
 
-        if (_alpha.length != G1_SIZE) revert InvalidPointSize();
-        if (_beta.length != G2_SIZE) revert InvalidPointSize();
-        if (_gamma.length != G2_SIZE) revert InvalidPointSize();
-        if (_delta.length != G2_SIZE) revert InvalidPointSize();
+        if (_alpha.length != _G1_SIZE) revert InvalidPointSize();
+        if (_beta.length != _G2_SIZE) revert InvalidPointSize();
+        if (_gamma.length != _G2_SIZE) revert InvalidPointSize();
+        if (_delta.length != _G2_SIZE) revert InvalidPointSize();
         require(_ic.length >= 1, "IC must have at least 1 element");
 
         vkAlpha = _alpha;
@@ -125,7 +125,7 @@ contract Groth16VerifierBLS12381 {
         delete vkIC;
         uint256 icLen = _ic.length;
         for (uint256 i = 0; i < icLen; ) {
-            if (_ic[i].length != G1_SIZE) revert InvalidPointSize();
+            if (_ic[i].length != _G1_SIZE) revert InvalidPointSize();
             vkIC.push(_ic[i]);
             unchecked {
                 ++i;
@@ -163,7 +163,7 @@ contract Groth16VerifierBLS12381 {
                 publicInputs[i * 32:(i + 1) * 32],
                 (uint256)
             );
-            if (inputs[i] >= FIELD_MODULUS) revert InvalidPublicInput(i);
+            if (inputs[i] >= _FIELD_MODULUS) revert InvalidPublicInput(i);
         }
 
         // Compute vk_x = IC[0] + sum(inputs[i] * IC[i+1]) using G1 multiexp
@@ -192,15 +192,15 @@ contract Groth16VerifierBLS12381 {
     ) external view returns (bool valid) {
         if (!initialized) revert NotInitialized();
 
-        if (pA.length != G1_SIZE) revert InvalidPointSize();
-        if (pB.length != G2_SIZE) revert InvalidPointSize();
-        if (pC.length != G1_SIZE) revert InvalidPointSize();
+        if (pA.length != _G1_SIZE) revert InvalidPointSize();
+        if (pB.length != _G2_SIZE) revert InvalidPointSize();
+        if (pC.length != _G1_SIZE) revert InvalidPointSize();
         if (pubSignals.length + 1 != vkIC.length)
             revert InvalidPublicInputsLength();
 
         // Validate inputs
         for (uint256 i = 0; i < pubSignals.length; i++) {
-            if (pubSignals[i] >= FIELD_MODULUS) revert InvalidPublicInput(i);
+            if (pubSignals[i] >= _FIELD_MODULUS) revert InvalidPublicInput(i);
         }
 
         // Compute vk_x
@@ -268,7 +268,7 @@ contract Groth16VerifierBLS12381 {
             )
         }
 
-        if (!success) revert PrecompileFailed(BLS12_G1MULTIEXP);
+        if (!success) revert PrecompileFailed(_BLS12_G1MULTIEXP);
         return result;
     }
 
@@ -310,7 +310,7 @@ contract Groth16VerifierBLS12381 {
             )
         }
 
-        if (!success) revert PrecompileFailed(BLS12_G1MULTIEXP);
+        if (!success) revert PrecompileFailed(_BLS12_G1MULTIEXP);
         return result;
     }
 
@@ -354,7 +354,7 @@ contract Groth16VerifierBLS12381 {
             )
         }
 
-        if (!success) revert PrecompileFailed(BLS12_PAIRING);
+        if (!success) revert PrecompileFailed(_BLS12_PAIRING);
 
         uint256 pairingResult;
         assembly {

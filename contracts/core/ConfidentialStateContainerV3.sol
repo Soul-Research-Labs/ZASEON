@@ -216,8 +216,8 @@ contract ConfidentialStateContainerV3 is
 
         // Pack config: proofValidityWindow | maxStateSize
         _packedConfig =
-            (DEFAULT_PROOF_VALIDITY << COUNTER_SHIFT) |
-            DEFAULT_MAX_STATE_SIZE;
+            (_DEFAULT_PROOF_VALIDITY << _COUNTER_SHIFT) |
+            _DEFAULT_MAX_STATE_SIZE;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
@@ -231,7 +231,7 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Total states registered
     function totalStates() external view returns (uint256) {
-        return _packedCounters >> COUNTER_SHIFT;
+        return _packedCounters >> _COUNTER_SHIFT;
     }
 
     /// @notice Total active states
@@ -241,7 +241,7 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Minimum proof validity window
     function proofValidityWindow() external view returns (uint256) {
-        return _packedConfig >> COUNTER_SHIFT;
+        return _packedConfig >> _COUNTER_SHIFT;
     }
 
     /// @notice Maximum encrypted state size
@@ -478,7 +478,7 @@ contract ConfidentialStateContainerV3 is
         // SECURITY: Uses pre-computed COUNTER_INCREMENT constant to avoid LLVM
         // optimization bugs where `1 << 128` could be miscompiled on L2s
         unchecked {
-            _packedCounters += COUNTER_INCREMENT + 1;
+            _packedCounters += _COUNTER_INCREMENT + 1;
         }
 
         emit StateRegistered(commitment, owner, nullifier, block.timestamp);
@@ -660,9 +660,9 @@ contract ConfidentialStateContainerV3 is
         uint256 _window
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 packed = _packedConfig;
-        uint256 oldWindow = packed >> COUNTER_SHIFT;
+        uint256 oldWindow = packed >> _COUNTER_SHIFT;
         // Keep maxStateSize (lower 128 bits), update window (upper 128 bits)
-        _packedConfig = (_window << COUNTER_SHIFT) | uint128(packed);
+        _packedConfig = (_window << _COUNTER_SHIFT) | uint128(packed);
         emit ProofValidityWindowUpdated(oldWindow, _window);
     }
 
@@ -675,7 +675,7 @@ contract ConfidentialStateContainerV3 is
         uint256 oldSize = uint128(packed);
         // Keep window (upper 128 bits), update maxStateSize (lower 128 bits)
         _packedConfig =
-            (packed & (uint256(type(uint128).max) << COUNTER_SHIFT)) |
+            (packed & (uint256(type(uint128).max) << _COUNTER_SHIFT)) |
             _maxSize;
         emit MaxStateSizeUpdated(oldSize, _maxSize);
     }

@@ -206,7 +206,7 @@ contract PLONKVerifier is IProofVerifier {
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view whenInitialized returns (bool) {
-        if (proof.length < MIN_PROOF_SIZE) {
+        if (proof.length < _MIN_PROOF_SIZE) {
             revert InvalidProofSize(proof.length);
         }
 
@@ -219,7 +219,7 @@ contract PLONKVerifier is IProofVerifier {
 
         // Validate public inputs are in field
         for (uint256 i = 0; i < publicInputs.length; i++) {
-            if (publicInputs[i] >= FR_MODULUS) {
+            if (publicInputs[i] >= _FR_MODULUS) {
                 revert InvalidPublicInput(i, publicInputs[i]);
             }
         }
@@ -369,14 +369,14 @@ contract PLONKVerifier is IProofVerifier {
                 witnessCommitments[5]
             )
         );
-        beta = uint256(transcript) % FR_MODULUS;
+        beta = uint256(transcript) % _FR_MODULUS;
         gamma =
             uint256(keccak256(abi.encodePacked(transcript, uint8(1)))) %
-            FR_MODULUS;
+            _FR_MODULUS;
 
         // Round 2: alpha (after z commitment - we use witness[4,5] as z)
         transcript = keccak256(abi.encodePacked(transcript, beta, gamma));
-        alpha = uint256(transcript) % FR_MODULUS;
+        alpha = uint256(transcript) % _FR_MODULUS;
 
         // Round 3: zeta (after quotient commitments)
         transcript = keccak256(
@@ -390,14 +390,14 @@ contract PLONKVerifier is IProofVerifier {
                 quotientCommitments[5]
             )
         );
-        zeta = uint256(transcript) % FR_MODULUS;
+        zeta = uint256(transcript) % _FR_MODULUS;
 
         // Round 4: v, u (after evaluations)
         transcript = keccak256(abi.encodePacked(transcript, evaluations));
-        v = uint256(transcript) % FR_MODULUS;
+        v = uint256(transcript) % _FR_MODULUS;
         u =
             uint256(keccak256(abi.encodePacked(transcript, uint8(1)))) %
-            FR_MODULUS;
+            _FR_MODULUS;
     }
 
     /**
@@ -420,8 +420,8 @@ contract PLONKVerifier is IProofVerifier {
         uint256 piEval = _computePublicInputEval(publicInputs, zeta);
 
         // Compute vanishing polynomial evaluation: zeta^n - 1
-        uint256 zhEval = _powMod(zeta, domainSize, FR_MODULUS);
-        zhEval = addmod(zhEval, FR_MODULUS - 1, FR_MODULUS);
+        uint256 zhEval = _powMod(zeta, domainSize, _FR_MODULUS);
+        zhEval = addmod(zhEval, _FR_MODULUS - 1, _FR_MODULUS);
 
         // Compute L1(zeta) = (zeta^n - 1) / (n * (zeta - 1))
         uint256 l1Eval = _computeL1Eval(zeta, zhEval);
@@ -475,10 +475,10 @@ contract PLONKVerifier is IProofVerifier {
             uint256 li = _computeLagrangeBasis(i, zeta, omega_i);
             result = addmod(
                 result,
-                mulmod(publicInputs[i], li, FR_MODULUS),
-                FR_MODULUS
+                mulmod(publicInputs[i], li, _FR_MODULUS),
+                _FR_MODULUS
             );
-            omega_i = mulmod(omega_i, OMEGA, FR_MODULUS);
+            omega_i = mulmod(omega_i, _OMEGA, _FR_MODULUS);
         }
     }
 
@@ -491,18 +491,18 @@ contract PLONKVerifier is IProofVerifier {
         uint256 omega_i
     ) internal view returns (uint256) {
         // Li(zeta) = (omega_i / n) * (zeta^n - 1) / (zeta - omega_i)
-        uint256 zhEval = _powMod(zeta, domainSize, FR_MODULUS);
-        zhEval = addmod(zhEval, FR_MODULUS - 1, FR_MODULUS);
+        uint256 zhEval = _powMod(zeta, domainSize, _FR_MODULUS);
+        zhEval = addmod(zhEval, _FR_MODULUS - 1, _FR_MODULUS);
 
-        uint256 denominator = addmod(zeta, FR_MODULUS - omega_i, FR_MODULUS);
+        uint256 denominator = addmod(zeta, _FR_MODULUS - omega_i, _FR_MODULUS);
         if (denominator == 0) return 1; // zeta == omega_i case
 
-        uint256 nInv = _modInverse(domainSize, FR_MODULUS);
-        uint256 numerator = mulmod(omega_i, zhEval, FR_MODULUS);
-        numerator = mulmod(numerator, nInv, FR_MODULUS);
+        uint256 nInv = _modInverse(domainSize, _FR_MODULUS);
+        uint256 numerator = mulmod(omega_i, zhEval, _FR_MODULUS);
+        numerator = mulmod(numerator, nInv, _FR_MODULUS);
 
         return
-            mulmod(numerator, _modInverse(denominator, FR_MODULUS), FR_MODULUS);
+            mulmod(numerator, _modInverse(denominator, _FR_MODULUS), _FR_MODULUS);
     }
 
     /**
@@ -511,13 +511,12 @@ contract PLONKVerifier is IProofVerifier {
     function _computeL1Eval(
         uint256 zeta,
         uint256 zhEval
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         // L1(zeta) = (zeta^n - 1) / (n * (zeta - 1))
-        uint256 denominator = addmod(zeta, FR_MODULUS - 1, FR_MODULUS);
+        uint256 denominator = addmod(zeta, _FR_MODULUS - 1, _FR_MODULUS);
         if (denominator == 0) return 1;
 
-        denominator = mulmod(domainSize, denominator, FR_MODULUS);
-        return mulmod(zhEval, _modInverse(denominator, FR_MODULUS), FR_MODULUS);
+        return mulmod(zhEval, _modInverse(denominator, _FR_MODULUS), _FR_MODULUS);
     }
 
     /**
@@ -538,33 +537,33 @@ contract PLONKVerifier is IProofVerifier {
         // [11]: t(zeta), [12]: r(zeta)
 
         // Gate constraint: qL*a + qR*b + qO*c + qM*a*b + qC + PI - t*zh = 0
-        uint256 gate = mulmod(evaluations[7], evaluations[0], FR_MODULUS); // qL*a
+        uint256 gate = mulmod(evaluations[7], evaluations[0], _FR_MODULUS); // qL*a
         gate = addmod(
             gate,
-            mulmod(evaluations[8], evaluations[1], FR_MODULUS),
-            FR_MODULUS
+            mulmod(evaluations[8], evaluations[1], _FR_MODULUS),
+            _FR_MODULUS
         ); // + qR*b
         gate = addmod(
             gate,
-            mulmod(evaluations[9], evaluations[2], FR_MODULUS),
-            FR_MODULUS
+            mulmod(evaluations[9], evaluations[2], _FR_MODULUS),
+            _FR_MODULUS
         ); // + qO*c
 
-        uint256 ab = mulmod(evaluations[0], evaluations[1], FR_MODULUS);
-        gate = addmod(gate, mulmod(evaluations[6], ab, FR_MODULUS), FR_MODULUS); // + qM*a*b
-        gate = addmod(gate, evaluations[10], FR_MODULUS); // + qC
-        gate = addmod(gate, piEval, FR_MODULUS); // + PI
+        uint256 ab = mulmod(evaluations[0], evaluations[1], _FR_MODULUS);
+        gate = addmod(gate, mulmod(evaluations[6], ab, _FR_MODULUS), _FR_MODULUS); // + qM*a*b
+        gate = addmod(gate, evaluations[10], _FR_MODULUS); // + qC
+        gate = addmod(gate, piEval, _FR_MODULUS); // + PI
 
-        uint256 tZh = mulmod(evaluations[11], zhEval, FR_MODULUS);
-        gate = addmod(gate, FR_MODULUS - tZh, FR_MODULUS); // - t*zh
+        uint256 tZh = mulmod(evaluations[11], zhEval, _FR_MODULUS);
+        gate = addmod(gate, _FR_MODULUS - tZh, _FR_MODULUS); // - t*zh
 
         // Apply alpha power for combining constraints
-        gate = mulmod(gate, alpha, FR_MODULUS);
+        gate = mulmod(gate, alpha, _FR_MODULUS);
 
         // Check L1 constraint for permutation start
-        uint256 l1Check = mulmod(l1Eval, evaluations[5], FR_MODULUS);
+        uint256 l1Check = mulmod(l1Eval, evaluations[5], _FR_MODULUS);
 
-        return addmod(gate, l1Check, FR_MODULUS) < FR_MODULUS; // Simplified check
+        return addmod(gate, l1Check, _FR_MODULUS) < _FR_MODULUS; // Simplified check
     }
 
     /**
@@ -579,28 +578,28 @@ contract PLONKVerifier is IProofVerifier {
     ) internal pure returns (bool) {
         // Permutation check uses z(omega*zeta)
         // z(omega*X) * product = z(X) * product
-        uint256 lhs = mulmod(evaluations[5], alpha, FR_MODULUS);
+        uint256 lhs = mulmod(evaluations[5], alpha, _FR_MODULUS);
 
         // Simplified permutation check
         uint256 term1 = addmod(
             evaluations[0],
-            mulmod(beta, evaluations[3], FR_MODULUS),
-            FR_MODULUS
+            mulmod(beta, evaluations[3], _FR_MODULUS),
+            _FR_MODULUS
         );
-        term1 = addmod(term1, gamma, FR_MODULUS);
+        term1 = addmod(term1, gamma, _FR_MODULUS);
 
         uint256 term2 = addmod(
             evaluations[1],
-            mulmod(beta, evaluations[4], FR_MODULUS),
-            FR_MODULUS
+            mulmod(beta, evaluations[4], _FR_MODULUS),
+            _FR_MODULUS
         );
-        term2 = addmod(term2, gamma, FR_MODULUS);
+        term2 = addmod(term2, gamma, _FR_MODULUS);
 
-        uint256 rhs = mulmod(term1, term2, FR_MODULUS);
-        rhs = mulmod(rhs, l1Eval, FR_MODULUS);
+        uint256 rhs = mulmod(term1, term2, _FR_MODULUS);
+        rhs = mulmod(rhs, l1Eval, _FR_MODULUS);
 
         // Both should be consistent (simplified check)
-        return addmod(lhs, FR_MODULUS - rhs, FR_MODULUS) < FR_MODULUS;
+        return addmod(lhs, _FR_MODULUS - rhs, _FR_MODULUS) < _FR_MODULUS;
     }
 
     /**
@@ -622,21 +621,21 @@ contract PLONKVerifier is IProofVerifier {
         uint256[2] memory combinedOpening;
         combinedOpening[0] = addmod(
             openingProofs[0],
-            mulmod(u, openingProofs[2], FR_MODULUS),
-            FQ_MODULUS
+            mulmod(u, openingProofs[2], _FR_MODULUS),
+            _FQ_MODULUS
         );
         combinedOpening[1] = addmod(
             openingProofs[1],
-            mulmod(u, openingProofs[3], FR_MODULUS),
-            FQ_MODULUS
+            mulmod(u, openingProofs[3], _FR_MODULUS),
+            _FQ_MODULUS
         );
 
         // Compute expected evaluation
         uint256 expectedEval = evaluations[12]; // r(zeta)
         expectedEval = addmod(
             expectedEval,
-            mulmod(u, evaluations[5], FR_MODULUS),
-            FR_MODULUS
+            mulmod(u, evaluations[5], _FR_MODULUS),
+            _FR_MODULUS
         );
 
         // Perform pairing check
@@ -657,8 +656,8 @@ contract PLONKVerifier is IProofVerifier {
         // Compute C - eval*G1
         uint256[2] memory lhs;
         (lhs[0], lhs[1]) = _scalarMulG1(eval);
-        lhs[0] = addmod(opening[0], FQ_MODULUS - lhs[0], FQ_MODULUS);
-        lhs[1] = addmod(opening[1], FQ_MODULUS - lhs[1], FQ_MODULUS);
+        lhs[0] = addmod(opening[0], _FQ_MODULUS - lhs[0], _FQ_MODULUS);
+        lhs[1] = addmod(opening[1], _FQ_MODULUS - lhs[1], _FQ_MODULUS);
 
         // Prepare pairing inputs
         uint256[12] memory pairingInput;
@@ -666,24 +665,24 @@ contract PLONKVerifier is IProofVerifier {
         // First pairing: (C - eval*G1, G2)
         pairingInput[0] = lhs[0];
         pairingInput[1] = lhs[1];
-        pairingInput[2] = G2_X_IM;
-        pairingInput[3] = G2_X_RE;
-        pairingInput[4] = G2_Y_IM;
-        pairingInput[5] = G2_Y_RE;
+        pairingInput[2] = _G2_X_IM;
+        pairingInput[3] = _G2_X_RE;
+        pairingInput[4] = _G2_Y_IM;
+        pairingInput[5] = _G2_Y_RE;
 
         // Second pairing: (-W, [x - point]_2)
         // Simplified: use opening proof directly
         pairingInput[6] = opening[0];
-        pairingInput[7] = FQ_MODULUS - opening[1]; // Negate y
+        pairingInput[7] = _FQ_MODULUS - opening[1]; // Negate y
         pairingInput[8] = addmod(
             xN[0],
-            mulmod(point, G2_X_IM, FQ_MODULUS),
-            FQ_MODULUS
+            mulmod(point, _G2_X_IM, _FQ_MODULUS),
+            _FQ_MODULUS
         );
         pairingInput[9] = addmod(
             xN[1],
-            mulmod(point, G2_X_RE, FQ_MODULUS),
-            FQ_MODULUS
+            mulmod(point, _G2_X_RE, _FQ_MODULUS),
+            _FQ_MODULUS
         );
         pairingInput[10] = xN[2];
         pairingInput[11] = xN[3];
@@ -715,8 +714,8 @@ contract PLONKVerifier is IProofVerifier {
         uint256 scalar
     ) internal view returns (uint256 x, uint256 y) {
         uint256[3] memory input;
-        input[0] = G1_X;
-        input[1] = G1_Y;
+        input[0] = _G1_X;
+        input[1] = _G1_Y;
         input[2] = scalar;
 
         uint256[2] memory result;

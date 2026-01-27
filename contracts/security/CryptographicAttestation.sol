@@ -200,10 +200,10 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
      * @param nodeType Type of node
      */
     function registerAttester(NodeType nodeType) external {
-        if (attesterNodes[msg.sender].attester != address(0))
+        if (_attesterNodes[msg.sender].attester != address(0))
             revert AlreadyRegistered();
 
-        AttesterNode storage node = attesterNodes[msg.sender];
+        AttesterNode storage node = _attesterNodes[msg.sender];
         node.attester = msg.sender;
         node.nodeType = nodeType;
         node.registeredAt = block.timestamp;
@@ -236,7 +236,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         bytes32 pccsRoot,
         uint16 tcbLevel
     ) external nonReentrant returns (bytes32 quoteId) {
-        AttesterNode storage node = attesterNodes[msg.sender];
+        AttesterNode storage node = _attesterNodes[msg.sender];
         if (node.attester == address(0)) revert NotRegistered();
         if (node.failedAttestations >= MAX_FAILED_ATTESTATIONS)
             revert TooManyFailedAttestations();
@@ -337,7 +337,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
             result.valid = false;
             result.reason = "Invalid signature";
             quote.status = AttestationStatus.FAILED;
-            attesterNodes[quote.attester].failedAttestations++;
+            _attesterNodes[quote.attester].failedAttestations++;
             return result;
         }
 
@@ -346,7 +346,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         result.reason = "Verification successful";
         quote.status = AttestationStatus.VERIFIED;
 
-        AttesterNode storage node = attesterNodes[quote.attester];
+        AttesterNode storage node = _attesterNodes[quote.attester];
         node.currentQuoteId = quoteId;
         node.attestationCount++;
         activeAttestations++;
@@ -366,7 +366,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         address target
     ) external onlyRole(VERIFIER_ROLE) returns (bytes32 challengeId) {
         if (target == address(0)) revert ZeroAddress();
-        if (attesterNodes[target].attester == address(0))
+        if (_attesterNodes[target].attester == address(0))
             revert NotRegistered();
 
         bytes32 nonce = keccak256(
@@ -503,7 +503,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
     function isAttested(
         address attester
     ) external view returns (bool valid, bytes32 quoteId) {
-        AttesterNode storage node = attesterNodes[attester];
+        AttesterNode storage node = _attesterNodes[attester];
         if (node.attester == address(0)) return (false, bytes32(0));
 
         quoteId = node.currentQuoteId;
@@ -532,7 +532,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
             bool active
         )
     {
-        AttesterNode storage node = attesterNodes[attester];
+        AttesterNode storage node = _attesterNodes[attester];
         return (
             node.nodeType,
             node.currentQuoteId,
@@ -565,7 +565,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
     function getActiveAttesters() external view returns (address[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < registeredAttesters.length; i++) {
-            AttesterNode storage node = attesterNodes[registeredAttesters[i]];
+            AttesterNode storage node = _attesterNodes[registeredAttesters[i]];
             if (node.active && node.currentQuoteId != bytes32(0)) {
                 AttestationQuote storage quote = quotes[node.currentQuoteId];
                 if (
@@ -580,7 +580,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         address[] memory active = new address[](count);
         uint256 index = 0;
         for (uint256 i = 0; i < registeredAttesters.length; i++) {
-            AttesterNode storage node = attesterNodes[registeredAttesters[i]];
+            AttesterNode storage node = _attesterNodes[registeredAttesters[i]];
             if (node.active && node.currentQuoteId != bytes32(0)) {
                 AttestationQuote storage quote = quotes[node.currentQuoteId];
                 if (
@@ -610,10 +610,10 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         if (quote.attester == address(0)) revert QuoteNotFound();
 
         quote.status = AttestationStatus.REVOKED;
-        attesterNodes[quote.attester].revokedQuotes[quoteId] = true;
+        _attesterNodes[quote.attester].revokedQuotes[quoteId] = true;
 
-        if (attesterNodes[quote.attester].currentQuoteId == quoteId) {
-            attesterNodes[quote.attester].currentQuoteId = bytes32(0);
+        if (_attesterNodes[quote.attester].currentQuoteId == quoteId) {
+            _attesterNodes[quote.attester].currentQuoteId = bytes32(0);
             activeAttestations--;
         }
 
@@ -627,7 +627,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
     function deactivateAttester(
         address attester
     ) external onlyRole(GOVERNANCE_ROLE) {
-        attesterNodes[attester].active = false;
+        _attesterNodes[attester].active = false;
     }
 
     // ============ Internal Functions ============

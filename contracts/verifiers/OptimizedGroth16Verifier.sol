@@ -90,25 +90,25 @@ contract OptimizedGroth16Verifier {
         uint256[4] memory delta,
         uint256[][] memory ic
     ) {
-        VK_ALPHA_X = alpha[0];
-        VK_ALPHA_Y = alpha[1];
-        VK_BETA_X_IM = beta[0];
-        VK_BETA_X_RE = beta[1];
-        VK_BETA_Y_IM = beta[2];
-        VK_BETA_Y_RE = beta[3];
-        VK_GAMMA_X_IM = gamma[0];
-        VK_GAMMA_X_RE = gamma[1];
-        VK_GAMMA_Y_IM = gamma[2];
-        VK_GAMMA_Y_RE = gamma[3];
-        VK_DELTA_X_IM = delta[0];
-        VK_DELTA_X_RE = delta[1];
-        VK_DELTA_Y_IM = delta[2];
-        VK_DELTA_Y_RE = delta[3];
-        VK_IC_LENGTH = ic.length;
+        _VK_ALPHA_X = alpha[0];
+        _VK_ALPHA_Y = alpha[1];
+        _VK_BETA_X_IM = beta[0];
+        _VK_BETA_X_RE = beta[1];
+        _VK_BETA_Y_IM = beta[2];
+        _VK_BETA_Y_RE = beta[3];
+        _VK_GAMMA_X_IM = gamma[0];
+        _VK_GAMMA_X_RE = gamma[1];
+        _VK_GAMMA_Y_IM = gamma[2];
+        _VK_GAMMA_Y_RE = gamma[3];
+        _VK_DELTA_X_IM = delta[0];
+        _VK_DELTA_X_RE = delta[1];
+        _VK_DELTA_Y_IM = delta[2];
+        _VK_DELTA_Y_RE = delta[3];
+        _VK_IC_LENGTH = ic.length;
 
         for (uint256 i = 0; i < ic.length; i++) {
-            vk_ic.push(ic[i][0]);
-            vk_ic.push(ic[i][1]);
+            _vk_ic.push(ic[i][0]);
+            _vk_ic.push(ic[i][1]);
         }
     }
 
@@ -128,7 +128,7 @@ contract OptimizedGroth16Verifier {
     ) external view returns (bool) {
         // Validate input lengths
         if (proof.length != 256) revert InvalidProofLength();
-        if (publicInputs.length + 1 != VK_IC_LENGTH)
+        if (publicInputs.length + 1 != _VK_IC_LENGTH)
             revert InvalidPublicInputsLength();
 
         // Parse proof points from calldata (gas efficient)
@@ -140,7 +140,7 @@ contract OptimizedGroth16Verifier {
 
         // Validate public inputs are in field
         for (uint256 i = 0; i < publicInputs.length; ) {
-            if (publicInputs[i] >= R_MOD) revert InvalidPublicInput();
+            if (publicInputs[i] >= _R_MOD) revert InvalidPublicInput();
             unchecked {
                 ++i;
             }
@@ -196,7 +196,7 @@ contract OptimizedGroth16Verifier {
             uint256[] calldata publicInputs = publicInputsArray[i];
 
             if (proof.length != 256) revert InvalidProofLength();
-            if (publicInputs.length + 1 != VK_IC_LENGTH)
+            if (publicInputs.length + 1 != _VK_IC_LENGTH)
                 revert InvalidPublicInputsLength();
 
             // SECURITY NOTE: Batch scalar derivation uses Fiat-Shamir heuristic.
@@ -205,7 +205,7 @@ contract OptimizedGroth16Verifier {
             // See: "Batch Verification of Short Signatures" - Bellare et al.
             uint256 batchScalar = uint256(
                 keccak256(abi.encodePacked(randomness, i, proofs[i]))
-            ) % R_MOD;
+            ) % _R_MOD;
 
             // Use batchScalar in pairing accumulation (placeholder for actual implementation)
             pairingInput[i % 24] ^= batchScalar;
@@ -236,13 +236,13 @@ contract OptimizedGroth16Verifier {
         uint256[] calldata publicInputs
     ) internal view returns (uint256 x, uint256 y) {
         // Start with IC[0]
-        x = vk_ic[0];
-        y = vk_ic[1];
+        x = _vk_ic[0];
+        y = _vk_ic[1];
 
         // Add publicInputs[i] * IC[i+1] for each input
         for (uint256 i = 0; i < publicInputs.length; ) {
-            uint256 icX = vk_ic[(i + 1) * 2];
-            uint256 icY = vk_ic[(i + 1) * 2 + 1];
+            uint256 icX = _vk_ic[(i + 1) * 2];
+            uint256 icY = _vk_ic[(i + 1) * 2 + 1];
 
             // Scalar multiplication: publicInputs[i] * IC[i+1]
             (uint256 mulX, uint256 mulY) = _ecMul(icX, icY, publicInputs[i]);
@@ -279,7 +279,7 @@ contract OptimizedGroth16Verifier {
 
         // -A (negate Y coordinate)
         input[0] = aX;
-        input[1] = Q_MOD - aY;
+        input[1] = _Q_MOD - aY;
         // B
         input[2] = bX_im;
         input[3] = bX_re;
@@ -287,31 +287,31 @@ contract OptimizedGroth16Verifier {
         input[5] = bY_re;
 
         // Alpha
-        input[6] = VK_ALPHA_X;
-        input[7] = VK_ALPHA_Y;
+        input[6] = _VK_ALPHA_X;
+        input[7] = _VK_ALPHA_Y;
         // Beta
-        input[8] = VK_BETA_X_IM;
-        input[9] = VK_BETA_X_RE;
-        input[10] = VK_BETA_Y_IM;
-        input[11] = VK_BETA_Y_RE;
+        input[8] = _VK_BETA_X_IM;
+        input[9] = _VK_BETA_X_RE;
+        input[10] = _VK_BETA_Y_IM;
+        input[11] = _VK_BETA_Y_RE;
 
         // vk_x
         input[12] = vkX_x;
         input[13] = vkX_y;
         // Gamma
-        input[14] = VK_GAMMA_X_IM;
-        input[15] = VK_GAMMA_X_RE;
-        input[16] = VK_GAMMA_Y_IM;
-        input[17] = VK_GAMMA_Y_RE;
+        input[14] = _VK_GAMMA_X_IM;
+        input[15] = _VK_GAMMA_X_RE;
+        input[16] = _VK_GAMMA_Y_IM;
+        input[17] = _VK_GAMMA_Y_RE;
 
         // C
         input[18] = cX;
         input[19] = cY;
         // Delta
-        input[20] = VK_DELTA_X_IM;
-        input[21] = VK_DELTA_X_RE;
-        input[22] = VK_DELTA_Y_IM;
-        input[23] = VK_DELTA_Y_RE;
+        input[20] = _VK_DELTA_X_IM;
+        input[21] = _VK_DELTA_X_RE;
+        input[22] = _VK_DELTA_Y_IM;
+        input[23] = _VK_DELTA_Y_RE;
 
         // Call pairing precompile
         uint256[1] memory result;
@@ -320,7 +320,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             success := staticcall(
                 gas(),
-                PRECOMSoulE_PAIRING,
+                _PRECOMSoulE_PAIRING,
                 input,
                 768, // 24 * 32 bytes
                 result,
@@ -347,7 +347,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                PRECOMSoulE_ADD,
+                _PRECOMSoulE_ADD,
                 input,
                 128,
                 result,
@@ -375,7 +375,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                PRECOMSoulE_MUL,
+                _PRECOMSoulE_MUL,
                 input,
                 96,
                 result,
@@ -402,7 +402,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                PRECOMSoulE_PAIRING,
+                _PRECOMSoulE_PAIRING,
                 input,
                 inputSize,
                 result,

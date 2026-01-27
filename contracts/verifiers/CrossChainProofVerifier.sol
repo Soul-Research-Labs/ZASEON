@@ -77,7 +77,7 @@ contract CrossChainProofVerifier {
     function verifyProof(uint256[2] calldata _pA, uint256[2][2] calldata _pB, uint256[2] calldata _pC, uint256[7] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
-                if iszero(lt(v, r)) {
+                if iszero(lt(v, _r)) {
                     mstore(0, 0)
                     return(0, 0x20)
                 }
@@ -110,78 +110,78 @@ contract CrossChainProofVerifier {
             }
 
             function checkPairing(pA, pB, pC, pubSignals, pMem) -> isOk {
-                let _pPairing := add(pMem, pPairing)
-                let _pVk := add(pMem, pVk)
+                let ptrPairing := add(pMem, _pPairing)
+                let ptrVk := add(pMem, _pVk)
 
-                mstore(_pVk, IC0x)
-                mstore(add(_pVk, 32), IC0y)
+                mstore(ptrVk, _IC0x)
+                mstore(add(ptrVk, 32), _IC0y)
 
                 // Compute the linear combination vk_x
                 
-                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                g1_mulAccC(ptrVk, _IC1x, _IC1y, calldataload(add(pubSignals, 0)))
                 
-                g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
+                g1_mulAccC(ptrVk, _IC2x, _IC2y, calldataload(add(pubSignals, 32)))
                 
-                g1_mulAccC(_pVk, IC3x, IC3y, calldataload(add(pubSignals, 64)))
+                g1_mulAccC(ptrVk, _IC3x, _IC3y, calldataload(add(pubSignals, 64)))
                 
-                g1_mulAccC(_pVk, IC4x, IC4y, calldataload(add(pubSignals, 96)))
+                g1_mulAccC(ptrVk, _IC4x, _IC4y, calldataload(add(pubSignals, 96)))
                 
-                g1_mulAccC(_pVk, IC5x, IC5y, calldataload(add(pubSignals, 128)))
+                g1_mulAccC(ptrVk, _IC5x, _IC5y, calldataload(add(pubSignals, 128)))
                 
-                g1_mulAccC(_pVk, IC6x, IC6y, calldataload(add(pubSignals, 160)))
+                g1_mulAccC(ptrVk, _IC6x, _IC6y, calldataload(add(pubSignals, 160)))
                 
-                g1_mulAccC(_pVk, IC7x, IC7y, calldataload(add(pubSignals, 192)))
+                g1_mulAccC(ptrVk, _IC7x, _IC7y, calldataload(add(pubSignals, 192)))
                 
 
                 // -A
-                mstore(_pPairing, calldataload(pA))
-                mstore(add(_pPairing, 32), mod(sub(q, calldataload(add(pA, 32))), q))
+                mstore(ptrPairing, calldataload(pA))
+                mstore(add(ptrPairing, 32), mod(sub(_q, calldataload(add(pA, 32))), _q))
 
                 // B
-                mstore(add(_pPairing, 64), calldataload(pB))
-                mstore(add(_pPairing, 96), calldataload(add(pB, 32)))
-                mstore(add(_pPairing, 128), calldataload(add(pB, 64)))
-                mstore(add(_pPairing, 160), calldataload(add(pB, 96)))
+                mstore(add(ptrPairing, 64), calldataload(pB))
+                mstore(add(ptrPairing, 96), calldataload(add(pB, 32)))
+                mstore(add(ptrPairing, 128), calldataload(add(pB, 64)))
+                mstore(add(ptrPairing, 160), calldataload(add(pB, 96)))
 
                 // alpha1
-                mstore(add(_pPairing, 192), alphax)
-                mstore(add(_pPairing, 224), alphay)
+                mstore(add(ptrPairing, 192), _alphax)
+                mstore(add(ptrPairing, 224), _alphay)
 
                 // beta2
-                mstore(add(_pPairing, 256), betax1)
-                mstore(add(_pPairing, 288), betax2)
-                mstore(add(_pPairing, 320), betay1)
-                mstore(add(_pPairing, 352), betay2)
+                mstore(add(ptrPairing, 256), _betax1)
+                mstore(add(ptrPairing, 288), _betax2)
+                mstore(add(ptrPairing, 320), _betay1)
+                mstore(add(ptrPairing, 352), _betay2)
 
                 // vk_x
-                mstore(add(_pPairing, 384), mload(add(pMem, pVk)))
-                mstore(add(_pPairing, 416), mload(add(pMem, add(pVk, 32))))
+                mstore(add(ptrPairing, 384), mload(add(pMem, _pVk)))
+                mstore(add(ptrPairing, 416), mload(add(pMem, add(_pVk, 32))))
 
 
                 // gamma2
-                mstore(add(_pPairing, 448), gammax1)
-                mstore(add(_pPairing, 480), gammax2)
-                mstore(add(_pPairing, 512), gammay1)
-                mstore(add(_pPairing, 544), gammay2)
+                mstore(add(ptrPairing, 448), _gammax1)
+                mstore(add(ptrPairing, 480), _gammax2)
+                mstore(add(ptrPairing, 512), _gammay1)
+                mstore(add(ptrPairing, 544), _gammay2)
 
                 // C
-                mstore(add(_pPairing, 576), calldataload(pC))
-                mstore(add(_pPairing, 608), calldataload(add(pC, 32)))
+                mstore(add(ptrPairing, 576), calldataload(pC))
+                mstore(add(ptrPairing, 608), calldataload(add(pC, 32)))
 
                 // delta2
-                mstore(add(_pPairing, 640), deltax1)
-                mstore(add(_pPairing, 672), deltax2)
-                mstore(add(_pPairing, 704), deltay1)
-                mstore(add(_pPairing, 736), deltay2)
+                mstore(add(ptrPairing, 640), _deltax1)
+                mstore(add(ptrPairing, 672), _deltax2)
+                mstore(add(ptrPairing, 704), _deltay1)
+                mstore(add(ptrPairing, 736), _deltay2)
 
 
-                let success := staticcall(sub(gas(), 2000), 8, _pPairing, 768, _pPairing, 0x20)
+                let success := staticcall(sub(gas(), 2000), 8, ptrPairing, 768, ptrPairing, 0x20)
 
-                isOk := and(success, mload(_pPairing))
+                isOk := and(success, mload(ptrPairing))
             }
 
             let pMem := mload(0x40)
-            mstore(0x40, add(pMem, pLastMem))
+            mstore(0x40, add(pMem, _pLastMem))
 
             // Validate that all evaluations ∈ F
             

@@ -283,10 +283,10 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
             )
         );
 
-        if (bundles[bundleId].createdAt != 0) revert BundleAlreadyExists();
+        if (_bundles[bundleId].createdAt != 0) revert BundleAlreadyExists();
 
         // Initialize bundle
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
         bundle.bundleId = bundleId;
         bundle.initiator = msg.sender;
         bundle.phase = BundlePhase.CREATED;
@@ -336,7 +336,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         uint256 chainId,
         bytes32 proofHash
     ) external onlyRole(EXECUTOR_ROLE) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (
@@ -378,7 +378,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
      * @param bundleId Bundle identifier
      */
     function commitBundle(bytes32 bundleId) external onlyRole(EXECUTOR_ROLE) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (bundle.phase != BundlePhase.PREPARING) revert InvalidPhase();
@@ -389,7 +389,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
     }
 
     function _commitBundle(bytes32 bundleId) internal {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
         bundle.phase = BundlePhase.COMMITTED;
 
         emit BundleCommitted(bundleId, block.timestamp);
@@ -406,7 +406,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
     function executeOnCurrentChain(
         bytes32 bundleId
     ) external nonReentrant onlyRole(EXECUTOR_ROLE) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (
@@ -452,7 +452,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         bytes32 bundleId,
         uint256 destChainId
     ) external payable onlyRole(EXECUTOR_ROLE) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (
@@ -501,10 +501,10 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
      */
     function sendArbitrumExecution(
         bytes32 bundleId,
-        uint256 destChainId,
+        uint256 /*destChainId*/,
         RetryableTicket calldata ticket
     ) external payable onlyRole(EXECUTOR_ROLE) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (
@@ -552,7 +552,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
      * @param bundleId Bundle identifier
      */
     function rollbackAfterTimeout(bytes32 bundleId) external {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
 
         if (bundle.createdAt == 0) revert BundleNotFound();
         if (
@@ -572,7 +572,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         bytes32 bundleId,
         string memory reason
     ) internal {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
         bundle.phase = BundlePhase.ROLLEDBACK;
 
         emit BundleRolledBack(bundleId, reason);
@@ -610,7 +610,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
             uint256 timeout
         )
     {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
         return (
             bundle.initiator,
             bundle.phase,
@@ -631,7 +631,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         bytes32 bundleId,
         uint256 chainId
     ) external view returns (ChainOperation memory) {
-        return bundles[bundleId].operations[chainId];
+        return _bundles[bundleId].operations[chainId];
     }
 
     /**
@@ -640,7 +640,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
      * @return expired True if expired
      */
     function isBundleExpired(bytes32 bundleId) external view returns (bool) {
-        AtomicBundle storage bundle = bundles[bundleId];
+        AtomicBundle storage bundle = _bundles[bundleId];
         return block.timestamp > bundle.createdAt + bundle.timeout;
     }
 

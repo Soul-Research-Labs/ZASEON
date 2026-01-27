@@ -261,7 +261,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata ring,
         HybridRingSignature calldata signature
     ) external nonReentrant whenNotPaused returns (bool valid) {
-        uint256 startGas = gasleft();
+        // uint256 startGas = gasleft();
 
         // Verify binding hash
         bytes32 expectedBinding = keccak256(
@@ -466,7 +466,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
 
         keyHash = keccak256(abi.encodePacked(seedA, t));
 
-        pqPublicKeys[keyHash] = MLWEPublicKey({seedA: seedA, t: t});
+        _pqPublicKeys[keyHash] = MLWEPublicKey({seedA: seedA, t: t});
 
         registeredKeyHashes.push(keyHash);
 

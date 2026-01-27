@@ -233,17 +233,17 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Get total locks unlocked
     function totalLocksUnlocked() external view returns (uint256) {
-        return uint64(_packedStats >> STAT_SHIFT_UNLOCKED);
+        return uint64(_packedStats >> _STAT_SHIFT_UNLOCKED);
     }
 
     /// @notice Get total optimistic unlocks
     function totalOptimisticUnlocks() external view returns (uint256) {
-        return uint64(_packedStats >> STAT_SHIFT_OPTIMISTIC);
+        return uint64(_packedStats >> _STAT_SHIFT_OPTIMISTIC);
     }
 
     /// @notice Get total disputes
     function totalDisputes() external view returns (uint256) {
-        return uint64(_packedStats >> STAT_SHIFT_DISPUTES);
+        return uint64(_packedStats >> _STAT_SHIFT_DISPUTES);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -463,7 +463,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
         // Update statistics (packed, saves gas)
         unchecked {
-            _packedStats += uint256(1) << STAT_SHIFT_OPTIMISTIC; // Increment totalOptimisticUnlocks
+            _packedStats += uint256(1) << _STAT_SHIFT_OPTIMISTIC; // Increment totalOptimisticUnlocks
         }
 
         emit OptimisticUnlockInitiated(
@@ -542,7 +542,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         optimistic.disputed = true;
         // Update statistics (packed, saves gas)
         unchecked {
-            _packedStats += uint256(1) << STAT_SHIFT_DISPUTES; // Increment totalDisputes
+            _packedStats += uint256(1) << _STAT_SHIFT_DISPUTES; // Increment totalDisputes
         }
 
         // Verify conflict proof
@@ -735,7 +735,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
         // Update statistics (packed, saves gas)
         unchecked {
-            _packedStats += uint256(1) << STAT_SHIFT_UNLOCKED; // Increment totalLocksUnlocked
+            _packedStats += uint256(1) << _STAT_SHIFT_UNLOCKED; // Increment totalLocksUnlocked
         }
 
         emit LockUnlocked(
@@ -962,10 +962,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         uint256 stats = _packedStats;
         return (
             uint64(stats), // totalLocksCreated
-            uint64(stats >> STAT_SHIFT_UNLOCKED), // totalLocksUnlocked
+            uint64(stats >> _STAT_SHIFT_UNLOCKED), // totalLocksUnlocked
             _activeLockIds.length,
-            uint64(stats >> STAT_SHIFT_OPTIMISTIC), // totalOptimisticUnlocks
-            uint64(stats >> STAT_SHIFT_DISPUTES) // totalDisputes
+            uint64(stats >> _STAT_SHIFT_OPTIMISTIC), // totalOptimisticUnlocks
+            uint64(stats >> _STAT_SHIFT_DISPUTES) // totalDisputes
         );
     }
 

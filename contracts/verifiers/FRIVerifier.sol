@@ -161,7 +161,7 @@ contract FRIVerifier is IProofVerifier {
             revert InvalidDomainSize(_domainSize);
         }
 
-        if (_numLayers == 0 || _numLayers > MAX_FRI_LAYERS) {
+        if (_numLayers == 0 || _numLayers > _MAX_FRI_LAYERS) {
             revert InvalidLayerCount(_numLayers);
         }
 
@@ -190,13 +190,13 @@ contract FRIVerifier is IProofVerifier {
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view whenInitialized returns (bool) {
-        if (proof.length < MIN_PROOF_SIZE) {
+        if (proof.length < _MIN_PROOF_SIZE) {
             revert InvalidProofSize(proof.length);
         }
 
         // Validate public inputs
         for (uint256 i = 0; i < publicInputs.length; i++) {
-            if (publicInputs[i] >= FIELD_MODULUS) {
+            if (publicInputs[i] >= _FIELD_MODULUS) {
                 revert InvalidPublicInput(i, publicInputs[i]);
             }
         }
@@ -371,7 +371,7 @@ contract FRIVerifier is IProofVerifier {
             transcript = keccak256(
                 abi.encodePacked(transcript, layers[i].merkleRoot)
             );
-            alphas[i] = uint256(transcript) % FIELD_MODULUS;
+            alphas[i] = uint256(transcript) % _FIELD_MODULUS;
         }
     }
 
@@ -418,40 +418,40 @@ contract FRIVerifier is IProofVerifier {
             uint256 x = _powMod(
                 omega,
                 queries[q].queryIndex >> layerIndex,
-                FIELD_MODULUS
+                _FIELD_MODULUS
             );
 
             // Simplified folding check for factor 2
             if (foldingFactor == 2) {
                 // Interpolate between f(x) and f(-x)
                 // negX used implicitly in folding calculation
-                uint256 halfInv = _modInverse(2, FIELD_MODULUS);
+                uint256 halfInv = _modInverse(2, _FIELD_MODULUS);
 
                 // Expected next evaluation
-                uint256 sum = addmod(currentEval, nextEval, FIELD_MODULUS);
-                uint256 expectedFold = mulmod(sum, halfInv, FIELD_MODULUS);
+                uint256 sum = addmod(currentEval, nextEval, _FIELD_MODULUS);
+                uint256 expectedFold = mulmod(sum, halfInv, _FIELD_MODULUS);
 
                 // Add alpha correction
                 if (foldedIndex < nextLayer.domainSize) {
                     uint256 diff = addmod(
                         currentEval,
-                        FIELD_MODULUS - nextEval,
-                        FIELD_MODULUS
+                        _FIELD_MODULUS - nextEval,
+                        _FIELD_MODULUS
                     );
                     uint256 alphaCorrection = mulmod(
                         diff,
                         alpha,
-                        FIELD_MODULUS
+                        _FIELD_MODULUS
                     );
                     alphaCorrection = mulmod(
                         alphaCorrection,
-                        _modInverse(mulmod(2, x, FIELD_MODULUS), FIELD_MODULUS),
-                        FIELD_MODULUS
+                        _modInverse(mulmod(2, x, _FIELD_MODULUS), _FIELD_MODULUS),
+                        _FIELD_MODULUS
                     );
                     expectedFold = addmod(
                         expectedFold,
                         alphaCorrection,
-                        FIELD_MODULUS
+                        _FIELD_MODULUS
                     );
                 }
 
@@ -509,7 +509,7 @@ contract FRIVerifier is IProofVerifier {
         // Final polynomial should be constant or very low degree
         // For STARK soundness, degree should be < blowup factor
 
-        if (finalPoly.length > BLOWUP_FACTOR) {
+        if (finalPoly.length > _BLOWUP_FACTOR) {
             return false;
         }
 
@@ -537,11 +537,11 @@ contract FRIVerifier is IProofVerifier {
 
         while (size >= 2) {
             // Generator for domain of size `size` is g^(field_order / size)
-            uint256 exponent = (FIELD_MODULUS - 1) / size;
+            uint256 exponent = (_FIELD_MODULUS - 1) / size;
             domainGenerators[size] = _powMod(
-                GENERATOR,
+                _GENERATOR,
                 exponent,
-                FIELD_MODULUS
+                _FIELD_MODULUS
             );
             size /= 2;
         }
@@ -556,8 +556,8 @@ contract FRIVerifier is IProofVerifier {
         uint256 gen = domainGenerators[domainSize];
         if (gen == 0) {
             // Compute on the fly if not cached
-            uint256 exponent = (FIELD_MODULUS - 1) / domainSize;
-            return _powMod(GENERATOR, exponent, FIELD_MODULUS);
+            uint256 exponent = (_FIELD_MODULUS - 1) / domainSize;
+            return _powMod(_GENERATOR, exponent, _FIELD_MODULUS);
         }
         return gen;
     }

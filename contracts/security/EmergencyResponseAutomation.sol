@@ -278,7 +278,7 @@ contract EmergencyResponseAutomation is
             abi.encodePacked(title, severity, block.timestamp, msg.sender)
         );
 
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         incident.id = incidentId;
         incident.title = title;
         incident.description = description;
@@ -316,7 +316,7 @@ contract EmergencyResponseAutomation is
     function acknowledgeIncident(
         bytes32 incidentId
     ) external onlyRole(RESPONDER_ROLE) {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         if (incident.reporter == address(0)) revert IncidentNotFound();
         if (incident.status == IncidentStatus.CLOSED)
             revert IncidentAlreadyClosed();
@@ -361,7 +361,7 @@ contract EmergencyResponseAutomation is
         bytes32 incidentId,
         IncidentStatus newStatus
     ) external onlyRole(RESPONDER_ROLE) {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         if (incident.reporter == address(0)) revert IncidentNotFound();
         if (incident.status == IncidentStatus.CLOSED)
             revert IncidentAlreadyClosed();
@@ -406,7 +406,7 @@ contract EmergencyResponseAutomation is
         bytes32 incidentId,
         string calldata postMortemUrl
     ) external onlyRole(RESPONDER_ROLE) {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         if (incident.reporter == address(0)) revert IncidentNotFound();
 
         incident.postMortemUrl = postMortemUrl;
@@ -537,7 +537,7 @@ contract EmergencyResponseAutomation is
             revert RunbookCooldown();
         }
 
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         incident.runbookId = runbookId;
         incident.status = IncidentStatus.REMEDIATING;
 
@@ -623,7 +623,7 @@ contract EmergencyResponseAutomation is
             abi.encodePacked("AUTO", severity, block.timestamp, msg.sender)
         );
 
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         incident.id = incidentId;
         incident.title = "Automated Incident";
         incident.description = description;
@@ -665,7 +665,7 @@ contract EmergencyResponseAutomation is
             uint256 resolvedAt
         )
     {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         return (
             incident.title,
             incident.severity,
@@ -688,7 +688,7 @@ contract EmergencyResponseAutomation is
         uint256 startIndex,
         uint256 count
     ) external view returns (string[] memory entries) {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         uint256 endIndex = startIndex + count;
         if (endIndex > incident.timelineCount)
             endIndex = incident.timelineCount;
@@ -722,7 +722,7 @@ contract EmergencyResponseAutomation is
     function getOpenIncidents() external view returns (bytes32[] memory) {
         uint256 count = 0;
         for (uint256 i = 0; i < incidentIds.length; i++) {
-            if (incidents[incidentIds[i]].status != IncidentStatus.CLOSED) {
+            if (_incidents[incidentIds[i]].status != IncidentStatus.CLOSED) {
                 count++;
             }
         }
@@ -730,7 +730,7 @@ contract EmergencyResponseAutomation is
         bytes32[] memory open = new bytes32[](count);
         uint256 index = 0;
         for (uint256 i = 0; i < incidentIds.length; i++) {
-            if (incidents[incidentIds[i]].status != IncidentStatus.CLOSED) {
+            if (_incidents[incidentIds[i]].status != IncidentStatus.CLOSED) {
                 open[index++] = incidentIds[i];
             }
         }
@@ -866,7 +866,7 @@ contract EmergencyResponseAutomation is
         bytes32 incidentId,
         string memory entry
     ) internal {
-        Incident storage incident = incidents[incidentId];
+        Incident storage incident = _incidents[incidentId];
         incident.timeline[incident.timelineCount] = string(
             abi.encodePacked(
                 "[",

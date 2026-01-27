@@ -272,7 +272,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
             )
         );
 
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         submission.id = submissionId;
         submission.submitter = msg.sender;
         submission.commitmentHash = commitmentHash;
@@ -306,7 +306,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
      * @param submissionId Submission to review
      */
     function startReview(bytes32 submissionId) external onlyRole(JUDGE_ROLE) {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.submitter == address(0)) revert SubmissionNotFound();
         if (submission.status != BountyStatus.PENDING) revert AlreadyReviewed();
 
@@ -324,7 +324,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         bool approve,
         uint256 bountyAmount
     ) external onlyRole(JUDGE_ROLE) {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.submitter == address(0)) revert SubmissionNotFound();
         if (submission.hasVoted[msg.sender]) revert AlreadyVoted();
 
@@ -359,7 +359,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         bytes32 submissionId,
         DisclosurePhase newPhase
     ) external onlyRole(JUDGE_ROLE) {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.submitter == address(0)) revert SubmissionNotFound();
         if (uint8(newPhase) <= uint8(submission.disclosure))
             revert NotAuthorized();
@@ -378,7 +378,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         bytes32 submissionId,
         string calldata summary
     ) external onlyRole(JUDGE_ROLE) {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.disclosure != DisclosurePhase.PUBLIC)
             revert NotAuthorized();
 
@@ -396,7 +396,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         bytes32 submissionId,
         string calldata reason
     ) external payable nonReentrant {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.submitter != msg.sender) revert NotAuthorized();
         if (submission.status != BountyStatus.REJECTED) revert NotAuthorized();
         if (block.timestamp > submission.reviewedAt + DISPUTE_PERIOD)
@@ -433,7 +433,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         bool inFavorOfSubmitter,
         uint256 newBountyAmount
     ) external onlyRole(JUDGE_ROLE) {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.status != BountyStatus.DISPUTED) revert NotAuthorized();
 
         if (inFavorOfSubmitter) {
@@ -454,7 +454,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
      * @param submissionId Submission ID
      */
     function claimBounty(bytes32 submissionId) external nonReentrant {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         if (submission.submitter != msg.sender) revert NotAuthorized();
         if (submission.status != BountyStatus.VALIDATED) revert NotAuthorized();
         if (submission.bountyAmount == 0) revert InsufficientFunds();
@@ -544,7 +544,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
             uint256 votesAgainst
         )
     {
-        BountySubmission storage s = submissions[submissionId];
+        BountySubmission storage s = _submissions[submissionId];
         return (
             s.submitter,
             s.severity,
@@ -698,7 +698,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _finalizeReview(bytes32 submissionId) internal {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
 
         submission.reviewedAt = block.timestamp;
 
@@ -747,7 +747,7 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _reservePayout(bytes32 submissionId) internal {
-        BountySubmission storage submission = submissions[submissionId];
+        BountySubmission storage submission = _submissions[submissionId];
         uint256 available = totalBountyPool - reservedForPayouts;
 
         if (submission.bountyAmount > available) {

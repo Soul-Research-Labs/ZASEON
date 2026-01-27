@@ -261,7 +261,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
         bytes32 sessionId,
         bytes32 shareCommitment
     ) external onlyRole(ORACLE_ROLE) {
-        MPCSession storage session = mpcSessions[sessionId];
+        MPCSession storage session = _mpcSessions[sessionId];
 
         require(session.sessionId == sessionId, "Invalid session");
         require(!session.completed, "Session completed");
@@ -424,7 +424,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
             bool completed
         )
     {
-        MPCSession storage session = mpcSessions[sessionId];
+        MPCSession storage session = _mpcSessions[sessionId];
         return (
             session.requestId,
             session.submittedShares,
@@ -465,7 +465,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
             }
         }
 
-        MPCSession storage session = mpcSessions[sessionId];
+        MPCSession storage session = _mpcSessions[sessionId];
         session.sessionId = sessionId;
         session.requestId = requestId;
         session.oracles = selectedOracles;
@@ -480,7 +480,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
      * @notice Compute MPC result from shares
      */
     function _computeMPCResult(bytes32 sessionId) internal {
-        MPCSession storage session = mpcSessions[sessionId];
+        MPCSession storage session = _mpcSessions[sessionId];
 
         // Combine share commitments (simplified - in production use proper MPC)
         bytes32 combined = bytes32(0);
