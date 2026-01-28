@@ -179,6 +179,8 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
     error ChallengeNotFound();
     error InvalidSignature();
     error ZeroAddress();
+    error LevelTooHigh();
+
 
     // ============ Constructor ============
     constructor() {
@@ -487,7 +489,7 @@ contract CryptographicAttestation is AccessControl, ReentrancyGuard {
         AttestationType attestationType,
         uint16 minLevel
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(minLevel <= MAX_TCB_LEVEL, "Level too high");
+        if (minLevel > MAX_TCB_LEVEL) revert LevelTooHigh();
         minTcbLevel[attestationType] = minLevel;
         emit TCBLevelUpdated(attestationType, minLevel);
     }

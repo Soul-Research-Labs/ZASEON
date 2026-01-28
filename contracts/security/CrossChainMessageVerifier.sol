@@ -40,6 +40,8 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
     error VerifierNotRegistered();
     error ChallengeNotFound();
     error InsufficientBond();
+    error BondReturnFailed();
+
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -358,7 +360,7 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
             (bool success, ) = challenge.challenger.call{
                 value: challenge.bondAmount
             }("");
-            require(success, "Bond return failed");
+            if (!success) revert BondReturnFailed();
         } else {
             // Challenge failed - forfeit bond, allow execution
             message.challenged = false;

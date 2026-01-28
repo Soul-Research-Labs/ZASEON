@@ -251,6 +251,21 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
     error PerformanceBelowThreshold(uint256 actual, uint256 required);
     error MaxConsecutiveEpochsReached(uint256 current, uint256 max);
 
+    error InvalidSequencerContract();
+    error EpochTooShort();
+    error CommitteeTooSmall();
+    error PhaseNotEnded();
+    error NotEligibleSequencer();
+    error AlreadyRevealed();
+    error NoCommittee();
+    error NoBackupsAvailable();
+    error Unauthorized();
+    error MinActiveTimeNotMet();
+    error PhasesExceedEpoch();
+    error WeightsExceedLimit();
+    error InvalidThreshold();
+
+
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -261,9 +276,9 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
         uint256 _committeeSize,
         uint256 _backupCount
     ) {
-        require(_sharedSequencer != address(0), "Invalid sequencer contract");
-        require(_epochDuration >= 1 hours, "Epoch too short");
-        require(_committeeSize >= 1, "Committee too small");
+        if (_sharedSequencer == address(0)) revert InvalidSequencerContract();
+        if (_epochDuration < 1 hours) revert EpochTooShort();
+        if (_committeeSize == 0) revert CommitteeTooSmall();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
@@ -341,11 +356,10 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
             revert InvalidPhase(RotationPhase.COMMIT, currentEpoch.phase);
         }
 
-        require(
-            block.timestamp >=
-                currentEpoch.startTime + epochConfig.commitPhaseDuration,
-            "Commit phase not ended"
-        );
+        if (
+            block.timestamp <
+            currentEpoch.startTime + epochConfig.commitPhaseDuration
+        ) revert PhaseNotEnded();
 
         currentEpoch.phase = RotationPhase.REVEAL;
 
@@ -363,13 +377,12 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
             revert InvalidPhase(RotationPhase.REVEAL, currentEpoch.phase);
         }
 
-        require(
-            block.timestamp >=
-                currentEpoch.startTime +
-                    epochConfig.commitPhaseDuration +
-                    epochConfig.revealPhaseDuration,
-            "Reveal phase not ended"
-        );
+        if (
+            block.timestamp <
+            currentEpoch.startTime +
+                epochConfig.commitPhaseDuration +
+                epochConfig.revealPhaseDuration
+        ) revert PhaseNotEnded();
 
         currentEpoch.phase = RotationPhase.FINALIZE;
 
@@ -394,10 +407,8 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Verify sender is an eligible sequencer
-        require(
-            sharedSequencer.isEligibleForActiveSet(msg.sender),
-            "Not eligible sequencer"
-        );
+        if (!sharedSequencer.isEligibleForActiveSet(msg.sender))
+            revert NotEligibleSequencer();
 
         uint256 epoch = currentEpoch.epochNumber;
 
@@ -432,7 +443,7 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
             revert CommitmentNotFound(msg.sender);
         }
 
-        require(!commitment.revealed, "Already revealed");
+        if (commitment.revealed) revert AlreadyRevealed();
 
         // Verify commitment
         bytes32 expectedCommitment = keccak256(
@@ -465,7 +476,7 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
             revert EpochAlreadyFinalized();
         }
 
-        require(currentEpoch.selectedCommittee.length > 0, "No committee");
+        if (currentEpoch.selectedCommittee.length == 0) revert NoCommittee();
 
         address newPrimary = currentEpoch.selectedCommittee[0];
         address previousPrimary = currentCommittee.primary;
@@ -553,7 +564,7 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
     function emergencyRotation(
         string calldata reason
     ) external onlyRole(EMERGENCY_ROLE) {
-        require(currentCommittee.backups.length > 0, "No backups available");
+        if (currentCommittee.backups.length == 0) revert NoBackupsAvailable();
 
         address previousPrimary = currentCommittee.primary;
         address newPrimary = currentCommittee.backups[0];
@@ -594,19 +605,14 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
      * @notice Request voluntary rotation
      */
     function requestVoluntaryRotation() external {
-        require(
-            msg.sender == currentCommittee.primary,
-            "Only primary can request"
-        );
-        require(currentCommittee.backups.length > 0, "No backups available");
+        if (msg.sender != currentCommittee.primary) revert Unauthorized();
+        if (currentCommittee.backups.length == 0) revert NoBackupsAvailable();
 
         // Check minimum active time
         uint256 activeTime = block.timestamp -
             epochHistory[currentCommittee.assignedEpoch].startTime;
-        require(
-            activeTime >= epochConfig.minActiveTime,
-            "Minimum active time not met"
-        );
+        if (activeTime < epochConfig.minActiveTime)
+            revert MinActiveTimeNotMet();
 
         address previousPrimary = currentCommittee.primary;
         address newPrimary = currentCommittee.backups[0];
@@ -656,11 +662,9 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
         uint256 minActive,
         uint256 maxConsecutive
     ) external onlyRole(OPERATOR_ROLE) {
-        require(duration >= 1 hours, "Epoch too short");
-        require(
-            commitDuration + revealDuration < duration,
-            "Phases exceed epoch"
-        );
+        if (duration < 1 hours) revert EpochTooShort();
+        if (commitDuration + revealDuration >= duration)
+            revert PhasesExceedEpoch();
 
         epochConfig = EpochConfig({
             epochDuration: duration,
@@ -678,10 +682,8 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
         uint256 _performanceWeight,
         uint256 _uptimeWeight
     ) external onlyRole(OPERATOR_ROLE) {
-        require(
-            _performanceWeight + _uptimeWeight <= 10000,
-            "Weights exceed 100%"
-        );
+        if (_performanceWeight + _uptimeWeight > 10000)
+            revert WeightsExceedLimit();
 
         performanceWeight = _performanceWeight;
         uptimeWeight = _uptimeWeight;
@@ -693,7 +695,7 @@ contract SequencerRotation is AccessControl, ReentrancyGuard, Pausable {
     function setPerformanceThreshold(
         uint256 threshold
     ) external onlyRole(OPERATOR_ROLE) {
-        require(threshold <= 10000, "Invalid threshold");
+        if (threshold > 10000) revert InvalidThreshold();
         performanceThreshold = threshold;
     }
 

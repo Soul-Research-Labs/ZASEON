@@ -174,6 +174,8 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
     error HybridModeRequired();
     error NotContainerOwner(bytes32 keyHash, bytes32 ownerKeyHash);
     error TransferNotAuthorized();
+    error InvalidSecurityLevelError();
+
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -650,7 +652,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
     function setMinSecurityLevel(
         uint8 level
     ) external onlyRole(EXTENSION_ADMIN_ROLE) {
-        require(level >= 1 && level <= 5, "Invalid security level");
+        if (level < 1 || level > 5) revert InvalidSecurityLevelError();
         minSecurityLevel = level;
     }
 

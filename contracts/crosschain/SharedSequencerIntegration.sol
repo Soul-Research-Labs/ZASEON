@@ -413,6 +413,7 @@ contract SharedSequencerIntegration is
         uint256 uniqueCount = 0;
 
         for (uint256 i = 0; i < transactions.length; i++) {
+
             bool found = false;
             for (uint256 j = 0; j < uniqueCount; j++) {
                 if (tempChainIds[j] == transactions[i].targetChainId) {
@@ -555,7 +556,7 @@ contract SharedSequencerIntegration is
      * @notice Verify Espresso commitment via light client
      */
     function _verifyEspressoCommitment(
-        bytes32 bundleId,
+        bytes32 /* bundleId */,
         EspressoCommitment calldata commitment
     ) internal view {
         if (espressoLightClient == address(0)) revert InvalidSequencer();
@@ -576,7 +577,7 @@ contract SharedSequencerIntegration is
      * @notice Verify Astria commitment
      */
     function _verifyAstriaCommitment(
-        bytes32 bundleId,
+        bytes32 /* bundleId */,
         AstriaCommitment calldata commitment
     ) internal view {
         if (astriaSequencer == address(0)) revert InvalidSequencer();
@@ -595,7 +596,7 @@ contract SharedSequencerIntegration is
      * @notice Verify Radius commitment
      */
     function _verifyRadiusCommitment(
-        bytes32 bundleId,
+        bytes32 /* bundleId */,
         RadiusCommitment calldata commitment
     ) internal view {
         if (radiusEnclave == address(0)) revert InvalidSequencer();
@@ -759,6 +760,7 @@ contract SharedSequencerIntegration is
     function setEspressoLightClient(
         address lightClient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
         espressoLightClient = lightClient;
     }
 

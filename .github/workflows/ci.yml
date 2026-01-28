@@ -33,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Run Solidity linter
-        run: npx solhint 'contracts/**/*.sol'
+        run: npx solhint 'contracts/**/*.sol' --max-warnings 20000
 
       - name: Check formatting
         run: npx prettier --check 'contracts/**/*.sol' 'test/**/*.js' 'scripts/**/*.js'

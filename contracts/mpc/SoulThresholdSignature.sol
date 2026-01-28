@@ -119,12 +119,40 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 indexed sessionId
     );
 
+    error InvalidThreshold();
+    error InvalidSigner();
+    error AlreadyASigner();
+    error InvalidPublicKeyShare();
+    error NotAnActiveSigner();
+    error ThresholdConstraintViolation();
+    error ThresholdExceedsSigners();
+    error InvalidGroupKey();
+    error InvalidMessageHash();
+    error NotEnoughParticipants();
+    error SessionExists();
+    error InvalidParticipant();
+    error InvalidSession();
+    error SessionExpired();
+    error SessionCompleted();
+    error NotAParticipant();
+    error NotEnoughCommitments();
+    error MustCommitFirst();
+    error AlreadySigned();
+    error SessionNotCompleted();
+    error AlreadyExecuted();
+    error InvalidTarget();
+    error HashMismatch();
+    error NoSessionForMessage();
+    error SignatureMismatch();
+    error ExecutionFailed();
+
+
     // ============================================
     // Constructor
     // ============================================
 
     constructor(uint256 _threshold, uint256 _sessionTimeout) {
-        require(_threshold >= 2, "Threshold must be >= 2");
+        if (_threshold < 2) revert InvalidThreshold();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(COORDINATOR_ROLE, msg.sender);
@@ -146,9 +174,9 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         address signer,
         bytes32 publicKeyShare
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(signer != address(0), "Invalid signer");
-        require(!signers[signer].active, "Already a signer");
-        require(publicKeyShare != bytes32(0), "Invalid public key share");
+        if (signer == address(0)) revert InvalidSigner();
+        if (signers[signer].active) revert AlreadyASigner();
+        if (publicKeyShare == bytes32(0)) revert InvalidPublicKeyShare();
 
         uint256 index = signerList.length;
 
@@ -176,11 +204,9 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     function removeSigner(
         address signer
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(signers[signer].active, "Not an active signer");
-        require(
-            config.totalSigners - 1 >= config.threshold,
-            "Would break threshold"
-        );
+        if (!signers[signer].active) revert NotAnActiveSigner();
+        if (config.totalSigners - 1 < config.threshold)
+            revert ThresholdConstraintViolation();
 
         signers[signer].active = false;
         config.totalSigners--;
@@ -197,8 +223,8 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     function updateThreshold(
         uint256 newThreshold
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newThreshold >= 2, "Threshold must be >= 2");
-        require(newThreshold <= config.totalSigners, "Threshold > signers");
+        if (newThreshold < 2) revert InvalidThreshold();
+        if (newThreshold > config.totalSigners) revert ThresholdExceedsSigners();
 
         uint256 old = config.threshold;
         config.threshold = newThreshold;
@@ -213,7 +239,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     function setGroupPublicKey(
         bytes32 groupKey
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(groupKey != bytes32(0), "Invalid group key");
+        if (groupKey == bytes32(0)) revert InvalidGroupKey();
         config.groupPublicKey = groupKey;
     }
 
@@ -231,16 +257,14 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 messageHash,
         address[] calldata participants
     ) external onlyRole(COORDINATOR_ROLE) returns (bytes32 sessionId) {
-        require(messageHash != bytes32(0), "Invalid message hash");
-        require(
-            participants.length >= config.threshold,
-            "Not enough participants"
-        );
-        require(messageToSession[messageHash] == bytes32(0), "Session exists");
+        if (messageHash == bytes32(0)) revert InvalidMessageHash();
+        if (participants.length < config.threshold)
+            revert NotEnoughParticipants();
+        if (messageToSession[messageHash] != bytes32(0)) revert SessionExists();
 
         // Verify all participants are active signers
         for (uint256 i = 0; i < participants.length; i++) {
-            require(signers[participants[i]].active, "Invalid participant");
+            if (!signers[participants[i]].active) revert InvalidParticipant();
         }
 
         sessionNonce++;
@@ -273,13 +297,11 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     ) external onlyRole(SIGNER_ROLE) {
         SigningSession storage session = _sessions[sessionId];
 
-        require(session.sessionId == sessionId, "Invalid session");
-        require(block.timestamp < session.expiresAt, "Session expired");
-        require(!session.completed, "Session completed");
-        require(
-            session.commitments[msg.sender] == bytes32(0),
-            "Already committed"
-        );
+        if (session.sessionId != sessionId) revert InvalidSession();
+        if (block.timestamp >= session.expiresAt) revert SessionExpired();
+        if (session.completed) revert SessionCompleted();
+        if (session.commitments[msg.sender] != bytes32(0)) revert AlreadySigned();
+
         require(
             _isParticipant(session.participants, msg.sender),
             "Not a participant"
@@ -302,25 +324,17 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
     ) external onlyRole(SIGNER_ROLE) {
         SigningSession storage session = _sessions[sessionId];
 
-        require(session.sessionId == sessionId, "Invalid session");
-        require(block.timestamp < session.expiresAt, "Session expired");
-        require(!session.completed, "Session completed");
-        require(
-            session.commitmentCount >= config.threshold,
-            "Not enough commitments"
-        );
-        require(
-            session.commitments[msg.sender] != bytes32(0),
-            "Must commit first"
-        );
-        require(
-            session.partialSignatures[msg.sender].length == 0,
-            "Already signed"
-        );
-        require(
-            _isParticipant(session.participants, msg.sender),
-            "Not a participant"
-        );
+        if (session.sessionId != sessionId) revert InvalidSession();
+        if (block.timestamp >= session.expiresAt) revert SessionExpired();
+        if (session.completed) revert SessionCompleted();
+        if (session.commitmentCount < config.threshold)
+            revert NotEnoughCommitments();
+        if (session.commitments[msg.sender] == bytes32(0))
+            revert MustCommitFirst();
+        if (session.partialSignatures[msg.sender].length != 0)
+            revert AlreadySigned();
+        if (!_isParticipant(session.participants, msg.sender))
+            revert NotAParticipant();
 
         session.partialSignatures[msg.sender] = partialSig;
         session.signatureCount++;
@@ -376,7 +390,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 sessionId
     ) external view returns (bytes memory) {
         SigningSession storage session = _sessions[sessionId];
-        require(session.completed, "Session not completed");
+        if (!session.completed) revert SessionNotCompleted();
         return session.aggregatedSignature;
     }
 
@@ -415,32 +429,30 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         bytes32 messageHash,
         bytes calldata signature
     ) external nonReentrant onlyRole(COORDINATOR_ROLE) returns (bytes memory) {
-        require(!executedMessages[messageHash], "Already executed");
-        require(target != address(0), "Invalid target");
+        if (executedMessages[messageHash]) revert AlreadyExecuted();
+        if (target == address(0)) revert InvalidTarget();
 
         // Verify message hash matches
         bytes32 computedHash = keccak256(
             abi.encode(target, data, block.chainid)
         );
-        require(computedHash == messageHash, "Hash mismatch");
+        if (computedHash != messageHash) revert HashMismatch();
 
         // Verify signature is from completed session
         bytes32 sessionId = messageToSession[messageHash];
-        require(sessionId != bytes32(0), "No session for message");
+        if (sessionId == bytes32(0)) revert NoSessionForMessage();
 
         SigningSession storage session = _sessions[sessionId];
-        require(session.completed, "Session not completed");
-        require(
-            keccak256(session.aggregatedSignature) == keccak256(signature),
-            "Signature mismatch"
-        );
+        if (!session.completed) revert SessionNotCompleted();
+        if (keccak256(session.aggregatedSignature) != keccak256(signature))
+            revert SignatureMismatch();
 
         // Mark as executed
         executedMessages[messageHash] = true;
 
         // Execute the call
         (bool success, bytes memory result) = target.call(data);
-        require(success, "Execution failed");
+        if (!success) revert ExecutionFailed();
 
         emit MessageExecuted(messageHash, sessionId);
 

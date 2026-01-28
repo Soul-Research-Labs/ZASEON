@@ -212,6 +212,14 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
     error NotInEmergency();
     error NotWhitelisted(address recipient);
 
+    error AlreadyResolved();
+    error NotPausable();
+    error InsufficientMinGuardians();
+    error ETHTransferFailed();
+    error TokenTransferFailed();
+    error InvalidStage();
+
+
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -382,7 +390,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
 
         if (pc.contractAddress == address(0))
             revert ContractNotRegistered(contractAddress);
-        require(pc.isPausable, "Contract not pausable");
+        if (!pc.isPausable) revert NotPausable();
 
         pc.isPaused = true;
         pc.lastActionAt = block.timestamp;
@@ -430,10 +438,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
      * @notice Pause all registered pausable contracts
      */
     function pauseAll(string calldata reason) external onlyRole(GUARDIAN_ROLE) {
-        require(
-            currentStage >= RecoveryStage.Degraded,
-            "Must be in degraded or higher"
-        );
+        if (currentStage < RecoveryStage.Degraded) revert InvalidStage();
 
         uint256 len = protectedContractList.length;
         for (uint256 i = 0; i < len; ) {
@@ -477,10 +482,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
         bytes32 commitment,
         string calldata reason
     ) external onlyRole(GUARDIAN_ROLE) returns (bytes32 assetId) {
-        require(
-            currentStage >= RecoveryStage.Alert,
-            "Must be in alert or higher"
-        );
+        if (currentStage < RecoveryStage.Alert) revert InvalidStage();
 
         assetId = keccak256(
             abi.encodePacked(owner, token, commitment, block.timestamp)
@@ -509,7 +511,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
         FrozenAsset storage asset = frozenAssets[assetId];
 
         if (asset.frozenAt == 0) revert AssetNotFrozen(assetId);
-        require(!asset.released, "Already released");
+        if (asset.released) revert AlreadyResolved();
 
         asset.released = true;
         totalValueFrozen -= asset.amount;
@@ -560,7 +562,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
 
         if (token == address(0)) {
             (bool success, ) = recipient.call{value: amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) revert ETHTransferFailed();
         } else {
             (bool success, ) = token.call(
                 abi.encodeWithSignature(
@@ -569,7 +571,7 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
                     amount
                 )
             );
-            require(success, "Token transfer failed");
+            if (!success) revert TokenTransferFailed();
         }
 
         emit EmergencyWithdrawal(recipient, token, amount);
@@ -616,10 +618,8 @@ contract EmergencyRecovery is AccessControl, ReentrancyGuard, Pausable {
     function removeGuardian(
         address guardian
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            guardianCount > requiredApprovals[RecoveryStage.Emergency],
-            "Cannot remove - min guardians"
-        );
+        if (guardianCount <= requiredApprovals[RecoveryStage.Emergency])
+            revert InsufficientMinGuardians();
         _revokeRole(GUARDIAN_ROLE, guardian);
         unchecked {
             --guardianCount;

@@ -264,7 +264,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
 
         // Return stake to prover
         (bool success, ) = deposit.prover.call{value: deposit.stake}("");
-        require(success, "Stake return failed");
+        if (!success) revert StakeReturnFailed();
 
         emit DepositFinalized(depositId, deposit.depositor);
     }
@@ -286,7 +286,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
 
         // Return stake to depositor
         (bool success, ) = deposit.depositor.call{value: deposit.stake}("");
-        require(success, "Refund failed");
+        if (!success) revert RefundFailed();
 
         emit DepositRefunded(depositId, deposit.depositor);
     }
@@ -372,7 +372,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Verify Merkle proof for gate (simplified)
-        require(proof.length >= 32, "Invalid proof");
+        if (proof.length < 32) revert InvalidProofLength();
 
         challenge.claimedOutput = response;
         challenge.state = ChallengeState.RESPONDED;
@@ -439,7 +439,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
         // Slash prover stake to challenger
         uint256 slashAmount = deposit.stake;
         (bool success, ) = challenge.challenger.call{value: slashAmount + challenge.stake}("");
-        require(success, "Slash transfer failed");
+        if (!success) revert SlashTransferFailed();
 
         emit ChallengeExpired(challengeId);
         emit DepositSlashed(challenge.depositId, challenge.challenger);
@@ -502,7 +502,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
 
             // Slash prover stake to challenger
             (bool success, ) = challenge.challenger.call{value: deposit.stake + challenge.stake}("");
-            require(success, "Slash transfer failed");
+            if (!success) revert SlashTransferFailed();
 
             emit FraudProven(challengeId, challenge.challenger);
             emit DepositSlashed(challenge.depositId, challenge.challenger);
@@ -510,6 +510,11 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
             revert InvalidGateOutput(gateId);
         }
     }
+
+    error StakeReturnFailed();
+    error RefundFailed();
+    error InvalidProofLength();
+    error SlashTransferFailed();
 
     /*//////////////////////////////////////////////////////////////
                          GATE MANAGEMENT

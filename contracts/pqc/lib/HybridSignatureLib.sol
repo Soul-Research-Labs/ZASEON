@@ -29,6 +29,12 @@ library HybridSignatureLib {
     uint8 public constant ALG_SPHINCS_128S = 3;
     uint8 public constant ALG_SPHINCS_256S = 4;
 
+    error SignatureTooShort();
+    error InvalidMagic();
+    error UnsupportedVersion();
+    error InvalidECDSALength();
+
+
     // =============================================================================
     // STRUCTS
     // =============================================================================
@@ -113,13 +119,13 @@ library HybridSignatureLib {
     function decode(
         bytes calldata encoded
     ) internal pure returns (HybridSig memory sig) {
-        require(encoded.length >= 10, "HybridSig: too short");
+        if (encoded.length < 10) revert SignatureTooShort();
 
         sig.magic = bytes4(encoded[0:4]);
-        require(sig.magic == HYBRID_SIG_MAGIC, "HybridSig: invalid magic");
+        if (sig.magic != HYBRID_SIG_MAGIC) revert InvalidMagic();
 
         sig.version = uint8(encoded[4]);
-        require(sig.version == VERSION, "HybridSig: unsupported version");
+        if (sig.version != VERSION) revert UnsupportedVersion();
 
         sig.algorithm = uint8(encoded[5]);
 
@@ -149,10 +155,10 @@ library HybridSignatureLib {
     function decodeCompact(
         bytes calldata encoded
     ) internal pure returns (CompactHybridSig memory sig) {
-        require(encoded.length >= 106, "HybridSig: too short for compact");
+        if (encoded.length < 106) revert SignatureTooShort();
 
         sig.magic = bytes4(encoded[0:4]);
-        require(sig.magic == HYBRID_SIG_MAGIC, "HybridSig: invalid magic");
+        if (sig.magic != HYBRID_SIG_MAGIC) revert InvalidMagic();
 
         sig.version = uint8(encoded[4]);
         sig.algorithm = uint8(encoded[5]);
@@ -175,7 +181,7 @@ library HybridSignatureLib {
     function extractECDSA(
         bytes memory sig
     ) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-        require(sig.length == 65, "HybridSig: invalid ECDSA length");
+        if (sig.length != 65) revert InvalidECDSALength();
 
         assembly {
             r := mload(add(sig, 32))

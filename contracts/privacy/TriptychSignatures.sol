@@ -129,7 +129,10 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
     error InvalidKeyImage();
     error KeyImageAlreadyUsed();
     error VerificationFailed();
+    error NotPowerOf2();
+    error RingSizeMustBePowerOf2();
     error InvalidChallenge();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -200,7 +203,7 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
 
         // Step 2: Verify commitment structure
         // A = sum(X_j * 2^j) for j in 0..m-1
-        bytes32 reconstructedA = _reconstructA(ctx.proof.X, m);
+        // bytes32 reconstructedA = _reconstructA(ctx.proof.X, m);
 
         // Step 3: Verify response equations
         // For each j: z_A[j] * G = X[j] + f * (A decomposition)
@@ -334,12 +337,13 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
 
     /// @notice Compute log2 of a power of 2
     function _log2(uint256 n) internal pure returns (uint256 m) {
-        require(_isPowerOf2(n), "Not power of 2");
+        if (!_isPowerOf2(n)) revert NotPowerOf2();
         while (n > 1) {
             n >>= 1;
             m++;
         }
     }
+
 
     // =========================================================================
     // VIEW FUNCTIONS
@@ -352,12 +356,13 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
 
     /// @notice Get proof size for a ring size
     function getProofSize(uint256 ringSize) external pure returns (uint256) {
-        require(_isPowerOf2(ringSize), "Ring size must be power of 2");
+        if (!_isPowerOf2(ringSize)) revert RingSizeMustBePowerOf2();
         uint256 m = _log2(ringSize);
         // A, B, C, D + 2*m (X, Y) + f + 2*m (z_A, z_B) + z_C + z_D
         // = 4 + 2m + 1 + 2m + 2 = 7 + 4m bytes32
         return (7 + 4 * m) * 32;
     }
+
 
     /// @notice Estimate verification gas for ring size
     function estimateVerificationGas(
@@ -397,18 +402,7 @@ contract TriptychProver {
         verifier = TriptychSignatures(_verifier);
     }
 
-    /// @notice Generate proof structure (off-chain reference)
-    /// @dev Actual proof generation requires private key - this is reference only
-    function generateProofStructure(
-        uint256 ringSize
-    )
-        external
-        pure
-        returns (uint256 xLength, uint256 yLength, uint256 zLength)
-    {
-        require(ringSize >= 4 && ringSize <= 256, "Invalid ring size");
-        require(ringSize & (ringSize - 1) == 0, "Must be power of 2");
-
+    function getProofDimensions(uint256 ringSize) external pure returns (uint256 xLength, uint256 yLength, uint256 zLength) {
         uint256 m = 0;
         uint256 n = ringSize;
         while (n > 1) {
@@ -420,6 +414,7 @@ contract TriptychProver {
         yLength = m;
         zLength = m;
     }
+
 
     /// @notice Compute key image from secret key and public key
     /// @dev Off-chain: J = x * H_p(P) where H_p is hash-to-curve
@@ -433,3 +428,4 @@ contract TriptychProver {
         return keccak256(abi.encodePacked(secretKey, hashPoint));
     }
 }
+

@@ -6,19 +6,13 @@
 
 > **Move privately between chains. No metadata. No lock-in.**
 
-Soul Protocol makes secrets portable. It's a zero-knowledge middleware that lets you transfer confidential state across blockchains without leaking timing, amounts, or identity—solving the privacy lock-in problem that traps users on single chains. 
+Soul Protocol makes secrets portable. It's a zero-knowledge middleware that lets you transfer confidential state across blockchains without leaking timing, amounts, or identity—solving the privacy lock-in problem that traps users on single chains.     
 
 ---
 
 ## The Problem: Privacy Lock-In
 
 **Privacy will be the most important moat in crypto.**
-
-Everyone is launching a new "high-performance" blockchain. But these chains are hardly different from one another—blockspace is functionally the same everywhere. And with bridges like LayerZero making movement trivial, that blockspace is now accessible *from* everywhere.
-
-Mercenary users and capital arrive to farm an airdrop and leave just as quickly to chase the next one. The reality is stark: if your general-purpose chain doesn't already have a thriving ecosystem, a killer application, or an unfair distribution advantage, there's very little reason for anyone to use it.
-
-**Performance alone is no longer enough.**
 
 Privacy by itself is sufficiently compelling to differentiate a new chain from all the rest. But it also does something more important: **it creates chain lock-in**. Bridging tokens is easy, but bridging secrets is hard.
 

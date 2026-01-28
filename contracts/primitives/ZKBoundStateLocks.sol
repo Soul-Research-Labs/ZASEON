@@ -671,7 +671,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
      * @notice Force unlock a lock (Emergency Recovery)
      * @dev Only callable by RECOVERY_ROLE (e.g., PQCProtectedLock)
      */
-    function recoverLock(bytes32 lockId, address recipient) external onlyRole(RECOVERY_ROLE) {
+    function recoverLock(bytes32 lockId, address /* recipient */) external onlyRole(RECOVERY_ROLE) {
         ZKSLock storage lock = locks[lockId];
         if (lock.lockId == bytes32(0)) revert InvalidLock(lockId);
         
@@ -1049,4 +1049,6 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     function unpause() external onlyRole(LOCK_ADMIN_ROLE) {
         _unpause();
     }
+
+
 }

@@ -648,7 +648,7 @@ contract RingConfidentialTransactions is
         bytes32 sourceTxId,
         uint256 destChainId,
         KeyImage calldata keyImage,
-        bytes calldata crossChainProof
+        bytes calldata /* crossChainProof */
     )
         external
         onlyRole(OPERATOR_ROLE)

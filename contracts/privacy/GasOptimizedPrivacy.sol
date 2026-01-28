@@ -444,6 +444,7 @@ contract GasOptimizedRingCT {
     error InvalidCommitment();
     error BalanceNotPreserved();
     error InvalidSignature();
+    error RingSignatureVerificationNotImplemented();
 
     // ═══════════════════════════════════════════════════════════════════════
     // EVENTS
@@ -602,16 +603,16 @@ contract GasOptimizedRingCT {
     // ═══════════════════════════════════════════════════════════════════════
 
     function _verifyRingSignature(
-        bytes32[] calldata ring,
-        bytes32[] calldata keyImages,
-        bytes calldata signature,
-        bytes32 message
+        bytes32[] calldata /* ring */,
+        bytes32[] calldata /* keyImages */,
+        bytes calldata /* signature */,
+        bytes32 /* message */
     ) internal pure returns (bool) {
         // Simplified verification for gas demonstration
         // In production, implement full CLSAG/MLSAG verification
         // SECURITY CRITICAL: Verification is not yet implemented.
         // Revert to prevent unsafe usage in production.
         // return signature.length > 0;
-        revert("Ring signature verification not implemented");
+        revert RingSignatureVerificationNotImplemented();
     }
 }

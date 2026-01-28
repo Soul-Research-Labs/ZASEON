@@ -36,6 +36,9 @@ contract EconomicSecurityModule is ReentrancyGuard, AccessControl, Pausable {
     error NotOperator();
     error WithdrawalTooLarge();
     error CooldownNotElapsed();
+    error WithdrawalFailed();
+    error ClaimTransferFailed();
+
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -270,7 +273,7 @@ contract EconomicSecurityModule is ReentrancyGuard, AccessControl, Pausable {
         op.availableBond -= amount;
 
         (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Withdrawal failed");
+        if (!success) revert WithdrawalFailed();
 
         emit BondWithdrawn(msg.sender, amount, op.totalBond);
     }
@@ -439,7 +442,7 @@ contract EconomicSecurityModule is ReentrancyGuard, AccessControl, Pausable {
         insurancePool.lastClaimTime = block.timestamp;
 
         (bool success, ) = beneficiary.call{value: amount}("");
-        require(success, "Claim transfer failed");
+        if (!success) revert ClaimTransferFailed();
 
         emit InsuranceClaim(operationId, amount, beneficiary);
     }
@@ -619,6 +622,7 @@ contract EconomicSecurityModule is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Receive ETH for insurance fund
      */
+    /* solhint-disable-next-line no-complex-fallback */
     receive() external payable {
         insurancePool.totalFunds += msg.value;
         emit InsuranceFundDeposit(msg.sender, msg.value);

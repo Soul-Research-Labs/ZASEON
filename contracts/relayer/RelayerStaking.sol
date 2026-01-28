@@ -17,6 +17,16 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
     bytes32 public constant SLASHER_ROLE = keccak256("SLASHER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
+    error InvalidAmount();
+    error InsufficientStake();
+    error PendingUnstakeExists();
+    error NoPendingUnstake();
+    error UnbondingPeriodNotComplete();
+    error NoStakeFound();
+    error NoStakers();
+    error InvalidSlashingPercentage();
+
+
     // Staking token (Soul token)
     IERC20 public immutable stakingToken;
 
@@ -84,7 +94,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
      * @param amount Amount to stake
      */
     function stake(uint256 amount) external nonReentrant {
-        require(amount > 0, "Cannot stake 0");
+        if (amount == 0) revert InvalidAmount();
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -123,8 +133,8 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
      */
     function requestUnstake(uint256 amount) external nonReentrant {
         Relayer storage relayer = relayers[msg.sender];
-        require(relayer.stakedAmount >= amount, "Insufficient stake");
-        require(relayer.pendingUnstake == 0, "Pending unstake exists");
+        if (relayer.stakedAmount < amount) revert InsufficientStake();
+        if (relayer.pendingUnstake != 0) revert PendingUnstakeExists();
 
         // Claim pending rewards first
         _claimRewards(msg.sender);
@@ -150,11 +160,9 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
      */
     function completeUnstake() external nonReentrant {
         Relayer storage relayer = relayers[msg.sender];
-        require(relayer.pendingUnstake > 0, "No pending unstake");
-        require(
-            block.timestamp >= relayer.unstakeRequestTime + UNBONDING_PERIOD,
-            "Unbonding period not complete"
-        );
+        if (relayer.pendingUnstake == 0) revert NoPendingUnstake();
+        if (block.timestamp < relayer.unstakeRequestTime + UNBONDING_PERIOD)
+            revert UnbondingPeriodNotComplete();
 
         uint256 amount = relayer.pendingUnstake;
         relayer.pendingUnstake = 0;
@@ -175,7 +183,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
         string calldata reason
     ) external onlyRole(SLASHER_ROLE) nonReentrant {
         Relayer storage relayer = relayers[relayerAddress];
-        require(relayer.stakedAmount > 0, "Relayer has no stake");
+        if (relayer.stakedAmount == 0) revert NoStakeFound();
 
         uint256 slashAmount = (relayer.stakedAmount * slashingPercentage) /
             10000;
@@ -219,8 +227,8 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
      * @param amount Amount of tokens to add
      */
     function addRewards(uint256 amount) external nonReentrant {
-        require(amount > 0, "Cannot add 0");
-        require(totalStaked > 0, "No stakers");
+        if (amount == 0) revert InvalidAmount();
+        if (totalStaked == 0) revert NoStakers();
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -339,7 +347,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
     function setSlashingPercentage(
         uint256 _slashingPercentage
     ) external onlyRole(ADMIN_ROLE) {
-        require(_slashingPercentage <= 5000, "Max 50%");
+        if (_slashingPercentage > 5000) revert InvalidSlashingPercentage();
         slashingPercentage = _slashingPercentage;
     }
 

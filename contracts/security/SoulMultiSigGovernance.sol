@@ -189,6 +189,8 @@ contract SoulMultiSigGovernance is AccessControl {
     error InvalidRoleConfig();
     error ExecutionFailed();
     error TooManySignatures();
+    error NotRoleAdmin();
+
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -405,7 +407,7 @@ contract SoulMultiSigGovernance is AccessControl {
      */
     function addRoleMember(bytes32 role, address member) external {
         // Check caller has admin rights for this role
-        require(hasRole(getRoleAdmin(role), msg.sender), "Not role admin");
+        if (!hasRole(getRoleAdmin(role), msg.sender)) revert NotRoleAdmin();
 
         // Check role separation
         if (roleSeparationEnforced) {
@@ -424,7 +426,7 @@ contract SoulMultiSigGovernance is AccessControl {
      * @param member The member to remove
      */
     function removeRoleMember(bytes32 role, address member) external {
-        require(hasRole(getRoleAdmin(role), msg.sender), "Not role admin");
+        if (!hasRole(getRoleAdmin(role), msg.sender)) revert NotRoleAdmin();
 
         _revokeRole(role, member);
         if (roleConfigs[role].memberCount > 0) {

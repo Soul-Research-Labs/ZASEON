@@ -60,6 +60,7 @@ library FHETypes {
     error TypeMismatch(uint8 expected, uint8 actual);
     error InvalidHandle();
     error NullHandle();
+    error DataIntegrityCheckFailed();
 
     // ============================================
     // TYPE VALIDATION
@@ -335,10 +336,9 @@ library FHETypes {
         );
 
         // Verify data integrity
-        require(
-            dataHash == keccak256(abi.encode(handle, typeCode, ciphertextData)),
-            "Data integrity check failed"
-        );
+        if (dataHash != keccak256(abi.encode(handle, typeCode, ciphertextData))) {
+            revert DataIntegrityCheckFailed();
+        }
     }
 }
 
@@ -525,7 +525,7 @@ library FHEInputValidator {
     using FHETypes for uint8;
     using FHETypeCast for bytes32;
 
-    error InvalidInput(string reason);
+    error NullHandle();
     error InputCountMismatch(uint256 expected, uint256 actual);
     error InputTypeMismatch(uint8 expected, uint8 actual);
 
@@ -542,7 +542,7 @@ library FHEInputValidator {
 
         for (uint256 i = 0; i < inputs.length; i++) {
             if (inputs[i] == bytes32(0)) {
-                revert InvalidInput("Null handle");
+                revert NullHandle();
             }
 
             uint8 actualType = FHETypes.extractType(inputs[i]);

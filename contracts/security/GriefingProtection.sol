@@ -32,6 +32,8 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
     error CallbackGasExceeded();
     error SuspiciousActivity();
     error NotWhitelisted();
+    error WithdrawalFailed();
+
     error DepositRequired();
 
     /*//////////////////////////////////////////////////////////////
@@ -291,11 +293,11 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Record a failed operation
      * @param user User who failed
-     * @param operationType Type of operation
+
      */
     function recordFailure(
         address user,
-        bytes32 operationType
+        bytes32 /* operationType */
     ) external onlyProtectedContract {
         UserGriefingStats storage stats = userStats[user];
 
@@ -358,7 +360,7 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
         totalDeposits -= amount;
 
         (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Withdrawal failed");
+        if (!success) revert WithdrawalFailed();
 
         emit DepositRefunded(msg.sender, amount);
     }

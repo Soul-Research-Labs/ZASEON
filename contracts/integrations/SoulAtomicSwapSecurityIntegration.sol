@@ -72,6 +72,9 @@ contract SoulAtomicSwapSecurityIntegration is
     error SwapExpired();
     error SwapNotRefundable();
     error PriceDeviationTooHigh();
+    error IncorrectETHAmount();
+    error ETHTransferFailed();
+
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -556,7 +559,7 @@ contract SoulAtomicSwapSecurityIntegration is
 
         // Transfer tokens to contract
         if (token == address(0)) {
-            require(msg.value == amount, "Incorrect ETH amount");
+            if (msg.value != amount) revert IncorrectETHAmount();
         } else {
             IERC20(token).safeTransferFrom(initiator, address(this), amount);
         }
@@ -610,7 +613,7 @@ contract SoulAtomicSwapSecurityIntegration is
         // Transfer to recipient
         if (swap.token == address(0)) {
             (bool success, ) = swap.recipient.call{value: swap.amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) revert ETHTransferFailed();
         } else {
             IERC20(swap.token).safeTransfer(swap.recipient, swap.amount);
         }
@@ -633,7 +636,7 @@ contract SoulAtomicSwapSecurityIntegration is
         // Transfer back to initiator
         if (swap.token == address(0)) {
             (bool success, ) = swap.initiator.call{value: swap.amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) revert ETHTransferFailed();
         } else {
             IERC20(swap.token).safeTransfer(swap.initiator, swap.amount);
         }

@@ -170,7 +170,8 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     error ProofExpired(uint256 expiry, uint256 current);
     error InvalidProofBundle();
     error UnsupportedPolicy(bytes32 policyHash);
-    error VerificationFailed(string reason);
+    error VerificationFailed();
+    error MainnetPlaceholderNotAllowed();
     error ContainerAlreadyConsumed(bytes32 containerId);
     error InvalidContainerData();
     error PayloadTooLarge(uint256 size, uint256 max);
@@ -357,7 +358,7 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
             // SECURITY: Placeholder verification for testing only - NOT for production
             // Revert on mainnet to prevent accidental deployment with placeholder verification
             if (block.chainid == 1) {
-                revert VerificationFailed("Placeholder verification not allowed on mainnet");
+                revert MainnetPlaceholderNotAllowed();
             }
             
             result.validityValid =

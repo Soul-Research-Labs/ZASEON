@@ -324,6 +324,7 @@ contract BaseBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     error CCTPNotConfigured();
     error InvalidAmount();
     error TransferAlreadyCompleted();
+    error TransferFailed();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -646,7 +647,7 @@ contract BaseBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         withdrawal.completed = true;
 
         (bool success, ) = withdrawal.user.call{value: withdrawal.amount}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
 
         emit WithdrawalCompleted(
             withdrawalId,
@@ -844,7 +845,7 @@ contract BaseBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = to.call{value: amount}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
     }
 
     /*//////////////////////////////////////////////////////////////

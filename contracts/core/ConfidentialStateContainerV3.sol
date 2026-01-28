@@ -309,7 +309,7 @@ contract ConfidentialStateContainerV3 is
     /// @param commitment The Pedersen commitment
     /// @param nullifier The nullifier
     /// @param proof The ZK proof bytes
-    /// @param publicInputs The public inputs
+
     /// @param metadata Optional metadata hash
     /// @param owner The intended owner
     /// @param deadline Signature deadline
@@ -319,7 +319,7 @@ contract ConfidentialStateContainerV3 is
         bytes32 commitment,
         bytes32 nullifier,
         bytes calldata proof,
-        bytes calldata publicInputs,
+        // bytes calldata publicInputs,
         bytes32 metadata,
         address owner,
         uint256 deadline,

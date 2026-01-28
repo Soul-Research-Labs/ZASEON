@@ -55,6 +55,19 @@ contract SoulUniversalVerifier is Ownable {
     uint256 public defaultGasLimit = 500000;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error InvalidVerifier();
+    error InvalidGasLimit();
+    error VerifierNotActive();
+    error VerifierNotRegistered();
+    error AlreadyVerified();
+    error LengthMismatch();
+    error PublicInputsMismatch();
+
+
+    // ============================================
     // Events
     // ============================================
 
@@ -87,7 +100,8 @@ contract SoulUniversalVerifier is Ownable {
         address verifier,
         uint256 gasLimit
     ) external onlyOwner {
-        require(verifier != address(0), "Invalid verifier");
+        if (verifier == address(0)) revert InvalidVerifier();
+
 
         verifiers[system] = VerifierConfig({
             verifier: verifier,
@@ -117,7 +131,7 @@ contract SoulUniversalVerifier is Ownable {
         ProofSystem system,
         uint256 newGasLimit
     ) external onlyOwner {
-        require(newGasLimit > 0, "Invalid gas limit");
+        if (newGasLimit == 0) revert InvalidGasLimit();
         verifiers[system].gasLimit = newGasLimit;
     }
 
@@ -139,8 +153,9 @@ contract SoulUniversalVerifier is Ownable {
         uint256 gasStart = gasleft();
 
         VerifierConfig storage config = verifiers[proof.system];
-        require(config.active, "Verifier not active");
-        require(config.verifier != address(0), "Verifier not registered");
+        if (!config.active) revert VerifierNotActive();
+        if (config.verifier == address(0)) revert VerifierNotRegistered();
+
 
         // Compute proof hash for deduplication
         bytes32 proofHash = keccak256(
@@ -152,13 +167,12 @@ contract SoulUniversalVerifier is Ownable {
             )
         );
 
-        require(!verifiedProofs[proofHash], "Already verified");
+        if (verifiedProofs[proofHash]) revert AlreadyVerified();
 
         // Verify public inputs hash
-        require(
-            keccak256(publicInputs) == proof.publicInputsHash,
-            "Public inputs mismatch"
-        );
+        if (keccak256(publicInputs) != proof.publicInputsHash)
+            revert PublicInputsMismatch();
+
 
         // Call the appropriate verifier
         valid = _callVerifier(
@@ -192,7 +206,8 @@ contract SoulUniversalVerifier is Ownable {
         UniversalProof[] calldata proofs,
         bytes[] calldata publicInputsArray
     ) external returns (bool[] memory results) {
-        require(proofs.length == publicInputsArray.length, "Length mismatch");
+        if (proofs.length != publicInputsArray.length) revert LengthMismatch();
+
 
         results = new bool[](proofs.length);
 

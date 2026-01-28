@@ -307,6 +307,8 @@ contract PrivateRelayerNetwork is
     error ZeroAddress();
     error ZeroAmount();
     error ExitNotReady();
+    error TransferFailed();
+
 
     // =========================================================================
     // MODIFIERS
@@ -442,8 +444,9 @@ contract PrivateRelayerNetwork is
         _revokeRole(RELAYER_ROLE, msg.sender);
 
         (bool success, ) = msg.sender.call{value: stake}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
     }
+
 
     // =========================================================================
     // COMMIT-REVEAL MECHANISM
@@ -517,11 +520,11 @@ contract PrivateRelayerNetwork is
     /**
      * @notice Execute a revealed relay intent
      * @param intentHash Hash of the intent to execute
-     * @param executionProof Proof of valid execution
+
      */
     function executeRelay(
         bytes32 intentHash,
-        bytes calldata executionProof
+        bytes calldata /* executionProof */
     ) external onlyActiveRelayer nonReentrant {
         RelayIntent storage intent = revealedIntents[intentHash];
         if (intent.transferId == bytes32(0)) revert InvalidReveal();
@@ -633,13 +636,13 @@ contract PrivateRelayerNetwork is
 
     /**
      * @notice Pay relayer fee to stealth address
-     * @param relayerAddress The relayer to pay
+
      * @param stealthAddress The derived stealth address
      * @param ephemeralPubKey The ephemeral public key for stealth derivation
      * @param transferId Associated transfer ID
      */
     function payStealthFee(
-        address relayerAddress,
+        address /* relayerAddress */,
         address stealthAddress,
         bytes calldata ephemeralPubKey,
         bytes32 transferId
@@ -665,7 +668,8 @@ contract PrivateRelayerNetwork is
         });
 
         (bool success, ) = stealthAddress.call{value: msg.value}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
+
 
         emit StealthFeePaid(paymentId, stealthAddress, msg.value);
     }

@@ -352,6 +352,9 @@ contract CrossChainPrivacyHub is
     error CircuitBreakerOn();
     error UnauthorizedCaller();
     error ZeroAddress();
+    error FeeTransferFailed();
+    error RefundFailed();
+    error FeeTooHigh();
 
     // =========================================================================
     // MODIFIERS
@@ -553,7 +556,7 @@ contract CrossChainPrivacyHub is
         // Send fee to recipient
         if (fee > 0) {
             (bool sent, ) = feeRecipient.call{value: fee}("");
-            require(sent, "Fee transfer failed");
+            if (!sent) revert FeeTransferFailed();
         }
 
         emit TransferInitiated(
@@ -752,7 +755,7 @@ contract CrossChainPrivacyHub is
         // Refund
         if (transfer.token == address(0)) {
             (bool sent, ) = transfer.sender.call{value: transfer.amount}("");
-            require(sent, "Refund failed");
+            if (!sent) revert RefundFailed();
         } else {
             IERC20(transfer.token).safeTransfer(
                 transfer.sender,
@@ -1118,7 +1121,7 @@ contract CrossChainPrivacyHub is
     function setProtocolFee(
         uint256 feeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(feeBps <= MAX_FEE_BPS, "Fee too high");
+        if (feeBps > MAX_FEE_BPS) revert FeeTooHigh();
         protocolFeeBps = feeBps;
     }
 

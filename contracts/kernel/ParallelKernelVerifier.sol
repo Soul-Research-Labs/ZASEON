@@ -251,6 +251,21 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
         uint256 executionCount
     );
 
+    error TooManyReadCommitments();
+    error TooManyWriteCommitments();
+    error TooManyNullifiersConsumed();
+    error TooManyNullifiersProduced();
+    error ExecutionExists();
+    error EmptyBatch();
+    error BatchTooLarge();
+    error BatchNotFound();
+    error BatchAlreadyResolved();
+    error BatchNotResolved();
+    error BatchAlreadyCommitted();
+    error ZeroAddress();
+    error NullifierAlreadyConsumed();
+
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -293,29 +308,19 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata proof
     ) external whenNotPaused nonReentrant returns (bytes32 executionId) {
         // Security: Validate array lengths to prevent gas griefing
-        require(
-            readCommitments.length <= MAX_COMMITMENTS,
-            "PKV: too many read commitments"
-        );
-        require(
-            writeCommitments.length <= MAX_COMMITMENTS,
-            "PKV: too many write commitments"
-        );
-        require(
-            nullifiersConsumed.length <= MAX_NULLIFIERS,
-            "PKV: too many nullifiers consumed"
-        );
-        require(
-            nullifiersProduced.length <= MAX_NULLIFIERS,
-            "PKV: too many nullifiers produced"
-        );
+        if (readCommitments.length > MAX_COMMITMENTS)
+            revert TooManyReadCommitments();
+        if (writeCommitments.length > MAX_COMMITMENTS)
+            revert TooManyWriteCommitments();
+        if (nullifiersConsumed.length > MAX_NULLIFIERS)
+            revert TooManyNullifiersConsumed();
+        if (nullifiersProduced.length > MAX_NULLIFIERS)
+            revert TooManyNullifiersProduced();
 
         // Security: Immediate nullifier collision check to prevent front-running
         for (uint256 i = 0; i < nullifiersConsumed.length; i++) {
-            require(
-                !consumedNullifiers[nullifiersConsumed[i]],
-                "PKV: nullifier already consumed"
-            );
+            if (consumedNullifiers[nullifiersConsumed[i]])
+                revert NullifierAlreadyConsumed();
         }
 
         executionId = keccak256(
@@ -328,10 +333,7 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
             )
         );
 
-        require(
-            executions[executionId].submittedAt == 0,
-            "PKV: execution exists"
-        );
+        if (executions[executionId].submittedAt != 0) revert ExecutionExists();
 
         uint64 seqNum;
         unchecked {
@@ -385,8 +387,8 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
     function createBatch(
         bytes32[] calldata executionIds
     ) external onlyRole(SEQUENCER_ROLE) returns (bytes32 batchId) {
-        require(executionIds.length > 0, "PKV: empty batch");
-        require(executionIds.length <= maxBatchSize, "PKV: batch too large");
+        if (executionIds.length == 0) revert EmptyBatch();
+        if (executionIds.length > maxBatchSize) revert BatchTooLarge();
 
         batchId = keccak256(
             abi.encodePacked(executionIds, block.timestamp, totalBatches)
@@ -434,8 +436,8 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
         returns (BatchVerificationResult memory result)
     {
         ExecutionBatch storage batch = batches[batchId];
-        require(batch.createdAt > 0, "PKV: batch not found");
-        require(!batch.resolved, "PKV: already resolved");
+        if (batch.createdAt == 0) revert BatchNotFound();
+        if (batch.resolved) revert BatchAlreadyResolved();
 
         bytes32[] memory executionIds = batchExecutions[batchId];
 
@@ -704,8 +706,8 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
      */
     function commitBatch(bytes32 batchId) external onlyRole(SEQUENCER_ROLE) {
         ExecutionBatch storage batch = batches[batchId];
-        require(batch.resolved, "PKV: not resolved");
-        require(!batch.committed, "PKV: already committed");
+        if (!batch.resolved) revert BatchNotResolved();
+        if (batch.committed) revert BatchAlreadyCommitted();
 
         // Mark all accepted executions as committed
         for (uint256 i = 0; i < batch.canonicalOrder.length; i++) {
@@ -755,7 +757,7 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
     function setZKVerifier(
         address _zkVerifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_zkVerifier != address(0), "PKV: zero address");
+        if (_zkVerifier == address(0)) revert ZeroAddress();
         zkVerifier = _zkVerifier;
     }
 

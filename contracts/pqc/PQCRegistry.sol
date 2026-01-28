@@ -149,6 +149,9 @@ contract PQCRegistry is AccessControl, Pausable {
     error VerifierNotSet();
     error HybridRequired();
     error InvalidConfiguration();
+    error InvalidPhaseTransition();
+    error InvalidSignatureLength();
+
 
     // =============================================================================
     // CONSTRUCTOR
@@ -476,7 +479,8 @@ contract PQCRegistry is AccessControl, Pausable {
     function transitionPhase(
         TransitionPhase newPhase
     ) external onlyRole(ADMIN_ROLE) {
-        require(uint8(newPhase) >= uint8(currentPhase), "Cannot go backwards");
+        if (uint8(newPhase) < uint8(currentPhase))
+            revert InvalidPhaseTransition();
         TransitionPhase oldPhase = currentPhase;
         currentPhase = newPhase;
         emit PhaseTransition(oldPhase, newPhase);
@@ -570,7 +574,7 @@ contract PQCRegistry is AccessControl, Pausable {
         bytes32 hash,
         bytes calldata signature
     ) internal pure returns (address) {
-        require(signature.length == 65, "Invalid signature length");
+        if (signature.length != 65) revert InvalidSignatureLength();
 
         bytes32 r;
         bytes32 s;

@@ -43,6 +43,18 @@ contract SoulSP1Verifier is Ownable {
     uint256 public totalVerified;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error InvalidVKey();
+    error AlreadyRegistered();
+    error VKeyNotRegistered();
+    error AlreadyVerified();
+    error PublicValuesMismatch();
+    error ProofVerificationFailed();
+
+
+    // ============================================
     // Events
     // ============================================
 
@@ -71,8 +83,9 @@ contract SoulSP1Verifier is Ownable {
         bytes32 vkeyHash,
         bytes32 programHash
     ) external onlyOwner {
-        require(vkeyHash != bytes32(0), "Invalid vkey");
-        require(!verificationKeys[vkeyHash].active, "Already registered");
+        if (vkeyHash == bytes32(0)) revert InvalidVKey();
+        if (verificationKeys[vkeyHash].active) revert AlreadyRegistered();
+
 
         verificationKeys[vkeyHash] = VerificationKey({
             vkeyHash: vkeyHash,
@@ -117,14 +130,14 @@ contract SoulSP1Verifier is Ownable {
         bytes calldata publicValues
     ) external returns (bool valid) {
         // Check vkey is registered
-        require(verificationKeys[proof.vkeyHash].active, "VKey not registered");
+        if (!verificationKeys[proof.vkeyHash].active) revert VKeyNotRegistered();
+
 
         // Verify public values hash
         bytes32 computedHash = keccak256(publicValues);
-        require(
-            computedHash == proof.publicValuesHash,
-            "Public values mismatch"
-        );
+        if (computedHash != proof.publicValuesHash)
+            revert PublicValuesMismatch();
+
 
         // Compute proof hash
         bytes32 proofHash = keccak256(
@@ -132,7 +145,8 @@ contract SoulSP1Verifier is Ownable {
         );
 
         // Check not already verified (prevent replay)
-        require(!verifiedProofs[proofHash], "Already verified");
+        if (verifiedProofs[proofHash]) revert AlreadyVerified();
+
 
         // Call SP1 gateway for actual verification
         if (sp1Gateway != address(0)) {
@@ -144,11 +158,10 @@ contract SoulSP1Verifier is Ownable {
                     proof.proof
                 )
             );
-            require(
-                success && abi.decode(result, (bool)),
-                "Proof verification failed"
-            );
+            if (!success || !abi.decode(result, (bool)))
+                revert ProofVerificationFailed();
         }
+
 
         // Mark as verified
         verifiedProofs[proofHash] = true;
@@ -221,6 +234,16 @@ contract SoulPlonky3Verifier is Ownable {
     uint256 public totalVerified;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error CircuitNotRegistered();
+    error InputCountMismatch();
+    error AlreadyVerified();
+    error EmptyOpeningProof();
+
+
+    // ============================================
     // Events
     // ============================================
 
@@ -258,11 +281,10 @@ contract SoulPlonky3Verifier is Ownable {
 
     function verify(Plonky3Proof calldata proof) external returns (bool) {
         CircuitConfig storage config = circuits[proof.circuitHash];
-        require(config.active, "Circuit not registered");
-        require(
-            proof.publicInputs.length == config.numPublicInputs,
-            "Input count mismatch"
-        );
+        if (!config.active) revert CircuitNotRegistered();
+        if (proof.publicInputs.length != config.numPublicInputs)
+            revert InputCountMismatch();
+
 
         bytes32 proofHash = keccak256(
             abi.encode(
@@ -272,11 +294,13 @@ contract SoulPlonky3Verifier is Ownable {
             )
         );
 
-        require(!verifiedProofs[proofHash], "Already verified");
+        if (verifiedProofs[proofHash]) revert AlreadyVerified();
+
 
         // Plonky3 verification logic would go here
         // For now, verify proof structure
-        require(proof.openingProof.length > 0, "Empty opening proof");
+        if (proof.openingProof.length == 0) revert EmptyOpeningProof();
+
 
         verifiedProofs[proofHash] = true;
         totalVerified++;
@@ -321,6 +345,17 @@ contract SoulJoltVerifier is Ownable {
     uint256 public totalVerified;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error ProgramNotRegistered();
+    error AlreadyVerified();
+    error EmptySumcheck();
+    error EmptyLookup();
+    error EmptyMemory();
+
+
+    // ============================================
     // Events
     // ============================================
 
@@ -356,23 +391,28 @@ contract SoulJoltVerifier is Ownable {
 
     function verify(JoltProof calldata proof) external returns (bool) {
         JoltProgram storage program = programs[proof.programHash];
-        require(program.active, "Program not registered");
+        if (!program.active) revert ProgramNotRegistered();
+
 
         bytes32 proofHash = keccak256(
             abi.encode(proof.programHash, proof.inputHash, proof.outputHash)
         );
 
-        require(!verifiedProofs[proofHash], "Already verified");
+        if (verifiedProofs[proofHash]) revert AlreadyVerified();
+
 
         // Jolt verification consists of:
         // 1. Sumcheck verification
-        require(proof.sumcheckProof.length > 0, "Empty sumcheck");
+        if (proof.sumcheckProof.length == 0) revert EmptySumcheck();
+
 
         // 2. Lookup verification (Lasso)
-        require(proof.lookupProof.length > 0, "Empty lookup");
+        if (proof.lookupProof.length == 0) revert EmptyLookup();
+
 
         // 3. Memory verification
-        require(proof.memoryProof.length > 0, "Empty memory");
+        if (proof.memoryProof.length == 0) revert EmptyMemory();
+
 
         verifiedProofs[proofHash] = true;
         totalVerified++;
@@ -410,6 +450,16 @@ contract SoulBiniusVerifier is Ownable {
     uint256 public totalVerified;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error CircuitNotRegistered();
+    error AlreadyVerified();
+    error EmptySumcheck();
+    error EmptyFolding();
+
+
+    // ============================================
     // Constructor
     // ============================================
 
@@ -428,10 +478,9 @@ contract SoulBiniusVerifier is Ownable {
     // ============================================
 
     function verify(BiniusProof calldata proof) external returns (bool) {
-        require(
-            registeredCircuits[proof.circuitHash],
-            "Circuit not registered"
-        );
+        if (!registeredCircuits[proof.circuitHash])
+            revert CircuitNotRegistered();
+
 
         bytes32 proofHash = keccak256(
             abi.encode(
@@ -441,12 +490,14 @@ contract SoulBiniusVerifier is Ownable {
             )
         );
 
-        require(!verifiedProofs[proofHash], "Already verified");
+        if (verifiedProofs[proofHash]) revert AlreadyVerified();
+
 
         // Binius uses binary fields (GF(2))
         // Verification is optimized for hash operations
-        require(proof.sumcheckProof.length > 0, "Empty sumcheck");
-        require(proof.foldingProof.length > 0, "Empty folding");
+        if (proof.sumcheckProof.length == 0) revert EmptySumcheck();
+        if (proof.foldingProof.length == 0) revert EmptyFolding();
+
 
         verifiedProofs[proofHash] = true;
         totalVerified++;

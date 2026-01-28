@@ -190,6 +190,9 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
     error ResearcherNotRegistered();
     error AlreadyRegistered();
     error InvalidProof();
+    error InvalidRange();
+    error GracePeriodTooLong();
+
 
     // ============ Constructor ============
     constructor(address _rewardToken, bytes memory _pilPublicKey) {
@@ -505,11 +508,9 @@ contract FormalBugBounty is AccessControl, ReentrancyGuard, Pausable {
         uint256 maxPayout,
         uint256 gracePeriodDays
     ) external onlyRole(TREASURY_ROLE) {
-        require(maxPayout >= minPayout, "Invalid range");
-        require(
-            gracePeriodDays <= MAX_GRACE_PERIOD / 1 days,
-            "Grace period too long"
-        );
+        if (maxPayout < minPayout) revert InvalidRange();
+        if (gracePeriodDays > MAX_GRACE_PERIOD / 1 days) revert GracePeriodTooLong();
+
 
         bountyTiers[severity] = BountyTier({
             severity: severity,

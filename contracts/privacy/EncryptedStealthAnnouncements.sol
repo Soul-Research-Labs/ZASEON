@@ -131,6 +131,8 @@ contract EncryptedStealthAnnouncements is
     error BatchTooLarge();
     error AnnouncementExpired();
     error TransferFailed();
+    error InvalidRecipient();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -427,9 +429,10 @@ contract EncryptedStealthAnnouncements is
     function setFeeRecipient(
         address newRecipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newRecipient != address(0), "Invalid recipient");
+        if (newRecipient == address(0)) revert InvalidRecipient();
         feeRecipient = newRecipient;
     }
+
 
     /// @notice Collect accumulated fees
     function collectFees() external onlyRole(OPERATOR_ROLE) {

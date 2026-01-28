@@ -142,6 +142,8 @@ contract SoulUpgradeTimelock is TimelockController {
     error InvalidDelay();
     error EmergencyOnly();
     error NotInEmergencyMode();
+    error MinSignaturesTooLow();
+
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -418,7 +420,7 @@ contract SoulUpgradeTimelock is TimelockController {
     function setMinSignatures(
         uint256 newMin
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMin > 0, "Min must be > 0");
+        if (newMin == 0) revert MinSignaturesTooLow();
         uint256 oldMin = minSignatures;
         minSignatures = newMin;
         emit MinSignaturesUpdated(oldMin, newMin);

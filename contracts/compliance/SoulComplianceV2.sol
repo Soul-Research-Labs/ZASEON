@@ -122,6 +122,8 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     error RestrictedJurisdiction();
     error InsufficientKYCTier();
     error ZeroAddress();
+    error DurationTooShort();
+    error DurationTooLong();
 
     /// @notice Modifier for authorized providers
     modifier onlyProvider() {
@@ -305,8 +307,8 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Updates KYC validity duration
     /// @param duration The new duration in seconds
     function setKYCValidityDuration(uint256 duration) external onlyOwner {
-        require(duration >= 1 days, "Duration too short");
-        require(duration <= 730 days, "Duration too long");
+        if (duration < 1 days) revert DurationTooShort();
+        if (duration > 730 days) revert DurationTooLong();
         uint256 oldDuration = kycValidityDuration;
         kycValidityDuration = duration;
         emit KYCValidityDurationUpdated(oldDuration, duration);

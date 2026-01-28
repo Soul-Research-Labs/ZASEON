@@ -238,6 +238,8 @@ contract BridgeWatchtower is AccessControl, Pausable {
     error ExitNotRequested();
     error ExitDelayNotPassed();
     error TransferFailed();
+    error NoRewardsAvailable();
+
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -555,7 +557,7 @@ contract BridgeWatchtower is AccessControl, Pausable {
 
         // Calculate reward based on correct reports
         uint256 reward = _calculateReward(msg.sender);
-        require(reward > 0 && reward <= rewardPool, "No rewards available");
+        if (reward == 0 || reward > rewardPool) revert NoRewardsAvailable();
 
         rewardPool -= reward;
 
@@ -628,7 +630,7 @@ contract BridgeWatchtower is AccessControl, Pausable {
 
     function _checkReportFinalization(bytes32 reportId) internal {
         AnomalyReport storage report = reports[reportId];
-        uint256 totalVotes = report.confirmations + report.rejections;
+
         uint256 required = (activeWatchtowers.length *
             CONFIRMATION_THRESHOLD_BPS) / BPS;
 

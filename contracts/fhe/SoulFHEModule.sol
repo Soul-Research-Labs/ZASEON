@@ -131,12 +131,30 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
     event FHEKeysUpdated(bytes32 publicKeyHash, bytes32 evaluationKeyHash);
     event EncryptedMerkleRootUpdated(bytes32 newRoot);
 
+    error InvalidOracle();
+    error UnauthorizedCaller();
+    error InvalidHandle();
+    error AlreadyRegistered();
+    error UnsupportedType();
+    error InvalidRequest();
+    error AlreadyCompleted();
+    error InvalidProof();
+    error InvalidUser();
+    error AlreadyInitialized();
+    error InvalidCiphertext();
+    error NotInitialized();
+    error ComputationNotComplete();
+    error AmountMismatch();
+    error InvalidRoot();
+    error LengthMismatch();
+
+
     // ============================================
     // Constructor
     // ============================================
 
     constructor(address _fheOracle) Ownable(msg.sender) {
-        require(_fheOracle != address(0), "Invalid oracle");
+        if (_fheOracle == address(0)) revert InvalidOracle();
         fheOracle = _fheOracle;
 
         // Register supported schemes
@@ -151,7 +169,7 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
     // ============================================
 
     modifier onlyOracle() {
-        require(msg.sender == fheOracle, "Not FHE oracle");
+        if (msg.sender != fheOracle) revert UnauthorizedCaller();
         _;
     }
 
@@ -186,7 +204,7 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
      * @param newOracle New oracle address
      */
     function setFHEOracle(address newOracle) external onlyOwner {
-        require(newOracle != address(0), "Invalid oracle");
+        if (newOracle == address(0)) revert InvalidOracle();
         fheOracle = newOracle;
     }
 
@@ -206,14 +224,13 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32 typeHash,
         bytes32 securityParams
     ) external returns (bool success) {
-        require(handle != bytes32(0), "Invalid handle");
-        require(!ciphertexts[handle].valid, "Already registered");
-        require(
-            typeHash == TYPE_UINT256 ||
-                typeHash == TYPE_BOOL ||
-                typeHash == TYPE_FIELD,
-            "Unsupported type"
-        );
+        if (handle == bytes32(0)) revert InvalidHandle();
+        if (ciphertexts[handle].valid) revert AlreadyRegistered();
+        if (
+            typeHash != TYPE_UINT256 &&
+            typeHash != TYPE_BOOL &&
+            typeHash != TYPE_FIELD
+        ) revert UnsupportedType();
 
         ciphertexts[handle] = Ciphertext({
             handle: handle,
@@ -335,9 +352,9 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
     ) external onlyOracle {
         ComputationRequest storage req = computations[requestId];
 
-        require(req.requestId == requestId, "Invalid request");
-        require(!req.completed, "Already completed");
-        require(proof.length > 0, "Invalid proof");
+        if (req.requestId != requestId) revert InvalidRequest();
+        if (req.completed) revert AlreadyCompleted();
+        if (proof.length == 0) revert InvalidProof();
 
         // Register output ciphertext
         ciphertexts[outputCiphertext] = Ciphertext({
@@ -383,12 +400,10 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32 encryptedAmount,
         bytes32 blindingCommitment
     ) external nonReentrant {
-        require(userCommitment != bytes32(0), "Invalid user");
-        require(
-            encryptedBalances[userCommitment].encryptedAmount == bytes32(0),
-            "Already initialized"
-        );
-        require(ciphertexts[encryptedAmount].valid, "Invalid ciphertext");
+        if (userCommitment == bytes32(0)) revert InvalidUser();
+        if (encryptedBalances[userCommitment].encryptedAmount != bytes32(0))
+            revert AlreadyInitialized();
+        if (!ciphertexts[encryptedAmount].valid) revert InvalidCiphertext();
 
         encryptedBalances[userCommitment] = EncryptedBalance({
             encryptedAmount: encryptedAmount,
@@ -413,18 +428,14 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32 computationRequestId,
         bytes calldata zkProof
     ) external onlyOracle {
-        require(
-            encryptedBalances[userCommitment].encryptedAmount != bytes32(0),
-            "Not initialized"
-        );
+        if (encryptedBalances[userCommitment].encryptedAmount == bytes32(0))
+            revert NotInitialized();
 
         ComputationRequest storage compReq = computations[computationRequestId];
-        require(compReq.completed, "Computation not complete");
-        require(
-            compReq.outputCiphertext == newEncryptedAmount,
-            "Amount mismatch"
-        );
-        require(zkProof.length > 0, "Invalid proof");
+        if (!compReq.completed) revert ComputationNotComplete();
+        if (compReq.outputCiphertext != newEncryptedAmount)
+            revert AmountMismatch();
+        if (zkProof.length == 0) revert InvalidProof();
 
         encryptedBalances[userCommitment].encryptedAmount = newEncryptedAmount;
         encryptedBalances[userCommitment].lastUpdated = block.timestamp;
@@ -480,8 +491,8 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32 newRoot,
         bytes calldata zkProof
     ) external onlyOracle {
-        require(newRoot != bytes32(0), "Invalid root");
-        require(zkProof.length > 0, "Invalid proof");
+        if (newRoot == bytes32(0)) revert InvalidRoot();
+        if (zkProof.length == 0) revert InvalidProof();
 
         encryptedMerkleRoot = newRoot;
 
@@ -500,7 +511,7 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32[] calldata proof,
         uint256[] calldata pathIndices
     ) external pure returns (bool valid) {
-        require(proof.length == pathIndices.length, "Length mismatch");
+        if (proof.length != pathIndices.length) revert LengthMismatch();
 
         // In production, this would verify FHE Merkle proof
         // For now, verify structure
@@ -531,8 +542,8 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
         bytes32 ct1,
         bytes32 ct2
     ) internal returns (bytes32 requestId) {
-        require(ciphertexts[ct1].valid, "Invalid ciphertext 1");
-        require(ciphertexts[ct2].valid, "Invalid ciphertext 2");
+        if (!ciphertexts[ct1].valid) revert InvalidCiphertext();
+        if (!ciphertexts[ct2].valid) revert InvalidCiphertext();
 
         requestNonce++;
         requestId = keccak256(

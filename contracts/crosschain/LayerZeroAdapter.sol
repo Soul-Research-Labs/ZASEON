@@ -49,6 +49,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
     error MessageAlreadyProcessed();
     error DVNNotAuthorized();
     error InsufficientFee();
+    error RefundFailed();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -230,7 +231,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
         // Refund excess
         if (msg.value > fee) {
             (bool success, ) = msg.sender.call{value: msg.value - fee}("");
-            require(success, "Refund failed");
+            if (!success) revert RefundFailed();
         }
 
         return (guid, nonce);
@@ -238,13 +239,12 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Quote the fee for sending a message
-     * @param dstEid Destination endpoint ID
      * @param payload Message payload
      * @param options Executor options
      * @return fee Native fee required
      */
     function quoteSend(
-        uint32 dstEid,
+        uint32 /* dstEid */,
         bytes calldata payload,
         ExecutorOptions calldata options
     ) public view returns (uint256 fee) {
@@ -314,7 +314,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
         emit MessageReceived(srcEid, guid, originalSender, innerPayload);
 
         // Process the message (hook for derived contracts)
-        _processMessage(srcEid, originalSender, innerPayload);
+        _processMessage(srcEid, originalSender, "", innerPayload);
     }
 
     /**
@@ -364,6 +364,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
     function _processMessage(
         uint32 srcEid,
         address sender,
+        bytes memory /* options */,
         bytes memory payload
     ) internal virtual {
         // Override in derived contracts to handle messages

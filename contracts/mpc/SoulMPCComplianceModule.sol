@@ -106,6 +106,23 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     /// @notice Certificate validity period
     uint256 public certificateValidity = 30 days;
 
+    error InvalidThreshold();
+    error InvalidOracle();
+    error AlreadyRegistered();
+    error NotAnOracle();
+    error ThresholdConstraintViolation();
+    error ThresholdExceedsOracles();
+    error InvalidIdentityHash();
+    error InvalidSession();
+    error SessionCompleted();
+    error AlreadySubmitted();
+    error NotAParticipant();
+    error InvalidRequest();
+    error InvalidStatus();
+    error RequestExpired();
+    error InvalidProof();
+
+
     /// @notice Request nonce
     uint256 public requestNonce;
 
@@ -150,7 +167,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     // ============================================
 
     constructor(uint256 _oracleThreshold) {
-        require(_oracleThreshold >= 2, "Threshold must be >= 2");
+        if (_oracleThreshold < 2) revert InvalidThreshold();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(COMPLIANCE_ROLE, msg.sender);
@@ -169,8 +186,8 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     function registerOracle(
         address oracle
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(oracle != address(0), "Invalid oracle");
-        require(!isOracle[oracle], "Already registered");
+        if (oracle == address(0)) revert InvalidOracle();
+        if (isOracle[oracle]) revert AlreadyRegistered();
 
         isOracle[oracle] = true;
         oracles.push(oracle);
@@ -187,8 +204,9 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     function removeOracle(
         address oracle
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(isOracle[oracle], "Not an oracle");
-        require(oracles.length - 1 >= oracleThreshold, "Would break threshold");
+        if (!isOracle[oracle]) revert NotAnOracle();
+        if (oracles.length - 1 < oracleThreshold)
+            revert ThresholdConstraintViolation();
 
         isOracle[oracle] = false;
         _revokeRole(ORACLE_ROLE, oracle);
@@ -203,8 +221,8 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     function updateThreshold(
         uint256 newThreshold
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newThreshold >= 2, "Threshold must be >= 2");
-        require(newThreshold <= oracles.length, "Threshold > oracles");
+        if (newThreshold < 2) revert InvalidThreshold();
+        if (newThreshold > oracles.length) revert ThresholdExceedsOracles();
         oracleThreshold = newThreshold;
     }
 
@@ -220,7 +238,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     function requestComplianceCheck(
         bytes32 encryptedIdentityHash
     ) external nonReentrant returns (bytes32 requestId) {
-        require(encryptedIdentityHash != bytes32(0), "Invalid identity hash");
+        if (encryptedIdentityHash == bytes32(0)) revert InvalidIdentityHash();
 
         unchecked {
             ++requestNonce;
@@ -263,9 +281,9 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     ) external onlyRole(ORACLE_ROLE) {
         MPCSession storage session = _mpcSessions[sessionId];
 
-        require(session.sessionId == sessionId, "Invalid session");
-        require(!session.completed, "Session completed");
-        require(!session.shares[msg.sender].submitted, "Already submitted");
+        if (session.sessionId != sessionId) revert InvalidSession();
+        if (session.completed) revert SessionCompleted();
+        if (session.shares[msg.sender].submitted) revert AlreadySubmitted();
 
         // Check oracle is participant
         bool isParticipant = false;
@@ -278,7 +296,7 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
                 ++i;
             }
         }
-        require(isParticipant, "Not a participant");
+        if (!isParticipant) revert NotAParticipant();
 
         session.shares[msg.sender] = OracleShare({
             oracle: msg.sender,
@@ -312,15 +330,13 @@ contract SoulMPCComplianceModule is AccessControl, ReentrancyGuard {
     ) external onlyRole(COMPLIANCE_ROLE) {
         ComplianceRequest storage request = requests[requestId];
 
-        require(request.requestId == requestId, "Invalid request");
-        require(
-            request.status == ComplianceStatus.Processing,
-            "Invalid status"
-        );
-        require(block.timestamp < request.expiresAt, "Request expired");
+        if (request.requestId != requestId) revert InvalidRequest();
+        if (request.status != ComplianceStatus.Processing)
+            revert InvalidStatus();
+        if (block.timestamp >= request.expiresAt) revert RequestExpired();
 
         // Verify ZK proof (simplified - in production verify properly)
-        require(zkProof.length > 0, "Invalid proof");
+        if (zkProof.length == 0) revert InvalidProof();
 
         // Update status
         request.status = result

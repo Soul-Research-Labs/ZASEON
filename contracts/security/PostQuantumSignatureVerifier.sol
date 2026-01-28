@@ -182,6 +182,8 @@ contract PostQuantumSignatureVerifier is
     error NotSubmitter(address caller, address submitter);
     error VerificationNotFound(bytes32 verificationId);
     error InvalidAttestation();
+    error BondReturnFailed();
+
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -475,7 +477,7 @@ contract PostQuantumSignatureVerifier is
 
             // Return bond to challenger + reward
             (bool success, ) = payable(msg.sender).call{value: msg.value}("");
-            require(success, "Bond return failed");
+            if (!success) revert BondReturnFailed();
         } else {
             // Invalid challenge - burn the bond
             // In production, could distribute to submitter

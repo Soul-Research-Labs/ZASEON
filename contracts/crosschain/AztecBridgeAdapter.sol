@@ -192,6 +192,9 @@ contract AztecBridgeAdapter is
     error ZeroAddress();
     error InvalidNoteType(NoteType noteType);
     error NoteMirroringFailed(bytes32 noteHash);
+    error MainnetPlaceholderNotAllowed();
+    error FeeWithdrawalFailed();
+    error InvalidProofLength();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -672,7 +675,7 @@ contract AztecBridgeAdapter is
         accumulatedFees = 0;
 
         (bool success, ) = treasury.call{value: amount}("");
-        require(success, "Fee withdrawal failed");
+        if (!success) revert FeeWithdrawalFailed();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -876,7 +879,7 @@ contract AztecBridgeAdapter is
         bytes calldata proof,
         uint256 offset
     ) internal pure returns (uint256[2] memory point) {
-        require(proof.length >= offset + 64, "Invalid proof length");
+        if (proof.length < offset + 64) revert InvalidProofLength();
         point[0] = uint256(bytes32(proof[offset:offset + 32]));
         point[1] = uint256(bytes32(proof[offset + 32:offset + 64]));
     }
@@ -888,7 +891,7 @@ contract AztecBridgeAdapter is
         bytes calldata proof,
         uint256 offset
     ) internal pure returns (uint256[2][2] memory point) {
-        require(proof.length >= offset + 128, "Invalid proof length");
+        if (proof.length < offset + 128) revert InvalidProofLength();
         point[0][0] = uint256(bytes32(proof[offset:offset + 32]));
         point[0][1] = uint256(bytes32(proof[offset + 32:offset + 64]));
         point[1][0] = uint256(bytes32(proof[offset + 64:offset + 96]));
@@ -916,7 +919,7 @@ contract AztecBridgeAdapter is
 
     function _checkMainnetSafety() internal view {
         if (block.chainid == 1) {
-            revert("Placeholder verification not allowed on mainnet");
+            revert MainnetPlaceholderNotAllowed();
         }
     }
 }

@@ -90,6 +90,7 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
         CommitmentStatus status;
         uint256 challengeDeadline;
         address submitter;
+        bytes32 blobVersionedHash; // EIP-4844 support
     }
 
     /// @notice Deposit record for L1 -> L2 transfers
@@ -186,7 +187,8 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
         bytes32 indexed commitmentId,
         uint256 indexed sourceChainId,
         bytes32 stateRoot,
-        address submitter
+        address submitter,
+        bytes32 blobVersionedHash
     );
 
     event StateCommitmentChallenged(
@@ -248,6 +250,7 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
     error WithdrawalNotFinalized(bytes32 withdrawalId);
     error AlreadyClaimed();
     error RateLimitExceeded();
+    error InvalidBlobIndex();
     error ZeroAddress();
     error ZeroAmount();
     error TransferFailed();
@@ -477,7 +480,40 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
         bytes32 stateRoot,
         bytes32 proofRoot,
         uint256 blockNumber
-    ) external payable nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
+    ) external payable {
+        _submitStateCommitment(sourceChainId, stateRoot, proofRoot, blockNumber, bytes32(0));
+    }
+
+    /**
+     * @notice Submit state commitment using EIP-4844 blob
+     * @param sourceChainId The source L2 chain ID
+     * @param stateRoot The state root from L2
+     * @param proofRoot The Soul proof merkle root
+     * @param blockNumber The L2 block number
+     * @param blobIndex The index of the blob in the current transaction
+     */
+    function submitStateCommitmentWithBlob(
+        uint256 sourceChainId,
+        bytes32 stateRoot,
+        bytes32 proofRoot,
+        uint256 blockNumber,
+        uint256 blobIndex
+    ) external payable {
+        bytes32 blobVersionedHash = blobhash(blobIndex);
+        if (blobVersionedHash == bytes32(0)) revert InvalidBlobIndex();
+        _submitStateCommitment(sourceChainId, stateRoot, proofRoot, blockNumber, blobVersionedHash);
+    }
+
+    /**
+     * @notice Internal function to handle state commitment submission
+     */
+    function _submitStateCommitment(
+        uint256 sourceChainId,
+        bytes32 stateRoot,
+        bytes32 proofRoot,
+        uint256 blockNumber,
+        bytes32 blobVersionedHash
+    ) internal nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
         L2Config storage config = l2Configs[sourceChainId];
         if (config.chainId == 0) revert ChainNotSupported(sourceChainId);
         if (!config.enabled) revert ChainNotEnabled(sourceChainId);
@@ -493,7 +529,8 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
                 stateRoot,
                 proofRoot,
                 blockNumber,
-                block.timestamp
+                block.timestamp,
+                blobVersionedHash
             )
         );
 
@@ -516,7 +553,8 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
                 ? CommitmentStatus.FINALIZED
                 : CommitmentStatus.PENDING,
             challengeDeadline: challengeDeadline,
-            submitter: msg.sender
+            submitter: msg.sender,
+            blobVersionedHash: blobVersionedHash
         });
 
         // ZK rollups finalize immediately
@@ -532,7 +570,8 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
             commitmentId,
             sourceChainId,
             stateRoot,
-            msg.sender
+            msg.sender,
+            blobVersionedHash
         );
     }
 

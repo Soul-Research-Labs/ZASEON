@@ -25,21 +25,21 @@ contract Groth16VerifierBN254 is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice BN254 curve order (scalar field Fr)
-    uint256 constant _FIELD_MODULUS =
+    uint256 internal constant _FIELD_MODULUS =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice BN254 base field Fq
-    uint256 constant _Q_MODULUS =
+    uint256 internal constant _Q_MODULUS =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /// @notice Proof size in bytes (256 = 64 + 128 + 64)
-    uint256 constant _PROOF_SIZE = 256;
+    uint256 internal constant _PROOF_SIZE = 256;
 
     /// @notice G1 point size (64 bytes = 2 * 32)
-    uint256 constant _G1_SIZE = 64;
+    uint256 internal constant _G1_SIZE = 64;
 
     /// @notice G2 point size (128 bytes = 4 * 32)
-    uint256 constant _G2_SIZE = 128;
+    uint256 internal constant _G2_SIZE = 128;
 
     /*//////////////////////////////////////////////////////////////
                          VERIFICATION KEY
@@ -78,6 +78,8 @@ contract Groth16VerifierBN254 is IProofVerifier {
     error InvalidPublicInput(uint256 index, uint256 value);
     error PairingCheckFailed();
     error PrecompileFailed();
+    error InvalidOwner();
+
 
     /*//////////////////////////////////////////////////////////////
                               EVENTS
@@ -402,7 +404,8 @@ contract Groth16VerifierBN254 is IProofVerifier {
      * @param newOwner New owner address
      */
     function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid owner");
+        if (newOwner == address(0)) revert InvalidOwner();
+
         address oldOwner = owner;
         owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);

@@ -202,6 +202,13 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     error ProposalExpired();
     error InsufficientApprovals(uint256 current, uint256 required);
 
+    error InvalidAnomalyID();
+    error AlreadyResolved();
+    error InvalidStateTransition();
+    error AlreadyExecuted();
+    error RecoveryDelayNotPassed();
+
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -331,8 +338,8 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     function resolveAnomaly(
         uint256 anomalyId
     ) external onlyRole(GUARDIAN_ROLE) {
-        require(anomalyId < activeAnomalies.length, "Invalid anomaly ID");
-        require(!activeAnomalies[anomalyId].resolved, "Already resolved");
+        if (anomalyId >= activeAnomalies.length) revert InvalidAnomalyID();
+        if (activeAnomalies[anomalyId].resolved) revert AlreadyResolved();
 
         activeAnomalies[anomalyId].resolved = true;
 
@@ -354,10 +361,8 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     function proposeRecovery(
         SystemState targetState
     ) external onlyRole(RECOVERY_ROLE) returns (uint256 proposalId) {
-        require(
-            uint256(targetState) < uint256(currentState),
-            "Can only recover to less restrictive state"
-        );
+        if (uint256(targetState) >= uint256(currentState))
+            revert InvalidStateTransition();
 
         proposalId = recoveryProposalCount++;
 
@@ -380,12 +385,10 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     ) external onlyRole(RECOVERY_ROLE) {
         RecoveryProposal storage proposal = _recoveryProposals[proposalId];
 
-        require(!proposal.executed, "Already executed");
-        require(
-            block.timestamp <= proposal.proposedAt + 24 hours,
-            "Proposal expired"
-        );
-        require(!proposal.approvals[msg.sender], "Already approved");
+        if (proposal.executed) revert AlreadyExecuted();
+        if (block.timestamp > proposal.proposedAt + 24 hours)
+            revert ProposalExpired();
+        if (proposal.approvals[msg.sender]) revert AlreadyApproved();
 
         proposal.approvals[msg.sender] = true;
         proposal.approvalCount++;
@@ -402,19 +405,16 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     ) external onlyRole(RECOVERY_ROLE) {
         RecoveryProposal storage proposal = _recoveryProposals[proposalId];
 
-        require(!proposal.executed, "Already executed");
-        require(
-            proposal.approvalCount >= MIN_RECOVERY_APPROVALS,
-            "Insufficient approvals"
-        );
-        require(
-            block.timestamp >= proposal.proposedAt + RECOVERY_DELAY,
-            "Recovery delay not passed"
-        );
-        require(
-            uint256(proposal.targetState) < uint256(currentState),
-            "Invalid target state"
-        );
+        if (proposal.executed) revert AlreadyExecuted();
+        if (proposal.approvalCount < MIN_RECOVERY_APPROVALS)
+            revert InsufficientApprovals(
+                proposal.approvalCount,
+                MIN_RECOVERY_APPROVALS
+            );
+        if (block.timestamp < proposal.proposedAt + RECOVERY_DELAY)
+            revert RecoveryDelayNotPassed();
+        if (uint256(proposal.targetState) >= uint256(currentState))
+            revert InvalidStateTransition();
 
         proposal.executed = true;
 

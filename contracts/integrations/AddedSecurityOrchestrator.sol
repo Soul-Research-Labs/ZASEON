@@ -25,6 +25,13 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - FormalBugBounty
  */
 contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
+    error ZeroAddress();
+    error AlreadyProtected();
+    error InvalidRiskLevel();
+    error NotProtected();
+    error InvalidAlertId();
+    error AlreadyResolved();
+
     // ============================================
     // ROLES
     // ============================================
@@ -294,9 +301,9 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
         address target,
         uint8 riskLevel
     ) external onlyRole(ORCHESTRATOR_ROLE) {
-        require(target != address(0), "Zero address");
-        require(!protectedContracts[target].active, "Already protected");
-        require(riskLevel <= 4, "Invalid risk level");
+        if (target == address(0)) revert ZeroAddress();
+        if (protectedContracts[target].active) revert AlreadyProtected();
+        if (riskLevel > 4) revert InvalidRiskLevel();
 
         protectedContracts[target] = ProtectedContract({
             target: target,
@@ -318,7 +325,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
     function unprotectContract(
         address target
     ) external onlyRole(ORCHESTRATOR_ROLE) {
-        require(protectedContracts[target].active, "Not protected");
+        if (!protectedContracts[target].active) revert NotProtected();
 
         protectedContracts[target].active = false;
 
@@ -334,7 +341,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
         address target,
         uint256 newScore
     ) external onlyRole(MONITOR_ROLE) {
-        require(protectedContracts[target].active, "Not protected");
+        if (!protectedContracts[target].active) revert NotProtected();
 
         uint256 oldScore = protectedContracts[target].securityScore;
         protectedContracts[target].securityScore = newScore;
@@ -407,8 +414,8 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
     function resolveAlert(
         uint256 alertId
     ) external onlyRole(ORCHESTRATOR_ROLE) {
-        require(alertId < alerts.length, "Invalid alert ID");
-        require(!alerts[alertId].resolved, "Already resolved");
+        if (alertId >= alerts.length) revert InvalidAlertId();
+        if (alerts[alertId].resolved) revert AlreadyResolved();
 
         alerts[alertId].resolved = true;
         alerts[alertId].resolvedBy = msg.sender;
@@ -495,7 +502,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
     function getAlert(
         uint256 alertId
     ) external view returns (SecurityAlert memory) {
-        require(alertId < alerts.length, "Invalid alert ID");
+        if (alertId >= alerts.length) revert InvalidAlertId();
         return alerts[alertId];
     }
 

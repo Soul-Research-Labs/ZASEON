@@ -466,7 +466,7 @@ contract MLSAGSignatures is
     function _computeR(
         uint256 s,
         Point calldata P,
-        Point calldata I,
+        Point calldata keyImage,
         uint256 c
     ) internal pure returns (Point memory) {
         // First compute H_p(P) - hash to point
@@ -477,12 +477,12 @@ contract MLSAGSignatures is
             Point(
                 addmod(
                     mulmod(s, Hp.x, ED25519_P),
-                    mulmod(c, I.x, ED25519_P),
+                    mulmod(c, keyImage.x, ED25519_P),
                     ED25519_P
                 ),
                 addmod(
                     mulmod(s, Hp.y, ED25519_P),
-                    mulmod(c, I.y, ED25519_P),
+                    mulmod(c, keyImage.y, ED25519_P),
                     ED25519_P
                 )
             );

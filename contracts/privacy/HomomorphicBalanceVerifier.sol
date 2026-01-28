@@ -462,7 +462,7 @@ contract HomomorphicBalanceVerifier is
      * @dev Simplified implementation - production needs full BP+ protocol
      */
     function _verifyBulletproofPlus(
-        Point memory commitment,
+        Point memory /* commitment */,
         BulletproofPlus calldata proof
     ) internal view returns (bool) {
         // Step 1: Verify all points are on curve

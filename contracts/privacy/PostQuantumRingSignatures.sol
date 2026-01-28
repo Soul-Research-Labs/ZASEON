@@ -177,10 +177,12 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
 
     error InvalidRingSize(uint256 size);
     error KeyImageAlreadyUsed(bytes32 keyImage);
-    error InvalidSignature(string reason);
+    error InvalidSignature();
     error InvalidPublicKey();
     error UnsupportedAlgorithm(PQAlgorithm algo);
-    error HybridVerificationFailed(string component);
+    error BindingVerificationFailed();
+    error ClassicalVerificationFailed();
+    error PQVerificationFailed();
     error SecurityLevelTooLow(uint256 provided, uint256 required);
 
     // =========================================================================
@@ -274,7 +276,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
         );
 
         if (signature.bindingHash != expectedBinding) {
-            revert HybridVerificationFailed("binding");
+            revert BindingVerificationFailed();
         }
 
         // Check neither key image is used
@@ -295,14 +297,14 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
         );
 
         if (!classicalValid) {
-            revert HybridVerificationFailed("classical");
+            revert ClassicalVerificationFailed();
         }
 
         // Verify PQ component (simplified)
         bool pqValid = _verifyPQComponent(messageHash, signature.pqSignature);
 
         if (!pqValid) {
-            revert HybridVerificationFailed("post-quantum");
+            revert PQVerificationFailed();
         }
 
         valid = classicalValid && pqValid;

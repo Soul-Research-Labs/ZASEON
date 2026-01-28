@@ -305,12 +305,12 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Validate token price against oracle
-     * @param token Token address
+
      * @param config Token configuration
      * @return valid Whether price is valid
      */
     function _validateTokenPrice(
-        address token,
+        address /*token*/,
         TokenConfig storage config
     ) internal returns (bool valid) {
         // Get oracle price (simplified - would integrate Chainlink in production)

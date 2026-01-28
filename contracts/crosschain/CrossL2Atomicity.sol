@@ -65,6 +65,8 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
     error AlreadyExecuted();
     error InvalidPhase();
     error TimeoutNotReached();
+    error InsufficientValue();
+    error SuperchainSendFailed();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -278,7 +280,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         for (uint256 i = 0; i < chainCount; i++) {
             totalRequiredValue += values[i];
         }
-        require(msg.value >= totalRequiredValue, "Insufficient value for operations");
+        if (msg.value < totalRequiredValue) revert InsufficientValue();
 
         bundleId = keccak256(
             abi.encodePacked(
@@ -493,7 +495,7 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
                     payload
                 )
             );
-            require(success, "Superchain send failed");
+            if (!success) revert SuperchainSendFailed();
         }
 
         emit SuperchainMessageSent(destChainId, messageId, payload);

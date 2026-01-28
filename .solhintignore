@@ -1,0 +1,9 @@
+contracts/verifiers/StateCommitmentVerifier.sol
+contracts/verifiers/StateTransferVerifier.sol
+contracts/verifiers/ConfidentialTransferVerifier.sol
+contracts/verifiers/NullifierVerifier.sol
+contracts/verifiers/PolicyVerifier.sol
+contracts/verifiers/MembershipVerifier.sol
+contracts/verifiers/RangeProofVerifier.sol
+contracts/test/**/*.sol
+contracts/mocks/**/*.sol

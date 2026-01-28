@@ -85,6 +85,8 @@ contract DilithiumVerifier is Ownable {
     error InvalidSignatureSize(uint256 expected, uint256 actual);
     error PrecompileCallFailed();
     error InvalidSecurityLevel();
+    error ArrayLengthMismatch();
+
 
     // =============================================================================
     // CONSTRUCTOR
@@ -159,12 +161,11 @@ contract DilithiumVerifier is Ownable {
         bytes[] calldata publicKeys,
         DilithiumLevel[] calldata levels
     ) external returns (bool allValid) {
-        require(
-            messages.length == signatures.length &&
-                signatures.length == publicKeys.length &&
-                publicKeys.length == levels.length,
-            "Array length mismatch"
-        );
+        if (
+            messages.length != signatures.length ||
+            signatures.length != publicKeys.length ||
+            publicKeys.length != levels.length
+        ) revert ArrayLengthMismatch();
 
         uint256 len = messages.length;
         for (uint256 i; i < len; ) {

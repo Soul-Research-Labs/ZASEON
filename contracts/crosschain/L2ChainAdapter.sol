@@ -45,6 +45,15 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         FAILED
     }
 
+    error ChainAlreadyExists();
+    error ChainNotFound();
+    error ChainNotEnabled();
+    error InvalidMessageStatus();
+    error InvalidProof();
+    error InvalidMagicBytes();
+    error PayloadHashMismatch();
+    error ProofExpired();
+
     mapping(bytes32 => Message) public messages;
 
     // Events
@@ -176,7 +185,7 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         uint256 confirmations,
         uint256 gasLimit
     ) external onlyRole(ADMIN_ROLE) {
-        require(chainConfigs[chainId].chainId == 0, "Chain already exists");
+        if (chainConfigs[chainId].chainId != 0) revert ChainAlreadyExists();
 
         _addChain(
             ChainConfig({
@@ -202,7 +211,7 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         uint256 gasLimit,
         bool enabled
     ) external onlyRole(ADMIN_ROLE) {
-        require(chainConfigs[chainId].chainId != 0, "Chain not found");
+        if (chainConfigs[chainId].chainId == 0) revert ChainNotFound();
 
         ChainConfig storage config = chainConfigs[chainId];
         config.bridge = bridge;
@@ -221,7 +230,7 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         uint256 targetChain,
         bytes calldata payload
     ) external nonReentrant returns (bytes32 messageId) {
-        require(chainConfigs[targetChain].enabled, "Chain not enabled");
+        if (!chainConfigs[targetChain].enabled) revert ChainNotEnabled();
 
         messageId = keccak256(
             abi.encodePacked(
@@ -259,18 +268,14 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         bytes calldata payload,
         bytes calldata proof
     ) external onlyRole(RELAYER_ROLE) nonReentrant {
-        require(chainConfigs[sourceChain].enabled, "Source chain not enabled");
-        require(
-            messages[messageId].status == MessageStatus.PENDING ||
-                messages[messageId].id == bytes32(0),
-            "Invalid message status"
-        );
+        if (
+            messages[messageId].status != MessageStatus.PENDING &&
+            messages[messageId].id != bytes32(0)
+        ) revert InvalidMessageStatus();
 
         // Verify the message proof (chain-specific)
-        require(
-            _verifyMessageProof(sourceChain, messageId, payload, proof),
-            "Invalid proof"
-        );
+        if (!_verifyMessageProof(sourceChain, messageId, payload, proof))
+            revert InvalidProof();
 
         messages[messageId] = Message({
             id: messageId,
@@ -288,10 +293,8 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
      * @notice Confirm message delivery
      */
     function confirmMessage(bytes32 messageId) external onlyRole(RELAYER_ROLE) {
-        require(
-            messages[messageId].status == MessageStatus.RELAYED,
-            "Message not relayed"
-        );
+        if (messages[messageId].status != MessageStatus.RELAYED)
+            revert InvalidMessageStatus();
 
         messages[messageId].status = MessageStatus.CONFIRMED;
         emit MessageConfirmed(messageId);
@@ -334,16 +337,16 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         );
 
         // Verify proof structure
-        require(magicBytes == expectedMagic, "Invalid proof magic bytes");
+        if (magicBytes != expectedMagic) revert InvalidMagicBytes();
 
         // Verify payload hash is included in proof
         bytes32 payloadHash = keccak256(payload);
         bytes32 proofPayloadHash = bytes32(proof[4:36]);
-        require(payloadHash == proofPayloadHash, "Payload hash mismatch");
+        if (payloadHash != proofPayloadHash) revert PayloadHashMismatch();
 
         // Verify timestamp freshness (prevent replay of old proofs)
         uint256 proofTimestamp = uint256(bytes32(proof[36:68]));
-        require(block.timestamp - proofTimestamp < 1 hours, "Proof expired");
+        if (block.timestamp - proofTimestamp >= 1 hours) revert ProofExpired();
 
         // TODO: Add Merkle proof verification against source chain state root
         // TODO: Add oracle signature validation

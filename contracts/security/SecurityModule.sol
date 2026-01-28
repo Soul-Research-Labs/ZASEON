@@ -47,6 +47,16 @@ abstract contract SecurityModule {
     /// @notice Thrown when cooldown period not elapsed
     error CooldownNotElapsed(uint256 remaining);
 
+    error WindowTooShort();
+    error WindowTooLong();
+    error MaxActionsTooLow();
+    error MaxActionsTooHigh();
+    error ThresholdTooLow();
+    error CooldownTooShort(uint256 minCooldown);
+    error CooldownTooLong(uint256 maxCooldown);
+    error InvalidWithdrawalLimits();
+
+
     /*//////////////////////////////////////////////////////////////
                                STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -353,10 +363,10 @@ abstract contract SecurityModule {
      * @dev slither-disable-next-line dead-code
      */
     function _setRateLimitConfig(uint256 window, uint256 maxActions) internal {
-        require(window >= 5 minutes, "Window too short");
-        require(window <= 24 hours, "Window too long");
-        require(maxActions >= 1, "Max actions too low");
-        require(maxActions <= 1000, "Max actions too high");
+        if (window < 5 minutes) revert WindowTooShort();
+        if (window > 24 hours) revert WindowTooLong();
+        if (maxActions < 1) revert MaxActionsTooLow();
+        if (maxActions > 1000) revert MaxActionsTooHigh();
 
         emit SecurityConfigUpdated("rateLimitWindow", rateLimitWindow, window);
         emit SecurityConfigUpdated(
@@ -379,9 +389,9 @@ abstract contract SecurityModule {
         uint256 threshold,
         uint256 cooldown
     ) internal {
-        require(threshold >= 1000 * 1e18, "Threshold too low");
-        require(cooldown >= 15 minutes, "Cooldown too short");
-        require(cooldown <= 24 hours, "Cooldown too long");
+        if (threshold < 1000 * 1e18) revert ThresholdTooLow();
+        if (cooldown < 15 minutes) revert CooldownTooShort(15 minutes);
+        if (cooldown > 24 hours) revert CooldownTooLong(24 hours);
 
         emit SecurityConfigUpdated(
             "volumeThreshold",
@@ -410,8 +420,8 @@ abstract contract SecurityModule {
         uint256 dailyMax,
         uint256 accountDailyMax
     ) internal {
-        require(singleMax <= dailyMax, "Single > daily");
-        require(accountDailyMax <= dailyMax, "Account > global daily");
+        if (singleMax > dailyMax) revert InvalidWithdrawalLimits();
+        if (accountDailyMax > dailyMax) revert InvalidWithdrawalLimits();
 
         emit SecurityConfigUpdated(
             "maxSingleWithdrawal",

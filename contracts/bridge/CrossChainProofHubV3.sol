@@ -328,6 +328,15 @@ contract CrossChainProofHubV3 is
     /// @notice Error thrown when a zero address is provided
     error ZeroAddress();
 
+    /// @notice Error thrown when admin tries to perform relayer/challenger actions
+    error AdminNotAllowed();
+
+    /// @notice Error thrown when roles are not properly separated
+    error RolesNotSeparated();
+
+    /// @notice Error thrown when a transfer fails
+    error TransferFailed();
+
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -366,11 +375,8 @@ contract CrossChainProofHubV3 is
     /// @dev Prevents accidental mainnet deployment with centralized control
     function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
         // Verify critical roles are NOT held by admin
-        require(!hasRole(RELAYER_ROLE, msg.sender), "Admin cannot be relayer");
-        require(
-            !hasRole(CHALLENGER_ROLE, msg.sender),
-            "Admin cannot be challenger"
-        );
+        if (hasRole(RELAYER_ROLE, msg.sender)) revert AdminNotAllowed();
+        if (hasRole(CHALLENGER_ROLE, msg.sender)) revert AdminNotAllowed();
         rolesSeparated = true;
     }
 
@@ -427,8 +433,8 @@ contract CrossChainProofHubV3 is
     ) external payable nonReentrant whenNotPaused returns (bytes32 proofId) {
         // SECURITY: Require role separation before accepting proofs
         // Prevents Ronin-style centralized validator attacks
-        require(rolesSeparated, "Roles not separated - unsafe for mainnet");
-        require(hasRole(RELAYER_ROLE, msg.sender), "Not authorized relayer");
+        if (!rolesSeparated) revert RolesNotSeparated();
+        if (!hasRole(RELAYER_ROLE, msg.sender)) revert UnauthorizedRelayer();
 
         return
             _submitProof(
@@ -747,7 +753,7 @@ contract CrossChainProofHubV3 is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    error ProofRateLimitExceeded(string reason);
+    error ProofRateLimitExceeded();
 
     function _checkRateLimit(uint256 count) internal {
         if (block.timestamp >= lastRateLimitReset + 1 hours) {
@@ -757,7 +763,7 @@ contract CrossChainProofHubV3 is
         }
 
         if (hourlyProofCount + count > maxProofsPerHour) {
-            revert ProofRateLimitExceeded("Max proofs per hour exceeded");
+            revert ProofRateLimitExceeded();
         }
         unchecked {
             hourlyProofCount += count;

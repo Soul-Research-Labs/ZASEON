@@ -245,6 +245,8 @@ contract FHEOptimizedPrivacy is AccessControl, ReentrancyGuard, Pausable {
     error RequestAlreadyFulfilled(uint256 requestId);
     error LazyNodeAlreadyEvaluated(bytes32 nodeId);
     error PrecomputeTableFull();
+    error LengthMismatch();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -570,7 +572,8 @@ contract FHEOptimizedPrivacy is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata keys,
         bytes32[] calldata values
     ) external onlyRole(OPERATOR_ROLE) {
-        require(keys.length == values.length, "Length mismatch");
+        if (keys.length != values.length) revert LengthMismatch();
+
 
         for (uint256 i = 0; i < keys.length; i++) {
             precomputeTables[keys[i]] = PrecomputeEntry({

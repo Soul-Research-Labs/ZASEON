@@ -240,6 +240,12 @@ contract StealthAddressRegistry is
     error CrossChainBindingExists();
     error InvalidProof();
     error ZeroAddress();
+    error InsufficientFee();
+    error InvalidSecp256k1Key();
+    error InvalidEd25519Key();
+    error InvalidBLSKey();
+    error InvalidBN254Key();
+
 
     // =========================================================================
     // INITIALIZER
@@ -341,12 +347,12 @@ contract StealthAddressRegistry is
      * @notice Derive a stealth address for a recipient
      * @dev Off-chain computation required for actual EC operations
      * @param recipient The recipient's address (must have registered meta-address)
-     * @param ephemeralPubKey The sender's ephemeral public key (R = r*G)
+
      * @param sharedSecretHash Hash of the shared secret S = r * P_view
      */
     function deriveStealthAddress(
         address recipient,
-        bytes calldata ephemeralPubKey,
+        bytes calldata /* ephemeralPubKey */,
         bytes32 sharedSecretHash
     ) external view returns (address stealthAddress, bytes1 viewTag) {
         StealthMetaAddress storage meta = metaAddresses[recipient];
@@ -478,14 +484,15 @@ contract StealthAddressRegistry is
     /**
      * @notice Announce without role (for decentralized usage, with payment)
      */
-    function announcePublic(
+    function announcePrivate(
         uint256 schemeId,
         address stealthAddress,
         bytes calldata ephemeralPubKey,
         bytes calldata viewTag,
         bytes calldata metadata
     ) external payable {
-        require(msg.value >= 0.0001 ether, "Insufficient fee");
+        if (msg.value < 0.0001 ether) revert InsufficientFee();
+
         if (stealthAddress == address(0)) revert ZeroAddress();
 
         bytes32 schemeIdBytes = bytes32(schemeId);
@@ -678,24 +685,22 @@ contract StealthAddressRegistry is
     ) internal pure {
         if (curveType == CurveType.SECP256K1) {
             // Compressed: 33 bytes, Uncompressed: 65 bytes
-            require(
-                pubKey.length == 33 || pubKey.length == 65,
-                "Invalid secp256k1 key"
-            );
+            if (pubKey.length != 33 && pubKey.length != 65)
+                revert InvalidSecp256k1Key();
+
         } else if (curveType == CurveType.ED25519) {
-            require(pubKey.length == 32, "Invalid ed25519 key");
+            if (pubKey.length != 32) revert InvalidEd25519Key();
+
         } else if (curveType == CurveType.BLS12_381) {
             // G1: 48 bytes compressed, G2: 96 bytes compressed
-            require(
-                pubKey.length == 48 || pubKey.length == 96,
-                "Invalid BLS key"
-            );
+            if (pubKey.length != 48 && pubKey.length != 96)
+                revert InvalidBLSKey();
+
         } else if (curveType == CurveType.BN254) {
-            require(
-                pubKey.length == 32 || pubKey.length == 64,
-                "Invalid BN254 key"
-            );
+            if (pubKey.length != 32 && pubKey.length != 64)
+                revert InvalidBN254Key();
         }
+
         // PALLAS/VESTA: 32 bytes
     }
 

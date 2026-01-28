@@ -584,7 +584,7 @@ contract SoulKernelProof is AccessControl, ReentrancyGuard, Pausable {
      * @dev Invariant 2: Policy hash is in proof's domain separator
      */
     function _verifyPolicyBound(
-        bytes32 policyHash,
+        bytes32 /* policyHash */,
         bytes calldata proof
     ) internal pure returns (bool) {
         // In production, this would verify the proof contains policy commitment

@@ -46,6 +46,7 @@ contract Groth16VerifierBN254 {
     error NotOwner();
     error PairingCheckFailed();
     error PrecompileFailed();
+    error LengthMismatch();
 
     /// @notice Emitted when verification key is set
     event VerificationKeySet(address indexed setter);
@@ -187,7 +188,7 @@ contract Groth16VerifierBN254 {
         bytes[] calldata proofs,
         bytes[] calldata publicInputsArray
     ) external view returns (bool allValid) {
-        require(proofs.length == publicInputsArray.length, "Length mismatch");
+        if (proofs.length != publicInputsArray.length) revert LengthMismatch();
 
         for (uint256 i = 0; i < proofs.length; i++) {
             if (!this.verifyProof(proofs[i], publicInputsArray[i])) {

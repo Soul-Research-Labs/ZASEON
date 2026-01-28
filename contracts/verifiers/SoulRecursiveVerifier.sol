@@ -66,6 +66,24 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
     uint256 public maxBatchSize = 100;
 
     // ============================================
+    // Errors
+    // ============================================
+
+    error BatchTooSmall();
+    error BatchTooLarge();
+    error TransferCountMismatch();
+    error NullifierCountMismatch();
+    error NullifierAlreadyUsed();
+    error BatchAlreadyVerified();
+    error InvalidAggregatedProof();
+    error InvalidProof();
+    error InvalidAddress();
+    error MinMustBePositive();
+    error MaxMustBeLessThanMin();
+    error MaxTooLarge();
+
+
+    // ============================================
     // Events
     // ============================================
 
@@ -124,21 +142,18 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
         uint256 gasStart = gasleft();
 
         // Validate inputs
-        require(proofData.proofCount >= minBatchSize, "Batch too small");
-        require(proofData.proofCount <= maxBatchSize, "Batch too large");
-        require(
-            transferIds.length == proofData.proofCount,
-            "Transfer count mismatch"
-        );
-        require(
-            nullifiers.length == proofData.proofCount,
-            "Nullifier count mismatch"
-        );
+        if (proofData.proofCount < minBatchSize) revert BatchTooSmall();
+        if (proofData.proofCount > maxBatchSize) revert BatchTooLarge();
+        if (transferIds.length != proofData.proofCount)
+            revert TransferCountMismatch();
+        if (nullifiers.length != proofData.proofCount)
+            revert NullifierCountMismatch();
 
         // Check nullifiers haven't been used
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            require(!usedNullifiers[nullifiers[i]], "Nullifier already used");
+            if (usedNullifiers[nullifiers[i]]) revert NullifierAlreadyUsed();
         }
+
 
         // Compute batch ID
         batchId = keccak256(
@@ -150,12 +165,14 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
             )
         );
 
-        require(!verifiedBatches[batchId], "Batch already verified");
+        if (verifiedBatches[batchId]) revert BatchAlreadyVerified();
+
 
         // Verify the proof
         bytes32 proofHash = keccak256(abi.encode(proofData));
         bool valid = _verifyAggregatedProof(proof, proofHash, proofData);
-        require(valid, "Invalid aggregated proof");
+        if (!valid) revert InvalidAggregatedProof();
+
 
         // Mark batch as verified
         verifiedBatches[batchId] = true;
@@ -209,7 +226,8 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
         bytes32 commitment,
         bytes32[] calldata publicInputs
     ) external nonReentrant whenNotPaused returns (bytes32 proofId) {
-        require(!usedNullifiers[nullifier], "Nullifier already used");
+        if (usedNullifiers[nullifier]) revert NullifierAlreadyUsed();
+
 
         proofId = keccak256(abi.encode(nullifier, commitment, block.number));
 
@@ -220,7 +238,8 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
             commitment,
             publicInputs
         );
-        require(valid, "Invalid proof");
+        if (!valid) revert InvalidProof();
+
 
         // Mark nullifier as used
         usedNullifiers[nullifier] = true;
@@ -297,7 +316,8 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
      * @param newVerifier Address of new verifier
      */
     function setAggregatedVerifier(address newVerifier) external onlyOwner {
-        require(newVerifier != address(0), "Invalid address");
+        if (newVerifier == address(0)) revert InvalidAddress();
+
         address old = aggregatedVerifier;
         aggregatedVerifier = newVerifier;
         emit VerifierUpdated(old, newVerifier, true);
@@ -308,7 +328,8 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
      * @param newVerifier Address of new verifier
      */
     function setSingleVerifier(address newVerifier) external onlyOwner {
-        require(newVerifier != address(0), "Invalid address");
+        if (newVerifier == address(0)) revert InvalidAddress();
+
         address old = singleVerifier;
         singleVerifier = newVerifier;
         emit VerifierUpdated(old, newVerifier, false);
@@ -323,9 +344,10 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
         uint256 _minBatchSize,
         uint256 _maxBatchSize
     ) external onlyOwner {
-        require(_minBatchSize > 0, "Min must be positive");
-        require(_maxBatchSize >= _minBatchSize, "Max must be >= min");
-        require(_maxBatchSize <= 1000, "Max too large");
+        if (_minBatchSize == 0) revert MinMustBePositive();
+        if (_maxBatchSize < _minBatchSize) revert MaxMustBeLessThanMin();
+        if (_maxBatchSize > 1000) revert MaxTooLarge();
+
         minBatchSize = _minBatchSize;
         maxBatchSize = _maxBatchSize;
     }

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+error InvalidLength();
+
+
 /// @title ConstantTimeOperations
 /// @notice Library providing constant-time operations to prevent timing side-channel attacks
 /// @dev Critical for privacy-preserving operations where timing leaks could reveal secrets
@@ -226,10 +229,7 @@ library ConstantTimeOperations {
         bytes memory src,
         uint256 length
     ) internal pure {
-        require(
-            dest.length >= length && src.length >= length,
-            "CT: Invalid length"
-        );
+        if (dest.length < length || src.length < length) revert InvalidLength();
 
         assembly {
             let destPtr := add(dest, 32)

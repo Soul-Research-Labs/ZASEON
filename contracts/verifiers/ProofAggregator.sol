@@ -122,6 +122,9 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     error VerifierNotSet();
     error InvalidAggregatedProof();
     error EmptyProofArray();
+    error LengthMismatch();
+    error MerkleRootMismatch();
+
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -173,10 +176,9 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
         uint64[] calldata chainIds
     ) external onlyRole(AGGREGATOR_ROLE) {
         uint256 len = proofHashes.length;
-        require(
-            len == publicInputsHashes.length && len == chainIds.length,
-            "Length mismatch"
-        );
+        if (len != publicInputsHashes.length || len != chainIds.length)
+            revert LengthMismatch();
+
 
         for (uint256 i = 0; i < len; ) {
             if (proofData[proofHashes[i]].proofHash == bytes32(0)) {
@@ -287,7 +289,8 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
             // Assuming merkle root is first 32 bytes of public inputs
             providedRoot := calldataload(add(publicInputs.offset, 0))
         }
-        require(providedRoot == expectedRoot, "Merkle root mismatch");
+        if (providedRoot != expectedRoot) revert MerkleRootMismatch();
+
 
         // Call the verifier
         bool valid = _verifyAggregatedProof(aggregatedProof, publicInputs);
@@ -409,7 +412,9 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
 
         // Verify proof hash matches
         bytes32 proofHash = keccak256(recursiveProof);
-        require(proofHash == batch.aggregatedProofHash, "Proof hash mismatch");
+        if (proofHash != batch.aggregatedProofHash)
+            revert InvalidAggregatedProof();
+
 
         uint256 gasStart = gasleft();
 

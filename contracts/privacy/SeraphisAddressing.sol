@@ -147,11 +147,11 @@ contract SeraphisAddressing is AccessControl, ReentrancyGuard {
     /// @dev K_1 = k_vb * X + k_gi * U
     ///      K_2 = k_m * G
     ///      K_3 = k_gi * G
-    /// @param spendKeyHash Hash of the spend key (actual key is off-chain)
+
     /// @param addressComponents Pre-computed address components
     /// @return addressId The address identifier
     function registerAddress(
-        bytes32 spendKeyHash,
+        bytes32 /*spendKeyHash*/,
         SeraphisAddress calldata addressComponents
     ) external returns (bytes32 addressId) {
         // Validate address components

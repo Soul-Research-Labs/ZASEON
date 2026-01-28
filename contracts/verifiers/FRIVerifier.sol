@@ -31,22 +31,22 @@ contract FRIVerifier is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Prime field modulus (Goldilocks field: 2^64 - 2^32 + 1)
-    uint256 constant _FIELD_MODULUS = 18446744069414584321;
+    uint256 internal constant _FIELD_MODULUS = 18446744069414584321;
 
     /// @notice Generator of the multiplicative group
-    uint256 constant _GENERATOR = 7;
+    uint256 internal constant _GENERATOR = 7;
 
     /// @notice Number of FRI layers
-    uint256 constant _MAX_FRI_LAYERS = 20;
+    uint256 internal constant _MAX_FRI_LAYERS = 20;
 
     /// @notice Number of queries for soundness
-    uint256 constant _NUM_QUERIES = 30;
+    uint256 internal constant _NUM_QUERIES = 30;
 
     /// @notice Blow-up factor (rate = 1/blowup)
-    uint256 constant _BLOWUP_FACTOR = 8;
+    uint256 internal constant _BLOWUP_FACTOR = 8;
 
     /// @notice Minimum proof size (header + commitments + queries)
-    uint256 constant _MIN_PROOF_SIZE = 512;
+    uint256 internal constant _MIN_PROOF_SIZE = 512;
 
     /*//////////////////////////////////////////////////////////////
                             STRUCTURES
@@ -232,16 +232,16 @@ contract FRIVerifier is IProofVerifier {
 
         // Verify query Merkle paths
         for (uint256 q = 0; q < queries.length; q++) {
-            for (uint256 l = 0; l < layers.length; l++) {
+            for (uint256 layerIdx = 0; layerIdx < layers.length; layerIdx++) {
                 if (
                     !_verifyMerklePath(
-                        layers[l].merkleRoot,
-                        queries[q].evaluations[l],
-                        queries[q].merklePaths[l],
-                        queryIndices[q] >> l
+                        layers[layerIdx].merkleRoot,
+                        queries[q].evaluations[layerIdx],
+                        queries[q].merklePaths[layerIdx],
+                        queryIndices[q] >> layerIdx
                     )
                 ) {
-                    revert MerkleVerificationFailed(l, q);
+                    revert MerkleVerificationFailed(layerIdx, q);
                 }
             }
         }
@@ -324,16 +324,16 @@ contract FRIVerifier is IProofVerifier {
             uint256[] memory evaluations = new uint256[](numLayers);
             bytes32[][] memory merklePaths = new bytes32[][](numLayers);
 
-            for (uint256 l = 0; l < numLayers; l++) {
-                evaluations[l] = _readUint256(proof, offset);
+            for (uint256 layerIdx = 0; layerIdx < numLayers; layerIdx++) {
+                evaluations[layerIdx] = _readUint256(proof, offset);
                 offset += 32;
 
                 // Read Merkle path (log2(domainSize) - l elements)
-                uint256 pathLen = _log2(layers[l].domainSize);
-                merklePaths[l] = new bytes32[](pathLen);
+                uint256 pathLen = _log2(layers[layerIdx].domainSize);
+                merklePaths[layerIdx] = new bytes32[](pathLen);
 
                 for (uint256 p = 0; p < pathLen; p++) {
-                    merklePaths[l][p] = bytes32(_readUint256(proof, offset));
+                    merklePaths[layerIdx][p] = bytes32(_readUint256(proof, offset));
                     offset += 32;
                 }
             }

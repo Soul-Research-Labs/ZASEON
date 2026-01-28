@@ -337,6 +337,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     error PayloadNotStored();
     error UnauthorizedCaller();
     error WithdrawalFailed();
+    error FeeTooHigh();
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -387,7 +388,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     function setBridgeFee(
         uint256 _feeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_feeBps <= 100, "Fee too high"); // Max 1%
+        if (_feeBps > 100) revert FeeTooHigh(); // Max 1%
         bridgeFee = _feeBps;
         emit BridgeFeeSet(_feeBps);
     }
@@ -696,7 +697,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint32 dstEid,
         bytes32 recipient,
         uint256 amount,
-        MessageOptions calldata options
+        MessageOptions calldata /* options */
     ) external payable nonReentrant whenNotPaused returns (bytes32 transferId) {
         if (amount == 0) revert InvalidAmount();
 

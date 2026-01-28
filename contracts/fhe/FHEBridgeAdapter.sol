@@ -645,18 +645,18 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Callback for re-encryption completion
      * @param requestId Request ID
-     * @param reencryptedValue Re-encrypted value
+
      */
     function onReencrypted(
         bytes32 requestId,
-        bytes32 reencryptedValue
+        bytes32 /* reencryptedValue */
     ) external {
-        require(msg.sender == address(fheGateway), "Unauthorized");
+        if (msg.sender != address(fheGateway)) revert Unauthorized();
 
         bytes32 transferId = reencryptionToTransfer[requestId];
         if (transferId == bytes32(0)) return;
 
-        OutboundTransfer storage transfer = outboundTransfers[transferId];
+        // OutboundTransfer storage transfer = outboundTransfers[transferId];
 
         // Store re-encrypted amount (would be used by relayer)
         // In production, emit event with re-encrypted value for relayer

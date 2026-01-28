@@ -116,6 +116,9 @@ contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
     error SNARKVerificationFailed();
     error InstanceMismatch();
     error ProofAlreadyVerified();
+    error LengthMismatch();
+    error InvalidPC();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -336,10 +339,9 @@ contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
         bytes32[][] calldata finalOutputsArray
     ) external nonReentrant returns (bool[] memory results) {
         uint256 len = keyIds.length;
-        require(
-            proofs.length == len && finalOutputsArray.length == len,
-            "Length mismatch"
-        );
+        if (proofs.length != len || finalOutputsArray.length != len)
+            revert LengthMismatch();
+
 
         results = new bool[](len);
 
@@ -439,7 +441,8 @@ contract SuperNovaVerifier is NovaRecursiveVerifier {
         // Verify each step uses the correct circuit
         for (uint256 i = 0; i < proof.executionTrace.length; i++) {
             uint256 pc = proof.executionTrace[i];
-            require(pc < circuitDigests.length, "Invalid PC");
+            if (pc >= circuitDigests.length) revert InvalidPC();
+
 
             // Verify step proof matches circuit
             // In production, verify the actual step proof

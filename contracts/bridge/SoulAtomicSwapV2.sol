@@ -141,6 +141,9 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
     error InvalidCommitHash();
     error WithdrawalNotReady();
     error WithdrawalNotFound();
+    error UseCommitReveal();
+    error NoFeesToWithdraw();
+    error FeeTransferFailed();
 
     constructor(address _feeRecipient) Ownable(msg.sender) {
         if (_feeRecipient == address(0)) revert ZeroAddress();
@@ -382,7 +385,7 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
         bytes32 _hashLock = swap.hashLock;
 
         // Only allow recipient to use direct claim (still has some MEV risk)
-        require(msg.sender == _recipient, "Use commit-reveal pattern");
+        if (msg.sender != _recipient) revert UseCommitReveal();
 
         if (swap.status != SwapStatus.Created) revert SwapNotPending();
         if (block.timestamp + TIMESTAMP_BUFFER >= _timeLock)
@@ -476,7 +479,7 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
     /// @notice Updates the fee recipient
     /// @param newRecipient New fee recipient address
     function setFeeRecipient(address newRecipient) external onlyOwner {
-        require(newRecipient != address(0), "Invalid recipient");
+        if (newRecipient == address(0)) revert ZeroAddress();
         address oldRecipient = feeRecipient;
         feeRecipient = newRecipient;
         emit FeeRecipientUpdated(oldRecipient, newRecipient);
@@ -489,7 +492,7 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
         address token
     ) external onlyOwner returns (bytes32 withdrawalId) {
         uint256 amount = collectedFees[token];
-        require(amount > 0, "No fees to withdraw");
+        if (amount == 0) revert NoFeesToWithdraw();
 
         withdrawalId = keccak256(
             abi.encodePacked(token, amount, block.timestamp)
@@ -518,7 +521,7 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
 
         if (token == address(0)) {
             (bool success, ) = feeRecipient.call{value: amount}("");
-            require(success, "Transfer failed");
+            if (!success) revert FeeTransferFailed();
         } else {
             IERC20(token).safeTransfer(feeRecipient, amount);
         }

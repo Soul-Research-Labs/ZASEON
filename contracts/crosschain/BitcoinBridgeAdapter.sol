@@ -158,6 +158,8 @@ contract BitcoinBridgeAdapter is
     /*//////////////////////////////////////////////////////////////
                               STATISTICS
     //////////////////////////////////////////////////////////////*/
+    error InvalidBitcoinTransaction();
+    error TransferFailed();
 
     /// @notice Total BTC deposited (satoshis)
     uint256 public totalDeposited;
@@ -543,7 +545,7 @@ contract BitcoinBridgeAdapter is
 
         // Transfer funds to recipient
         (bool success, ) = htlc.recipient.call{value: htlc.amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert TransferFailed();
 
         emit HTLCRedeemed(htlcId, preimage, htlc.recipient);
     }
@@ -568,7 +570,7 @@ contract BitcoinBridgeAdapter is
 
         // Return funds to sender
         (bool success, ) = htlc.sender.call{value: htlc.amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert TransferFailed();
 
         emit HTLCRefunded(htlcId, htlc.sender);
     }
@@ -725,7 +727,7 @@ contract BitcoinBridgeAdapter is
     ) internal pure returns (uint256 satoshis, bytes memory scriptPubKey) {
         // Simplified parser - in production use full BTC tx parsing
         // Extract first output value (8 bytes little-endian at offset)
-        require(btcTxRaw.length >= 100, "Invalid BTC transaction");
+        if (btcTxRaw.length < 100) revert InvalidBitcoinTransaction();
 
         // Mock parsing - would implement full Bitcoin transaction parsing
         satoshis = 1000000; // 0.01 BTC placeholder

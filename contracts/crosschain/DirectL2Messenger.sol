@@ -70,6 +70,8 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     error MessageAlreadyProcessed();
     error MessageExpired();
     error InvalidSignatureCount();
+    error UnbondingPeriodNotComplete();
+    error TransferFailed();
     error InvalidRelayer();
     error InsufficientBond();
     error ChallengeWindowOpen();
@@ -701,10 +703,8 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         if (relayer.bond == 0) revert InsufficientBond();
 
         // Check unbonding period (7 days)
-        require(
-            block.timestamp >= relayer.registeredAt + 7 days,
-            "Unbonding period not complete"
-        );
+        if (block.timestamp < relayer.registeredAt + 7 days)
+            revert UnbondingPeriodNotComplete();
 
         uint256 amount = relayer.bond;
         relayer.bond = 0;
@@ -803,7 +803,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
 
             // Return bond + reward to challenger
             (bool success, ) = challenger.call{value: bond + 0.1 ether}("");
-            require(success, "Transfer failed");
+            if (!success) revert TransferFailed();
         } else {
             // Challenge failed: burn challenger bond
             msg_.status = MessageStatus.EXECUTED;

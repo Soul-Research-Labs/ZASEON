@@ -251,13 +251,13 @@ contract HoneyPotDetector is AccessControl, ReentrancyGuard {
      * @notice Report an address as a honey pot
      * @param target Address to report
      * @param potType Type of honey pot
-     * @param evidence Evidence string/IPFS hash
+
      * @return reportId Report identifier
      */
     function reportHoneyPot(
         address target,
         HoneyPotType potType,
-        string calldata evidence
+        string calldata /*evidence*/
     ) external payable nonReentrant returns (bytes32 reportId) {
         if (target == address(0)) revert InvalidAddress();
         if (whitelisted[target]) revert AddressWhitelistedError();
@@ -528,7 +528,7 @@ contract HoneyPotDetector is AccessControl, ReentrancyGuard {
 
     function _simulateTransferOut(
         address target,
-        address token,
+        address /*token*/,
         uint256 amount
     ) internal view returns (bool) {
         if (target.code.length == 0) return true;

@@ -140,6 +140,10 @@ contract StarknetBridgeAdapter is
         emit StarknetConfigured(starknetCore, l2BridgeAddress);
     }
 
+    error ETHDepositsNotSupported();
+    error TransferFailed();
+
+
     /**
      * @notice Map token L1 <-> L2
      */
@@ -183,7 +187,7 @@ contract StarknetBridgeAdapter is
         (bool success, ) = l1Token.call(
             abi.encodeWithSelector(0x23b872dd, msg.sender, address(this), amount)
         );
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
 
         // Construct payload for Cairo contract: [l1_token, amount_low, amount_high, l2_recipient]
         uint256[] memory payload = new uint256[](4);
@@ -229,9 +233,9 @@ contract StarknetBridgeAdapter is
      * @notice Deposit ETH to Starknet
      */
     function depositETH(
-        uint256 l2Recipient
+        uint256 /* l2Recipient */
     ) external payable nonReentrant whenNotPaused returns (bytes32 depositId) {
-        revert("ETH deposits via adapter not supported yet, use StarknetGateway");
+        revert ETHDepositsNotSupported();
     }
 
     /**

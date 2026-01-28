@@ -308,6 +308,8 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     error InsufficientFee();
     error InsufficientLiquidity();
     error FastExitDisabled();
+    error TransferFailed();
+    error FeeTooHigh();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -545,8 +547,8 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      */
     function claimWithdrawal(
         bytes32 withdrawalId,
-        bytes32[] calldata proof,
-        uint256 index
+        bytes32[] calldata /* proof */,
+        uint256 /* index */
     ) external nonReentrant {
         L2ToL1Withdrawal storage withdrawal = withdrawals[withdrawalId];
         if (withdrawal.initiatedAt == 0) revert WithdrawalNotFound();
@@ -561,7 +563,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         
         // This function would normally be called by the Outbox during execution
         // But if we want to manually verify:
-        bytes32 root = outbox.l2ToL1Sender(); // This only works during execution
+        // bytes32 root = outbox.l2ToL1Sender(); // This only works during execution
         
         // Proper pattern: Check if msg.sender is Outbox
         if (msg.sender != address(outbox)) revert InvalidProof();
@@ -628,7 +630,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         liquidityProviders[msg.sender] -= amount;
 
         (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
 
         emit LiquidityWithdrawn(msg.sender, amount);
     }
@@ -668,7 +670,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     function setBridgeFee(uint256 newFee) external onlyRole(OPERATOR_ROLE) {
-        require(newFee <= 100, "Fee too high");
+        if (newFee > 100) revert FeeTooHigh();
         bridgeFee = newFee;
     }
 

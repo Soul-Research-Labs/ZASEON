@@ -461,7 +461,7 @@ contract ExecutionIndirectionLayer is AccessControl, ReentrancyGuard, Pausable {
      */
     function _verifyExecutionProof(
         ExecutionIntent storage intent,
-        bytes32 resultCommitment,
+        bytes32 /* resultCommitment */,
         bytes calldata executionProof
     ) internal view returns (bool) {
         // Proof must exist

@@ -193,7 +193,7 @@ contract Soulv2OrchestratorUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     function _authorizeUpgrade(
-        address newImplementation
+        address /* newImplementation */
     ) internal override onlyRole(UPGRADER_ROLE) {
         uint256 oldVersion = contractVersion;
         contractVersion++;

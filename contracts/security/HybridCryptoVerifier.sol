@@ -159,6 +159,9 @@ contract HybridCryptoVerifier is
     error InvalidSignatureLength(uint256 expected, uint256 actual);
     error ZeroAddress();
     error KeyAlreadyExists(bytes32 keyId);
+    error InvalidKeyLength();
+    error ArrayLengthMismatch();
+
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -399,11 +402,10 @@ contract HybridCryptoVerifier is
         HybridSignature[] calldata signatures,
         bytes32[] calldata keyIds
     ) external view returns (bool[] memory results) {
-        require(
-            messages.length == signatures.length &&
-                signatures.length == keyIds.length,
-            "Array length mismatch"
-        );
+        if (
+            messages.length != signatures.length ||
+            signatures.length != keyIds.length
+        ) revert ArrayLengthMismatch();
 
         results = new bool[](messages.length);
 
@@ -467,7 +469,7 @@ contract HybridCryptoVerifier is
         bytes calldata info,
         uint8 keyLength
     ) external pure returns (bytes memory derivedKey) {
-        require(keyLength <= 32 && keyLength > 0, "Invalid key length");
+        if (keyLength == 0 || keyLength > 32) revert InvalidKeyLength();
 
         // HKDF Extract
         bytes32 prk;

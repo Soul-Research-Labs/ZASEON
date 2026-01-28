@@ -13,20 +13,30 @@ pragma solidity ^0.8.20;
  */
 library GasOptimizedVerifier {
     /// @notice BN254 curve parameters
-    uint256 constant PRIME_Q =
+    uint256 internal constant PRIME_Q =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
-    uint256 constant PRIME_R =
+    uint256 internal constant PRIME_R =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice Precompile addresses
-    uint256 constant ECADD_PRECOMSoulE = 0x06;
-    uint256 constant ECMUL_PRECOMSoulE = 0x07;
-    uint256 constant ECPAIRING_PRECOMSoulE = 0x08;
-    uint256 constant MODEXP_PRECOMSoulE = 0x05;
+    uint256 internal constant ECADD_PRECOMSoulE = 0x06;
+    uint256 internal constant ECMUL_PRECOMSoulE = 0x07;
+    uint256 internal constant ECPAIRING_PRECOMSoulE = 0x08;
+    uint256 internal constant MODEXP_PRECOMSoulE = 0x05;
 
     /// @notice Generator points
-    uint256 constant G1_X = 1;
-    uint256 constant G1_Y = 2;
+    uint256 internal constant G1_X = 1;
+    uint256 internal constant G1_Y = 2;
+
+    // ============================================
+    // Errors
+    // ============================================
+
+    error LengthMismatch();
+    error EmptyBatchBatch();
+    error InvalidInputsLength();
+    error HashToCurveFailed();
+
 
     /*//////////////////////////////////////////////////////////////
                         EC POINT OPERATIONS
@@ -278,8 +288,9 @@ library GasOptimizedVerifier {
         uint256[18] memory vk,
         uint256 randomness
     ) internal view returns (bool) {
-        require(proofs.length == publicInputs.length, "Length mismatch");
-        require(proofs.length > 0, "Empty batch");
+        if (proofs.length != publicInputs.length) revert LengthMismatch();
+        if (proofs.length == 0) revert EmptyBatchBatch();
+
 
         if (proofs.length == 1) {
             // Single proof, no batching needed
@@ -490,7 +501,7 @@ library GasOptimizedVerifier {
             }
         }
 
-        revert("Hash to curve failed");
+        revert HashToCurveFailed();
     }
 }
 
@@ -514,6 +525,7 @@ contract BatchProofVerifier {
 
     event ProofVerified(bytes32 indexed proofId, bool valid);
     event BatchVerified(uint256 proofCount, bool allValid);
+    error InvalidInputsLength();
 
     /**
      * @notice Get verification key alpha component
@@ -542,10 +554,9 @@ contract BatchProofVerifier {
         VerificationKey storage vk = _verificationKeys[vkId];
 
         // Compute linear combination of IC points
-        require(
-            publicInputs.length + 1 == vk.ic.length,
-            "Invalid inputs length"
-        );
+        if (publicInputs.length + 1 != vk.ic.length)
+            revert InvalidInputsLength();
+
 
         (uint256 vkXx, uint256 vkXy) = (vk.ic[0][0], vk.ic[0][1]);
 
@@ -584,7 +595,9 @@ contract BatchProofVerifier {
         uint256[8][] calldata proofs,
         uint256[][] calldata publicInputs
     ) external view returns (bool) {
-        require(proofs.length == publicInputs.length, "Length mismatch");
+        if (proofs.length != publicInputs.length)
+            revert GasOptimizedVerifier.LengthMismatch();
+
 
         // Generate randomness for linear combination
         uint256 randomness = uint256(

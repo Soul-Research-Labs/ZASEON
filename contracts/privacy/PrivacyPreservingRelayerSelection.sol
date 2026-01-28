@@ -143,6 +143,8 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
     error InvalidVRFProof();
     error NoActiveRelayers();
     error TooManyRelayers();
+    error TransferFailed();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -207,7 +209,8 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
 
         // Transfer stake back
         (bool success, ) = payable(msg.sender).call{value: stake}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
+
 
         emit RelayerDeactivated(msg.sender, stake);
     }

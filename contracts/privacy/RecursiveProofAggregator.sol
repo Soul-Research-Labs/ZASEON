@@ -671,8 +671,9 @@ contract RecursiveProofAggregator is
         address payable recipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (bool success, ) = recipient.call{value: address(this).balance}("");
-        require(success, "Transfer failed");
+        if (!success) revert AggregationFailed(); // Reusing AggregationFailed or could define TransferFailed
     }
+
 
     // =========================================================================
     // UPGRADE

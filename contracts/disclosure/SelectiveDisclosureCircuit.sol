@@ -164,8 +164,23 @@ contract SelectiveDisclosureCircuit is
         bytes32 recipientCommitment;
         bytes32 valueCommitment; // Commitment to disclosed value
         DisclosureTarget targetType;
-        uint64 disclosedAt;
     }
+    error NotCompositeType();
+    error NeedTwoPlusSubPredicates();
+    error SubPredicateInactive();
+    error PredicateInactive();
+    error RecipientRequired();
+    error RoleRequired();
+    error NoRules();
+    error CircuitHashRequired();
+    error RuleInactive();
+    error CircuitInactive();
+    error AlreadyVerified();
+    error CircuitNotVerified();
+    error InputCountMismatch();
+    error FieldRecipientMismatch();
+    error ProofNotFound();
+
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -305,20 +320,18 @@ contract SelectiveDisclosureCircuit is
         PredicateType predicateType,
         bytes32[] calldata subPredicates
     ) external onlyRole(CIRCUIT_ADMIN_ROLE) returns (bytes32 predicateId) {
-        require(
-            predicateType == PredicateType.CompositeAnd ||
-                predicateType == PredicateType.CompositeOr,
-            "SDC: not composite type"
-        );
-        require(subPredicates.length >= 2, "SDC: need 2+ sub-predicates");
+        if (
+            predicateType != PredicateType.CompositeAnd &&
+            predicateType != PredicateType.CompositeOr
+        ) revert NotCompositeType();
+
+        if (subPredicates.length < 2) revert NeedTwoPlusSubPredicates();
 
         // Validate all sub-predicates exist
         for (uint256 i = 0; i < subPredicates.length; i++) {
-            require(
-                predicates[subPredicates[i]].active,
-                "SDC: sub-predicate inactive"
-            );
+            if (!predicates[subPredicates[i]].active) revert SubPredicateInactive();
         }
+
 
         predicateId = keccak256(
             abi.encodePacked(
@@ -364,15 +377,16 @@ contract SelectiveDisclosureCircuit is
         bytes32 predicateId
     ) external onlyRole(CIRCUIT_ADMIN_ROLE) returns (bytes32 ruleId) {
         // Validate predicate exists
-        require(predicates[predicateId].active, "SDC: predicate inactive");
+        if (!predicates[predicateId].active) revert PredicateInactive();
 
         // Validate target-specific requirements
         if (target == DisclosureTarget.SpecificParty) {
-            require(specificRecipient != bytes32(0), "SDC: recipient required");
+            if (specificRecipient == bytes32(0)) revert RecipientRequired();
         }
         if (target == DisclosureTarget.RoleHolders) {
-            require(roleRequirement != bytes32(0), "SDC: role required");
+            if (roleRequirement == bytes32(0)) revert RoleRequired();
         }
+
 
         ruleId = keccak256(
             abi.encodePacked(
@@ -427,13 +441,14 @@ contract SelectiveDisclosureCircuit is
         uint256 witnessCount,
         bytes32 domainSeparator
     ) external onlyRole(CIRCUIT_ADMIN_ROLE) returns (bytes32 circuitId) {
-        require(ruleIds.length > 0, "SDC: no rules");
-        require(circuitHash != bytes32(0), "SDC: circuit hash required");
+        if (ruleIds.length == 0) revert NoRules();
+        if (circuitHash == bytes32(0)) revert CircuitHashRequired();
 
         // Validate all rules exist
         for (uint256 i = 0; i < ruleIds.length; i++) {
-            require(rules[ruleIds[i]].active, "SDC: rule inactive");
+            if (!rules[ruleIds[i]].active) revert RuleInactive();
         }
+
 
         circuitId = keccak256(
             abi.encodePacked(
@@ -478,8 +493,9 @@ contract SelectiveDisclosureCircuit is
         bytes32 circuitId
     ) external onlyRole(VERIFIER_ROLE) {
         DisclosureCircuit storage circuit = circuits[circuitId];
-        require(circuit.active, "SDC: circuit inactive");
-        require(!circuit.verified, "SDC: already verified");
+        if (!circuit.active) revert CircuitInactive();
+        if (circuit.verified) revert AlreadyVerified();
+
 
         circuit.verified = true;
 
@@ -511,16 +527,13 @@ contract SelectiveDisclosureCircuit is
         bytes32[] calldata recipientCommitments
     ) external onlyRole(PROVER_ROLE) whenNotPaused returns (bytes32 proofId) {
         DisclosureCircuit storage circuit = circuits[circuitId];
-        require(circuit.active, "SDC: circuit inactive");
-        require(circuit.verified, "SDC: circuit not verified");
-        require(
-            publicInputs.length == circuit.inputCount,
-            "SDC: input count mismatch"
-        );
-        require(
-            disclosedFieldIds.length == recipientCommitments.length,
-            "SDC: field/recipient mismatch"
-        );
+        if (!circuit.active) revert CircuitInactive();
+        if (!circuit.verified) revert CircuitNotVerified();
+        if (publicInputs.length != circuit.inputCount)
+            revert InputCountMismatch();
+        if (disclosedFieldIds.length != recipientCommitments.length)
+            revert FieldRecipientMismatch();
+
 
         proofId = keccak256(
             abi.encodePacked(
@@ -562,8 +575,9 @@ contract SelectiveDisclosureCircuit is
         bool valid
     ) external onlyRole(VERIFIER_ROLE) {
         DisclosureProof storage proof = proofs[proofId];
-        require(proof.proofId != bytes32(0), "SDC: proof not found");
-        require(!proof.verified, "SDC: already verified");
+        if (proof.proofId == bytes32(0)) revert ProofNotFound();
+        if (proof.verified) revert AlreadyVerified();
+
 
         proof.verified = true;
         proof.verifier = msg.sender;
@@ -620,8 +634,7 @@ contract SelectiveDisclosureCircuit is
             fieldId: fieldId,
             recipientCommitment: recipientCommitment,
             valueCommitment: bytes32(0), // Set by caller if needed
-            targetType: targetType,
-            disclosedAt: uint64(block.timestamp)
+            targetType: targetType
         });
 
         recipientDisclosures[recipientCommitment].push(disclosureId);

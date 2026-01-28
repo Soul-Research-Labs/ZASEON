@@ -434,7 +434,7 @@ contract TriptychPlusSignatures is AccessControl, ReentrancyGuard, Pausable {
         totalRecursiveVerifications++;
 
         // Split ring into sub-rings and verify inner proof
-        uint256 subRingSize = ring.length / 2;
+        // uint256 subRingSize = ring.length / 2;
 
         // Verify the recursive proof hash matches expected
         bytes32 expectedHash = keccak256(
@@ -563,14 +563,14 @@ contract TriptychPlusSignatures is AccessControl, ReentrancyGuard, Pausable {
      * @notice Verify cross-chain proof
      */
     function _verifyCrossChainProof(
-        bytes32 keyImage,
-        uint256 sourceChainId,
+        bytes32 /*keyImage*/,
+        uint256 /*sourceChainId*/,
         bytes32 proof
     ) internal pure returns (bool) {
         // Verify proof structure
-        bytes32 expectedProof = keccak256(
-            abi.encodePacked(keyImage, sourceChainId, "CROSS_CHAIN_KEY_IMAGE")
-        );
+        // bytes32 expectedProof = keccak256(
+        //     abi.encodePacked(keyImage, sourceChainId, "CROSS_CHAIN_KEY_IMAGE")
+        // );
 
         // In production: verify Merkle proof or cross-chain message
         return proof != bytes32(0);

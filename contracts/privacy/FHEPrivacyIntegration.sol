@@ -202,6 +202,13 @@ contract FHEPrivacyIntegration is AccessControl, ReentrancyGuard {
     error UnauthorizedOracle();
     error RequestNotFound();
     error InvalidPublicKey();
+    error NotFulfilled();
+    error NotRequester();
+    error ProposalNotFound();
+    error VotingEnded();
+    error AlreadyVoted();
+    error InvalidInputCount();
+
 
     // =========================================================================
     // CONSTRUCTOR
@@ -406,13 +413,14 @@ contract FHEPrivacyIntegration is AccessControl, ReentrancyGuard {
         uint256 inputCount
     ) internal pure {
         if (op == Operation.NOT) {
-            require(inputCount == 1, "NOT requires 1 input");
+            if (inputCount != 1) revert InvalidInputCount();
         } else if (op == Operation.CMUX || op == Operation.SELECT) {
-            require(inputCount == 3, "CMUX/SELECT requires 3 inputs");
+            if (inputCount != 3) revert InvalidInputCount();
         } else {
-            require(inputCount == 2, "Binary op requires 2 inputs");
+            if (inputCount != 2) revert InvalidInputCount();
         }
     }
+
 
     /// @notice Determine result ciphertext type
     function _getResultType(
@@ -498,10 +506,11 @@ contract FHEPrivacyIntegration is AccessControl, ReentrancyGuard {
         bytes32 requestId
     ) external view returns (bytes memory) {
         DecryptionRequest storage request = decryptionRequests[requestId];
-        require(request.fulfilled, "Not fulfilled");
-        require(request.requester == msg.sender, "Not requester");
+        if (!request.fulfilled) revert NotFulfilled();
+        if (request.requester != msg.sender) revert NotRequester();
         return request.decryptedValue;
     }
+
 
     // =========================================================================
     // PRIVACY-PRESERVING OPERATIONS
@@ -632,9 +641,10 @@ contract FHEPrivateVoting is FHEPrivacyIntegration {
         bytes calldata encryptedVote
     ) external {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.proposalId != bytes32(0), "Proposal not found");
-        require(block.timestamp < proposal.endTime, "Voting ended");
-        require(!hasVoted[proposalId][msg.sender], "Already voted");
+        if (proposal.proposalId == bytes32(0)) revert ProposalNotFound();
+        if (block.timestamp >= proposal.endTime) revert VotingEnded();
+        if (hasVoted[proposalId][msg.sender]) revert AlreadyVoted();
+
 
         bytes32 voteHash = this.storeCiphertext(
             encryptedVote,

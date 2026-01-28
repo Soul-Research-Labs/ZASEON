@@ -275,6 +275,21 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
     error InvalidRandomness();
     error InactiveChain(ChainType chain);
 
+    error StakeTooLow();
+    error SlotTooShort();
+    error ActiveSetTooSmall();
+    error InvalidPercentage();
+    error InvalidSigner();
+    error NoChainsSpecified();
+    error InvalidStatusForActivation();
+    error AlreadyExiting();
+    error TransferFailed();
+    error SlotNotAdvanced();
+    error AlreadyFinalized();
+    error InvalidBridgeAdapter();
+    error SetTooSmall();
+
+
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -285,10 +300,10 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
         uint256 _activeSetSize,
         uint256 _slashingPercentage
     ) {
-        require(_minimumStake >= 1 ether, "Stake too low");
-        require(_slotDuration >= 1 seconds, "Slot too short");
-        require(_activeSetSize >= 1, "Active set too small");
-        require(_slashingPercentage <= 10000, "Invalid slashing percentage");
+        if (_minimumStake < 1 ether) revert StakeTooLow();
+        if (_slotDuration < 1 seconds) revert SlotTooShort();
+        if (_activeSetSize < 1) revert ActiveSetTooSmall();
+        if (_slashingPercentage > 10000) revert InvalidPercentage();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
@@ -328,8 +343,8 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
             revert InsufficientStake(msg.value, minimumStake);
         }
 
-        require(signer != address(0), "Invalid signer");
-        require(supportedChainsList.length > 0, "No chains specified");
+        if (signer == address(0)) revert InvalidSigner();
+        if (supportedChainsList.length == 0) revert NoChainsSpecified();
 
         // Validate all chains are supported
         for (uint256 i = 0; i < supportedChainsList.length; i++) {
@@ -386,11 +401,10 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
             revert SequencerJailed(sequencer);
         }
 
-        require(
-            seq.status == SequencerStatus.PENDING ||
-                seq.status == SequencerStatus.STANDBY,
-            "Invalid status for activation"
-        );
+        if (
+            seq.status != SequencerStatus.PENDING &&
+            seq.status != SequencerStatus.STANDBY
+        ) revert InvalidStatusForActivation();
 
         seq.status = SequencerStatus.ACTIVE;
 
@@ -411,11 +425,10 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
             revert SequencerNotRegistered(msg.sender);
         }
 
-        require(
-            seq.status != SequencerStatus.EXITING &&
-                seq.status != SequencerStatus.EXITED,
-            "Already exiting"
-        );
+        if (
+            seq.status == SequencerStatus.EXITING ||
+            seq.status == SequencerStatus.EXITED
+        ) revert AlreadyExiting();
 
         seq.status = SequencerStatus.EXITING;
         seq.exitInitiatedAt = block.timestamp;
@@ -450,7 +463,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
 
         // Transfer stake back
         (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
 
         emit SequencerExited(msg.sender, amount);
     }
@@ -472,7 +485,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
      */
     function advanceSlot() external whenNotPaused {
         uint256 newSlot = getCurrentSlot();
-        require(newSlot > currentSlot, "Slot not advanced");
+        if (newSlot <= currentSlot) revert SlotNotAdvanced();
 
         // Check if previous slot was completed
         SlotAssignment storage prevSlot = slotAssignments[currentSlot];
@@ -602,7 +615,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
         if (batch.batchId == bytes32(0)) {
             revert BatchNotFound(batchId);
         }
-        require(!batch.finalized, "Already finalized");
+        if (batch.finalized) revert AlreadyFinalized();
 
         batch.finalized = true;
 
@@ -701,7 +714,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
         address bridgeAdapter,
         uint256 gasLimit
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(bridgeAdapter != address(0), "Invalid bridge adapter");
+        if (bridgeAdapter == address(0)) revert InvalidBridgeAdapter();
 
         chainConfigs[chainType] = ChainConfig({
             chainType: chainType,
@@ -746,7 +759,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
     function setMinimumStake(
         uint256 newMinimum
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(newMinimum >= 0.1 ether, "Stake too low");
+        if (newMinimum < 0.1 ether) revert StakeTooLow();
         minimumStake = newMinimum;
     }
 
@@ -756,7 +769,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
     function setSlotDuration(
         uint256 newDuration
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(newDuration >= 1 seconds, "Slot too short");
+        if (newDuration < 1 seconds) revert SlotTooShort();
         slotDuration = newDuration;
     }
 
@@ -766,7 +779,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
     function setActiveSetSize(
         uint256 newSize
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(newSize >= 1, "Set too small");
+        if (newSize < 1) revert SetTooSmall();
         activeSetSize = newSize;
     }
 
@@ -776,7 +789,7 @@ contract SharedSequencer is AccessControl, ReentrancyGuard, Pausable {
     function setSlashingPercentage(
         uint256 newPercentage
     ) external onlyRole(GOVERNANCE_ROLE) {
-        require(newPercentage <= 10000, "Invalid percentage");
+        if (newPercentage > 10000) revert InvalidPercentage();
         slashingPercentage = newPercentage;
     }
 

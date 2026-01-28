@@ -29,6 +29,8 @@ contract ZKSLockIntegration {
     error DomainMismatch();
     error UnauthorizedCaller();
     error IntegrationDisabled();
+    error UserEntropyRequired();
+
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -203,7 +205,7 @@ contract ZKSLockIntegration {
         bytes32 userEntropy
     ) external returns (bytes32 lockId, bytes32 nullifier) {
         if (!integrationEnabled) revert IntegrationDisabled();
-        require(userEntropy != bytes32(0), "User entropy required");
+        if (userEntropy == bytes32(0)) revert UserEntropyRequired();
 
         // Create the ZK-SLock
         lockId = zkSlocks.createLock(
@@ -263,7 +265,7 @@ contract ZKSLockIntegration {
         returns (bytes32 lockId, bytes32 containerId, bytes32 nullifier)
     {
         if (!integrationEnabled) revert IntegrationDisabled();
-        require(params.userEntropy != bytes32(0), "User entropy required");
+        if (params.userEntropy == bytes32(0)) revert UserEntropyRequired();
 
         bytes32 domainSep = params.domainSeparator != bytes32(0)
             ? params.domainSeparator

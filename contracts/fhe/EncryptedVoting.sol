@@ -653,7 +653,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
      */
     function onTallyDecrypted(bytes32 requestId, bytes32 result) external {
         // Only gateway can call
-        require(msg.sender == address(fheGateway), "Unauthorized");
+        if (msg.sender != address(fheGateway)) revert Unauthorized();
 
         uint256 proposalId = decryptionToProposal[requestId];
         if (proposalId == 0) return;

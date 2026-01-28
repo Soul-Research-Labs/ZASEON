@@ -244,6 +244,15 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     error NotWatchtower();
     error AlreadyConfirmed();
     error InsufficientConfirmations(uint256 current, uint256 required);
+    error AlreadyResolved();
+    error AlreadyWatchtower();
+    error CannotRemoveLastWatchtower();
+    error InvalidCount();
+    error InvalidBlocks();
+    error PeriodTooShort();
+    error InvalidCapConfiguration();
+    error EpochTooShort();
+
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -438,7 +447,7 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
         ProofRecord storage proof = proofRecords[proofHash];
         Challenge storage challenge = proofChallenges[proofHash][challengeId];
 
-        require(!challenge.resolved, "Already resolved");
+        if (challenge.resolved) revert AlreadyResolved();
 
         challenge.resolved = true;
         challenge.upheld = upheld;
@@ -497,7 +506,7 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     function addWatchtower(
         address watchtower
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(!watchtowers[watchtower], "Already watchtower");
+        if (watchtowers[watchtower]) revert AlreadyWatchtower();
         watchtowers[watchtower] = true;
         watchtowerCount++;
         _grantRole(WATCHTOWER_ROLE, watchtower);
@@ -511,8 +520,8 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     function removeWatchtower(
         address watchtower
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(watchtowers[watchtower], "Not watchtower");
-        require(watchtowerCount > 1, "Cannot remove last watchtower");
+        if (!watchtowers[watchtower]) revert NotWatchtower();
+        if (watchtowerCount <= 1) revert CannotRemoveLastWatchtower();
         watchtowers[watchtower] = false;
         watchtowerCount--;
         _revokeRole(WATCHTOWER_ROLE, watchtower);
@@ -526,7 +535,7 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     function setRequiredConfirmations(
         uint256 required
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(required > 0 && required <= watchtowerCount, "Invalid count");
+        if (required == 0 || required > watchtowerCount) revert InvalidCount();
         requiredWatchtowerConfirmations = required;
     }
 
@@ -541,7 +550,7 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     function setMaxProofBlocks(
         uint256 blocks
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(blocks > 0 && blocks <= MAX_PROOF_BLOCKS, "Invalid blocks");
+        if (blocks == 0 || blocks > MAX_PROOF_BLOCKS) revert InvalidBlocks();
         maxProofBlocks = blocks;
     }
 
@@ -552,7 +561,7 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     function setChallengePeriod(
         uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(period >= MIN_CHALLENGE_PERIOD, "Period too short");
+        if (period < MIN_CHALLENGE_PERIOD) revert PeriodTooShort();
         challengePeriod = period;
     }
 
@@ -569,8 +578,8 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
         uint256 epochDuration,
         bool enabled
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(perTxCap <= perEpochCap, "Per-tx must be <= per-epoch");
-        require(epochDuration >= 1 hours, "Epoch too short");
+        if (perTxCap > perEpochCap) revert InvalidCapConfiguration();
+        if (epochDuration < 1 hours) revert EpochTooShort();
 
         withdrawalCaps = WithdrawalCap({
             perTxCap: perTxCap,

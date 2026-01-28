@@ -247,14 +247,15 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
     error UnauthorizedCaller();
     error WithdrawalFailed();
     error InvalidThreshold();
+    error ZeroAddress();
 
     // ============================================
     // Constructor
     // ============================================
 
     constructor(address _fheGateway, uint256 _decryptionThreshold) {
-        require(_fheGateway != address(0), "Invalid gateway");
-        require(_decryptionThreshold > 0, "Invalid threshold");
+        if (_fheGateway == address(0)) revert ZeroAddress();
+        if (_decryptionThreshold == 0) revert InvalidThreshold();
 
         fheGateway = _fheGateway;
         decryptionThreshold = _decryptionThreshold;
@@ -552,7 +553,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
         // Refund requester
         if (task.gasReward > 0) {
             (bool success, ) = task.requester.call{value: task.gasReward}("");
-            require(success, "Refund failed");
+            if (!success) revert WithdrawalFailed();
         }
 
         emit TaskFailed(taskId, "Expired");
@@ -706,7 +707,7 @@ contract FHEOracle is AccessControl, ReentrancyGuard, Pausable {
      * @notice Update FHE Gateway
      */
     function setFHEGateway(address newGateway) external onlyRole(ADMIN_ROLE) {
-        require(newGateway != address(0), "Invalid gateway");
+        if (newGateway == address(0)) revert ZeroAddress();
         fheGateway = newGateway;
     }
 

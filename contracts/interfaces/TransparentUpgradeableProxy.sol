@@ -98,6 +98,7 @@ contract TransparentUpgradeableProxy {
         }
     }
 
+    /* solhint-disable-next-line no-complex-fallback */
     fallback() external payable {
         address impl = implementation();
         if (impl == address(0)) revert NoImplementation();

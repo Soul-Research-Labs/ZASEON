@@ -190,6 +190,8 @@ contract PQCKeyRegistry is
     error RotationAlreadyExecuted(bytes32 rotationId);
     error InvalidKeyData();
     error InvalidAlgorithm(PQSignatureAlgorithm algorithm);
+    error InvalidWeight();
+
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -524,7 +526,7 @@ contract PQCKeyRegistry is
             revert KeyNotFound(keyHash);
         }
 
-        require(weight <= 100, "Weight must be <= 100");
+        if (weight > 100) revert InvalidWeight();
 
         // Add attestation
         keyAttestations[keyHash].push(

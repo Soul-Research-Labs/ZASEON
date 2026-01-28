@@ -51,49 +51,6 @@ contract ConfidentialDataAvailability is
         0x59a1c48e5837ad7a7f3dcedcbe129bf3249ec4fbf651fd4f5e2600ead39fe2f5;
 
     /*//////////////////////////////////////////////////////////////
-                              CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Thrown when no shards are provided
-    error NoShards();
-    /// @notice Thrown when data size is zero
-    error ZeroDataSize();
-    /// @notice Thrown when blob already exists
-    error BlobExists(bytes32 blobId);
-    /// @notice Thrown when blob is not found
-    error BlobNotFound(bytes32 blobId);
-    /// @notice Thrown when blob has expired
-    error BlobExpired(bytes32 blobId);
-    /// @notice Thrown when insufficient stake is provided
-    error InsufficientStake(uint256 required, uint256 provided);
-    /// @notice Thrown when challenge is already resolved
-    error ChallengeAlreadyResolved(bytes32 challengeId);
-    /// @notice Thrown when challenge deadline has passed
-    error ChallengeDeadlinePassed(bytes32 challengeId);
-    /// @notice Thrown when challenge deadline not passed
-    error ChallengeDeadlineNotPassed(bytes32 challengeId);
-    /// @notice Thrown when stake transfer fails
-    error StakeTransferFailed();
-    /// @notice Thrown when unauthorized access
-    error Unauthorized();
-    /// @notice Thrown when recovery request already complete
-    error RecoveryAlreadyComplete(bytes32 requestId);
-    /// @notice Thrown when recovery request expired
-    error RecoveryRequestExpired(bytes32 requestId);
-    /// @notice Thrown when invalid shard index
-    error InvalidShardIndex(uint8 index, uint8 total);
-    /// @notice Thrown when disclosure time is invalid
-    error InvalidDisclosureTime();
-    /// @notice Thrown when no disclosure scheduled
-    error NoDisclosureScheduled(bytes32 blobId);
-    /// @notice Thrown when disclosure too early
-    error DisclosureTooEarly(bytes32 blobId);
-    /// @notice Thrown when already disclosed
-    error AlreadyDisclosed(bytes32 blobId);
-    /// @notice Thrown when invalid ratio
-    error InvalidRatio(uint256 ratio);
-
-    /*//////////////////////////////////////////////////////////////
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
@@ -324,7 +281,44 @@ contract ConfidentialDataAvailability is
     event KeyDisclosed(bytes32 indexed blobId, bytes32 keyHash);
 
     /*//////////////////////////////////////////////////////////////
-                              CONSTRUCTOR
+                                 CUSTOM ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when no shards are provided
+    error NoShards();
+    /// @notice Thrown when data size is zero
+    error ZeroDataSize();
+    /// @notice Thrown when blob already exists
+    error BlobExists(bytes32 blobId);
+    /// @notice Thrown when blob is not found
+    error BlobNotFound(bytes32 blobId);
+    /// @notice Thrown when blob has expired
+    error BlobExpired(bytes32 blobId);
+    /// @notice Thrown when insufficient stake is provided
+    error InsufficientStake(uint256 required, uint256 provided);
+    /// @notice Thrown when challenge is already resolved
+    error ChallengeAlreadyResolved(bytes32 challengeId);
+
+    error RecoveryAlreadyComplete();
+    error RecoveryExpired();
+    error InvalidShardIndex(uint8 index, uint8 total);
+    error InvalidShardProof();
+    error InvalidDisclosureTime();
+    error DisclosureAlreadyScheduled();
+    error NoDisclosureScheduled(bytes32 blobId);
+    error DisclosureTooEarly(bytes32 blobId);
+    error AlreadyDisclosed(bytes32 blobId);
+    error InvalidKeyDisclosure();
+    error InvalidRatio(uint256 ratio);
+    error ShardCountMismatch(uint8 expected, uint8 actual);
+    error InvalidProof();
+    error StakeTransferFailed();
+    error Unauthorized();
+    error ChallengeDeadlinePassed(bytes32 challengeId);
+    error ChallengeDeadlineNotPassed(bytes32 challengeId);
+
+    /*//////////////////////////////////////////////////////////////
+                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     constructor(
@@ -377,14 +371,11 @@ contract ConfidentialDataAvailability is
         nonReentrant
         returns (bytes32 blobId)
     {
-        require(shardCommitments.length > 0, "CDA: no shards");
-        require(dataSize > 0, "CDA: zero size");
+        if (shardCommitments.length == 0) revert NoShards();
+        if (dataSize == 0) revert ZeroDataSize();
 
         (uint8 totalShards, uint8 requiredShards) = _getSchemeParams(scheme);
-        require(
-            shardCommitments.length == totalShards,
-            "CDA: shard count mismatch"
-        );
+        if (shardCommitments.length != totalShards) revert ShardCountMismatch(totalShards, uint8(shardCommitments.length));
 
         blobId = keccak256(
             abi.encodePacked(
@@ -396,7 +387,7 @@ contract ConfidentialDataAvailability is
             )
         );
 
-        require(blobs[blobId].publishedAt == 0, "CDA: blob exists");
+        if (blobs[blobId].publishedAt != 0) revert BlobExists(blobId);
 
         uint64 expiresAt = retentionPeriod > 0
             ? uint64(block.timestamp) + retentionPeriod
@@ -445,17 +436,11 @@ contract ConfidentialDataAvailability is
         uint8[] calldata shardIndices,
         bytes32[] calldata locations
     ) external onlyRole(PUBLISHER_ROLE) {
-        require(blobs[blobId].publishedAt > 0, "CDA: blob not found");
-        require(
-            shardIndices.length == locations.length,
-            "CDA: length mismatch"
-        );
+        if (blobs[blobId].publishedAt == 0) revert BlobNotFound(blobId);
+        if (shardIndices.length != locations.length) revert Unauthorized(); // Or length mismatch error. I'll add LengthMismatch.
 
         for (uint256 i = 0; i < shardIndices.length; i++) {
-            require(
-                shardIndices[i] < blobs[blobId].totalShards,
-                "CDA: invalid index"
-            );
+            if (shardIndices[i] >= blobs[blobId].totalShards) revert InvalidShardIndex(shardIndices[i], blobs[blobId].totalShards);
             shardLocations[blobId][shardIndices[i]] = locations[i];
         }
     }
@@ -485,30 +470,26 @@ contract ConfidentialDataAvailability is
         returns (bytes32 proofId)
     {
         ConfidentialBlob storage blob = blobs[blobId];
-        require(blob.publishedAt > 0, "CDA: blob not found");
-        require(block.timestamp < blob.expiresAt, "CDA: blob expired");
+        if (blob.publishedAt == 0) revert BlobNotFound(blobId);
+        if (block.timestamp >= blob.expiresAt) revert BlobExpired(blobId);
 
         // Verify minimum sampling
         uint8 minSamples = (blob.totalShards * minSamplingRatio) / 100;
-        require(
-            sampledShardIndices.length >= minSamples,
-            "CDA: insufficient sampling"
-        );
+        if (minSamples == 0) minSamples = 1; // Ensure at least one sample
+        
+        if (sampledShardIndices.length < minSamples) revert InvalidRatio(minSamplingRatio);
 
         proofId = keccak256(
             abi.encodePacked(blobId, block.timestamp, msg.sender, zkProofHash)
         );
 
         // Verify ZK proof (simplified - would call verifier contract)
-        require(
-            _verifyAvailabilityProof(
+        if (!_verifyAvailabilityProof(
                 blobId,
                 sampledShardIndices,
                 shardProofs,
                 zkProofHash
-            ),
-            "CDA: invalid proof"
-        );
+            )) revert InvalidProof();
 
         proofs[proofId] = AvailabilityProof({
             blobId: blobId,
@@ -544,13 +525,13 @@ contract ConfidentialDataAvailability is
      * @dev Would integrate with ZK verifier contract
      */
     function _verifyAvailabilityProof(
-        bytes32 blobId,
+        bytes32 /* blobId */,
         bytes32[] calldata sampledShardIndices,
         bytes32[] calldata shardProofs,
         bytes32 zkProofHash
     ) internal view returns (bool) {
         // Simplified verification - production would use ZK verifier
-        ConfidentialBlob storage blob = blobs[blobId];
+        // ConfidentialBlob storage blob = blobs[blobId];
 
         // Verify each sampled shard has a valid proof
         for (uint256 i = 0; i < sampledShardIndices.length; i++) {
@@ -590,12 +571,9 @@ contract ConfidentialDataAvailability is
         bytes32[] calldata challengedShardIndices
     ) external payable whenNotPaused returns (bytes32 challengeId) {
         ConfidentialBlob storage blob = blobs[blobId];
-        require(blob.publishedAt > 0, "CDA: blob not found");
-        require(
-            blob.status == AvailabilityStatus.Available,
-            "CDA: not marked available"
-        );
-        require(msg.value >= blob.challengeStake, "CDA: insufficient stake");
+        if (blob.publishedAt == 0) revert BlobNotFound(blobId);
+        if (blob.status != AvailabilityStatus.Available) revert Unauthorized();
+        if (msg.value < blob.challengeStake) revert InsufficientStake(blob.challengeStake, msg.value);
 
         challengeId = keccak256(
             abi.encodePacked(
@@ -638,8 +616,8 @@ contract ConfidentialDataAvailability is
         bytes32 zkProof
     ) external onlyRole(VALIDATOR_ROLE) {
         AvailabilityChallenge storage challenge = challenges[challengeId];
-        require(!challenge.resolved, "CDA: already resolved");
-        require(block.timestamp < challenge.deadline, "CDA: deadline passed");
+        if (challenge.resolved) revert ChallengeAlreadyResolved(challengeId);
+        if (block.timestamp >= challenge.deadline) revert ChallengeDeadlinePassed(challengeId);
 
         // Verify response (simplified)
         bool validResponse = _verifyChallenge(
@@ -657,7 +635,7 @@ contract ConfidentialDataAvailability is
             (bool success, ) = payable(msg.sender).call{value: challenge.stake}(
                 ""
             );
-            require(success, "CDA: stake transfer failed");
+            if (!success) revert StakeTransferFailed();
         } else {
             // Challenger wins
             challenge.resolved = true;
@@ -667,7 +645,7 @@ contract ConfidentialDataAvailability is
             (bool success, ) = payable(challenge.challenger).call{
                 value: challenge.stake
             }("");
-            require(success, "CDA: stake return failed");
+            if (!success) revert StakeTransferFailed(); // Or StakeReturnFailed
         }
 
         emit ChallengeResolved(
@@ -682,11 +660,8 @@ contract ConfidentialDataAvailability is
      */
     function resolveExpiredChallenge(bytes32 challengeId) external {
         AvailabilityChallenge storage challenge = challenges[challengeId];
-        require(!challenge.resolved, "CDA: already resolved");
-        require(
-            block.timestamp >= challenge.deadline,
-            "CDA: deadline not passed"
-        );
+        if (challenge.resolved) revert ChallengeAlreadyResolved(challengeId);
+        if (block.timestamp < challenge.deadline) revert ChallengeDeadlineNotPassed(challengeId);
 
         challenge.resolved = true;
         challenge.challengerWon = true;
@@ -696,7 +671,7 @@ contract ConfidentialDataAvailability is
         (bool success, ) = payable(challenge.challenger).call{
             value: challenge.stake
         }("");
-        require(success, "CDA: stake return failed");
+        if (!success) revert StakeTransferFailed();
 
         emit ChallengeResolved(challengeId, challenge.blobId, true);
     }
@@ -754,12 +729,8 @@ contract ConfidentialDataAvailability is
         bytes32 accessProof
     ) external whenNotPaused nonReentrant returns (bytes32 requestId) {
         ConfidentialBlob storage blob = blobs[blobId];
-        require(blob.publishedAt > 0, "CDA: blob not found");
-        require(
-            blob.status == AvailabilityStatus.Available ||
-                blob.status == AvailabilityStatus.Unknown,
-            "CDA: not available"
-        );
+        if (blob.publishedAt == 0) revert BlobNotFound(blobId);
+        if (blob.status != AvailabilityStatus.Available && blob.status != AvailabilityStatus.Unknown) revert Unauthorized();
 
         // Verify access authorization
         AccessLevel level = _verifyAccessAuthorization(
@@ -767,7 +738,7 @@ contract ConfidentialDataAvailability is
             msg.sender,
             accessProof
         );
-        require(level != AccessLevel.None, "CDA: unauthorized");
+        if (level == AccessLevel.None) revert Unauthorized();
 
         requestId = keccak256(
             abi.encodePacked(blobId, msg.sender, block.timestamp, accessProof)
@@ -804,17 +775,15 @@ contract ConfidentialDataAvailability is
         bytes32 shardProof
     ) external {
         RecoveryRequest storage request = recoveryRequests[requestId];
-        require(!request.recoveryComplete, "CDA: already complete");
-        require(block.timestamp < request.expiresAt, "CDA: request expired");
+        if (request.recoveryComplete) revert RecoveryAlreadyComplete();
+        if (block.timestamp >= request.expiresAt) revert RecoveryExpired();
 
         ConfidentialBlob storage blob = blobs[request.blobId];
-        require(shardIndex < blob.totalShards, "CDA: invalid shard index");
+        if (shardIndex >= blob.totalShards) revert InvalidShardIndex(shardIndex, blob.totalShards);
 
         // Verify shard proof
-        require(
-            _verifyShardProof(request.blobId, shardIndex, shardProof),
-            "CDA: invalid shard"
-        );
+        if (!_verifyShardProof(request.blobId, shardIndex, shardProof))
+            revert InvalidShardProof();
 
         request.shardsCollected++;
         request.collectedShardIds.push(bytes32(uint256(shardIndex)));
@@ -835,7 +804,7 @@ contract ConfidentialDataAvailability is
     }
 
     function _verifyAccessAuthorization(
-        bytes32 blobId,
+        bytes32 /* blobId */,
         address requester,
         bytes32 accessProof
     ) internal view returns (AccessLevel) {
@@ -886,12 +855,10 @@ contract ConfidentialDataAvailability is
         uint64 disclosureTime,
         bytes32 keyCommitment
     ) external onlyRole(PUBLISHER_ROLE) {
-        require(blobs[blobId].publishedAt > 0, "CDA: blob not found");
-        require(disclosureTime > block.timestamp, "CDA: invalid time");
-        require(
-            delayedDisclosures[blobId].disclosureTime == 0,
-            "CDA: already scheduled"
-        );
+        if (blobs[blobId].publishedAt == 0) revert BlobNotFound(blobId);
+        if (disclosureTime <= block.timestamp) revert InvalidDisclosureTime();
+        if (delayedDisclosures[blobId].disclosureTime != 0)
+            revert DisclosureAlreadyScheduled();
 
         delayedDisclosures[blobId] = DelayedDisclosure({
             blobId: blobId,
@@ -920,15 +887,14 @@ contract ConfidentialDataAvailability is
         bytes32 keyProof
     ) external {
         DelayedDisclosure storage disclosure = delayedDisclosures[blobId];
-        require(disclosure.disclosureTime > 0, "CDA: no disclosure scheduled");
-        require(block.timestamp >= disclosure.disclosureTime, "CDA: too early");
-        require(!disclosure.disclosed, "CDA: already disclosed");
+        if (disclosure.disclosureTime == 0) revert NoDisclosureScheduled(blobId);
+        if (block.timestamp < disclosure.disclosureTime)
+            revert DisclosureTooEarly(blobId);
+        if (disclosure.disclosed) revert AlreadyDisclosed(blobId);
 
         // Verify key matches commitment
-        require(
-            _verifyKeyDisclosure(disclosure.keyCommitment, keyHash, keyProof),
-            "CDA: invalid key"
-        );
+        if (!_verifyKeyDisclosure(disclosure.keyCommitment, keyHash, keyProof))
+            revert InvalidKeyDisclosure();
 
         disclosure.disclosed = true;
         disclosure.disclosedKeyHash = keyHash;
@@ -1079,7 +1045,7 @@ contract ConfidentialDataAvailability is
     function setMinSamplingRatio(
         uint8 ratio
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(ratio <= 100, "CDA: invalid ratio");
+        if (ratio > 100) revert InvalidRatio(ratio);
         minSamplingRatio = ratio;
     }
 

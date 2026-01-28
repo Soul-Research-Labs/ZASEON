@@ -12,25 +12,25 @@ contract Groth16VerifierBLS12381 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice BLS12-381 scalar field modulus (r)
-    uint256 constant _FIELD_MODULUS =
+    uint256 internal constant _FIELD_MODULUS =
         52435875175126190479447740508185965837690552500527637822603658699938581184513;
 
     /// @notice EIP-2537 Precompile addresses
-    address constant _BLS12_G1ADD = address(0x0a);
-    address constant _BLS12_G1MUL = address(0x0b);
-    address constant _BLS12_G1MULTIEXP = address(0x0c);
-    address constant _BLS12_G2ADD = address(0x0d);
-    address constant _BLS12_G2MUL = address(0x0e);
-    address constant _BLS12_G2MULTIEXP = address(0x0f);
-    address constant _BLS12_PAIRING = address(0x10);
-    address constant _BLS12_MAP_FP_TO_G1 = address(0x11);
-    address constant _BLS12_MAP_FP2_TO_G2 = address(0x12);
+    address internal constant _BLS12_G1ADD = address(0x0a);
+    address internal constant _BLS12_G1MUL = address(0x0b);
+    address internal constant _BLS12_G1MULTIEXP = address(0x0c);
+    address internal constant _BLS12_G2ADD = address(0x0d);
+    address internal constant _BLS12_G2MUL = address(0x0e);
+    address internal constant _BLS12_G2MULTIEXP = address(0x0f);
+    address internal constant _BLS12_PAIRING = address(0x10);
+    address internal constant _BLS12_MAP_FP_TO_G1 = address(0x11);
+    address internal constant _BLS12_MAP_FP2_TO_G2 = address(0x12);
 
     /// @notice G1 point size in bytes (48 bytes per coordinate, 96 total)
-    uint256 constant _G1_SIZE = 96;
+    uint256 internal constant _G1_SIZE = 96;
 
     /// @notice G2 point size in bytes (96 bytes per Fp2, 192 total)
-    uint256 constant _G2_SIZE = 192;
+    uint256 internal constant _G2_SIZE = 192;
 
     /*//////////////////////////////////////////////////////////////
                               STATE
@@ -63,6 +63,10 @@ contract Groth16VerifierBLS12381 {
     error PairingCheckFailed();
     error EIP2537NotSupported();
     error InvalidPointSize();
+    error LengthMismatch();
+    error InvalidOwner();
+    error ICMustHaveAtLeastOneElement();
+
 
     /*//////////////////////////////////////////////////////////////
                               EVENTS
@@ -115,7 +119,8 @@ contract Groth16VerifierBLS12381 {
         if (_beta.length != _G2_SIZE) revert InvalidPointSize();
         if (_gamma.length != _G2_SIZE) revert InvalidPointSize();
         if (_delta.length != _G2_SIZE) revert InvalidPointSize();
-        require(_ic.length >= 1, "IC must have at least 1 element");
+        if (_ic.length == 0) revert ICMustHaveAtLeastOneElement();
+
 
         vkAlpha = _alpha;
         vkBeta = _beta;
@@ -214,7 +219,8 @@ contract Groth16VerifierBLS12381 {
         bytes[] calldata proofs,
         bytes[] calldata publicInputsArray
     ) external view returns (bool allValid) {
-        require(proofs.length == publicInputsArray.length, "Length mismatch");
+        if (proofs.length != publicInputsArray.length) revert LengthMismatch();
+
 
         for (uint256 i = 0; i < proofs.length; i++) {
             if (!this.verifyProof(proofs[i], publicInputsArray[i])) {
@@ -460,7 +466,8 @@ contract Groth16VerifierBLS12381 {
     /// @notice Transfer ownership
     /// @param newOwner New owner address
     function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid owner");
+        if (newOwner == address(0)) revert InvalidOwner();
+
         address oldOwner = owner;
         owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
