@@ -192,7 +192,7 @@ interface IBitVMBridge {
         bytes32 depositId,
         bytes32 taprootPubKey,
         bytes32 outputCommitment
-    ) external;
+    ) external payable;
 
     function finalizeDeposit(bytes32 depositId) external;
 

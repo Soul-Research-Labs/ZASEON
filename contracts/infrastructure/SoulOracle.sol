@@ -12,6 +12,7 @@ contract SoulOracle {
 
     function getPrice(bytes32 /* asset */) external pure returns (uint256) {
         // ...implementation...
-        return 0;
+        // SECURITY: Revert instead of returning 0
+        revert("SoulOracle: not implemented");
     }
 }

@@ -176,7 +176,8 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
         if (amount == 0) revert ZeroAmount();
         if (circuitCommitment == bytes32(0)) revert InvalidCircuitCommitment();
         if (prover == address(0)) revert ZeroAddress();
-        if (msg.value < MIN_PROVER_STAKE) revert InsufficientStake();
+        // Fix: User does not pay stake. Prover must pay in commitDeposit.
+        // if (msg.value < MIN_PROVER_STAKE) revert InsufficientStake();
 
         depositId = keccak256(
             abi.encodePacked(msg.sender, prover, amount, circuitCommitment, depositNonce++)
@@ -187,7 +188,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
             depositor: msg.sender,
             prover: prover,
             amount: amount,
-            stake: msg.value,
+            stake: 0,
             circuitCommitment: circuitCommitment,
             taprootPubKey: bytes32(0),
             outputCommitment: bytes32(0),
@@ -213,7 +214,7 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
         bytes32 depositId,
         bytes32 taprootPubKey,
         bytes32 outputCommitment
-    ) external nonReentrant whenNotPaused {
+    ) external payable nonReentrant whenNotPaused {
         BitVMDeposit storage deposit = deposits[depositId];
 
         if (deposit.initiatedAt == 0) revert DepositNotFound(depositId);
@@ -222,6 +223,11 @@ contract BitVMBridge is IBitVMBridge, AccessControl, ReentrancyGuard, Pausable {
         }
         if (msg.sender != deposit.prover) revert NotProver(depositId);
         if (taprootPubKey == bytes32(0)) revert InvalidTaprootKey();
+        if (address(0) == address(0) && msg.value < MIN_PROVER_STAKE) revert InsufficientStake();
+        // Check if stake was already paid (if we supported user-paid stake), otherwise require msg.value
+        // Here we assume Prover ALWAYS pays the stake now.
+        
+        deposit.stake += msg.value;
 
         deposit.taprootPubKey = taprootPubKey;
         deposit.outputCommitment = outputCommitment;

@@ -801,7 +801,10 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         if (req.requestId == bytes32(0)) revert InvalidHandle();
         if (req.fulfilled) revert RequestAlreadyFulfilled();
         if (block.timestamp > req.maxTimestamp) revert RequestExpired();
-        require(proof.length > 0, "Invalid proof");
+        // SECURITY CRITICAL: ZK Proof verification is not yet linked.
+        // Revert to prevent blind trust in coprocessor.
+        // require(proof.length > 0, "Invalid proof");
+        revert("ZK Proof verification not implemented");
 
         req.fulfilled = true;
         req.result = result;
@@ -873,7 +876,10 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         if (req.requestId == bytes32(0)) revert InvalidHandle();
         if (req.fulfilled) revert RequestAlreadyFulfilled();
         if (block.timestamp > req.maxTimestamp) revert RequestExpired();
-        require(proof.length > 0, "Invalid proof");
+        // SECURITY CRITICAL: ZK Proof verification is not yet linked.
+        // Revert to prevent blind trust in coprocessor.
+        // require(proof.length > 0, "Invalid proof");
+        revert("ZK Proof verification not implemented");
 
         req.fulfilled = true;
         req.reencryptedCiphertext = reencryptedCiphertext;

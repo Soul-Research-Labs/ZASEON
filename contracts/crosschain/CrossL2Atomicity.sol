@@ -273,7 +273,13 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
             revert InvalidOperationData();
         }
 
-        // Generate bundle ID
+        // Calculate total required value
+        uint256 totalRequiredValue = 0;
+        for (uint256 i = 0; i < chainCount; i++) {
+            totalRequiredValue += values[i];
+        }
+        require(msg.value >= totalRequiredValue, "Insufficient value for operations");
+
         bundleId = keccak256(
             abi.encodePacked(
                 msg.sender,
