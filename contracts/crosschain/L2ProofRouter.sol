@@ -251,6 +251,9 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     /// @notice Global batch nonce
     uint256 public batchNonce;
 
+    /// @notice Global proof nonce
+    uint256 public proofNonce;
+
     /// @notice Soul Hub address
     address public pilHub;
 
@@ -300,7 +303,8 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
                 proofType,
                 msg.sender,
                 proofData,
-                block.timestamp
+                block.timestamp,
+                ++proofNonce
             )
         );
 

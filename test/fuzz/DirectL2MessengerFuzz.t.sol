@@ -69,6 +69,22 @@ contract DirectL2MessengerFuzz is Test {
 
         vm.prank(relayer3);
         messenger.registerRelayer{value: 1 ether}();
+
+        // Register a mock sequencer for integration tests
+        address mockSequencer = address(0xABC);
+        uint256[] memory chains = new uint256[](1);
+        chains[0] = OPTIMISM_CHAIN_ID;
+        address[] memory validators = new address[](1);
+        validators[0] = admin;
+        
+        vm.prank(admin);
+        sequencerIntegration.registerSequencer(
+            mockSequencer,
+            SharedSequencerIntegration.SequencerType.CUSTOM,
+            chains,
+            6667,
+            validators
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -121,6 +137,8 @@ contract DirectL2MessengerFuzz is Test {
 
     /// @notice Fuzz test: Relayer bond requirements
     function testFuzz_RelayerBondRequirements(uint256 bondAmount) public {
+        bondAmount = bound(bondAmount, 0, type(uint128).max);
+        
         address newRelayer = address(
             uint160(uint256(keccak256(abi.encode(bondAmount, block.timestamp))))
         );
@@ -189,8 +207,8 @@ contract DirectL2MessengerFuzz is Test {
     ) public {
         vm.assume(pathType < 4); // Valid MessagePath enum values
         vm.assume(sourceChainId != destChainId);
-        vm.assume(minConfirmations < 100);
-        vm.assume(challengeWindow < 7 days);
+        minConfirmations = bound(minConfirmations, 0, 99);
+        challengeWindow = bound(challengeWindow, 0, 7 days);
 
         vm.prank(admin);
         messenger.configureRoute(
@@ -443,6 +461,22 @@ contract DirectL2MessengerFuzz is Test {
         messageCount = bound(messageCount, 1, 20);
         vm.assume(destChainId != block.chainid);
         vm.assume(destChainId > 0);
+
+        // Register sequencer for this specific chain
+        address seq = address(uint160(destChainId));
+        uint256[] memory chains = new uint256[](1);
+        chains[0] = destChainId;
+        address[] memory validators = new address[](1);
+        validators[0] = admin;
+
+        vm.prank(admin);
+        sequencerIntegration.registerSequencer(
+            seq,
+            SharedSequencerIntegration.SequencerType.CUSTOM,
+            chains,
+            1,
+            validators
+        );
 
         uint256 lastSequence = 0;
 

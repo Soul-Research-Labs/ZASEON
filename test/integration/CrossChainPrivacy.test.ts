@@ -6,8 +6,9 @@
  */
 
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { keccak256, toBytes, encodePacked, getAddress, parseEther, hexlify, randomBytes } from "viem";
+import hre from "hardhat";
+const { ethers } = hre as any;
+import { keccak256, toBytes, encodePacked, getAddress, parseEther } from "viem";
 
 // Test constants
 const NULLIFIER_DOMAIN = keccak256(toBytes("Soul_UNIFIED_NULLIFIER_V1"));
@@ -62,10 +63,10 @@ describe("CrossChainPrivacy Integration", function () {
         [admin, operator, relayer, user1, user2, bridgeValidator] = await ethers.getSigners();
 
         // Generate test keys
-        user1SpendingKey = hexlify(randomBytes(32));
-        user1ViewingKey = hexlify(randomBytes(32));
-        user2SpendingKey = hexlify(randomBytes(32));
-        user2ViewingKey = hexlify(randomBytes(32));
+        user1SpendingKey = ethers.hexlify(ethers.randomBytes(32));
+        user1ViewingKey = ethers.hexlify(ethers.randomBytes(32));
+        user2SpendingKey = ethers.hexlify(ethers.randomBytes(32));
+        user2ViewingKey = ethers.hexlify(ethers.randomBytes(32));
     });
 
     /*//////////////////////////////////////////////////////////////
@@ -148,7 +149,7 @@ describe("CrossChainPrivacy Integration", function () {
         });
 
         it("Should generate stealth address for recipient", async function () {
-            const ephemeralPrivKey = hexlify(randomBytes(32));
+            const ephemeralPrivKey = ethers.hexlify(ethers.randomBytes(32));
             const ephemeralPubKeyHash = keccak256(toBytes(ephemeralPrivKey));
 
             const stealthAddress = await stealthRegistry.computeStealthAddress(
@@ -161,9 +162,9 @@ describe("CrossChainPrivacy Integration", function () {
         });
 
         it("Should announce stealth payment", async function () {
-            const ephemeralPubKey = hexlify(randomBytes(33));
+            const ephemeralPubKey = ethers.hexlify(ethers.randomBytes(33));
             const viewTag = "0x" + ephemeralPubKey.slice(2, 4);
-            const stealthAddress = getAddress(hexlify(randomBytes(20)));
+            const stealthAddress = getAddress(ethers.hexlify(ethers.randomBytes(20)));
             const metadata = "0x";
 
             const tx = await stealthRegistry.connect(user2).announceStealthPayment(
@@ -199,7 +200,7 @@ describe("CrossChainPrivacy Integration", function () {
 
         it("Should create Pedersen commitment", async function () {
             const amount = parseEther("10");
-            outputBlinding = hexlify(randomBytes(32));
+            outputBlinding = ethers.hexlify(ethers.randomBytes(32));
 
             outputCommitment = await ringCT.computePedersenCommitment(amount, outputBlinding);
             expect(outputCommitment).to.not.equal(ethers.ZeroHash);
@@ -208,7 +209,7 @@ describe("CrossChainPrivacy Integration", function () {
         it("Should verify commitment sum (outputs = inputs)", async function () {
             // Create input commitment
             const inputAmount = parseEther("10");
-            const inputBlinding = hexlify(randomBytes(32));
+            const inputBlinding = ethers.hexlify(ethers.randomBytes(32));
             const inputCommitment = await ringCT.computePedersenCommitment(inputAmount, inputBlinding);
 
             // In a real RingCT, sum(inputs) - sum(outputs) = fee * H
@@ -218,7 +219,7 @@ describe("CrossChainPrivacy Integration", function () {
 
         it("Should generate range proof for commitment", async function () {
             const amount = parseEther("1");
-            const blinding = hexlify(randomBytes(32));
+            const blinding = ethers.hexlify(ethers.randomBytes(32));
 
             // Generate range proof (simplified for testing)
             const rangeProofData = await ringCT.generateRangeProofData(amount, blinding);
@@ -226,8 +227,8 @@ describe("CrossChainPrivacy Integration", function () {
         });
 
         it("Should create confidential transaction", async function () {
-            const inputCommitments = [await ringCT.computePedersenCommitment(parseEther("10"), hexlify(randomBytes(32)))];
-            const outputCommitments = [await ringCT.computePedersenCommitment(parseEther("9"), hexlify(randomBytes(32)))];
+            const inputCommitments = [await ringCT.computePedersenCommitment(parseEther("10"), ethers.hexlify(ethers.randomBytes(32)))];
+            const outputCommitments = [await ringCT.computePedersenCommitment(parseEther("9"), ethers.hexlify(ethers.randomBytes(32)))];
             const fee = parseEther("1");
 
             // Fee commitment implicitly covers the difference
@@ -277,13 +278,13 @@ describe("CrossChainPrivacy Integration", function () {
             const commitment = keccak256(toBytes("test_commitment_2"));
             const domainId = keccak256(toBytes("test_domain"));
 
-            await expect(
+            await (expect(
                 nullifierManager.connect(relayer).registerNullifier(
                     testNullifier,
                     commitment,
                     domainId
                 )
-            ).to.be.reverted;
+            ) as any).to.be.reverted;
         });
 
         it("Should derive cross-domain nullifier", async function () {
@@ -310,7 +311,7 @@ describe("CrossChainPrivacy Integration", function () {
             const sourceNullifier = keccak256(toBytes("verified_source"));
             const sourceDomain = keccak256(toBytes("verified_domain"));
             const targetDomain = keccak256(toBytes("target_domain"));
-            const proof = hexlify(randomBytes(128)); // Mock proof
+            const proof = ethers.hexlify(ethers.randomBytes(128)); // Mock proof
 
             // This would verify the proof in production
             const expectedCrossDomain = await nullifierManager.deriveCrossDomainNullifier(
@@ -350,9 +351,9 @@ describe("CrossChainPrivacy Integration", function () {
             const amount = parseEther("1");
             const commitment = keccak256(encodePacked(
                 ["address", "uint256", "bytes32"],
-                [recipient, amount, hexlify(randomBytes(32))]
+                [recipient, amount, ethers.hexlify(ethers.randomBytes(32))]
             ));
-            const proof = hexlify(randomBytes(256));
+            const proof = ethers.hexlify(ethers.randomBytes(256));
 
             const tx = await privacyHub.connect(user1).initiatePrivateTransfer(
                 bridgeId,
@@ -372,7 +373,7 @@ describe("CrossChainPrivacy Integration", function () {
             const transferId = keccak256(toBytes("transfer_id"));
             const nullifier = keccak256(toBytes("transfer_nullifier"));
             const commitment = keccak256(toBytes("transfer_commitment"));
-            const proof = hexlify(randomBytes(256));
+            const proof = ethers.hexlify(ethers.randomBytes(256));
 
             // Relayer completes the transfer on destination
             // This is a simplified test - real implementation verifies proof
@@ -415,7 +416,7 @@ describe("CrossChainPrivacy Integration", function () {
 
             // 3. Create commitment for the transfer
             const amount = parseEther("5");
-            const blinding = hexlify(randomBytes(32));
+            const blinding = ethers.hexlify(ethers.randomBytes(32));
             const commitment = await ringCT.computePedersenCommitment(amount, blinding);
 
             // 4. Derive nullifier
@@ -439,7 +440,7 @@ describe("CrossChainPrivacy Integration", function () {
             await stealthRegistry.connect(user2).announceStealthPayment(
                 1,
                 stealthAddr,
-                hexlify(randomBytes(33)),
+                ethers.hexlify(ethers.randomBytes(33)),
                 "0x00",
                 "0x"
             );
@@ -485,7 +486,7 @@ describe("CrossChainPrivacy Integration", function () {
             const commitments = await Promise.all(
                 Array(ringSize).fill(0).map(async (_, i) => {
                     const amount = parseEther(String(i + 1));
-                    const blinding = hexlify(randomBytes(32));
+                    const blinding = ethers.hexlify(ethers.randomBytes(32));
                     return ringCT.computePedersenCommitment(amount, blinding);
                 })
             );
@@ -509,19 +510,19 @@ describe("CrossChainPrivacy Integration", function () {
 
     describe("Error Handling", function () {
         it("Should revert on invalid stealth scheme", async function () {
-            await expect(
+            await (expect(
                 stealthRegistry.connect(user1).registerStealthMetaAddress(
                     keccak256(toBytes("spending")),
                     keccak256(toBytes("viewing")),
                     255 // Invalid scheme
                 )
-            ).to.be.reverted;
+            ) as any).to.be.reverted;
         });
 
         it("Should revert on zero commitment", async function () {
-            await expect(
-                ringCT.computePedersenCommitment(0, hexlify(randomBytes(32)))
-            ).to.be.reverted;
+            await (expect(
+                ringCT.computePedersenCommitment(0, ethers.hexlify(ethers.randomBytes(32)))
+            ) as any).to.be.reverted;
         });
 
         it("Should revert on duplicate domain registration", async function () {
@@ -533,13 +534,13 @@ describe("CrossChainPrivacy Integration", function () {
                 1
             );
 
-            await expect(
+            await (expect(
                 nullifierManager.connect(admin).registerDomain(
                     domainId,
                     relayer.address,
                     1
                 )
-            ).to.be.reverted;
+            ) as any).to.be.reverted;
         });
     });
 
@@ -556,7 +557,7 @@ describe("CrossChainPrivacy Integration", function () {
             );
             const receipt = await tx.wait();
             console.log("   Stealth registration gas:", receipt?.gasUsed?.toString());
-            expect(receipt?.gasUsed).to.be.lt(200_000n);
+            expect(Number(receipt?.gasUsed)).to.be.lt(200_000);
         });
 
         it("Should measure nullifier registration gas", async function () {
@@ -570,17 +571,17 @@ describe("CrossChainPrivacy Integration", function () {
             );
             const receipt = await tx.wait();
             console.log("   Nullifier registration gas:", receipt?.gasUsed?.toString());
-            expect(receipt?.gasUsed).to.be.lt(150_000n);
+            expect(Number(receipt?.gasUsed)).to.be.lt(150_000);
         });
 
         it("Should measure commitment computation gas", async function () {
             const amount = parseEther("1");
-            const blinding = hexlify(randomBytes(32));
+            const blinding = ethers.hexlify(ethers.randomBytes(32));
 
             // Static call to measure gas
             const gasEstimate = await ringCT.computePedersenCommitment.estimateGas(amount, blinding);
             console.log("   Commitment computation gas:", gasEstimate.toString());
-            expect(gasEstimate).to.be.lt(100_000n);
+            expect(Number(gasEstimate)).to.be.lt(100_000);
         });
     });
 });

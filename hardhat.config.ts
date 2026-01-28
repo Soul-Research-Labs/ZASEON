@@ -1,9 +1,10 @@
 import { defineConfig } from "hardhat/config";
 import hardhatMocha from "@nomicfoundation/hardhat-mocha";
 import hardhatViem from "@nomicfoundation/hardhat-viem";
+import "@nomicfoundation/hardhat-ethers";
 import * as dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true } as any);
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000000";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";

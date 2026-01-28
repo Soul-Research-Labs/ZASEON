@@ -170,14 +170,14 @@ contract SecurityModuleAttackTest is Test {
         // Fund accounts
         vm.deal(alice, 100 ether);
         vm.deal(bob, 100 ether);
-        vm.deal(attacker, 1000 ether);
+        vm.deal(attacker, 2000 ether);
         vm.deal(address(flashAttacker), 100 ether);
         vm.deal(address(reentrancyAttacker), 100 ether);
         vm.deal(address(rateLimitAttacker), 100 ether);
 
         // Set reasonable limits for testing
         vault.setWithdrawalLimitsPublic(10 ether, 50 ether, 20 ether);
-        vault.setCircuitBreakerConfigPublic(100 ether, 15 minutes);
+        vault.setCircuitBreakerConfigPublic(1000 ether, 15 minutes);
         vault.setRateLimitConfigPublic(1 hours, 10);
     }
 
@@ -323,18 +323,18 @@ contract SecurityModuleAttackTest is Test {
         vm.startPrank(attacker);
 
         // Make large deposits approaching threshold
-        vault.deposit{value: 50 ether}();
-        vault.deposit{value: 40 ether}();
+        vault.deposit{value: 500 ether}();
+        vault.deposit{value: 400 ether}();
 
-        // This should trip the circuit breaker (100 eth threshold)
+        // This should trip the circuit breaker (1000 eth threshold)
         vm.expectRevert(
             abi.encodeWithSelector(
                 SecurityModule.CircuitBreakerTriggered.selector,
-                100 ether, // current volume
-                100 ether // threshold
+                1100 ether, // current volume
+                1000 ether // threshold
             )
         );
-        vault.deposit{value: 20 ether}();
+        vault.deposit{value: 200 ether}();
 
         vm.stopPrank();
     }
@@ -344,7 +344,7 @@ contract SecurityModuleAttackTest is Test {
         vm.startPrank(attacker);
 
         // Trip the circuit breaker
-        vault.deposit{value: 99 ether}();
+        vault.deposit{value: 1001 ether}();
 
         vm.expectRevert();
         vault.deposit{value: 10 ether}();
@@ -363,7 +363,7 @@ contract SecurityModuleAttackTest is Test {
         vm.startPrank(attacker);
 
         // Trip the circuit breaker
-        vault.deposit{value: 99 ether}();
+        vault.deposit{value: 1001 ether}();
         vm.expectRevert();
         vault.deposit{value: 10 ether}();
 
@@ -388,13 +388,13 @@ contract SecurityModuleAttackTest is Test {
         vm.startPrank(alice);
 
         // Make deposits approaching threshold
-        vault.deposit{value: 90 ether}();
+        vault.deposit{value: 900 ether}();
 
         // Advance 1 hour
         vm.warp(block.timestamp + 1 hours + 1);
 
         // Volume should have reset, so this should succeed
-        vault.deposit{value: 90 ether}();
+        vault.deposit{value: 900 ether}();
 
         vm.stopPrank();
     }

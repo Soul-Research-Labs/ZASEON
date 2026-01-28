@@ -47,7 +47,7 @@ contract FHEFuzz is Test {
 
     // Oracle constants
     uint256 constant MIN_STAKE = 10 ether;
-    uint256 constant QUORUM_BPS = 6667;
+    uint256 constant QUORUM_BPS = 6666;
     uint256 constant SLASH_BPS = 1000;
 
     // Bridge constants
@@ -174,8 +174,11 @@ contract FHEFuzz is Test {
         else if (fheType == TYPE_EUINT16) max = 65535;
         else if (fheType == TYPE_EUINT32) max = 4294967295;
         else if (fheType == TYPE_EUINT64) max = 18446744073709551615;
-        else max = type(uint256).max;
+        else {
+            max = type(uint256).max;
+        }
 
+        if (max == type(uint256).max) return value;
         return value % (max + 1);
     }
 
