@@ -324,11 +324,11 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
         }
 
         executionId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 msg.sender,
                 outputCommitment,
                 policyHash,
-                block.number, // Use block.number instead of timestamp for determinism
+                block.number,
                 currentSequenceNumber
             )
         );
@@ -348,7 +348,7 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
             nullifiersProduced: nullifiersProduced,
             outputCommitment: outputCommitment,
             stateTransitionHash: keccak256(
-                abi.encodePacked(
+                abi.encode(
                     readCommitments,
                     writeCommitments,
                     outputCommitment
@@ -391,7 +391,7 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
         if (executionIds.length > maxBatchSize) revert BatchTooLarge();
 
         batchId = keccak256(
-            abi.encodePacked(executionIds, block.timestamp, totalBatches)
+            abi.encode(executionIds, block.timestamp, totalBatches)
         );
 
         batches[batchId] = ExecutionBatch({
@@ -772,7 +772,7 @@ contract ParallelKernelVerifier is AccessControl, ReentrancyGuard, Pausable {
 
         bytes32 root = executionIds[0];
         for (uint256 i = 1; i < executionIds.length; i++) {
-            root = keccak256(abi.encodePacked(root, executionIds[i]));
+            root = keccak256(abi.encode(root, executionIds[i]));
         }
         return root;
     }

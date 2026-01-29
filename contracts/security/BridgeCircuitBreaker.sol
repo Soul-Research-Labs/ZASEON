@@ -147,7 +147,8 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
     /// @notice Active anomaly events
     AnomalyEvent[] public activeAnomalies;
 
-    /// @notice Recovery proposal counter
+    /// @notice Index of the first potentially active anomaly
+    uint256 public lastPrunedIndex;
     uint256 public recoveryProposalCount;
 
     /// @notice Recovery proposals
@@ -347,6 +348,28 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
         _updateState();
 
         emit AnomalyResolved(anomalyId);
+    }
+
+    /**
+     * @notice Prune old and resolved anomalies to save gas
+     * @param limit Maximum number of items to prune in one call
+     */
+    function pruneAnomalies(uint256 limit) external onlyRole(MONITOR_ROLE) {
+        uint256 count = 0;
+        uint256 i = lastPrunedIndex;
+        while (i < activeAnomalies.length && count < limit) {
+            AnomalyEvent storage anomaly = activeAnomalies[i];
+            if (
+                anomaly.resolved ||
+                block.timestamp - anomaly.timestamp >= MAX_ANOMALY_AGE
+            ) {
+                i++;
+                count++;
+            } else {
+                break;
+            }
+        }
+        lastPrunedIndex = i;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -695,7 +718,7 @@ contract BridgeCircuitBreaker is AccessControl, Pausable {
         uint256 totalSeverity = 0;
         uint256 activeCount = 0;
 
-        for (uint256 i = 0; i < activeAnomalies.length; i++) {
+        for (uint256 i = lastPrunedIndex; i < activeAnomalies.length; i++) {
             AnomalyEvent storage anomaly = activeAnomalies[i];
 
             // Skip resolved or expired anomalies

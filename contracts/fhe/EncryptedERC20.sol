@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./FHEGateway.sol";
 import "./FHETypes.sol";
+import "./FHEOperations.sol";
 
 /**
  * @title EncryptedERC20
@@ -42,8 +43,8 @@ import "./FHETypes.sol";
  * └─────────────────────────────────────────────────────────────────────┘
  */
 contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
-    using FHETypes for uint8;
-    using FHETypes for bytes32;
+    using FHEOperations for uint256;
+    using FHEOperations for euint256;
 
     // ============================================
     // Roles
@@ -69,13 +70,13 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     FHEGateway public immutable fheGateway;
 
     /// @notice Encrypted total supply handle
-    bytes32 public encryptedTotalSupply;
+    euint256 public encryptedTotalSupply;
 
     /// @notice Encrypted balances: address => encrypted balance handle
-    mapping(address => bytes32) public encryptedBalances;
+    mapping(address => euint256) public encryptedBalances;
 
     /// @notice Encrypted allowances: owner => spender => encrypted allowance handle
-    mapping(address => mapping(address => bytes32)) public encryptedAllowances;
+    mapping(address => mapping(address => euint256)) public encryptedAllowances;
 
     /// @notice Decryption requests: requestId => bool
     mapping(bytes32 => bool) public pendingDecryptions;
@@ -88,6 +89,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Nonce for transfers (replay protection)
     mapping(address => uint256) public transferNonces;
+
 
     // ============================================
     // Types
@@ -110,7 +112,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         bytes32 receiptId;
         address from;
         address to;
-        bytes32 encryptedAmount;
+        euint256 encryptedAmount;
         uint64 timestamp;
         uint256 nonce;
     }
@@ -122,19 +124,19 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     event EncryptedTransfer(
         address indexed from,
         address indexed to,
-        bytes32 encryptedAmount,
+        euint256 encryptedAmount,
         bytes32 receiptId
     );
 
     event EncryptedApproval(
         address indexed owner,
         address indexed spender,
-        bytes32 encryptedAllowance
+        euint256 encryptedAllowance
     );
 
-    event EncryptedMint(address indexed to, bytes32 encryptedAmount);
+    event EncryptedMint(address indexed to, euint256 encryptedAmount);
 
-    event EncryptedBurn(address indexed from, bytes32 encryptedAmount);
+    event EncryptedBurn(address indexed from, euint256 encryptedAmount);
 
     event BalanceDecryptionRequested(
         bytes32 indexed requestId,
@@ -203,11 +205,9 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         _grantRole(COMPLIANCE_ROLE, msg.sender);
 
         // Initialize encrypted total supply to 0
-        encryptedTotalSupply = fheGateway.trivialEncrypt(
-            0,
-            FHETypes.TYPE_EUINT256
-        );
+        encryptedTotalSupply = FHEOperations.asEuint256(0);
     }
+
 
     // ============================================
     // ERC20-like Interface (Encrypted)
@@ -218,7 +218,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      * @param account The account address
      * @return handle The encrypted balance handle
      */
-    function balanceOf(address account) external view returns (bytes32 handle) {
+    function balanceOf(address account) external view returns (euint256 handle) {
         return encryptedBalances[account];
     }
 
@@ -231,7 +231,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     function allowance(
         address owner,
         address spender
-    ) external view returns (bytes32 handle) {
+    ) external view returns (euint256 handle) {
         return encryptedAllowances[owner][spender];
     }
 
@@ -239,7 +239,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      * @notice Get encrypted total supply
      * @return handle The encrypted total supply handle
      */
-    function totalSupply() external view returns (bytes32 handle) {
+    function totalSupply() external view returns (euint256 handle) {
         return encryptedTotalSupply;
     }
 
@@ -255,7 +255,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function transfer(
         address to,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) external whenNotPaused nonReentrant returns (bool success) {
         return _transfer(msg.sender, to, encryptedAmount);
     }
@@ -270,10 +270,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         uint256 amount
     ) external whenNotPaused nonReentrant returns (bool success) {
         // Encrypt the amount
-        bytes32 encAmount = fheGateway.trivialEncrypt(
-            amount,
-            FHETypes.TYPE_EUINT256
-        );
+        euint256 encAmount = amount.asEuint256();
         return _transfer(msg.sender, to, encAmount);
     }
 
@@ -286,17 +283,14 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     function transferFrom(
         address from,
         address to,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) external whenNotPaused nonReentrant returns (bool success) {
         // Check and update allowance
-        bytes32 currentAllowance = encryptedAllowances[from][msg.sender];
-        if (currentAllowance == bytes32(0)) revert InsufficientAllowance();
+        euint256 currentAllowance = encryptedAllowances[from][msg.sender];
+        if (euint256.unwrap(currentAllowance) == bytes32(0)) revert InsufficientAllowance();
 
         // Subtract from allowance (FHE subtraction)
-        bytes32 newAllowance = fheGateway.fheSub(
-            currentAllowance,
-            encryptedAmount
-        );
+        euint256 newAllowance = currentAllowance.sub(encryptedAmount);
         encryptedAllowances[from][msg.sender] = newAllowance;
 
         return _transfer(from, to, encryptedAmount);
@@ -308,30 +302,27 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     function _transfer(
         address from,
         address to,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) internal returns (bool) {
         if (to == address(0)) revert InvalidRecipient();
-        if (encryptedAmount == bytes32(0)) revert InvalidAmount();
+        if (euint256.unwrap(encryptedAmount) == bytes32(0)) revert InvalidAmount();
 
-        bytes32 fromBalance = encryptedBalances[from];
-        if (fromBalance == bytes32(0)) revert InsufficientBalance();
+        euint256 fromBalance = encryptedBalances[from];
+        if (euint256.unwrap(fromBalance) == bytes32(0)) revert InsufficientBalance();
 
         // FHE subtraction from sender
-        bytes32 newFromBalance = fheGateway.fheSub(
-            fromBalance,
-            encryptedAmount
-        );
+        euint256 newFromBalance = fromBalance.sub(encryptedAmount);
         encryptedBalances[from] = newFromBalance;
 
         // FHE addition to recipient
-        bytes32 toBalance = encryptedBalances[to];
-        bytes32 newToBalance;
+        euint256 toBalance = encryptedBalances[to];
+        euint256 newToBalance;
 
-        if (toBalance == bytes32(0)) {
+        if (euint256.unwrap(toBalance) == bytes32(0)) {
             // First balance for recipient
             newToBalance = encryptedAmount;
         } else {
-            newToBalance = fheGateway.fheAdd(toBalance, encryptedAmount);
+            newToBalance = toBalance.add(encryptedAmount);
         }
         encryptedBalances[to] = newToBalance;
 
@@ -352,6 +343,15 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         return true;
     }
 
+
+    /**
+     * @notice Get encrypted allowance
+     * @param owner Token owner
+     * @param spender Spender address
+     * @return handle The encrypted allowance handle
+     */
+
+
     // ============================================
     // Encrypted Approvals
     // ============================================
@@ -363,7 +363,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function approve(
         address spender,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) external whenNotPaused returns (bool) {
         encryptedAllowances[msg.sender][spender] = encryptedAmount;
 
@@ -381,10 +381,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         address spender,
         uint256 amount
     ) external whenNotPaused returns (bool) {
-        bytes32 encAmount = fheGateway.trivialEncrypt(
-            amount,
-            FHETypes.TYPE_EUINT256
-        );
+        euint256 encAmount = amount.asEuint256();
         encryptedAllowances[msg.sender][spender] = encAmount;
 
         emit EncryptedApproval(msg.sender, spender, encAmount);
@@ -399,15 +396,15 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function increaseAllowance(
         address spender,
-        bytes32 addedValue
+        euint256 addedValue
     ) external whenNotPaused returns (bool) {
-        bytes32 current = encryptedAllowances[msg.sender][spender];
-        bytes32 newAllowance;
+        euint256 current = encryptedAllowances[msg.sender][spender];
+        euint256 newAllowance;
 
-        if (current == bytes32(0)) {
+        if (euint256.unwrap(current) == bytes32(0)) {
             newAllowance = addedValue;
         } else {
-            newAllowance = fheGateway.fheAdd(current, addedValue);
+            newAllowance = current.add(addedValue);
         }
 
         encryptedAllowances[msg.sender][spender] = newAllowance;
@@ -424,12 +421,12 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function decreaseAllowance(
         address spender,
-        bytes32 subtractedValue
+        euint256 subtractedValue
     ) external whenNotPaused returns (bool) {
-        bytes32 current = encryptedAllowances[msg.sender][spender];
-        if (current == bytes32(0)) revert InsufficientAllowance();
+        euint256 current = encryptedAllowances[msg.sender][spender];
+        if (euint256.unwrap(current) == bytes32(0)) revert InsufficientAllowance();
 
-        bytes32 newAllowance = fheGateway.fheSub(current, subtractedValue);
+        euint256 newAllowance = current.sub(subtractedValue);
         encryptedAllowances[msg.sender][spender] = newAllowance;
 
         emit EncryptedApproval(msg.sender, spender, newAllowance);
@@ -448,26 +445,24 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function mint(
         address to,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) external onlyRole(MINTER_ROLE) whenNotPaused {
         if (to == address(0)) revert InvalidRecipient();
-        if (encryptedAmount == bytes32(0)) revert InvalidAmount();
 
         // Update total supply
-        encryptedTotalSupply = fheGateway.fheAdd(
-            encryptedTotalSupply,
-            encryptedAmount
-        );
+        bool supplyExists = euint256.unwrap(encryptedTotalSupply) != bytes32(0);
+        if (!supplyExists) {
+             encryptedTotalSupply = encryptedAmount;
+        } else {
+             encryptedTotalSupply = encryptedTotalSupply.add(encryptedAmount);
+        }
 
-        // Update recipient balance
-        bytes32 currentBalance = encryptedBalances[to];
-        if (currentBalance == bytes32(0)) {
+        // Update balance
+        euint256 currentBalance = encryptedBalances[to];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) {
             encryptedBalances[to] = encryptedAmount;
         } else {
-            encryptedBalances[to] = fheGateway.fheAdd(
-                currentBalance,
-                encryptedAmount
-            );
+            encryptedBalances[to] = currentBalance.add(encryptedAmount);
         }
 
         emit EncryptedMint(to, encryptedAmount);
@@ -482,26 +477,23 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         address to,
         uint256 amount
     ) external onlyRole(MINTER_ROLE) whenNotPaused {
-        bytes32 encAmount = fheGateway.trivialEncrypt(
-            amount,
-            FHETypes.TYPE_EUINT256
-        );
-
         if (to == address(0)) revert InvalidRecipient();
 
-        encryptedTotalSupply = fheGateway.fheAdd(
-            encryptedTotalSupply,
-            encAmount
-        );
+        euint256 encAmount = amount.asEuint256();
 
-        bytes32 currentBalance = encryptedBalances[to];
-        if (currentBalance == bytes32(0)) {
+        // Update total supply
+        bool supplyExists = euint256.unwrap(encryptedTotalSupply) != bytes32(0);
+        if (!supplyExists) {
+             encryptedTotalSupply = encAmount;
+        } else {
+             encryptedTotalSupply = encryptedTotalSupply.add(encAmount);
+        }
+
+        euint256 currentBalance = encryptedBalances[to];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) {
             encryptedBalances[to] = encAmount;
         } else {
-            encryptedBalances[to] = fheGateway.fheAdd(
-                currentBalance,
-                encAmount
-            );
+            encryptedBalances[to] = currentBalance.add(encAmount);
         }
 
         emit EncryptedMint(to, encAmount);
@@ -514,24 +506,18 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      */
     function burn(
         address from,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) external onlyRole(BURNER_ROLE) whenNotPaused {
-        if (encryptedAmount == bytes32(0)) revert InvalidAmount();
+        if (euint256.unwrap(encryptedAmount) == bytes32(0)) revert InvalidAmount();
 
-        bytes32 currentBalance = encryptedBalances[from];
-        if (currentBalance == bytes32(0)) revert InsufficientBalance();
+        euint256 currentBalance = encryptedBalances[from];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) revert InsufficientBalance();
 
         // Update balance
-        encryptedBalances[from] = fheGateway.fheSub(
-            currentBalance,
-            encryptedAmount
-        );
+        encryptedBalances[from] = currentBalance.sub(encryptedAmount);
 
         // Update total supply
-        encryptedTotalSupply = fheGateway.fheSub(
-            encryptedTotalSupply,
-            encryptedAmount
-        );
+        encryptedTotalSupply = encryptedTotalSupply.sub(encryptedAmount);
 
         emit EncryptedBurn(from, encryptedAmount);
     }
@@ -574,12 +560,12 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
             revert UnauthorizedViewer();
         }
 
-        bytes32 balance = encryptedBalances[account];
-        if (balance == bytes32(0)) revert InsufficientBalance();
+        euint256 balance = encryptedBalances[account];
+        if (euint256.unwrap(balance) == bytes32(0)) revert InsufficientBalance();
 
         // Request decryption through gateway
         requestId = fheGateway.requestDecryption(
-            balance,
+            euint256.unwrap(balance),
             callbackContract,
             callbackSelector,
             3600 // 1 hour TTL
@@ -606,8 +592,8 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         uint256 minAmount,
         uint256 maxAmount
     ) external onlyRole(COMPLIANCE_ROLE) returns (bytes32 requestId) {
-        bytes32 balance = encryptedBalances[account];
-        if (balance == bytes32(0)) revert InsufficientBalance();
+        euint256 balance = encryptedBalances[account];
+        if (euint256.unwrap(balance) == bytes32(0)) revert InsufficientBalance();
 
         requestId = keccak256(
             abi.encode(
@@ -630,20 +616,8 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
             inRange: false
         });
 
-        // Request range proof via FHE
-        // This would compare: minAmount <= balance <= maxAmount
-        bytes32 encMin = fheGateway.trivialEncrypt(
-            minAmount,
-            FHETypes.TYPE_EUINT256
-        );
-        bytes32 encMax = fheGateway.trivialEncrypt(
-            maxAmount,
-            FHETypes.TYPE_EUINT256
-        );
-
-        // ge(balance, min) AND le(balance, max)
-        fheGateway.fheGe(balance, encMin);
-        fheGateway.fheLe(balance, encMax);
+        // Optimisation: Removed unused FHE operations comparison that were ignored.
+        // The compliance check is completed by the off-chain oracle.
 
         emit ComplianceCheckRequested(requestId, account, minAmount, maxAmount);
     }
@@ -693,7 +667,7 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
      * @notice Check if address has balance
      */
     function hasBalance(address account) external view returns (bool) {
-        return encryptedBalances[account] != bytes32(0);
+        return euint256.unwrap(encryptedBalances[account]) != bytes32(0);
     }
 
     /**
@@ -715,3 +689,5 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         return complianceRequests[requestId];
     }
 }
+
+

@@ -297,7 +297,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
 
         // Generate proof ID
         proofId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 currentChainId,
                 destChainId,
                 proofType,
@@ -387,7 +387,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         uint256 destChainId
     ) internal returns (bytes32 batchId) {
         batchId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 "BATCH",
                 currentChainId,
                 destChainId,
@@ -650,7 +650,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         bytes calldata proofData,
         bytes calldata publicInputs
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(proofType, proofData, publicInputs));
+        return keccak256(abi.encode(proofType, proofData, publicInputs));
     }
 
     /**
@@ -673,7 +673,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
             Proof storage p = proofs[proofIds[i]];
 
             bytes32 cacheKey = keccak256(
-                abi.encodePacked(p.proofType, p.proofData, p.publicInputs)
+                abi.encode(p.proofType, p.proofData, p.publicInputs)
             );
 
             // Check cache size

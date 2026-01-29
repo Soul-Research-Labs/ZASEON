@@ -264,7 +264,7 @@ contract HomomorphicBalanceVerifier is
         if (!isOnCurve(x, y)) revert PointNotOnCurve();
 
         commitmentHash = keccak256(
-            abi.encodePacked(DOMAIN, x, y, blindingHash)
+            abi.encode(DOMAIN, x, y, blindingHash)
         );
 
         commitments[commitmentHash] = Commitment({
@@ -292,7 +292,7 @@ contract HomomorphicBalanceVerifier is
         bytes32 amountHash,
         bytes32 blindingHash
     ) external pure returns (bytes32) {
-        return keccak256(abi.encodePacked(DOMAIN, amountHash, blindingHash));
+        return keccak256(abi.encode(DOMAIN, amountHash, blindingHash));
     }
 
     // =========================================================================
@@ -321,7 +321,7 @@ contract HomomorphicBalanceVerifier is
         if (outputHashes.length > MAX_IO) revert TooManyOutputs();
 
         bytes32 verificationId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 DOMAIN,
                 inputHashes,
                 outputHashes,
@@ -508,7 +508,7 @@ contract HomomorphicBalanceVerifier is
         bytes32[] calldata verificationIds
     ) external returns (bool) {
         bytes32 batchId = keccak256(
-            abi.encodePacked(DOMAIN, verificationIds, block.timestamp)
+            abi.encode(DOMAIN, verificationIds, block.timestamp)
         );
 
         Point memory aggregateExcess = Point(0, 0);

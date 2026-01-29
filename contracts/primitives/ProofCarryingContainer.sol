@@ -243,7 +243,7 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify proof hash integrity
         bytes32 computedProofHash = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 proofs.validityProof,
                 proofs.policyProof,
                 proofs.nullifierProof
@@ -319,7 +319,7 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify proof hash integrity
         bytes32 computedProofHash = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 container.proofs.validityProof,
                 container.proofs.policyProof,
                 container.proofs.nullifierProof

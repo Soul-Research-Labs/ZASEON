@@ -412,7 +412,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
 
         // For threshold signatures, we verify the combined signature
         // against the group public key commitment
-        bytes32 recoveredHash = keccak256(abi.encodePacked(recovered));
+        bytes32 recoveredHash = keccak256(abi.encode(recovered));
         return recoveredHash == config.groupPublicKey;
     }
 
@@ -532,7 +532,7 @@ contract SoulThresholdSignature is AccessControl, ReentrancyGuard {
         for (uint256 i = 0; i < session.participants.length; i++) {
             address participant = session.participants[i];
             if (session.partialSignatures[participant].length > 0) {
-                combined = abi.encodePacked(
+                combined = bytes.concat(
                     combined,
                     session.partialSignatures[participant]
                 );

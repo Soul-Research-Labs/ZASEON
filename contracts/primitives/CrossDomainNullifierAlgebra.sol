@@ -318,7 +318,7 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
         bytes32 commitmentHash,
         bytes32 transitionId
     )
-        external
+        public
         whenNotPaused
         onlyRole(NULLIFIER_REGISTRAR_ROLE)
         returns (bytes32 nullifier)

@@ -236,7 +236,7 @@ contract PQCKeyRegistry is
 
         // Compute key hash
         keyHash = keccak256(
-            abi.encodePacked(keyType, publicKey, msg.sender, block.timestamp)
+            abi.encode(keyType, publicKey, msg.sender, block.timestamp)
         );
 
         if (keys[keyHash].owner != address(0)) {
@@ -405,7 +405,7 @@ contract PQCKeyRegistry is
 
         // Create rotation request
         rotationId = keccak256(
-            abi.encodePacked(oldKeyHash, newKeyHash, block.timestamp)
+            abi.encode(oldKeyHash, newKeyHash, block.timestamp)
         );
 
         rotationRequests[rotationId] = RotationRequest({

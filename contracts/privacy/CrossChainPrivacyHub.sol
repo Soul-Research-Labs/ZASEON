@@ -511,7 +511,7 @@ contract CrossChainPrivacyHub is
 
         // Generate request ID
         requestId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 msg.sender,
                 recipient,
                 block.chainid,
@@ -608,7 +608,7 @@ contract CrossChainPrivacyHub is
 
         // Generate request ID
         requestId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 msg.sender,
                 token,
                 recipient,
@@ -788,7 +788,7 @@ contract CrossChainPrivacyHub is
     ) external returns (bytes32 stealthPubKey, bytes32 ephemeralPubKey) {
         // Generate ephemeral keypair (in practice, done off-chain)
         ephemeralPubKey = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 spendingPubKey,
                 viewingPubKey,
                 block.timestamp,
@@ -800,12 +800,12 @@ contract CrossChainPrivacyHub is
         // Compute shared secret: S = ephemeralPrivKey * viewingPubKey
         // In practice, this is ECDH on secp256k1 or ed25519
         bytes32 sharedSecret = keccak256(
-            abi.encodePacked(ephemeralPubKey, viewingPubKey)
+            abi.encode(ephemeralPubKey, viewingPubKey)
         );
 
         // Derive stealth public key: P' = P + hash(S) * G
         stealthPubKey = keccak256(
-            abi.encodePacked(spendingPubKey, sharedSecret)
+            abi.encode(spendingPubKey, sharedSecret)
         );
 
         // Register stealth address
@@ -830,12 +830,12 @@ contract CrossChainPrivacyHub is
     ) external pure returns (bool) {
         // Recipient computes shared secret: S = viewingPrivKey * ephemeralPubKey
         bytes32 sharedSecret = keccak256(
-            abi.encodePacked(viewingPrivKey, ephemeralPubKey)
+            abi.encode(viewingPrivKey, ephemeralPubKey)
         );
 
         // Check if stealth key matches
         bytes32 expectedStealth = keccak256(
-            abi.encodePacked(sharedSecret, ephemeralPubKey)
+            abi.encode(sharedSecret, ephemeralPubKey)
         );
 
         // This is simplified - real implementation needs proper EC math
@@ -871,13 +871,13 @@ contract CrossChainPrivacyHub is
         // Create Pedersen commitment: C = aG + bH
         // a = amount, b = blindingFactor
         bytes32 commitment = keccak256(
-            abi.encodePacked(amount, blindingFactor, "PEDERSEN_COMMIT")
+            abi.encode(amount, blindingFactor, "PEDERSEN_COMMIT")
         );
 
         // Generate key image: I = x * Hp(P)
         // This prevents double-spending
         keyImage = keccak256(
-            abi.encodePacked(msg.sender, commitment, "KEY_IMAGE")
+            abi.encode(msg.sender, commitment, "KEY_IMAGE")
         );
 
         // Range proof would be generated off-chain (Bulletproof)
@@ -892,7 +892,7 @@ contract CrossChainPrivacyHub is
             commitment: commitment,
             rangeProof: rangeProof,
             blindingFactor: keccak256(
-                abi.encodePacked(blindingFactor, msg.sender)
+                abi.encode(blindingFactor, msg.sender)
             )
         });
 
@@ -916,7 +916,7 @@ contract CrossChainPrivacyHub is
         // Simplified verification - real implementation uses EC operations
         // Check challenge computation
         bytes32 computedChallenge = keccak256(
-            abi.encodePacked(message, signature.publicKeys, signature.responses)
+            abi.encode(message, signature.publicKeys, signature.responses)
         );
 
         // In practice, we verify the ring equation:
@@ -998,7 +998,7 @@ contract CrossChainPrivacyHub is
     ) internal view returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(
+                abi.encode(
                     recipient,
                     amount,
                     nullifier,

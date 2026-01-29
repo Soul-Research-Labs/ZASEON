@@ -225,7 +225,7 @@ contract PostQuantumSignatureVerifier is
 
         // Check if already verified (cached)
         bytes32 sigHash = keccak256(
-            abi.encodePacked(message, signature.signature, publicKey.keyData)
+            abi.encode(message, signature.signature, publicKey.keyData)
         );
 
         if (verifiedSignatures[sigHash]) {
@@ -408,7 +408,7 @@ contract PostQuantumSignatureVerifier is
         }
 
         bytes32 sigHash = keccak256(
-            abi.encodePacked(message, signature.signature, publicKey.keyData)
+            abi.encode(message, signature.signature, publicKey.keyData)
         );
 
         verificationId = keccak256(

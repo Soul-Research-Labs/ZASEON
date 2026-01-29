@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./FHEGateway.sol";
 import "./FHETypes.sol";
+import "./FHEOperations.sol";
 
 /**
  * @title FHEBridgeAdapter
@@ -49,8 +50,8 @@ import "./FHETypes.sol";
  * - Cross-chain proofs verify amount conservation without revealing values
  */
 contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
-    using FHETypes for uint8;
-    using FHETypes for bytes32;
+    using FHEOperations for uint256;
+    using FHEOperations for euint256;
 
     // ============================================
     // Roles
@@ -79,7 +80,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 transferId;
         address sender;
         bytes32 recipient; // Encrypted recipient on destination
-        bytes32 encryptedAmount; // FHE encrypted amount
+        euint256 encryptedAmount; // FHE encrypted amount
         address token; // Source token address
         uint256 destinationChainId;
         bytes32 destinationToken; // Token identifier on destination
@@ -95,7 +96,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint256 sourceChainId;
         bytes32 sender; // Sender on source chain
         address recipient; // Recipient on this chain
-        bytes32 encryptedAmount; // Re-encrypted for this chain's keys
+        euint256 encryptedAmount; // Re-encrypted for this chain's keys
         address token; // Token on this chain
         uint64 timestamp;
         TransferStatus status;
@@ -107,7 +108,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 transferId;
         uint256 sourceChainId;
         uint256 destinationChainId;
-        bytes32 encryptedAmount;
+        euint256 encryptedAmount;
         bytes32 amountRangeProof; // ZK proof that amount is within valid range
         bytes32 conservationProof; // ZK proof of amount conservation
         bytes zkProof; // Full ZK proof data
@@ -132,8 +133,16 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 destinationToken;
         uint256 destinationChainId;
         bool active;
-        uint256 lockedAmount; // Total locked (encrypted tracking)
+        uint256 lockedAmount; // Total locked (encrypted tracking) -- wait, this is just tracking? Or should be encrypted? 
+        // Original comment said "(encrypted tracking)". But type was uint256. 
+        // This is likely plaintext count or tracking.
+        // Wait, line 135 `uint256 lockedAmount`.
+        // Line 400 `totalEncryptedLocked` mapping is `bytes32`.
+        // This struct field `lockedAmount` might be plaintext volume if known, or unused if fully encrypted.
+        // I will keep it as uint256 for now, as I don't see usage of it being encrypted in struct yet.
     }
+
+
 
     // ============================================
     // Constants
@@ -193,7 +202,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => bytes32) public reencryptionToTransfer;
 
     /// @notice Total encrypted locked per token (for conservation verification)
-    mapping(address => bytes32) public totalEncryptedLocked;
+    mapping(address => euint256) public totalEncryptedLocked;
 
     // ============================================
     // Events
@@ -203,7 +212,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 indexed transferId,
         address indexed sender,
         bytes32 encryptedRecipient,
-        bytes32 encryptedAmount,
+        euint256 encryptedAmount,
         uint256 destinationChainId
     );
 
@@ -212,13 +221,13 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     event TransferRelayed(
         bytes32 indexed transferId,
         uint256 sourceChainId,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     );
 
     event TransferCompleted(
         bytes32 indexed transferId,
         address indexed recipient,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     );
 
     event TransferRefunded(bytes32 indexed transferId, address indexed sender);
@@ -293,7 +302,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @param expiry Transfer expiry (0 for default)
      */
     function initiateTransfer(
-        bytes32 encryptedAmount,
+        euint256 encryptedAmount,
         bytes32 encryptedRecipient,
         address token,
         uint256 destinationChainId,
@@ -369,10 +378,8 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         if (amount > destChain.maxTransfer) revert TransferAboveMaximum();
 
         // Encrypt amount and recipient
-        bytes32 encAmount = fheGateway.trivialEncrypt(
-            amount,
-            FHETypes.TYPE_EUINT64
-        );
+        euint256 encAmount = amount.asEuint256();
+        
         bytes32 encRecipient = fheGateway.trivialEncrypt(
             uint256(uint160(recipient)),
             FHETypes.TYPE_EADDRESS
@@ -394,17 +401,20 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      */
     function _lockEncryptedAmount(
         address token,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) internal {
         // Add to total locked (encrypted addition)
-        bytes32 currentLocked = totalEncryptedLocked[token];
-        if (currentLocked == bytes32(0)) {
+        euint256 currentLocked = totalEncryptedLocked[token];
+        
+        // Check if initialized? defaulting to 0 is fine for FHEOperations if handled
+        // If currentLocked is 0 (uninitialized handle), we should treat it as encrypted 0.
+        // FHEOperations doesn't automatically handle 0 handle as encrypted 0 unless we ensure it.
+        // However, we can initialize it.
+        
+        if (euint256.unwrap(currentLocked) == bytes32(0)) {
             totalEncryptedLocked[token] = encryptedAmount;
         } else {
-            totalEncryptedLocked[token] = fheGateway.fheAdd(
-                currentLocked,
-                encryptedAmount
-            );
+            totalEncryptedLocked[token] = currentLocked.add(encryptedAmount);
         }
     }
 
@@ -500,14 +510,11 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      */
     function _unlockEncryptedAmount(
         address token,
-        bytes32 encryptedAmount
+        euint256 encryptedAmount
     ) internal {
-        bytes32 currentLocked = totalEncryptedLocked[token];
-        if (currentLocked != bytes32(0)) {
-            totalEncryptedLocked[token] = fheGateway.fheSub(
-                currentLocked,
-                encryptedAmount
-            );
+        euint256 currentLocked = totalEncryptedLocked[token];
+        if (euint256.unwrap(currentLocked) != bytes32(0)) {
+            totalEncryptedLocked[token] = currentLocked.sub(encryptedAmount);
         }
     }
 
@@ -529,7 +536,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint256 sourceChainId,
         bytes32 sender,
         address recipient,
-        bytes32 encryptedAmount,
+        euint256 encryptedAmount,
         BridgeProof calldata proof
     ) external onlyRole(RELAYER_ROLE) whenNotPaused nonReentrant {
         // Validate source chain
@@ -634,7 +641,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
         // Request re-encryption with destination chain's public key
         bytes32 requestId = fheGateway.requestReencryption(
-            transfer.encryptedAmount,
+            euint256.unwrap(transfer.encryptedAmount),
             destChain.fhePublicKey,
             3600 // TTL of 1 hour
         );

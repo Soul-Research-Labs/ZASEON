@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import hre from "hardhat";
-import { keccak256, toBytes, padHex, parseEther } from "viem";
+import { keccak256, toBytes, padHex, parseEther, toHex } from "viem";
 
 /**
  * Starknet Integration Tests
@@ -68,7 +68,7 @@ describe("Starknet Integration", function () {
             expect(stats[0]).to.equal(1n); // totalL1ToL2Messages
         });
 
-        it.skip("Should complete L2→L1 message lifecycle", async function () {
+        it("Should complete L2→L1 message lifecycle", async function () {
             const viem = await getViem();
             const [admin, operator, sequencer] = await viem.getWalletClients();
 
@@ -78,22 +78,28 @@ describe("Starknet Integration", function () {
 
             const mockStarknet = await viem.deployContract("contracts/mocks/MockStarknetMessaging.sol:MockStarknetMessaging");
             const mockCore = mockStarknet.address;
+            
+            // Configure with L2 Bridge Address = 1n
             await bridge.write.configure([mockCore, mockCore, 1n], { account: operator.account });
 
-            // Sequencer relays message from L2
-            const fromAddress = 54321n;
-            const payload = [500n, 600n];
-            const starknetTxHash = keccak256(toBytes("starknet_tx"));
+            // User claims withdrawal (via sequencer or direct)
+            // Note: In pull model, anyone can call if they have the proof/message on L1 Core.
+            // Here using sequencer account but it could be anyone.
+            const l2Sender = 1n; // Must match configured l2BridgeAddress
+            const l1Recipient = sequencer.account.address;
+            const l2Token = 123n;
+            const amount = 1000n;
+            const payload = [500n, 600n]; // Mock payload
 
-            const tx = await bridge.write.receiveMessageFromL2(
-                [fromAddress, payload, starknetTxHash],
+            const tx = await bridge.write.claimWithdrawal(
+                [l2Sender, l1Recipient, l2Token, amount, payload],
                 { account: sequencer.account }
             );
             expect(tx).to.not.be.null;
 
             // Verify stats
             const stats = await bridge.read.getBridgeStats();
-            expect(stats[1]).to.equal(1n); // totalL2ToL1Messages
+            expect(stats[1]).to.equal(1n); // totalWithdrawals
         });
     });
 
@@ -101,7 +107,7 @@ describe("Starknet Integration", function () {
                     CROSS-DOMAIN NULLIFIER SYNC
     //////////////////////////////////////////////////////////////*/
 
-    describe.skip("Cross-Domain Nullifier Sync", function () {
+    describe("Cross-Domain Nullifier Sync", function () {
         it("Should synchronize nullifier from L1 to L2", async function () {
             const viem = await getViem();
             const [admin, operator, registrar] = await viem.getWalletClients();
@@ -109,10 +115,17 @@ describe("Starknet Integration", function () {
             const nullifier = await viem.deployContract("CrossDomainNullifierStarknet");
             await nullifier.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             await nullifier.write.grantRole([NULLIFIER_REGISTRAR_ROLE, registrar.account.address]);
+            const DOMAIN_ADMIN_ROLE = await nullifier.read.DOMAIN_ADMIN_ROLE();
+            await nullifier.write.grantRole([DOMAIN_ADMIN_ROLE, operator.account.address]);
 
             // Register domain
-            const domainId = keccak256(toBytes("starknet_domain"));
-            await nullifier.write.registerDomain([domainId, 0, 12345n], { account: operator.account });
+            const chainId = 12345n;
+            const appId = keccak256(toBytes("starknet_domain"));
+            
+            await nullifier.write.registerDomain([chainId, appId, 0n], { account: operator.account });
+            
+            const domains = await nullifier.read.getActiveDomains();
+            const domainId = domains[0];
 
             // Register nullifier
             const nullifierHash = keccak256(toBytes("private_transaction"));
@@ -136,10 +149,17 @@ describe("Starknet Integration", function () {
             const nullifier = await viem.deployContract("CrossDomainNullifierStarknet");
             await nullifier.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             await nullifier.write.grantRole([NULLIFIER_REGISTRAR_ROLE, registrar.account.address]);
+            const DOMAIN_ADMIN_ROLE = await nullifier.read.DOMAIN_ADMIN_ROLE();
+            await nullifier.write.grantRole([DOMAIN_ADMIN_ROLE, operator.account.address]);
 
             // Register domain
-            const domainId = keccak256(toBytes("double_spend_domain"));
-            await nullifier.write.registerDomain([domainId, 0, 12345n], { account: operator.account });
+            const chainId = 54321n;
+            const appId = keccak256(toBytes("double_spend_domain"));
+            
+            await nullifier.write.registerDomain([chainId, appId, 0n], { account: operator.account });
+            
+            const domains = await nullifier.read.getActiveDomains();
+            const domainId = domains[0];
 
             // Register nullifier
             const nullifierHash = keccak256(toBytes("unique_nullifier"));
@@ -170,10 +190,17 @@ describe("Starknet Integration", function () {
             const nullifier = await viem.deployContract("CrossDomainNullifierStarknet");
             await nullifier.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             await nullifier.write.grantRole([NULLIFIER_REGISTRAR_ROLE, registrar.account.address]);
+            const DOMAIN_ADMIN_ROLE = await nullifier.read.DOMAIN_ADMIN_ROLE();
+            await nullifier.write.grantRole([DOMAIN_ADMIN_ROLE, operator.account.address]);
 
             // Register domain
-            const domainId = keccak256(toBytes("merkle_domain"));
-            await nullifier.write.registerDomain([domainId, 0, 12345n], { account: operator.account });
+            const chainId = 99999n;
+            const appId = keccak256(toBytes("merkle_domain"));
+            
+            await nullifier.write.registerDomain([chainId, appId, 0n], { account: operator.account });
+            
+            const domains = await nullifier.read.getActiveDomains();
+            const domainId = domains[0];
 
             const initialRoot = await nullifier.read.getMerkleRoot();
 
@@ -197,7 +224,7 @@ describe("Starknet Integration", function () {
                          STATE SYNC INTEGRATION
     //////////////////////////////////////////////////////////////*/
 
-    describe.skip("State Sync Integration", function () {
+    describe("State Sync Integration", function () {
         it("Should sync state across multiple blocks", async function () {
             const viem = await getViem();
             const [admin, operator, sequencer, verifier] = await viem.getWalletClients();
@@ -235,7 +262,7 @@ describe("Starknet Integration", function () {
             for (const blockNumber of blocks) {
                 await stateSync.write.markBlockProven([
                     blockNumber,
-                    toBytes("proof_sufficient_length")
+                    toHex(toBytes("proof_sufficient_length"))
                 ], { account: verifier.account });
             }
 
@@ -250,7 +277,7 @@ describe("Starknet Integration", function () {
                     STARK PROOF INTEGRATION
     //////////////////////////////////////////////////////////////*/
 
-    describe.skip("STARK Proof Integration", function () {
+    describe("STARK Proof Integration", function () {
         it("Should complete full proof lifecycle", async function () {
             const viem = await getViem();
             const [admin, operator, prover, verifier, user] = await viem.getWalletClients();
@@ -295,7 +322,7 @@ describe("Starknet Integration", function () {
                      MULTI-COMPONENT INTEGRATION
     //////////////////////////////////////////////////////////////*/
 
-    describe.skip("Multi-Component Integration", function () {
+    describe("Multi-Component Integration", function () {
         it("Should coordinate bridge and nullifier operations", async function () {
             const viem = await getViem();
             const [admin, operator, sequencer, registrar, user] = await viem.getWalletClients();
@@ -309,14 +336,21 @@ describe("Starknet Integration", function () {
             await bridge.write.grantRole([SEQUENCER_ROLE, sequencer.account.address]);
             const mockStarknet = await viem.deployContract("contracts/mocks/MockStarknetMessaging.sol:MockStarknetMessaging");
             const mockCore = mockStarknet.address;
-            await bridge.write.configureStarkNetCore([mockCore], { account: operator.account });
+            await bridge.write.configure([mockCore, mockCore, 1n], { account: operator.account });
 
             // Configure nullifier
             await nullifier.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             await nullifier.write.grantRole([NULLIFIER_REGISTRAR_ROLE, registrar.account.address]);
+            const DOMAIN_ADMIN_ROLE = await nullifier.read.DOMAIN_ADMIN_ROLE();
+            await nullifier.write.grantRole([DOMAIN_ADMIN_ROLE, operator.account.address]);
 
-            const domainId = keccak256(toBytes("coordinated_domain"));
-            await nullifier.write.registerDomain([domainId, 0, 12345n], { account: operator.account });
+            const chainId = 11111n;
+            const appId = keccak256(toBytes("coordinated_domain"));
+            
+            await nullifier.write.registerDomain([chainId, appId, 0n], { account: operator.account });
+            
+            const domains = await nullifier.read.getActiveDomains();
+            const domainId = domains[0];
 
             // User creates nullifier and sends bridge message
             const nullifierHash = keccak256(toBytes("transfer_nullifier"));
@@ -350,12 +384,20 @@ describe("Starknet Integration", function () {
             await bridge.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             const mockStarknet = await viem.deployContract("contracts/mocks/MockStarknetMessaging.sol:MockStarknetMessaging");
             const mockCore = mockStarknet.address;
-            await bridge.write.configureStarkNetCore([mockCore], { account: operator.account });
+            await bridge.write.configure([mockCore, mockCore, 1n], { account: operator.account });
 
             await nullifier.write.grantRole([OPERATOR_ROLE, operator.account.address]);
             await nullifier.write.grantRole([NULLIFIER_REGISTRAR_ROLE, registrar.account.address]);
-            const domainId = keccak256(toBytes("concurrent_domain"));
-            await nullifier.write.registerDomain([domainId, 0, 12345n], { account: operator.account });
+            const DOMAIN_ADMIN_ROLE = await nullifier.read.DOMAIN_ADMIN_ROLE();
+            await nullifier.write.grantRole([DOMAIN_ADMIN_ROLE, operator.account.address]);
+            
+            const chainId = 22222n;
+            const appId = keccak256(toBytes("concurrent_domain"));
+            
+            await nullifier.write.registerDomain([chainId, appId, 0n], { account: operator.account });
+            
+            const domains = await nullifier.read.getActiveDomains();
+            const domainId = domains[0];
 
             // Execute concurrent operations
             const operations = [];

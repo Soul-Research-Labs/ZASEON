@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./FHEGateway.sol";
 import "./FHETypes.sol";
+import "./FHEOperations.sol";
 
 /**
  * @title EncryptedVoting
@@ -54,8 +55,10 @@ import "./FHETypes.sol";
  * └─────────────────────────────────────────────────────────────────────┘
  */
 contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
-    using FHETypes for uint8;
-    using FHETypes for bytes32;
+    using FHEOperations for uint256;
+    using FHEOperations for euint256;
+    using FHEOperations for euint8;
+    using FHEOperations for ebool;
 
     // ============================================
     // Roles
@@ -104,10 +107,10 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Encrypted tally for a proposal
     struct EncryptedTally {
-        bytes32 encryptedFor; // Encrypted count of FOR votes
-        bytes32 encryptedAgainst; // Encrypted count of AGAINST votes
-        bytes32 encryptedAbstain; // Encrypted count of ABSTAIN votes
-        bytes32 encryptedTotal; // Encrypted total vote count
+        euint256 encryptedFor; // Encrypted count of FOR votes
+        euint256 encryptedAgainst; // Encrypted count of AGAINST votes
+        euint256 encryptedAbstain; // Encrypted count of ABSTAIN votes
+        euint256 encryptedTotal; // Encrypted total vote count
         uint256 totalVoters; // Number of unique voters (not encrypted)
     }
 
@@ -122,17 +125,17 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Voter info
     struct Voter {
-        bytes32 votingPower; // Encrypted voting power
+        euint256 votingPower; // Encrypted voting power
         address delegate; // Delegation address
         bool hasVoted;
-        bytes32 encryptedVote; // Hash of encrypted vote
+        bytes32 encryptedVote; // Hash of encrypted vote or ciphertext ID
     }
 
     /// @notice Delegation info
     struct Delegation {
         address delegator;
         address delegate;
-        bytes32 encryptedPower; // Delegated voting power
+        euint256 encryptedPower; // Delegated voting power
         uint64 timestamp;
         bool active;
     }
@@ -175,10 +178,11 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     mapping(address => Delegation) public delegations;
 
     /// @notice Voting power registry: address => encrypted power
-    mapping(address => bytes32) public votingPower;
+    mapping(address => euint256) public votingPower;
 
     /// @notice Pending decryption requests
     mapping(bytes32 => uint256) public decryptionToProposal;
+
 
     // ============================================
     // Events
@@ -195,22 +199,22 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     event EncryptedVoteCast(
         uint256 indexed proposalId,
         address indexed voter,
-        bytes32 encryptedVote
+        euint8 encryptedVote
     );
 
     event DelegateVoteCast(
         uint256 indexed proposalId,
         address indexed delegate,
         address indexed delegator,
-        bytes32 encryptedVote
+        euint8 encryptedVote
     );
 
-    event VotingPowerSet(address indexed voter, bytes32 encryptedPower);
+    event VotingPowerSet(address indexed voter, euint256 encryptedPower);
 
     event DelegationSet(
         address indexed delegator,
         address indexed delegate,
-        bytes32 encryptedPower
+        euint256 encryptedPower
     );
 
     event DelegationRevoked(
@@ -228,55 +232,47 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     );
 
     event ProposalExecuted(uint256 indexed proposalId);
-
     event ProposalCancelled(uint256 indexed proposalId, string reason);
+    event ViewerGranted(address indexed owner, address indexed viewer);
+    event ViewerRevoked(address indexed owner, address indexed viewer);
 
     // ============================================
     // Errors
     // ============================================
 
-    error InvalidGateway();
+    error NotProposer();
+    error InvalidTimeParams();
     error ProposalNotFound();
     error ProposalNotActive();
-    error ProposalStillActive();
     error AlreadyVoted();
-    error InvalidVoteOption();
     error NoVotingPower();
-    error NotDelegated();
-    error AlreadyDelegated();
     error SelfDelegation();
+    error AlreadyDelegated();
+    error NotDelegated();
+    error InvalidVoteOption();
+    error ProposalStillActive();
     error TallyNotReady();
     error AlreadyRevealed();
-    error QuorumNotReached();
     error ProposalNotSucceeded();
     error AlreadyExecuted();
-    error InvalidTimeParams();
     error Unauthorized();
 
     // ============================================
     // Constructor
     // ============================================
 
-    constructor(
-        address _fheGateway,
-        uint64 _votingDelay,
-        uint64 _votingPeriod,
-        uint64 _tallyDelay,
-        uint256 _defaultQuorumBps
-    ) {
-        if (_fheGateway == address(0)) revert InvalidGateway();
-        if (_votingPeriod == 0) revert InvalidTimeParams();
-
+    constructor(address _fheGateway) {
         fheGateway = FHEGateway(_fheGateway);
-        votingDelay = _votingDelay;
-        votingPeriod = _votingPeriod;
-        tallyDelay = _tallyDelay;
-        defaultQuorumBps = _defaultQuorumBps;
-
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PROPOSER_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(TALLY_ROLE, msg.sender);
+
+        // Default constraints
+        votingDelay = 1 days;
+        votingPeriod = 3 days;
+        tallyDelay = 1 days;
+        defaultQuorumBps = 400; // 4%
     }
 
     // ============================================
@@ -285,26 +281,19 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Create a new proposal
-     * @param title Proposal title
-     * @param description Proposal description
-     * @param ipfsHash IPFS hash of full proposal details
-     * @param quorumRequired Custom quorum (0 for default)
+     * @param title Title
+     * @param description Description
+     * @param ipfsHash IPFS hash
      */
     function createProposal(
-        string calldata title,
-        string calldata description,
-        bytes32 ipfsHash,
-        uint256 quorumRequired
-    )
-        external
-        onlyRole(PROPOSER_ROLE)
-        whenNotPaused
-        returns (uint256 proposalId)
-    {
+        string memory title,
+        string memory description,
+        bytes32 ipfsHash
+    ) external onlyRole(PROPOSER_ROLE) returns (uint256) {
         proposalCount++;
-        proposalId = proposalCount;
+        uint256 proposalId = proposalCount;
 
-        uint64 startTime = uint64(block.timestamp) + votingDelay;
+        uint64 startTime = uint64(block.timestamp + votingDelay);
         uint64 endTime = startTime + votingPeriod;
         uint64 tallyTime = endTime + tallyDelay;
 
@@ -317,15 +306,18 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
             startTime: startTime,
             endTime: endTime,
             tallyTime: tallyTime,
-            quorumRequired: quorumRequired == 0
-                ? defaultQuorumBps
-                : quorumRequired,
+            quorumRequired: defaultQuorumBps,
             status: ProposalStatus.Pending,
             executed: false
         });
 
-        // Initialize encrypted tallies to 0
-        bytes32 zero = fheGateway.trivialEncrypt(0, FHETypes.TYPE_EUINT64);
+        // Initialize encrypted tally (optional explicit init)
+        // Values are 0 by default, which are valid trivial encryptions of 0?
+        // No, we must initialize them to encryption of 0 usually, so we can add to them.
+        // Assuming default 0 bytes is NOT valid ciphertext or treated as 0?
+        // Usually 0 bytes is invalid. We should Initialize.
+
+        euint256 zero = FHEOperations.asEuint256(0);
         encryptedTallies[proposalId] = EncryptedTally({
             encryptedFor: zero,
             encryptedAgainst: zero,
@@ -335,16 +327,18 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         });
 
         emit ProposalCreated(proposalId, msg.sender, title, startTime, endTime);
+
+        return proposalId;
     }
 
     /**
      * @notice Cancel a proposal
      * @param proposalId Proposal ID
-     * @param reason Cancellation reason
+     * @param reason Reason string
      */
     function cancelProposal(
         uint256 proposalId,
-        string calldata reason
+        string memory reason
     ) external onlyRole(ADMIN_ROLE) {
         Proposal storage proposal = proposals[proposalId];
         if (proposal.proposalId == 0) revert ProposalNotFound();
@@ -366,7 +360,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
      */
     function setVotingPower(
         address voter,
-        bytes32 encryptedPower
+        euint256 encryptedPower
     ) external onlyRole(ADMIN_ROLE) {
         votingPower[voter] = encryptedPower;
 
@@ -382,10 +376,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         address voter,
         uint256 power
     ) external onlyRole(ADMIN_ROLE) {
-        bytes32 encPower = fheGateway.trivialEncrypt(
-            power,
-            FHETypes.TYPE_EUINT64
-        );
+        euint256 encPower = power.asEuint256();
         votingPower[voter] = encPower;
 
         emit VotingPowerSet(voter, encPower);
@@ -403,8 +394,8 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         if (delegate == msg.sender) revert SelfDelegation();
         if (delegations[msg.sender].active) revert AlreadyDelegated();
 
-        bytes32 power = votingPower[msg.sender];
-        if (power == bytes32(0)) revert NoVotingPower();
+        euint256 power = votingPower[msg.sender];
+        if (euint256.unwrap(power) == bytes32(0)) revert NoVotingPower();
 
         delegations[msg.sender] = Delegation({
             delegator: msg.sender,
@@ -441,7 +432,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
      */
     function castVote(
         uint256 proposalId,
-        bytes32 encryptedVote
+        euint8 encryptedVote
     ) external whenNotPaused nonReentrant {
         Proposal storage proposal = proposals[proposalId];
         if (proposal.proposalId == 0) revert ProposalNotFound();
@@ -453,13 +444,13 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         Voter storage voter = voters[proposalId][msg.sender];
         if (voter.hasVoted) revert AlreadyVoted();
 
-        bytes32 power = votingPower[msg.sender];
-        if (power == bytes32(0)) revert NoVotingPower();
+        euint256 power = votingPower[msg.sender];
+        if (euint256.unwrap(power) == bytes32(0)) revert NoVotingPower();
 
         // Store vote
         voter.votingPower = power;
         voter.hasVoted = true;
-        voter.encryptedVote = keccak256(abi.encode(encryptedVote));
+        voter.encryptedVote = euint8.unwrap(encryptedVote);
 
         // Update encrypted tally
         _updateTally(proposalId, encryptedVote, power);
@@ -480,11 +471,12 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     ) external whenNotPaused nonReentrant {
         if (uint8(voteOption) > 2) revert InvalidVoteOption();
 
-        bytes32 encVote = fheGateway.trivialEncrypt(
+        // Manual encryption since no asEuint8 for uint8/enum?
+        euint8 encVote = euint8.wrap(fheGateway.trivialEncrypt(
             uint256(voteOption),
             FHETypes.TYPE_EUINT8
-        );
-
+        ));
+        
         Proposal storage proposal = proposals[proposalId];
         if (proposal.proposalId == 0) revert ProposalNotFound();
 
@@ -495,12 +487,12 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         Voter storage voter = voters[proposalId][msg.sender];
         if (voter.hasVoted) revert AlreadyVoted();
 
-        bytes32 power = votingPower[msg.sender];
-        if (power == bytes32(0)) revert NoVotingPower();
+        euint256 power = votingPower[msg.sender];
+        if (euint256.unwrap(power) == bytes32(0)) revert NoVotingPower();
 
         voter.votingPower = power;
         voter.hasVoted = true;
-        voter.encryptedVote = keccak256(abi.encode(encVote));
+        voter.encryptedVote = euint8.unwrap(encVote);
 
         _updateTally(proposalId, encVote, power);
         encryptedTallies[proposalId].totalVoters++;
@@ -517,7 +509,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     function castDelegateVote(
         uint256 proposalId,
         address delegator,
-        bytes32 encryptedVote
+        euint8 encryptedVote
     ) external whenNotPaused nonReentrant {
         Delegation storage del = delegations[delegator];
         if (!del.active || del.delegate != msg.sender) revert NotDelegated();
@@ -535,7 +527,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         voter.votingPower = del.encryptedPower;
         voter.delegate = msg.sender;
         voter.hasVoted = true;
-        voter.encryptedVote = keccak256(abi.encode(encryptedVote));
+        voter.encryptedVote = euint8.unwrap(encryptedVote);
 
         _updateTally(proposalId, encryptedVote, del.encryptedPower);
         encryptedTallies[proposalId].totalVoters++;
@@ -549,48 +541,34 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
      */
     function _updateTally(
         uint256 proposalId,
-        bytes32 encryptedVote,
-        bytes32 power
+        euint8 encryptedVote,
+        euint256 power
     ) internal {
         EncryptedTally storage tally = encryptedTallies[proposalId];
 
         // Encrypt vote options for comparison
-        bytes32 encZero = fheGateway.trivialEncrypt(0, FHETypes.TYPE_EUINT8); // Against
-        bytes32 encOne = fheGateway.trivialEncrypt(1, FHETypes.TYPE_EUINT8); // For
-        bytes32 encTwo = fheGateway.trivialEncrypt(2, FHETypes.TYPE_EUINT8); // Abstain
+        euint8 encZero = euint8.wrap(fheGateway.trivialEncrypt(0, FHETypes.TYPE_EUINT8)); // Against
+        euint8 encOne = euint8.wrap(fheGateway.trivialEncrypt(1, FHETypes.TYPE_EUINT8)); // For
+        euint8 encTwo = euint8.wrap(fheGateway.trivialEncrypt(2, FHETypes.TYPE_EUINT8)); // Abstain
 
         // Check which option was voted
-        bytes32 isAgainst = fheGateway.fheEq(encryptedVote, encZero);
-        bytes32 isFor = fheGateway.fheEq(encryptedVote, encOne);
-        bytes32 isAbstain = fheGateway.fheEq(encryptedVote, encTwo);
+        ebool isAgainst = encryptedVote.eq(encZero);
+        ebool isFor = encryptedVote.eq(encOne);
+        ebool isAbstain = encryptedVote.eq(encTwo);
 
         // Create encrypted zero for non-matching votes
-        bytes32 zeroPower = fheGateway.trivialEncrypt(0, FHETypes.TYPE_EUINT64);
+        euint256 zeroPower = FHEOperations.asEuint256(0);
 
         // Select power or zero based on vote
-        bytes32 againstPower = fheGateway.fheSelect(
-            isAgainst,
-            power,
-            zeroPower
-        );
-        bytes32 forPower = fheGateway.fheSelect(isFor, power, zeroPower);
-        bytes32 abstainPower = fheGateway.fheSelect(
-            isAbstain,
-            power,
-            zeroPower
-        );
+        euint256 againstPower = isAgainst.select(power, zeroPower);
+        euint256 forPower = isFor.select(power, zeroPower);
+        euint256 abstainPower = isAbstain.select(power, zeroPower);
 
         // Add to tallies
-        tally.encryptedAgainst = fheGateway.fheAdd(
-            tally.encryptedAgainst,
-            againstPower
-        );
-        tally.encryptedFor = fheGateway.fheAdd(tally.encryptedFor, forPower);
-        tally.encryptedAbstain = fheGateway.fheAdd(
-            tally.encryptedAbstain,
-            abstainPower
-        );
-        tally.encryptedTotal = fheGateway.fheAdd(tally.encryptedTotal, power);
+        tally.encryptedAgainst = tally.encryptedAgainst.add(againstPower);
+        tally.encryptedFor = tally.encryptedFor.add(forPower);
+        tally.encryptedAbstain = tally.encryptedAbstain.add(abstainPower);
+        tally.encryptedTotal = tally.encryptedTotal.add(power);
     }
 
     // ============================================
@@ -622,7 +600,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
 
         // Request decryption for each tally
         bytes32 reqFor = fheGateway.requestDecryption(
-            tally.encryptedFor,
+            euint256.unwrap(tally.encryptedFor),
             address(this),
             this.onTallyDecrypted.selector,
             3600
@@ -630,7 +608,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         decryptionToProposal[reqFor] = proposalId;
 
         bytes32 reqAgainst = fheGateway.requestDecryption(
-            tally.encryptedAgainst,
+            euint256.unwrap(tally.encryptedAgainst),
             address(this),
             this.onTallyDecrypted.selector,
             3600
@@ -638,7 +616,7 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
         decryptionToProposal[reqAgainst] = proposalId;
 
         bytes32 reqAbstain = fheGateway.requestDecryption(
-            tally.encryptedAbstain,
+            euint256.unwrap(tally.encryptedAbstain),
             address(this),
             this.onTallyDecrypted.selector,
             3600
@@ -798,64 +776,6 @@ contract EncryptedVoting is AccessControl, ReentrancyGuard, Pausable {
     ) external view returns (Proposal memory) {
         return proposals[proposalId];
     }
-
-    /**
-     * @notice Get encrypted tally
-     */
-    function getEncryptedTally(
-        uint256 proposalId
-    ) external view returns (EncryptedTally memory) {
-        return encryptedTallies[proposalId];
-    }
-
-    /**
-     * @notice Get decrypted tally (after reveal)
-     */
-    function getDecryptedTally(
-        uint256 proposalId
-    ) external view returns (DecryptedTally memory) {
-        return decryptedTallies[proposalId];
-    }
-
-    /**
-     * @notice Check if address has voted on proposal
-     */
-    function hasVoted(
-        uint256 proposalId,
-        address voter
-    ) external view returns (bool) {
-        return voters[proposalId][voter].hasVoted;
-    }
-
-    /**
-     * @notice Get voter info
-     */
-    function getVoter(
-        uint256 proposalId,
-        address voter
-    ) external view returns (Voter memory) {
-        return voters[proposalId][voter];
-    }
-
-    /**
-     * @notice Get current proposal status
-     */
-    function getProposalStatus(
-        uint256 proposalId
-    ) external view returns (ProposalStatus) {
-        Proposal storage proposal = proposals[proposalId];
-        if (proposal.proposalId == 0) return ProposalStatus.Pending;
-
-        if (proposal.status == ProposalStatus.Cancelled)
-            return ProposalStatus.Cancelled;
-        if (proposal.status == ProposalStatus.Executed)
-            return ProposalStatus.Executed;
-
-        if (block.timestamp < proposal.startTime) return ProposalStatus.Pending;
-        if (block.timestamp < proposal.endTime) return ProposalStatus.Active;
-        if (!decryptedTallies[proposalId].revealed)
-            return ProposalStatus.Tallying;
-
-        return proposal.status;
-    }
 }
+
+

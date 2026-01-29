@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./FHEGateway.sol";
 import "./FHETypes.sol";
+import "./lib/FHEUtils.sol";
 
 /**
  * @title FHEOperations
@@ -70,6 +71,37 @@ library FHEOperations {
         }
         if (addr == address(0)) revert GatewayNotSet();
         return FHEGateway(addr);
+    }
+
+    // ============================================
+    // HELPERS
+    // ============================================
+
+    function _performBinary(FHEUtils.Opcode op, bytes32 lhs, bytes32 rhs) private returns (bytes32) {
+        bytes32[] memory inputs = new bytes32[](2);
+        inputs[0] = lhs;
+        inputs[1] = rhs;
+        return getGateway().performOp(op, inputs, "");
+    }
+
+    function _performUnary(FHEUtils.Opcode op, bytes32 val) private returns (bytes32) {
+        bytes32[] memory inputs = new bytes32[](1);
+        inputs[0] = val;
+        return getGateway().performOp(op, inputs, "");
+    }
+
+    function _performShift(FHEUtils.Opcode op, bytes32 val, uint8 bits) private returns (bytes32) {
+        bytes32[] memory inputs = new bytes32[](1);
+        inputs[0] = val;
+        return getGateway().performOp(op, inputs, abi.encode(bits));
+    }
+
+    function _performTernary(FHEUtils.Opcode op, bytes32 a, bytes32 b, bytes32 c) private returns (bytes32) {
+        bytes32[] memory inputs = new bytes32[](3);
+        inputs[0] = a;
+        inputs[1] = b;
+        inputs[2] = c;
+        return getGateway().performOp(op, inputs, "");
     }
 
     // ============================================
@@ -171,241 +203,133 @@ library FHEOperations {
     // --- euint8 ---
 
     function add(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheAdd(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.ADD, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function sub(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheSub(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.SUB, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function mul(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheMul(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.MUL, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function div(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheDiv(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.DIV, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function rem(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheRem(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.REM, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function neg(euint8 value) internal returns (euint8) {
-        bytes32 result = getGateway().fheNeg(euint8.unwrap(value));
-        return euint8.wrap(result);
+        return euint8.wrap(_performUnary(FHEUtils.Opcode.NEG, euint8.unwrap(value)));
     }
 
     // --- euint16 ---
 
     function add(euint16 lhs, euint16 rhs) internal returns (euint16) {
-        bytes32 result = getGateway().fheAdd(
-            euint16.unwrap(lhs),
-            euint16.unwrap(rhs)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performBinary(FHEUtils.Opcode.ADD, euint16.unwrap(lhs), euint16.unwrap(rhs)));
     }
 
     function sub(euint16 lhs, euint16 rhs) internal returns (euint16) {
-        bytes32 result = getGateway().fheSub(
-            euint16.unwrap(lhs),
-            euint16.unwrap(rhs)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performBinary(FHEUtils.Opcode.SUB, euint16.unwrap(lhs), euint16.unwrap(rhs)));
     }
 
     function mul(euint16 lhs, euint16 rhs) internal returns (euint16) {
-        bytes32 result = getGateway().fheMul(
-            euint16.unwrap(lhs),
-            euint16.unwrap(rhs)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performBinary(FHEUtils.Opcode.MUL, euint16.unwrap(lhs), euint16.unwrap(rhs)));
     }
 
     function div(euint16 lhs, euint16 rhs) internal returns (euint16) {
-        bytes32 result = getGateway().fheDiv(
-            euint16.unwrap(lhs),
-            euint16.unwrap(rhs)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performBinary(FHEUtils.Opcode.DIV, euint16.unwrap(lhs), euint16.unwrap(rhs)));
     }
 
     function rem(euint16 lhs, euint16 rhs) internal returns (euint16) {
-        bytes32 result = getGateway().fheRem(
-            euint16.unwrap(lhs),
-            euint16.unwrap(rhs)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performBinary(FHEUtils.Opcode.REM, euint16.unwrap(lhs), euint16.unwrap(rhs)));
     }
 
     function neg(euint16 value) internal returns (euint16) {
-        bytes32 result = getGateway().fheNeg(euint16.unwrap(value));
-        return euint16.wrap(result);
+        return euint16.wrap(_performUnary(FHEUtils.Opcode.NEG, euint16.unwrap(value)));
     }
 
     // --- euint32 ---
 
     function add(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheAdd(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.ADD, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function sub(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheSub(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.SUB, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function mul(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheMul(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.MUL, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function div(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheDiv(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.DIV, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function rem(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheRem(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.REM, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function neg(euint32 value) internal returns (euint32) {
-        bytes32 result = getGateway().fheNeg(euint32.unwrap(value));
-        return euint32.wrap(result);
+        return euint32.wrap(_performUnary(FHEUtils.Opcode.NEG, euint32.unwrap(value)));
     }
 
     // --- euint64 ---
 
     function add(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheAdd(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.ADD, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function sub(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheSub(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.SUB, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function mul(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheMul(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.MUL, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function div(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheDiv(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.DIV, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function rem(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheRem(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.REM, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function neg(euint64 value) internal returns (euint64) {
-        bytes32 result = getGateway().fheNeg(euint64.unwrap(value));
-        return euint64.wrap(result);
+        return euint64.wrap(_performUnary(FHEUtils.Opcode.NEG, euint64.unwrap(value)));
     }
 
     // --- euint128 ---
 
     function add(euint128 lhs, euint128 rhs) internal returns (euint128) {
-        bytes32 result = getGateway().fheAdd(
-            euint128.unwrap(lhs),
-            euint128.unwrap(rhs)
-        );
-        return euint128.wrap(result);
+        return euint128.wrap(_performBinary(FHEUtils.Opcode.ADD, euint128.unwrap(lhs), euint128.unwrap(rhs)));
     }
 
     function sub(euint128 lhs, euint128 rhs) internal returns (euint128) {
-        bytes32 result = getGateway().fheSub(
-            euint128.unwrap(lhs),
-            euint128.unwrap(rhs)
-        );
-        return euint128.wrap(result);
+        return euint128.wrap(_performBinary(FHEUtils.Opcode.SUB, euint128.unwrap(lhs), euint128.unwrap(rhs)));
     }
 
     function mul(euint128 lhs, euint128 rhs) internal returns (euint128) {
-        bytes32 result = getGateway().fheMul(
-            euint128.unwrap(lhs),
-            euint128.unwrap(rhs)
-        );
-        return euint128.wrap(result);
+        return euint128.wrap(_performBinary(FHEUtils.Opcode.MUL, euint128.unwrap(lhs), euint128.unwrap(rhs)));
     }
 
     // --- euint256 ---
 
     function add(euint256 lhs, euint256 rhs) internal returns (euint256) {
-        bytes32 result = getGateway().fheAdd(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return euint256.wrap(result);
+        return euint256.wrap(_performBinary(FHEUtils.Opcode.ADD, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     function sub(euint256 lhs, euint256 rhs) internal returns (euint256) {
-        bytes32 result = getGateway().fheSub(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return euint256.wrap(result);
+        return euint256.wrap(_performBinary(FHEUtils.Opcode.SUB, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     function mul(euint256 lhs, euint256 rhs) internal returns (euint256) {
-        bytes32 result = getGateway().fheMul(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return euint256.wrap(result);
+        return euint256.wrap(_performBinary(FHEUtils.Opcode.MUL, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     // ============================================
@@ -415,233 +339,121 @@ library FHEOperations {
     // --- euint8 comparisons ---
 
     function eq(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheEq(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.EQ, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function ne(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheNe(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.NE, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function ge(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGe(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GE, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function gt(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGt(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GT, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function le(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLe(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LE, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function lt(euint8 lhs, euint8 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLt(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LT, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function min(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheMin(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.MIN, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function max(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheMax(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.MAX, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     // --- euint32 comparisons ---
 
     function eq(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheEq(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.EQ, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function ne(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheNe(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.NE, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function ge(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGe(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GE, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function gt(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGt(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GT, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function le(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLe(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LE, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function lt(euint32 lhs, euint32 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLt(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LT, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function min(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheMin(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.MIN, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function max(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheMax(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.MAX, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     // --- euint64 comparisons ---
 
     function eq(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheEq(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.EQ, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function ne(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheNe(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.NE, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function ge(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGe(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GE, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function gt(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGt(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GT, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function le(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLe(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LE, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function lt(euint64 lhs, euint64 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheLt(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.LT, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function min(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheMin(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.MIN, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function max(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheMax(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.MAX, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     // --- euint256 comparisons ---
 
     function eq(euint256 lhs, euint256 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheEq(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.EQ, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     function ne(euint256 lhs, euint256 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheNe(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.NE, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     function ge(euint256 lhs, euint256 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGe(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GE, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     function gt(euint256 lhs, euint256 rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheGt(
-            euint256.unwrap(lhs),
-            euint256.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.GT, euint256.unwrap(lhs), euint256.unwrap(rhs)));
     }
 
     // ============================================
@@ -649,109 +461,67 @@ library FHEOperations {
     // ============================================
 
     function and(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheAnd(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.AND, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function or(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheOr(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.OR, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function xor(euint8 lhs, euint8 rhs) internal returns (euint8) {
-        bytes32 result = getGateway().fheXor(
-            euint8.unwrap(lhs),
-            euint8.unwrap(rhs)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performBinary(FHEUtils.Opcode.XOR, euint8.unwrap(lhs), euint8.unwrap(rhs)));
     }
 
     function not(euint8 value) internal returns (euint8) {
-        bytes32 result = getGateway().fheNot(euint8.unwrap(value));
-        return euint8.wrap(result);
+        return euint8.wrap(_performUnary(FHEUtils.Opcode.NOT, euint8.unwrap(value)));
     }
 
     function shl(euint8 value, uint8 bits) internal returns (euint8) {
-        bytes32 result = getGateway().fheShl(euint8.unwrap(value), bits);
-        return euint8.wrap(result);
+        return euint8.wrap(_performShift(FHEUtils.Opcode.SHL, euint8.unwrap(value), bits));
     }
 
     function shr(euint8 value, uint8 bits) internal returns (euint8) {
-        bytes32 result = getGateway().fheShr(euint8.unwrap(value), bits);
-        return euint8.wrap(result);
+        return euint8.wrap(_performShift(FHEUtils.Opcode.SHR, euint8.unwrap(value), bits));
     }
 
     // --- euint32 bitwise ---
 
     function and(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheAnd(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.AND, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function or(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheOr(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.OR, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function xor(euint32 lhs, euint32 rhs) internal returns (euint32) {
-        bytes32 result = getGateway().fheXor(
-            euint32.unwrap(lhs),
-            euint32.unwrap(rhs)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performBinary(FHEUtils.Opcode.XOR, euint32.unwrap(lhs), euint32.unwrap(rhs)));
     }
 
     function not(euint32 value) internal returns (euint32) {
-        bytes32 result = getGateway().fheNot(euint32.unwrap(value));
-        return euint32.wrap(result);
+        return euint32.wrap(_performUnary(FHEUtils.Opcode.NOT, euint32.unwrap(value)));
     }
 
     function shl(euint32 value, uint8 bits) internal returns (euint32) {
-        bytes32 result = getGateway().fheShl(euint32.unwrap(value), bits);
-        return euint32.wrap(result);
+        return euint32.wrap(_performShift(FHEUtils.Opcode.SHL, euint32.unwrap(value), bits));
     }
 
     function shr(euint32 value, uint8 bits) internal returns (euint32) {
-        bytes32 result = getGateway().fheShr(euint32.unwrap(value), bits);
-        return euint32.wrap(result);
+        return euint32.wrap(_performShift(FHEUtils.Opcode.SHR, euint32.unwrap(value), bits));
     }
 
     // --- euint64 bitwise ---
 
     function and(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheAnd(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.AND, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function or(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheOr(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.OR, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     function xor(euint64 lhs, euint64 rhs) internal returns (euint64) {
-        bytes32 result = getGateway().fheXor(
-            euint64.unwrap(lhs),
-            euint64.unwrap(rhs)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performBinary(FHEUtils.Opcode.XOR, euint64.unwrap(lhs), euint64.unwrap(rhs)));
     }
 
     // ============================================
@@ -769,12 +539,7 @@ library FHEOperations {
         euint8 ifTrue,
         euint8 ifFalse
     ) internal returns (euint8) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint8.unwrap(ifTrue),
-            euint8.unwrap(ifFalse)
-        );
-        return euint8.wrap(result);
+        return euint8.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint8.unwrap(ifTrue), euint8.unwrap(ifFalse)));
     }
 
     function select(
@@ -782,12 +547,7 @@ library FHEOperations {
         euint16 ifTrue,
         euint16 ifFalse
     ) internal returns (euint16) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint16.unwrap(ifTrue),
-            euint16.unwrap(ifFalse)
-        );
-        return euint16.wrap(result);
+        return euint16.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint16.unwrap(ifTrue), euint16.unwrap(ifFalse)));
     }
 
     function select(
@@ -795,12 +555,7 @@ library FHEOperations {
         euint32 ifTrue,
         euint32 ifFalse
     ) internal returns (euint32) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint32.unwrap(ifTrue),
-            euint32.unwrap(ifFalse)
-        );
-        return euint32.wrap(result);
+        return euint32.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint32.unwrap(ifTrue), euint32.unwrap(ifFalse)));
     }
 
     function select(
@@ -808,12 +563,7 @@ library FHEOperations {
         euint64 ifTrue,
         euint64 ifFalse
     ) internal returns (euint64) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint64.unwrap(ifTrue),
-            euint64.unwrap(ifFalse)
-        );
-        return euint64.wrap(result);
+        return euint64.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint64.unwrap(ifTrue), euint64.unwrap(ifFalse)));
     }
 
     function select(
@@ -821,12 +571,7 @@ library FHEOperations {
         euint128 ifTrue,
         euint128 ifFalse
     ) internal returns (euint128) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint128.unwrap(ifTrue),
-            euint128.unwrap(ifFalse)
-        );
-        return euint128.wrap(result);
+        return euint128.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint128.unwrap(ifTrue), euint128.unwrap(ifFalse)));
     }
 
     function select(
@@ -834,12 +579,7 @@ library FHEOperations {
         euint256 ifTrue,
         euint256 ifFalse
     ) internal returns (euint256) {
-        bytes32 result = getGateway().fheSelect(
-            ebool.unwrap(condition),
-            euint256.unwrap(ifTrue),
-            euint256.unwrap(ifFalse)
-        );
-        return euint256.wrap(result);
+        return euint256.wrap(_performTernary(FHEUtils.Opcode.SELECT, ebool.unwrap(condition), euint256.unwrap(ifTrue), euint256.unwrap(ifFalse)));
     }
 
     // ============================================
@@ -899,31 +639,18 @@ library FHEOperations {
     // ============================================
 
     function and(ebool lhs, ebool rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheAnd(
-            ebool.unwrap(lhs),
-            ebool.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.AND, ebool.unwrap(lhs), ebool.unwrap(rhs)));
     }
 
     function or(ebool lhs, ebool rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheOr(
-            ebool.unwrap(lhs),
-            ebool.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.OR, ebool.unwrap(lhs), ebool.unwrap(rhs)));
     }
 
     function xor(ebool lhs, ebool rhs) internal returns (ebool) {
-        bytes32 result = getGateway().fheXor(
-            ebool.unwrap(lhs),
-            ebool.unwrap(rhs)
-        );
-        return ebool.wrap(result);
+        return ebool.wrap(_performBinary(FHEUtils.Opcode.XOR, ebool.unwrap(lhs), ebool.unwrap(rhs)));
     }
 
     function not(ebool value) internal returns (ebool) {
-        bytes32 result = getGateway().fheNot(ebool.unwrap(value));
-        return ebool.wrap(result);
+        return ebool.wrap(_performUnary(FHEUtils.Opcode.NOT, ebool.unwrap(value)));
     }
 }

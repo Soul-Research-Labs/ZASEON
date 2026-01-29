@@ -224,7 +224,7 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
         bytes32 configHash
     ) external onlyRole(BACKEND_ADMIN_ROLE) returns (bytes32 backendId) {
         backendId = keccak256(
-            abi.encodePacked(backendType, name, attestationKey, block.timestamp)
+            abi.encode(backendType, name, attestationKey, block.timestamp)
         );
 
         if (backends[backendId].registeredAt != 0) {
@@ -313,7 +313,7 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
         }
 
         commitmentId = keccak256(
-            abi.encodePacked(stateHash, transitionHash, nullifier)
+            abi.encode(stateHash, transitionHash, nullifier)
         );
 
         if (_commitments[commitmentId].createdAt != 0) {

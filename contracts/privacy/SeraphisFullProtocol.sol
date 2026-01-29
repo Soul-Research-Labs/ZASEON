@@ -460,7 +460,7 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
 
         // Reconstruct and verify (simplified)
         bytes32 reconstructed = keccak256(
-            abi.encodePacked(proof.A, proof.B, proof.f, proof.z_A, proof.z_B)
+            abi.encode(proof.A, proof.B, proof.f, proof.z_A, proof.z_B)
         );
 
         return reconstructed != bytes32(0);
@@ -505,7 +505,7 @@ contract SeraphisFullProtocol is AccessControl, ReentrancyGuard, Pausable {
 
         // Compute challenge via Fiat-Shamir
         bytes32 challenge = keccak256(
-            abi.encodePacked("grootle_challenge", ring, A, B)
+            abi.encode("grootle_challenge", ring, A, B)
         );
 
         // Compute responses

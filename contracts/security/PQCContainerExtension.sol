@@ -230,7 +230,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify PQC signature
         bytes32 messageHash = keccak256(
-            abi.encodePacked(baseContainerId, creatorKeyHash, block.timestamp)
+            abi.encode(baseContainerId, creatorKeyHash, block.timestamp)
         );
 
         bool pqValid = pqVerifier.verifyPQSignature(
@@ -268,7 +268,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
         pqcContainers[baseContainerId] = PQCContainer({
             baseContainerId: baseContainerId,
             pqProofHash: keccak256(
-                abi.encodePacked(signature.signature, signature.algorithm)
+                abi.encode(signature.signature, signature.algorithm)
             ),
             creatorKeyHash: creatorKeyHash,
             ownerKeyHash: creatorKeyHash,
@@ -311,7 +311,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
 
         // Reconstruct message hash
         bytes32 messageHash = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 container.baseContainerId,
                 container.creatorKeyHash,
                 container.createdAt
@@ -370,7 +370,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
 
         // Create transfer authorization message
         bytes32 nonce = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 containerId,
                 container.ownerKeyHash,
                 toKeyHash,
@@ -379,7 +379,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
         );
 
         bytes32 transferMessage = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 "TRANSFER:",
                 containerId,
                 container.ownerKeyHash,
@@ -451,7 +451,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
     ) external nonReentrant whenNotPaused returns (bool valid) {
         // Check message not already processed
         bytes32 messageId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 message.messageHash,
                 message.sourceChainId,
                 message.timestamp
@@ -528,7 +528,7 @@ contract PQCContainerExtension is AccessControl, ReentrancyGuard, Pausable {
 
         // Create message hash
         messageHash = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 containerId,
                 block.chainid,
                 targetChainId,

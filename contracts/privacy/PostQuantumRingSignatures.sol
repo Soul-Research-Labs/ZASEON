@@ -267,7 +267,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify binding hash
         bytes32 expectedBinding = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 signature.classicalChallenge,
                 signature.classicalKeyImage,
                 signature.pqSignature.c,
@@ -391,7 +391,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
 
         // Simplified verification
         bytes32 recomputed = keccak256(
-            abi.encodePacked(messageHash, ring, responses)
+            abi.encode(messageHash, ring, responses)
         );
 
         return
@@ -412,7 +412,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify challenge binding
         bytes32 expectedChallenge = keccak256(
-            abi.encodePacked(PQ_RING_DOMAIN, messageHash, sig.z, sig.keyImage)
+            abi.encode(PQ_RING_DOMAIN, messageHash, sig.z, sig.keyImage)
         );
 
         return sig.c == expectedChallenge;
@@ -427,17 +427,17 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata z,
         bytes32[] calldata hints
     ) internal pure returns (bytes32) {
-        bytes memory packed = abi.encodePacked(PQ_RING_DOMAIN, messageHash);
+        bytes memory packed = abi.encode(PQ_RING_DOMAIN, messageHash);
 
         for (uint256 i = 0; i < ring.length; i++) {
-            packed = abi.encodePacked(
+            packed = abi.encode(
                 packed,
                 ring[i].publicKey.seedA,
                 ring[i].publicKey.t
             );
         }
 
-        packed = abi.encodePacked(packed, z, hints);
+        packed = abi.encode(packed, z, hints);
 
         return keccak256(packed);
     }
@@ -466,7 +466,7 @@ contract PostQuantumRingSignatures is AccessControl, ReentrancyGuard, Pausable {
     ) external whenNotPaused returns (bytes32 keyHash) {
         if (t.length != MLWE_K) revert InvalidPublicKey();
 
-        keyHash = keccak256(abi.encodePacked(seedA, t));
+        keyHash = keccak256(abi.encode(seedA, t));
 
         _pqPublicKeys[keyHash] = MLWEPublicKey({seedA: seedA, t: t});
 

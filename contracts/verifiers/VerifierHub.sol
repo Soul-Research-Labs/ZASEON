@@ -196,7 +196,7 @@ contract VerifierHub is AccessControl, Pausable {
         if (!info.active) revert VerifierInactive(circuitType);
 
         // Compute proof hash for replay protection
-        bytes32 proofHash = keccak256(abi.encodePacked(proof, publicInputs));
+        bytes32 proofHash = keccak256(abi.encode(proof, publicInputs));
 
         if (replayProtectionEnabled && verifiedProofs[proofHash]) {
             revert ProofAlreadyUsed(proofHash);

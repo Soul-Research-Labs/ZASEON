@@ -358,7 +358,7 @@ contract PLONKVerifier is IProofVerifier {
 
         // Round 1: beta, gamma (after witness commitments)
         transcript = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 domainSize,
                 publicInputs,
                 witnessCommitments[0],

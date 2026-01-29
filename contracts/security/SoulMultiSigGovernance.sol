@@ -271,7 +271,7 @@ contract SoulMultiSigGovernance is AccessControl {
         }
 
         proposalId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 block.chainid,
                 address(this),
                 target,

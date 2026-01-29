@@ -275,7 +275,7 @@ contract EmergencyResponseAutomation is
         bytes32[] calldata affectedContracts
     ) external onlyRole(RESPONDER_ROLE) returns (bytes32 incidentId) {
         incidentId = keccak256(
-            abi.encodePacked(title, severity, block.timestamp, msg.sender)
+            abi.encode(title, severity, block.timestamp, msg.sender)
         );
 
         Incident storage incident = _incidents[incidentId];
@@ -434,7 +434,7 @@ contract EmergencyResponseAutomation is
         uint256 cooldownPeriod
     ) external onlyRole(RUNBOOK_ADMIN_ROLE) returns (bytes32 runbookId) {
         runbookId = keccak256(
-            abi.encodePacked(name, block.timestamp, msg.sender)
+            abi.encode(name, block.timestamp, msg.sender)
         );
 
         runbooks[runbookId] = Runbook({
@@ -487,7 +487,7 @@ contract EmergencyResponseAutomation is
             revert InvalidParameters();
 
         actionId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 runbookId,
                 actionType,
                 targetContract,
@@ -620,7 +620,7 @@ contract EmergencyResponseAutomation is
         affected[0] = affectedContract;
 
         incidentId = keccak256(
-            abi.encodePacked("AUTO", severity, block.timestamp, msg.sender)
+            abi.encode("AUTO", severity, block.timestamp, msg.sender)
         );
 
         Incident storage incident = _incidents[incidentId];

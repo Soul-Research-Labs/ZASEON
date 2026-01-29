@@ -331,7 +331,7 @@ contract RecursiveProofAggregator is
 
         // Generate proof ID
         proofId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 DOMAIN,
                 proofSystem,
                 publicInputsHash,
@@ -379,7 +379,7 @@ contract RecursiveProofAggregator is
      */
     function _createNewBatch() internal returns (bytes32 batchId) {
         batchId = keccak256(
-            abi.encodePacked(DOMAIN, "BATCH", totalBatches, block.timestamp)
+            abi.encode(DOMAIN, "BATCH", totalBatches, block.timestamp)
         );
 
         batches[batchId] = AggregationBatch({
@@ -513,7 +513,7 @@ contract RecursiveProofAggregator is
 
         // Combined verification hash
         bytes32 verifyHash = keccak256(
-            abi.encodePacked(proofHash, vkHash, publicInputsHash)
+            abi.encode(proofHash, vkHash, publicInputsHash)
         );
 
         // Simplified check - in production, actual cryptographic verification
@@ -537,7 +537,7 @@ contract RecursiveProofAggregator is
         if (proofIds.length < MIN_BATCH_SIZE) revert BatchTooSmall();
 
         bundleId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 DOMAIN,
                 "BUNDLE",
                 sourceChainIds,

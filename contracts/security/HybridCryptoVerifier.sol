@@ -287,7 +287,7 @@ contract HybridCryptoVerifier is
     ) external view override returns (bool valid) {
         // Verify binding between signatures
         bytes32 expectedBinding = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 message,
                 hybridSig.classicalSignature,
                 hybridSig.pqSignature.signature
