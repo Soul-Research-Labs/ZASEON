@@ -266,12 +266,18 @@ contract CrossChainProofHubV3 is
     /// @notice Emitted when a relayer deposits stake
     /// @param relayer The address of the relayer
     /// @param amount The amount deposited
-    event RelayerStakeDeposited(address indexed relayer, uint256 indexed amount);
+    event RelayerStakeDeposited(
+        address indexed relayer,
+        uint256 indexed amount
+    );
 
     /// @notice Emitted when a relayer withdraws stake
     /// @param relayer The address of the relayer
     /// @param amount The amount withdrawn
-    event RelayerStakeWithdrawn(address indexed relayer, uint256 indexed amount);
+    event RelayerStakeWithdrawn(
+        address indexed relayer,
+        uint256 indexed amount
+    );
 
     /// @notice Emitted when a relayer is slashed
     /// @param relayer The address of the relayer

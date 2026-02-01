@@ -277,6 +277,45 @@ contract FRIVerifier is IProofVerifier {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Decode a single query proof from calldata
+     * @dev Extracted to reduce stack depth in _decodeProof
+     */
+    function _decodeQueryProof(
+        bytes calldata proof,
+        uint256 offset,
+        FRILayer[] memory layers,
+        uint256 numLayers
+    ) internal pure returns (QueryProof memory query, uint256 newOffset) {
+        uint256 queryIndex = _readUint256(proof, offset);
+        offset += 32;
+
+        uint256[] memory evaluations = new uint256[](numLayers);
+        bytes32[][] memory merklePaths = new bytes32[][](numLayers);
+
+        for (uint256 layerIdx = 0; layerIdx < numLayers; layerIdx++) {
+            evaluations[layerIdx] = _readUint256(proof, offset);
+            offset += 32;
+
+            // Read Merkle path (log2(domainSize) elements)
+            uint256 pathLen = _log2(layers[layerIdx].domainSize);
+            bytes32[] memory path = new bytes32[](pathLen);
+
+            for (uint256 p = 0; p < pathLen; p++) {
+                path[p] = bytes32(_readUint256(proof, offset));
+                offset += 32;
+            }
+            merklePaths[layerIdx] = path;
+        }
+
+        query = QueryProof({
+            queryIndex: queryIndex,
+            evaluations: evaluations,
+            merklePaths: merklePaths
+        });
+        newOffset = offset;
+    }
+
+    /**
      * @notice Decode FRI proof into structured components
      */
     function _decodeProof(
@@ -318,31 +357,7 @@ contract FRIVerifier is IProofVerifier {
         queries = new QueryProof[](numQueries);
 
         for (uint256 q = 0; q < numQueries; q++) {
-            uint256 queryIndex = _readUint256(proof, offset);
-            offset += 32;
-
-            uint256[] memory evaluations = new uint256[](numLayers);
-            bytes32[][] memory merklePaths = new bytes32[][](numLayers);
-
-            for (uint256 layerIdx = 0; layerIdx < numLayers; layerIdx++) {
-                evaluations[layerIdx] = _readUint256(proof, offset);
-                offset += 32;
-
-                // Read Merkle path (log2(domainSize) - l elements)
-                uint256 pathLen = _log2(layers[layerIdx].domainSize);
-                merklePaths[layerIdx] = new bytes32[](pathLen);
-
-                for (uint256 p = 0; p < pathLen; p++) {
-                    merklePaths[layerIdx][p] = bytes32(_readUint256(proof, offset));
-                    offset += 32;
-                }
-            }
-
-            queries[q] = QueryProof({
-                queryIndex: queryIndex,
-                evaluations: evaluations,
-                merklePaths: merklePaths
-            });
+            (queries[q], offset) = _decodeQueryProof(proof, offset, layers, numLayers);
         }
 
         // Read final polynomial coefficients

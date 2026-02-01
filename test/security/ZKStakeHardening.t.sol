@@ -9,6 +9,7 @@ contract MockVerifier is IProofVerifier {
     bool public result;
     function setResult(bool _result) public { result = _result; }
     function verify(bytes calldata, uint256[] calldata) external view returns (bool) { return result; }
+    function verifyProof(bytes calldata, bytes calldata) external view returns (bool) { return result; }
     function verifySingle(bytes calldata, uint256) external view returns (bool) { return result; }
     function getPublicInputCount() external pure returns (uint256) { return 6; }
     function isReady() external pure returns (bool) { return true; }

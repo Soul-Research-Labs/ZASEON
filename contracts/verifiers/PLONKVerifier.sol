@@ -113,6 +113,28 @@ contract PLONKVerifier is IProofVerifier {
     event ProofVerified(bytes32 indexed proofHash, bool result);
 
     /*//////////////////////////////////////////////////////////////
+                         INTERNAL TYPES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Proof elements decoded from calldata (reduces stack depth)
+    struct ProofElements {
+        uint256[6] witnessCommitments;
+        uint256[6] quotientCommitments;
+        uint256[13] evaluations;
+        uint256[4] openingProofs;
+    }
+
+    /// @notice Fiat-Shamir challenges (reduces stack depth)
+    struct Challenges {
+        uint256 beta;
+        uint256 gamma;
+        uint256 alpha;
+        uint256 zeta;
+        uint256 v;
+        uint256 u;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
@@ -206,6 +228,34 @@ contract PLONKVerifier is IProofVerifier {
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view whenInitialized returns (bool) {
+        // Validate inputs
+        _validateInputs(proof, publicInputs);
+
+        // Decode proof elements
+        (
+            uint256[6] memory witnessCommitments,
+            uint256[6] memory quotientCommitments,
+            uint256[13] memory evaluations,
+            uint256[4] memory openingProofs
+        ) = _decodeProof(proof);
+
+        // Compute challenges and verify in scoped block to reduce stack depth
+        return _computeAndVerify(
+            witnessCommitments,
+            quotientCommitments,
+            evaluations,
+            openingProofs,
+            publicInputs
+        );
+    }
+
+    /**
+     * @notice Validate proof and public input sizes
+     */
+    function _validateInputs(
+        bytes calldata proof,
+        uint256[] calldata publicInputs
+    ) internal view {
         if (proof.length < _MIN_PROOF_SIZE) {
             revert InvalidProofSize(proof.length);
         }
@@ -223,48 +273,36 @@ contract PLONKVerifier is IProofVerifier {
                 revert InvalidPublicInput(i, publicInputs[i]);
             }
         }
+    }
 
-        // Decode proof elements
-        (
-            uint256[6] memory witnessCommitments,
-            uint256[6] memory quotientCommitments,
-            uint256[13] memory evaluations,
-            uint256[4] memory openingProofs
-        ) = _decodeProof(proof);
-
+    /**
+     * @notice Compute challenges and verify PLONK proof
+     * @dev Separated to reduce stack depth in verify()
+     */
+    function _computeAndVerify(
+        uint256[6] memory witnessCommitments,
+        uint256[6] memory quotientCommitments,
+        uint256[13] memory evaluations,
+        uint256[4] memory openingProofs,
+        uint256[] calldata publicInputs
+    ) internal view returns (bool) {
         // Compute challenges using Fiat-Shamir heuristic
-        (
-            uint256 beta,
-            uint256 gamma,
-            uint256 alpha,
-            uint256 zeta,
-            uint256 v,
-            uint256 u
-        ) = _computeChallenges(
-                witnessCommitments,
-                quotientCommitments,
-                evaluations,
-                publicInputs
-            );
+        Challenges memory c = _computeChallengesStruct(
+            witnessCommitments,
+            quotientCommitments,
+            evaluations,
+            publicInputs
+        );
 
         // Verify the PLONK proof
-        bool result = _verifyPLONK(
+        return _verifyPLONKWithChallenges(
             witnessCommitments,
             quotientCommitments,
             evaluations,
             openingProofs,
             publicInputs,
-            beta,
-            gamma,
-            alpha,
-            zeta,
-            v,
-            u
+            c
         );
-
-        // Note: Event emission removed for view function compatibility
-
-        return result;
     }
 
     /**
@@ -335,6 +373,23 @@ contract PLONKVerifier is IProofVerifier {
     }
 
     /**
+     * @notice Compute Fiat-Shamir challenges (struct return version)
+     */
+    function _computeChallengesStruct(
+        uint256[6] memory witnessCommitments,
+        uint256[6] memory quotientCommitments,
+        uint256[13] memory evaluations,
+        uint256[] calldata publicInputs
+    ) internal view returns (Challenges memory c) {
+        (c.beta, c.gamma, c.alpha, c.zeta, c.v, c.u) = _computeChallenges(
+            witnessCommitments,
+            quotientCommitments,
+            evaluations,
+            publicInputs
+        );
+    }
+
+    /**
      * @notice Compute Fiat-Shamir challenges
      */
     function _computeChallenges(
@@ -398,6 +453,32 @@ contract PLONKVerifier is IProofVerifier {
         u =
             uint256(keccak256(abi.encodePacked(transcript, uint8(1)))) %
             _FR_MODULUS;
+    }
+
+    /**
+     * @notice Verify the PLONK proof using pairing checks (struct version for reduced stack depth)
+     */
+    function _verifyPLONKWithChallenges(
+        uint256[6] memory witnessCommitments,
+        uint256[6] memory quotientCommitments,
+        uint256[13] memory evaluations,
+        uint256[4] memory openingProofs,
+        uint256[] calldata publicInputs,
+        Challenges memory c
+    ) internal view returns (bool) {
+        return _verifyPLONK(
+            witnessCommitments,
+            quotientCommitments,
+            evaluations,
+            openingProofs,
+            publicInputs,
+            c.beta,
+            c.gamma,
+            c.alpha,
+            c.zeta,
+            c.v,
+            c.u
+        );
     }
 
     /**

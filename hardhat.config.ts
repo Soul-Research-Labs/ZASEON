@@ -18,6 +18,15 @@ export default defineConfig({
     hardhatMocha,
     hardhatViem
   ],
+
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+    // Exclude generated verifiers that cause YulException
+    ignoreFiles: ["**/generated/**"]
+  },
   
   solidity: {
     compilers: [
@@ -26,7 +35,14 @@ export default defineConfig({
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000  // Optimized for gas efficiency
+            runs: 200,
+            details: {
+              yul: true,
+              yulDetails: {
+                stackAllocation: true,
+                optimizerSteps: "dhfoDgvulfnTUtnIf"  // Minimal optimizer steps
+              }
+            }
           },
           viaIR: true,
           evmVersion: "paris"
@@ -37,7 +53,7 @@ export default defineConfig({
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000  // Optimized for gas efficiency
+            runs: 200  // Reduced from 10000 for viaIR compatibility
           },
           viaIR: true,
           evmVersion: "paris"
@@ -48,13 +64,214 @@ export default defineConfig({
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000
+            runs: 200  // Reduced from 10000 to help with stack depth
           },
           viaIR: true,
           evmVersion: "cancun"  // Required for mcopy opcode
         }
       }
-    ]
+    ],
+    // Per-file overrides for complex contracts that cause YulException
+    // Use minimal optimizer runs to reduce stack complexity during optimization
+    overrides: {
+      // Core complex contracts - use minimal optimizer runs
+      "contracts/bridge/CrossChainProofHubV3.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/core/ConfidentialStateContainerV3.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/core/NullifierRegistryV3.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/infrastructure/ConfidentialDataAvailability.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/crosschain/ZKBoundStateLocks.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/fhe/FHEGateway.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/kernel/ParallelKernelVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      // Verifier contracts with heavy assembly
+      "contracts/verifiers/Groth16VerifierBN254.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/PLONKVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/FRIVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      // Security module inherited by many contracts
+      "contracts/security/SecurityModule.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      // Large generated verifiers - need minimal optimization
+      "contracts/verifiers/generated/ProofCarryingContainerVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/CrossDomainNullifierVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/PolicyBoundProofVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/StateCommitmentVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/ComplianceProofVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/CrossChainProofVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/StateTransferVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/MerkleProofVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/NullifierVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/ContainerVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      "contracts/verifiers/generated/PolicyVerifier.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "paris"
+        }
+      },
+      // Privacy contracts
+      "contracts/privacy/CrossChainPrivacyHub.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "cancun"
+        }
+      },
+      "contracts/privacy/UnifiedNullifierManager.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "cancun"
+        }
+      }
+    }
   },
   
   networks: {

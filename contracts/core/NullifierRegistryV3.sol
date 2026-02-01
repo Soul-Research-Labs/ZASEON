@@ -258,35 +258,10 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
             bytes32 nullifier = _nullifiers[i];
 
             if (!isNullifierUsed[nullifier]) {
-                bytes32 commitment = _commitments.length > i
-                    ? _commitments[i]
-                    : bytes32(0);
-
-                uint256 index = totalNullifiers;
-
-                nullifiers[nullifier] = NullifierData({
-                    timestamp: uint64(block.timestamp),
-                    blockNumber: uint64(block.number),
-                    sourceChainId: uint64(sourceChainId),
-                    registrar: msg.sender,
-                    commitment: commitment,
-                    index: index
-                });
-
-                isNullifierUsed[nullifier] = true;
-                _insertIntoTree(nullifier);
-
-                unchecked {
-                    ++totalNullifiers;
-                    ++chainNullifierCount[sourceChainId];
-                }
-
-                emit NullifierRegistered(
+                _registerCrossChainNullifier(
                     nullifier,
-                    commitment,
-                    index,
-                    msg.sender,
-                    uint64(sourceChainId)
+                    _commitments.length > i ? _commitments[i] : bytes32(0),
+                    sourceChainId
                 );
             }
             unchecked {
@@ -295,6 +270,40 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         }
 
         emit CrossChainNullifiersReceived(sourceChainId, sourceMerkleRoot, len);
+    }
+
+    /// @dev Internal helper to register cross-chain nullifier (reduces stack depth)
+    function _registerCrossChainNullifier(
+        bytes32 nullifier,
+        bytes32 commitment,
+        uint256 sourceChainId
+    ) internal {
+        uint256 index = totalNullifiers;
+
+        nullifiers[nullifier] = NullifierData({
+            timestamp: uint64(block.timestamp),
+            blockNumber: uint64(block.number),
+            sourceChainId: uint64(sourceChainId),
+            registrar: msg.sender,
+            commitment: commitment,
+            index: index
+        });
+
+        isNullifierUsed[nullifier] = true;
+        _insertIntoTree(nullifier);
+
+        unchecked {
+            ++totalNullifiers;
+            ++chainNullifierCount[sourceChainId];
+        }
+
+        emit NullifierRegistered(
+            nullifier,
+            commitment,
+            index,
+            msg.sender,
+            uint64(sourceChainId)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

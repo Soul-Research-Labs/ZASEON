@@ -79,6 +79,16 @@ contract ConfidentialStateContainerV3 is
         bytes32 transactionHash;
     }
 
+    /// @notice Parameters for creating a new state (reduces stack depth)
+    struct NewStateParams {
+        bytes32 commitment;
+        bytes32 nullifier;
+        bytes32 metadata;
+        address owner;
+        uint48 timestamp;
+        uint32 version;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -495,6 +505,53 @@ contract ConfidentialStateContainerV3 is
         emit StateRegistered(commitment, owner, nullifier, block.timestamp);
     }
 
+    /// @dev Validates transfer parameters and state
+    function _validateTransferParams(
+        bytes32 oldCommitment,
+        bytes calldata newEncryptedState,
+        bytes32 newNullifier,
+        bytes32 spendingNullifier,
+        address newOwner,
+        address caller
+    ) internal view returns (address oldOwner) {
+        if (newOwner == address(0)) revert ZeroAddress();
+        if (newEncryptedState.length == 0) revert EmptyEncryptedState();
+        uint256 _maxSize = uint128(_packedConfig);
+        if (newEncryptedState.length > _maxSize)
+            revert StateSizeTooLarge(newEncryptedState.length, _maxSize);
+
+        EncryptedState storage oldState = _states[oldCommitment];
+        oldOwner = oldState.owner;
+        if (oldOwner == address(0)) revert CommitmentNotFound(oldCommitment);
+        if (oldOwner != caller) revert NotStateOwner(caller, oldOwner);
+        if (oldState.status != StateStatus.Active)
+            revert StateNotActive(oldCommitment, oldState.status);
+        if (_nullifiers[newNullifier])
+            revert NullifierAlreadyUsed(newNullifier);
+        if (_nullifiers[spendingNullifier])
+            revert NullifierAlreadyUsed(spendingNullifier);
+    }
+
+    /// @dev Verifies transfer proof
+    function _verifyTransferProof(
+        bytes32 oldCommitment,
+        bytes32 newCommitment,
+        bytes32 newNullifier,
+        bytes32 spendingNullifier,
+        address newOwner,
+        bytes calldata proof
+    ) internal view {
+        bytes memory publicInputs = abi.encode(
+            oldCommitment,
+            newCommitment,
+            newNullifier,
+            spendingNullifier,
+            uint256(uint160(newOwner)),
+            block.chainid
+        );
+        if (!verifier.verifyProof(proof, publicInputs)) revert InvalidProof();
+    }
+
     function _transferState(
         bytes32 oldCommitment,
         bytes calldata newEncryptedState,
@@ -505,78 +562,56 @@ contract ConfidentialStateContainerV3 is
         address newOwner,
         address caller
     ) internal {
-        // Validations with cached maxStateSize
-        if (newOwner == address(0)) revert ZeroAddress();
-        if (newEncryptedState.length == 0) revert EmptyEncryptedState();
-        uint256 _maxSize = uint128(_packedConfig);
-        if (newEncryptedState.length > _maxSize)
-            revert StateSizeTooLarge(newEncryptedState.length, _maxSize);
+        // Phase 1: Validation (releases validation vars after block)
+        address oldOwner = _validateTransferParams(
+            oldCommitment,
+            newEncryptedState,
+            newNullifier,
+            spendingNullifier,
+            newOwner,
+            caller
+        );
 
-        EncryptedState storage oldState = _states[oldCommitment];
-
-        // Cache owner to avoid multiple SLOADs
-        address oldOwner = oldState.owner;
-        if (oldOwner == address(0)) revert CommitmentNotFound(oldCommitment);
-        if (oldOwner != caller) revert NotStateOwner(caller, oldOwner);
-
-        if (oldState.status != StateStatus.Active)
-            revert StateNotActive(oldCommitment, oldState.status);
-        if (_nullifiers[newNullifier])
-            revert NullifierAlreadyUsed(newNullifier);
-
-        // FIX: Check and consume spending nullifier (prevents double spend even if status reset)
-        if (_nullifiers[spendingNullifier])
-            revert NullifierAlreadyUsed(spendingNullifier);
+        // Consume spending nullifier
         _nullifiers[spendingNullifier] = true;
         _nullifierToCommitment[spendingNullifier] = oldCommitment;
 
-        // FIX: Construct public inputs for transfer
-        bytes memory publicInputs = abi.encode(
+        // Phase 2: Proof verification
+        _verifyTransferProof(
             oldCommitment,
             newCommitment,
             newNullifier,
             spendingNullifier,
-            uint256(uint160(newOwner)),
-            block.chainid
-        );
-
-        // Verify proof
-        if (!verifier.verifyProof(proof, publicInputs)) revert InvalidProof();
-
-        // Record history before state changes
-        _recordTransitionHistory(
-            oldCommitment,
-            newCommitment,
-            oldOwner,
-            newOwner
-        );
-
-        // Cache timestamp and get new version
-        uint48 timestamp = uint48(block.timestamp);
-        uint32 newVersion = oldState.version + 1;
-        bytes32 oldMetadata = oldState.metadata;
-
-        // Mark old state as retired
-        oldState.status = StateStatus.Retired;
-        oldState.updatedAt = timestamp;
-
-        // Store new state
-        _createNewState(
-            newCommitment,
-            newNullifier,
-            oldMetadata,
             newOwner,
-            timestamp,
-            newVersion,
-            newEncryptedState
+            proof
         );
 
-        emit StateTransferred(
-            oldCommitment,
-            newCommitment,
-            newOwner,
-            newVersion
-        );
+        // Phase 3: State updates
+        {
+            _recordTransitionHistory(oldCommitment, newCommitment, oldOwner, newOwner);
+
+            EncryptedState storage oldState = _states[oldCommitment];
+            uint48 timestamp = uint48(block.timestamp);
+            uint32 newVersion = oldState.version + 1;
+            bytes32 oldMetadata = oldState.metadata;
+
+            oldState.status = StateStatus.Retired;
+            oldState.updatedAt = timestamp;
+
+            _createNewState(
+                NewStateParams({
+                    commitment: newCommitment,
+                    nullifier: newNullifier,
+                    metadata: oldMetadata,
+                    owner: newOwner,
+                    timestamp: timestamp,
+                    version: newVersion
+                }),
+                newEncryptedState
+            );
+
+            emit StateTransferred(oldCommitment, newCommitment, newOwner, newVersion);
+        }
     }
 
     /// @dev Records state transition history
@@ -613,31 +648,26 @@ contract ConfidentialStateContainerV3 is
 
     /// @dev Creates a new state entry
     function _createNewState(
-        bytes32 commitment,
-        bytes32 nullifier,
-        bytes32 metadata,
-        address owner,
-        uint48 timestamp,
-        uint32 version,
+        NewStateParams memory params,
         bytes calldata encryptedState
     ) internal {
-        EncryptedState storage newState = _states[commitment];
-        newState.commitment = commitment;
-        newState.nullifier = nullifier;
-        newState.metadata = metadata;
-        newState.owner = owner;
-        newState.createdAt = timestamp;
-        newState.updatedAt = timestamp;
-        newState.version = version;
+        EncryptedState storage newState = _states[params.commitment];
+        newState.commitment = params.commitment;
+        newState.nullifier = params.nullifier;
+        newState.metadata = params.metadata;
+        newState.owner = params.owner;
+        newState.createdAt = params.timestamp;
+        newState.updatedAt = params.timestamp;
+        newState.version = params.version;
         newState.status = StateStatus.Active;
         newState.encryptedState = encryptedState;
 
         // Register new nullifier
-        _nullifiers[nullifier] = true;
-        _nullifierToCommitment[nullifier] = commitment;
+        _nullifiers[params.nullifier] = true;
+        _nullifierToCommitment[params.nullifier] = params.commitment;
 
         // Track owner's commitments
-        _ownerCommitments[owner].push(commitment);
+        _ownerCommitments[params.owner].push(params.commitment);
     }
 
     /*//////////////////////////////////////////////////////////////
