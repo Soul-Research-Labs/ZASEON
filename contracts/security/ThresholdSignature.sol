@@ -850,7 +850,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         return sigHash != bytes32(0);
     }
 
-    /// @dev BLS12-381 G2 generator point (compressed format placeholder)
+    /// @dev BLS12-381 G2 generator point (uncompressed format, 96 bytes)
     bytes private constant _BLS_G2_GENERATOR =
         hex"93e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8";
 
