@@ -12,7 +12,7 @@ contract PrivacyCoverageTest is Test {
     UnifiedNullifierManager public managerImpl;
     CrossChainPrivacyHub public privacyHub;
     CrossChainPrivacyHub public hubImpl;
-    
+
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -38,7 +38,7 @@ contract PrivacyCoverageTest is Test {
                 (
                     address(this), // admin
                     address(this), // guardian
-                    address(this)  // fee recipient
+                    address(this) // fee recipient
                 )
             )
         );
@@ -51,20 +51,23 @@ contract PrivacyCoverageTest is Test {
         bytes32 nullifier = keccak256("test_nullifier");
         bytes32 commitment = keccak256("test_commitment");
         uint256 chainId = 1;
-        
+
         // Grant BRIDGE_ROLE to this test contract (already admin, but ensuring role separation logic)
         // Admin has all roles granted in initialize, let's verify
-        assertTrue(nullifierManager.hasRole(BRIDGE_ROLE, address(this)), "Should have BRIDGE_ROLE");
-        
+        assertTrue(
+            nullifierManager.hasRole(BRIDGE_ROLE, address(this)),
+            "Should have BRIDGE_ROLE"
+        );
+
         // Register Nullifier
         vm.expectEmit(true, true, false, true);
         emit UnifiedNullifierManager.NullifierRegistered(
-            nullifier, 
-            commitment, 
-            chainId, 
+            nullifier,
+            commitment,
+            chainId,
             UnifiedNullifierManager.NullifierType.STANDARD
         );
-        
+
         bytes32 soulNullifier = nullifierManager.registerNullifier(
             nullifier,
             commitment,
@@ -72,37 +75,42 @@ contract PrivacyCoverageTest is Test {
             UnifiedNullifierManager.NullifierType.STANDARD,
             0 // no expiry
         );
-        
+
         // precise checking of return value
         assertNotEq(soulNullifier, bytes32(0));
-        
+
         // Check state
-        UnifiedNullifierManager.NullifierRecord memory record = nullifierManager.getNullifierRecord(nullifier);
+        UnifiedNullifierManager.NullifierRecord memory record = nullifierManager
+            .getNullifierRecord(nullifier);
         // assertEq(record.status == UnifiedNullifierManager.NullifierStatus.REGISTERED, true);
         // Enum comparison fix handled by assertEq casting or just bool check
-        assertEq(uint(record.status), uint(UnifiedNullifierManager.NullifierStatus.REGISTERED));
+        assertEq(
+            uint(record.status),
+            uint(UnifiedNullifierManager.NullifierStatus.REGISTERED)
+        );
         assertEq(record.commitment, commitment);
 
         // Spend Nullifier
         nullifierManager.spendNullifier(nullifier);
         assertTrue(nullifierManager.isNullifierSpent(nullifier));
-        
+
         // Re-spend should fail
         vm.expectRevert(UnifiedNullifierManager.NullifierAlreadySpent.selector);
         nullifierManager.spendNullifier(nullifier);
     }
+
     /*
         bytes32 commitment = keccak256("test_commitment");
         ...
         nullifierManager.spendNullifier(nullifier);
     }
     */
-    
+
     function test_CrossChainPrivacyHub_AdapterRegistry() public {
         // Register an adapter
         address mockAdapter = address(0x123);
         uint256 chainId = 10; // Optimism
-        
+
         privacyHub.registerAdapter(
             chainId,
             mockAdapter,
@@ -113,46 +121,49 @@ contract PrivacyCoverageTest is Test {
             1000 ether, // max transfer
             10000 ether // daily limit
         );
-        
-        (address adapterAddr,,,,,,,,,, ) = privacyHub.adapters(chainId);
+
+        (address adapterAddr, , , , , , , , , , ) = privacyHub.adapters(
+            chainId
+        );
         assertEq(adapterAddr, mockAdapter);
-        
+
         // Update adapter
         privacyHub.updateAdapter(chainId, false, 500 ether, 5000 ether);
-        (,,, , bool isActive,,,,,, ) = privacyHub.adapters(chainId);
+        (, , , , bool isActive, , , , , , ) = privacyHub.adapters(chainId);
         assertFalse(isActive);
     }
-    
+
     function test_CrossDomainBinding() public {
         bytes32 sourceNf = keccak256("source");
         uint256 srcChain = 1;
         uint256 dstChain = 10;
-        
+
         // Mock register source nullifier first
         nullifierManager.registerNullifier(
-            sourceNf, 
-            keccak256("commit"), 
-            srcChain, 
-            UnifiedNullifierManager.NullifierType.STANDARD, 
+            sourceNf,
+            keccak256("commit"),
+            srcChain,
+            UnifiedNullifierManager.NullifierType.STANDARD,
             0
         );
-        
+
+        // Set up a mock cross-chain verifier that always returns true
+        TestProofVerifier mockVerifier = new TestProofVerifier();
+        nullifierManager.setCrossChainVerifier(address(mockVerifier));
+
         // Create binding
-        // We need a proof, but for local tests we can assume the internal verification passes 
+        // We need a proof, but for local tests we can assume the internal verification passes
         // if we are not on mainnet (block.chainid != 1). Simple check.
         bytes memory proof = new bytes(32); // Valid length
-        
-        (bytes32 destNf, bytes32 soulNf) = nullifierManager.createCrossDomainBinding(
-            sourceNf,
-            srcChain,
-            dstChain,
-            proof
-        );
-        
+
+        (bytes32 destNf, bytes32 soulNf) = nullifierManager
+            .createCrossDomainBinding(sourceNf, srcChain, dstChain, proof);
+
         assertNotEq(destNf, bytes32(0));
         assertNotEq(soulNf, bytes32(0));
-        
-        (bool valid, bytes32 queriedPil) = nullifierManager.verifyCrossDomainBinding(sourceNf, destNf);
+
+        (bool valid, bytes32 queriedPil) = nullifierManager
+            .verifyCrossDomainBinding(sourceNf, destNf);
         assertTrue(valid);
         assertEq(queriedPil, soulNf);
     }
@@ -174,5 +185,15 @@ contract PrivacyCoverageTest is Test {
         assertEq(domain.transportLayer(), transportLayer);
         assertEq(domain.nullifierRegistry(), nullifierRegistry);
         assertTrue(domain.hasRole(domain.DEFAULT_ADMIN_ROLE(), deployer));
+    }
+}
+
+/// @notice Mock proof verifier that always returns true for testing
+contract TestProofVerifier {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure returns (bool) {
+        return true;
     }
 }
