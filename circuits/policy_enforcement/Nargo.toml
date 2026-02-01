@@ -1,7 +1,0 @@
-[package]
-name = "policy_enforcement"
-type = "bin"
-authors = ["Soul Team"]
-compiler_version = ">=0.30.0"
-
-[dependencies]

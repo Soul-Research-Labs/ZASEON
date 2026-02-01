@@ -36,7 +36,7 @@ module CROSS-CHAIN-PRIVACY-SYNTAX
         ChainDomain,    // source domain
         ChainDomain     // target domain
     )
-    syntax SoulBinding ::= pilBinding(Nullifier, Bytes)   // (sourceNf, pilTag)
+    syntax SoulBinding ::= soulBinding(Nullifier, Bytes)   // (sourceNf, soulTag)
 
     // =========================================================================
     // STEALTH ADDRESS TYPES
@@ -176,7 +176,7 @@ module NULLIFIER-ALGEBRA
 
     /**
      * Soul binding - canonical identifier across all chains
-     * pilBinding = H(nullifier || Soul_BINDING_TAG)
+     * soulBinding = H(nullifier || SOUL_BINDING_TAG)
      */
     rule deriveSoulBinding(NULLIFIER) =>
         Keccak256(NULLIFIER +Bytes Soul_BINDING_TAG)

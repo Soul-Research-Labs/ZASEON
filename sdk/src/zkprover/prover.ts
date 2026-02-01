@@ -27,31 +27,34 @@ export interface CircuitConfig {
 }
 
 // Circuit configurations
+// NOTE: Migrated to Noir. These paths point to Noir-generated artifacts.
+// Legacy Circom (snarkjs) paths have been removed.
+// TODO: Update prover to use Barretenberg (bb) for Noir proof generation
 const CIRCUIT_PATHS: Record<string, CircuitConfig> = {
   stateCommitment: {
-    wasmPath: "circuits/build/state_commitment/state_commitment_js/state_commitment.wasm",
-    zkeyPath: "circuits/build/state_commitment/circuit_final.zkey",
-    vkeyPath: "circuits/build/state_commitment/verification_key.json",
+    wasmPath: "noir/target/state_commitment.json",
+    zkeyPath: "noir/target/state_commitment_vk",
+    vkeyPath: "noir/target/state_commitment_vk_fields.json",
   },
   stateTransfer: {
-    wasmPath: "circuits/build/state_transfer/state_transfer_js/state_transfer.wasm",
-    zkeyPath: "circuits/build/state_transfer/circuit_final.zkey",
-    vkeyPath: "circuits/build/state_transfer/verification_key.json",
+    wasmPath: "noir/target/state_transfer.json",
+    zkeyPath: "noir/target/state_transfer_vk",
+    vkeyPath: "noir/target/state_transfer_vk_fields.json",
   },
   merkleProof: {
-    wasmPath: "circuits/build/merkle_proof/merkle_proof_js/merkle_proof.wasm",
-    zkeyPath: "circuits/build/merkle_proof/circuit_final.zkey",
-    vkeyPath: "circuits/build/merkle_proof/verification_key.json",
+    wasmPath: "noir/target/merkle_proof.json",
+    zkeyPath: "noir/target/merkle_proof_vk",
+    vkeyPath: "noir/target/merkle_proof_vk_fields.json",
   },
   crossChainProof: {
-    wasmPath: "circuits/build/cross_chain_proof/cross_chain_proof_js/cross_chain_proof.wasm",
-    zkeyPath: "circuits/build/cross_chain_proof/circuit_final.zkey",
-    vkeyPath: "circuits/build/cross_chain_proof/verification_key.json",
+    wasmPath: "noir/target/cross_chain_proof.json",
+    zkeyPath: "noir/target/cross_chain_proof_vk",
+    vkeyPath: "noir/target/cross_chain_proof_vk_fields.json",
   },
   complianceProof: {
-    wasmPath: "circuits/build/compliance_proof/compliance_proof_js/compliance_proof.wasm",
-    zkeyPath: "circuits/build/compliance_proof/circuit_final.zkey",
-    vkeyPath: "circuits/build/compliance_proof/verification_key.json",
+    wasmPath: "noir/target/compliance_proof.json",
+    zkeyPath: "noir/target/compliance_proof_vk",
+    vkeyPath: "noir/target/compliance_proof_vk_fields.json",
   },
 };
 

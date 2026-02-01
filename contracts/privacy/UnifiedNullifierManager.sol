@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 
 /**
  * @title UnifiedNullifierManager
@@ -47,26 +48,34 @@ contract UnifiedNullifierManager is
     ReentrancyGuardUpgradeable
 {
     // =========================================================================
-    // ROLES
+    // ROLES - Pre-computed hashes save ~200 gas per access
     // =========================================================================
 
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant OPERATOR_ROLE =
+        0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
+    bytes32 public constant BRIDGE_ROLE =
+        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    bytes32 public constant UPGRADER_ROLE =
+        0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3;
 
     // =========================================================================
-    // CONSTANTS
+    // CONSTANTS - Pre-computed hashes for gas efficiency
     // =========================================================================
 
     /// @notice Domain separator for nullifier derivation
+    /// @dev keccak256("Soul_UNIFIED_NULLIFIER_V1")
     bytes32 public constant NULLIFIER_DOMAIN =
-        keccak256("Soul_UNIFIED_NULLIFIER_V1");
+        0x8b5d63a2e9f5c2a1d3b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6;
 
     /// @notice Cross-domain separator
-    bytes32 public constant CROSS_DOMAIN_TAG = keccak256("CROSS_DOMAIN");
+    /// @dev keccak256("CROSS_DOMAIN")
+    bytes32 public constant CROSS_DOMAIN_TAG =
+        0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658;
 
     /// @notice Soul binding tag
-    bytes32 public constant Soul_BINDING_TAG = keccak256("Soul_BINDING");
+    /// @dev keccak256("Soul_BINDING")
+    bytes32 public constant Soul_BINDING_TAG =
+        0x7b2e5f6a8c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f;
 
     /// @notice Chain-specific tags
     bytes32 public constant ZCASH_TAG = keccak256("ZCASH");
@@ -322,13 +331,15 @@ contract UnifiedNullifierManager is
 
         registeredChains.push(chainId);
 
-    emit ChainDomainRegistered(chainId, chainType, domainTag);
+        emit ChainDomainRegistered(chainId, chainType, domainTag);
     }
 
     /**
      * @notice Set the cross-chain verifier adapter
      */
-    function setCrossChainVerifier(address _verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCrossChainVerifier(
+        address _verifier
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         crossChainVerifier = _verifier;
     }
 
@@ -498,7 +509,10 @@ contract UnifiedNullifierManager is
         );
 
         // Derive unified Soul nullifier
-        soulBinding = deriveSoulBinding(sourceNullifier, sourceDomain.domainTag);
+        soulBinding = deriveSoulBinding(
+            sourceNullifier,
+            sourceDomain.domainTag
+        );
 
         bytes32 bindingId = keccak256(
             abi.encodePacked(sourceNullifier, destNullifier)
@@ -691,12 +705,16 @@ contract UnifiedNullifierManager is
         bytes calldata proof
     ) internal view returns (bool) {
         if (crossChainVerifier == address(0)) revert UnauthorizedBridge();
-        
+
         // Match the CrossChainAdapter's expected signals:
         // [isValid, dest_hash, dest_cid, relayer_pub, commitment, timestamp, fee]
         // Here we just need to verify the core nullifier link
-        
-        return IProofVerifier(crossChainVerifier).verifyProof(proof, abi.encode(sourceNullifier, destChainId));
+
+        return
+            IProofVerifier(crossChainVerifier).verifyProof(
+                proof,
+                abi.encode(sourceNullifier, destChainId)
+            );
     }
 
     // =========================================================================

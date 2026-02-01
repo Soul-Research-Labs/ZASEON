@@ -31,6 +31,14 @@ broadcast/
 noir/target/
 noir/**/compile_out.txt
 
+# Barretenberg (bb) CRS cache
+.bb-crs/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
 # Gambit (Mutation Testing)
 gambit_out/
 gambit_results/

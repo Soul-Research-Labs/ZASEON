@@ -48,6 +48,9 @@ contract CrossChainProofHubV3 is
     /// @notice Role for authorized challengers
     bytes32 public constant CHALLENGER_ROLE = keccak256("CHALLENGER_ROLE");
 
+    /// @notice Role for operators (trusted remotes, config)
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
     /// @notice Role for emergency operations
     bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
 
@@ -162,6 +165,9 @@ contract CrossChainProofHubV3 is
     /// @notice Relayer pending proof count (TOCTOU protection)
     mapping(address => uint256) public relayerPendingProofs;
 
+    /// @notice Trusted remote contract addresses per chain
+    mapping(uint256 => address) public trustedRemotes;
+
     /// @notice This chain's ID
     uint256 public immutable CHAIN_ID;
 
@@ -264,6 +270,11 @@ contract CrossChainProofHubV3 is
     /// @param chainId The ID of the removed chain
     event ChainRemoved(uint256 indexed chainId);
 
+    /// @notice Emitted when a trusted remote is set
+    /// @param chainId The chain ID
+    /// @param remote The trusted remote address
+    event TrustedRemoteSet(uint256 indexed chainId, address remote);
+
     /// @notice Emitted when a verifier address is set for a proof type
     /// @param proofType The identifier of the proof type
     /// @param verifier The address of the new verifier
@@ -330,6 +341,9 @@ contract CrossChainProofHubV3 is
 
     /// @notice Error thrown when a zero address is provided
     error ZeroAddress();
+
+    /// @notice Error thrown when an invalid chain ID is provided
+    error InvalidChainId(uint256 chainId);
 
     /// @notice Error thrown when admin tries to perform relayer/challenger actions
     error AdminNotAllowed();
@@ -468,12 +482,13 @@ contract CrossChainProofHubV3 is
     ) external payable nonReentrant whenNotPaused returns (bytes32 proofId) {
         // Verify the proof immediately
         IProofVerifier verifier = verifiers[proofType];
-        
+
         // Fallback to registry if not locally set
         if (address(verifier) == address(0) && verifierRegistry != address(0)) {
-            (bool regSuccess, bytes memory regData) = verifierRegistry.staticcall(
-                abi.encodeWithSignature("getVerifier(bytes32)", proofType)
-            );
+            (bool regSuccess, bytes memory regData) = verifierRegistry
+                .staticcall(
+                    abi.encodeWithSignature("getVerifier(bytes32)", proofType)
+                );
             if (regSuccess && regData.length == 32) {
                 verifier = IProofVerifier(abi.decode(regData, (address)));
             }
@@ -661,12 +676,19 @@ contract CrossChainProofHubV3 is
         ) {
             // Try to verify the proof
             IProofVerifier verifier = verifiers[proofType];
-            
+
             // Fallback to registry if not locally set
-            if (address(verifier) == address(0) && verifierRegistry != address(0)) {
-                (bool regSuccess, bytes memory regData) = verifierRegistry.staticcall(
-                    abi.encodeWithSignature("getVerifier(bytes32)", proofType)
-                );
+            if (
+                address(verifier) == address(0) &&
+                verifierRegistry != address(0)
+            ) {
+                (bool regSuccess, bytes memory regData) = verifierRegistry
+                    .staticcall(
+                        abi.encodeWithSignature(
+                            "getVerifier(bytes32)",
+                            proofType
+                        )
+                    );
                 if (regSuccess && regData.length == 32) {
                     verifier = IProofVerifier(abi.decode(regData, (address)));
                 }
@@ -703,7 +725,7 @@ contract CrossChainProofHubV3 is
             // Slash relayer and reward challenger
             uint256 slashAmount = submission.stake;
             uint256 actualSlashed = 0;
-            
+
             if (relayerStakes[submission.relayer] >= slashAmount) {
                 relayerStakes[submission.relayer] -= slashAmount;
                 actualSlashed = slashAmount;

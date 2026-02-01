@@ -46,10 +46,10 @@ This document consolidates ALL next steps for cross-chain privacy and security i
 | Privacy Fuzz Tests | `test/fuzz/PrivacyFuzz.t.sol` | Comprehensive fuzz testing |
 | Attack Simulations | `test/attacks/PrivacyAttackSimulation.t.sol` | 9 attack vectors tested |
 | E2E Tests | `test/integration/CrossChainPrivacyE2E.test.ts.sol` | Cross-chain flow tests |
-| Nullifier Circuit | `circuits/cross_domain_nullifier/cross_domain_nullifier.circom` | ZK nullifier proofs |
-| Transfer Circuit | `circuits/private_transfer/private_transfer.circom` | Private transfer proofs |
-| Ring Signature Circuit | `circuits/ring_signature/ring_signature.circom` | CLSAG-style ring sigs |
-| Circuit Docs | `circuits/README.md` | Comprehensive circuit documentation |
+| Nullifier Circuit | `noir/cross_domain_nullifier/src/main.nr` | ZK nullifier proofs (Noir) |
+| Transfer Circuit | `noir/private_transfer/src/main.nr` | Private transfer proofs (Noir) |
+| Ring Signature Circuit | `noir/ring_signature/src/main.nr` | CLSAG-style ring sigs (Noir) |
+| Circuit Docs | `noir/README.md` | Comprehensive circuit documentation |
 
 ---
 
@@ -291,7 +291,7 @@ contract PrivacyInvariants is Test {
     }
     
     // Soul binding is deterministic
-    function invariant_pilBindingDeterminism() external {
+    function invariant_soulBindingDeterminism() external {
         // Same nullifier → same Soul binding
     }
 }

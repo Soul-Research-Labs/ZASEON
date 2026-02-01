@@ -8,6 +8,12 @@ pragma solidity ^0.8.20;
  * @dev Inherit this contract to add rate limiting, circuit breakers, flash loan guards,
  *      and withdrawal limits to any contract
  *
+ * GAS OPTIMIZATIONS APPLIED:
+ * - Packed boolean flags into single storage slot
+ * - Efficient timestamp comparisons
+ * - Unchecked arithmetic where safe
+ * - Short-circuit evaluation in modifiers
+ *
  * Security Features:
  * - Rate Limiting: Prevents spam attacks and DoS
  * - Circuit Breaker: Halts operations when volume thresholds exceeded
@@ -55,7 +61,6 @@ abstract contract SecurityModule {
     error CooldownTooShort(uint256 minCooldown);
     error CooldownTooLong(uint256 maxCooldown);
     error InvalidWithdrawalLimits();
-
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -165,30 +170,29 @@ abstract contract SecurityModule {
 
     /**
      * @notice Rate limiting modifier - limits actions per time window
-     * @dev Resets counter when window expires
+     * @dev Optimized with cached reads and unchecked arithmetic
      */
     modifier rateLimited() {
         if (rateLimitingEnabled) {
+            address sender = msg.sender;
+            uint256 lastTime = lastActionTime[sender];
+            uint256 currentCount = actionCount[sender];
+            uint256 window = rateLimitWindow;
+
             // Reset counter if window expired
-            if (
-                block.timestamp > lastActionTime[msg.sender] + rateLimitWindow
-            ) {
-                actionCount[msg.sender] = 0;
-                lastActionTime[msg.sender] = block.timestamp;
-            }
-
-            // Check limit
-            if (actionCount[msg.sender] >= maxActionsPerWindow) {
-                revert RateLimitExceeded(
-                    msg.sender,
-                    actionCount[msg.sender],
-                    maxActionsPerWindow
-                );
-            }
-
-            // Increment counter
-            unchecked {
-                ++actionCount[msg.sender];
+            if (block.timestamp > lastTime + window) {
+                actionCount[sender] = 1;
+                lastActionTime[sender] = block.timestamp;
+            } else {
+                // Check limit
+                uint256 maxActions = maxActionsPerWindow;
+                if (currentCount >= maxActions) {
+                    revert RateLimitExceeded(sender, currentCount, maxActions);
+                }
+                // Increment counter with unchecked since we just verified it's < max
+                unchecked {
+                    actionCount[sender] = currentCount + 1;
+                }
             }
         }
         _;
