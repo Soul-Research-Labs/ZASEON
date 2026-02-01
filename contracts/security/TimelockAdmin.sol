@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./SoulTimelock.sol";
+import "../governance/SoulTimelock.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "../primitives/ProofCarryingContainer.sol";
 import "../primitives/PolicyBoundProofs.sol";

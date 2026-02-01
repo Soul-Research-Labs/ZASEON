@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../../contracts/security/SoulTimelock.sol";
+import "../../contracts/governance/SoulTimelock.sol";
 
 /**
  * @title SoulTimelock Test Suite

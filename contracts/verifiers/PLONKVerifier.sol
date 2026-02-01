@@ -188,7 +188,7 @@ contract PLONKVerifier is IProofVerifier {
         uint256[4] calldata _xN
     ) external onlyOwner {
         // M-5 Fix: Allow key rotation by owner (removed AlreadyInitialized check)
-        
+
         // Validate domain size is power of 2
         if (_domainSize == 0 || (_domainSize & (_domainSize - 1)) != 0) {
             revert InvalidDomainSize(_domainSize);
@@ -240,13 +240,14 @@ contract PLONKVerifier is IProofVerifier {
         ) = _decodeProof(proof);
 
         // Compute challenges and verify in scoped block to reduce stack depth
-        return _computeAndVerify(
-            witnessCommitments,
-            quotientCommitments,
-            evaluations,
-            openingProofs,
-            publicInputs
-        );
+        return
+            _computeAndVerify(
+                witnessCommitments,
+                quotientCommitments,
+                evaluations,
+                openingProofs,
+                publicInputs
+            );
     }
 
     /**
@@ -295,14 +296,15 @@ contract PLONKVerifier is IProofVerifier {
         );
 
         // Verify the PLONK proof
-        return _verifyPLONKWithChallenges(
-            witnessCommitments,
-            quotientCommitments,
-            evaluations,
-            openingProofs,
-            publicInputs,
-            c
-        );
+        return
+            _verifyPLONKWithChallenges(
+                witnessCommitments,
+                quotientCommitments,
+                evaluations,
+                openingProofs,
+                publicInputs,
+                c
+            );
     }
 
     /**
@@ -466,19 +468,20 @@ contract PLONKVerifier is IProofVerifier {
         uint256[] calldata publicInputs,
         Challenges memory c
     ) internal view returns (bool) {
-        return _verifyPLONK(
-            witnessCommitments,
-            quotientCommitments,
-            evaluations,
-            openingProofs,
-            publicInputs,
-            c.beta,
-            c.gamma,
-            c.alpha,
-            c.zeta,
-            c.v,
-            c.u
-        );
+        return
+            _verifyPLONK(
+                witnessCommitments,
+                quotientCommitments,
+                evaluations,
+                openingProofs,
+                publicInputs,
+                c.beta,
+                c.gamma,
+                c.alpha,
+                c.zeta,
+                c.v,
+                c.u
+            );
     }
 
     /**
@@ -583,7 +586,11 @@ contract PLONKVerifier is IProofVerifier {
         numerator = mulmod(numerator, nInv, _FR_MODULUS);
 
         return
-            mulmod(numerator, _modInverse(denominator, _FR_MODULUS), _FR_MODULUS);
+            mulmod(
+                numerator,
+                _modInverse(denominator, _FR_MODULUS),
+                _FR_MODULUS
+            );
     }
 
     /**
@@ -597,7 +604,8 @@ contract PLONKVerifier is IProofVerifier {
         uint256 denominator = addmod(zeta, _FR_MODULUS - 1, _FR_MODULUS);
         if (denominator == 0) return 1;
 
-        return mulmod(zhEval, _modInverse(denominator, _FR_MODULUS), _FR_MODULUS);
+        return
+            mulmod(zhEval, _modInverse(denominator, _FR_MODULUS), _FR_MODULUS);
     }
 
     /**
@@ -631,7 +639,11 @@ contract PLONKVerifier is IProofVerifier {
         ); // + qO*c
 
         uint256 ab = mulmod(evaluations[0], evaluations[1], _FR_MODULUS);
-        gate = addmod(gate, mulmod(evaluations[6], ab, _FR_MODULUS), _FR_MODULUS); // + qM*a*b
+        gate = addmod(
+            gate,
+            mulmod(evaluations[6], ab, _FR_MODULUS),
+            _FR_MODULUS
+        ); // + qM*a*b
         gate = addmod(gate, evaluations[10], _FR_MODULUS); // + qC
         gate = addmod(gate, piEval, _FR_MODULUS); // + PI
 

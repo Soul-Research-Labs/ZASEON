@@ -588,7 +588,12 @@ contract ConfidentialStateContainerV3 is
 
         // Phase 3: State updates
         {
-            _recordTransitionHistory(oldCommitment, newCommitment, oldOwner, newOwner);
+            _recordTransitionHistory(
+                oldCommitment,
+                newCommitment,
+                oldOwner,
+                newOwner
+            );
 
             EncryptedState storage oldState = _states[oldCommitment];
             uint48 timestamp = uint48(block.timestamp);
@@ -610,7 +615,12 @@ contract ConfidentialStateContainerV3 is
                 newEncryptedState
             );
 
-            emit StateTransferred(oldCommitment, newCommitment, newOwner, newVersion);
+            emit StateTransferred(
+                oldCommitment,
+                newCommitment,
+                newOwner,
+                newVersion
+            );
         }
     }
 

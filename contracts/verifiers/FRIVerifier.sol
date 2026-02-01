@@ -357,7 +357,12 @@ contract FRIVerifier is IProofVerifier {
         queries = new QueryProof[](numQueries);
 
         for (uint256 q = 0; q < numQueries; q++) {
-            (queries[q], offset) = _decodeQueryProof(proof, offset, layers, numLayers);
+            (queries[q], offset) = _decodeQueryProof(
+                proof,
+                offset,
+                layers,
+                numLayers
+            );
         }
 
         // Read final polynomial coefficients
@@ -460,7 +465,10 @@ contract FRIVerifier is IProofVerifier {
                     );
                     alphaCorrection = mulmod(
                         alphaCorrection,
-                        _modInverse(mulmod(2, x, _FIELD_MODULUS), _FIELD_MODULUS),
+                        _modInverse(
+                            mulmod(2, x, _FIELD_MODULUS),
+                            _FIELD_MODULUS
+                        ),
                         _FIELD_MODULUS
                     );
                     expectedFold = addmod(

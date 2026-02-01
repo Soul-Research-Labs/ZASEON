@@ -27,6 +27,11 @@ test/fuzz/corpus/
 forge-cache/
 broadcast/
 
+# Generated/Coverage files (regenerated on demand)
+coverage-stubs/
+contracts-generated/
+contracts-coverage/
+
 # Noir (ZK circuits)
 noir/target/
 noir/**/compile_out.txt
