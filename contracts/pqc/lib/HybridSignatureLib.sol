@@ -194,12 +194,16 @@ library HybridSignatureLib {
         }
     }
 
+    /// @notice secp256k1 curve order / 2 for signature malleability protection
+    uint256 private constant SECP256K1_N_DIV_2 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+
     /**
      * @notice Verify ECDSA component of hybrid signature
      * @param messageHash The message hash
      * @param ecdsaSig The ECDSA signature
      * @param expectedSigner The expected signer address
      * @return valid True if ECDSA signature is valid
+     * @dev Includes signature malleability protection (s must be in lower half of curve order)
      */
     function verifyECDSA(
         bytes32 messageHash,
@@ -207,6 +211,11 @@ library HybridSignatureLib {
         address expectedSigner
     ) internal pure returns (bool valid) {
         (bytes32 r, bytes32 s, uint8 v) = extractECDSA(ecdsaSig);
+
+        // Signature malleability protection: s must be in lower half of curve order
+        if (uint256(s) > SECP256K1_N_DIV_2) {
+            return false;
+        }
 
         address recovered = ecrecover(messageHash, v, r, s);
         return recovered == expectedSigner && recovered != address(0);

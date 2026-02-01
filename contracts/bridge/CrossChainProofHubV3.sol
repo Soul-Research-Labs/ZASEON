@@ -414,7 +414,8 @@ contract CrossChainProofHubV3 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deposits stake as a relayer
-    function depositStake() external payable {
+    /// @dev Uses nonReentrant for defense-in-depth against reentrancy attacks
+    function depositStake() external payable nonReentrant {
         relayerStakes[msg.sender] += msg.value;
         emit RelayerStakeDeposited(msg.sender, msg.value);
     }
@@ -967,6 +968,7 @@ contract CrossChainProofHubV3 is
         bytes32 proofType,
         address _verifier
     ) external onlyRole(VERIFIER_ADMIN_ROLE) {
+        if (_verifier == address(0)) revert ZeroAddress();
         verifiers[proofType] = IProofVerifier(_verifier);
         emit VerifierSet(proofType, _verifier);
     }
@@ -1005,6 +1007,7 @@ contract CrossChainProofHubV3 is
     function setVerifierRegistry(
         address _registry
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_registry == address(0)) revert ZeroAddress();
         verifierRegistry = _registry;
     }
 

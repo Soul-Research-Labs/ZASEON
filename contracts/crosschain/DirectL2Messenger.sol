@@ -650,6 +650,9 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         if (msg_.status != MessageStatus.RELAYED) revert InvalidMessage();
         if (block.timestamp > msg_.deadline) revert MessageExpired();
 
+        // Cross-chain replay protection: verify we are on the correct destination chain
+        if (block.chainid != msg_.destChainId) revert InvalidDestinationChain();
+
         // For fast path, check challenge window
         if (msg_.path == MessagePath.FAST_RELAYER) {
             if (challengers[messageId] != address(0)) {

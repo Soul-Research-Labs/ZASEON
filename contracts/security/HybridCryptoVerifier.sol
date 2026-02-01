@@ -54,6 +54,9 @@ contract HybridCryptoVerifier is
     /// @notice ECDSA signature size (r, s, v)
     uint256 public constant ECDSA_SIG_SIZE = 65;
 
+    /// @notice secp256k1 curve order / 2 for signature malleability protection
+    uint256 private constant SECP256K1_N_DIV_2 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+
     /*//////////////////////////////////////////////////////////////
                                  TYPES
     //////////////////////////////////////////////////////////////*/
@@ -656,6 +659,11 @@ contract HybridCryptoVerifier is
         // Normalize v
         if (v < 27) v += 27;
 
+        // Signature malleability protection: s must be in lower half of curve order
+        if (uint256(s) > SECP256K1_N_DIV_2) {
+            return false;
+        }
+
         // Recover signer
         address recovered = ecrecover(messageHash, v, r, s);
 
@@ -702,6 +710,11 @@ contract HybridCryptoVerifier is
         }
 
         if (v < 27) v += 27;
+
+        // Signature malleability protection: s must be in lower half of curve order
+        if (uint256(s) > SECP256K1_N_DIV_2) {
+            return false;
+        }
 
         address recovered = ecrecover(messageHash, v, r, s);
         return recovered == expectedAddress && recovered != address(0);

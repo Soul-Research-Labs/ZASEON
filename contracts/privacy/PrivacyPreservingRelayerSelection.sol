@@ -84,6 +84,9 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
     /// @notice Active relayer list
     address[] public activeRelayers;
 
+    /// @notice Index of relayer in activeRelayers array (1-indexed to distinguish from 0 = not in list)
+    mapping(address => uint256) private relayerIndex;
+
     /// @notice Selection requests
     mapping(bytes32 => SelectionRequest) public selectionRequests;
 
@@ -168,6 +171,8 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
 
         if (!relayer.active) {
             activeRelayers.push(msg.sender);
+            // Store 1-indexed position (0 means not in list)
+            relayerIndex[msg.sender] = activeRelayers.length;
         }
 
         relayer.relayerAddress = msg.sender;
@@ -321,17 +326,26 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Verify VRF proof
+    /// @dev In production, use actual VRF verification (e.g., Chainlink VRF)
+    /// @param seed The VRF seed
+    /// @param proof The VRF proof containing gamma, c, s
+    /// @return True if the VRF proof is valid
     function _verifyVRF(
         bytes32 seed,
         VRFProof calldata proof
     ) internal view returns (bool) {
-        // Simplified VRF verification
-        // In production, use actual VRF verification
+        // Verify gamma is non-zero (basic sanity check)
+        if (proof.gamma == bytes32(0)) {
+            return false;
+        }
+
+        // Compute expected gamma from VRF public key and seed
+        // Note: In production, implement full ECVRF verification or use Chainlink VRF
         bytes32 expectedGamma = keccak256(
             abi.encodePacked(vrfPublicKey, seed, proof.c, proof.s)
         );
 
-        return proof.gamma == expectedGamma || proof.gamma != bytes32(0);
+        return proof.gamma == expectedGamma;
     }
 
     /// @notice Select relayers using VRF output
@@ -378,15 +392,24 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
         }
     }
 
-    /// @notice Remove relayer from active list
+    /// @notice Remove relayer from active list (O(1) using index mapping)
+    /// @param relayer The relayer address to remove
     function _removeFromActiveList(address relayer) internal {
-        for (uint256 i = 0; i < activeRelayers.length; i++) {
-            if (activeRelayers[i] == relayer) {
-                activeRelayers[i] = activeRelayers[activeRelayers.length - 1];
-                activeRelayers.pop();
-                break;
-            }
+        uint256 idx = relayerIndex[relayer];
+        if (idx == 0) return; // Not in list
+
+        uint256 arrayIndex = idx - 1; // Convert from 1-indexed to 0-indexed
+        uint256 lastIndex = activeRelayers.length - 1;
+
+        if (arrayIndex != lastIndex) {
+            // Move last element to the removed position
+            address lastRelayer = activeRelayers[lastIndex];
+            activeRelayers[arrayIndex] = lastRelayer;
+            relayerIndex[lastRelayer] = idx; // Update index for moved element
         }
+
+        activeRelayers.pop();
+        delete relayerIndex[relayer];
     }
 
     // =========================================================================

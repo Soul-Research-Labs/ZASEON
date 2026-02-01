@@ -143,6 +143,7 @@ contract SoulUniversalVerifier is Ownable {
      * @param _registry The VerifierRegistry address
      */
     function setVerifierRegistry(address _registry) external onlyOwner {
+        if (_registry == address(0)) revert InvalidVerifier();
         verifierRegistry = _registry;
     }
 

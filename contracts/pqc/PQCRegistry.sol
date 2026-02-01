@@ -570,6 +570,9 @@ contract PQCRegistry is AccessControl, Pausable {
     // INTERNAL FUNCTIONS
     // =============================================================================
 
+    /// @notice secp256k1 curve order / 2 for signature malleability protection
+    uint256 private constant SECP256K1_N_DIV_2 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+
     function _recoverSigner(
         bytes32 hash,
         bytes calldata signature
@@ -588,6 +591,11 @@ contract PQCRegistry is AccessControl, Pausable {
 
         if (v < 27) {
             v += 27;
+        }
+
+        // Signature malleability protection: s must be in lower half of curve order
+        if (uint256(s) > SECP256K1_N_DIV_2) {
+            return address(0);
         }
 
         return ecrecover(hash, v, r, s);
