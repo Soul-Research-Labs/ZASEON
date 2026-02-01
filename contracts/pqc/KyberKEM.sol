@@ -12,6 +12,10 @@ pragma solidity ^0.8.22;
  * - Kyber512: 128-bit security, fast
  * - Kyber768: 192-bit security (recommended)
  * - Kyber1024: 256-bit security, most secure
+ *
+ * Security Modes:
+ * - Precompile Mode: Uses EVM precompile when available (production)
+ * - Mock Mode: For testing only - NOT allowed on mainnet
  */
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -120,6 +124,8 @@ contract KyberKEM is Ownable {
 
     event KeyPairRevoked(address indexed owner);
 
+    event MockModeChanged(bool enabled);
+
     // =============================================================================
     // ERRORS
     // =============================================================================
@@ -131,6 +137,7 @@ contract KyberKEM is Ownable {
     error ExchangeNotFound();
     error ExchangeAlreadyCompleted();
     error PrecompileCallFailed();
+    error MockModeNotAllowedOnMainnet();
 
     error SharedSecretMismatch();
 
@@ -139,7 +146,10 @@ contract KyberKEM is Ownable {
     // =============================================================================
 
     constructor() Ownable(msg.sender) {
-        useMockMode = true;
+        // Only enable mock mode on testnets
+        if (block.chainid != 1) {
+            useMockMode = true;
+        }
     }
 
     // =============================================================================
@@ -380,8 +390,17 @@ contract KyberKEM is Ownable {
     // ADMIN FUNCTIONS
     // =============================================================================
 
+    /**
+     * @notice Enable or disable mock mode
+     * @dev Mock mode is NOT allowed on mainnet for security
+     * @param enabled Whether to enable mock mode
+     */
     function setMockMode(bool enabled) external onlyOwner {
+        if (enabled && block.chainid == 1) {
+            revert MockModeNotAllowedOnMainnet();
+        }
         useMockMode = enabled;
+        emit MockModeChanged(enabled);
     }
 
     // =============================================================================

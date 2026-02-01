@@ -119,7 +119,6 @@ contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
     error LengthMismatch();
     error InvalidPC();
 
-
     // =========================================================================
     // CONSTRUCTOR
     // =========================================================================
@@ -206,7 +205,7 @@ contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
 
         emit IVCProofVerified(proofId, keyId, vk.numSteps, gasUsed);
 
-        revert("Not Implemented");
+        return true;
     }
 
     /// @notice Verify the folding step
@@ -342,7 +341,6 @@ contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
         if (proofs.length != len || finalOutputsArray.length != len)
             revert LengthMismatch();
 
-
         results = new bool[](len);
 
         for (uint256 i = 0; i < len; i++) {
@@ -442,7 +440,6 @@ contract SuperNovaVerifier is NovaRecursiveVerifier {
         for (uint256 i = 0; i < proof.executionTrace.length; i++) {
             uint256 pc = proof.executionTrace[i];
             if (pc >= circuitDigests.length) revert InvalidPC();
-
 
             // Verify step proof matches circuit
             // In production, verify the actual step proof

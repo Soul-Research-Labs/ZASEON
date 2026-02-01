@@ -30,18 +30,21 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
 
     /// @notice Get generator point H (for Pedersen)
     function GENERATOR_H() public pure returns (CryptoLib.G1Point memory) {
-        return CryptoLib.G1Point(
-            0x183227397098d014dc2822dbedc300582548ea2c116e0d01cf94183d347c7ec2,
-            0x071ae7a27098d014dc2822dbedc300582548ea2c116e0d01cf94183d34791ea0
-        );
+        return
+            CryptoLib.G1Point(
+                0x183227397098d014dc2822dbedc300582548ea2c116e0d01cf94183d347c7ec2,
+                0x071ae7a27098d014dc2822dbedc300582548ea2c116e0d01cf94183d34791ea0
+            );
     }
 
     /// @notice Get generator point U (for key images)
-    function GENERATOR_U() public pure returns (CryptoLib.G1Point memory) {
-        return CryptoLib.G1Point(
-            0x1,
-            0x2 // Placeholder - in production use hash-to-curve
-        );
+    /// @dev U = hashToPoint("TRIPTYCH_KEY_IMAGE_GENERATOR")
+    function GENERATOR_U() public view returns (CryptoLib.G1Point memory) {
+        return
+            CryptoLib.hashToPointWithDomain(
+                abi.encodePacked("KEY_IMAGE_GENERATOR"),
+                TRIPTYCH_DOMAIN
+            );
     }
 
     /// @notice Maximum ring size (must be power of 2)
@@ -132,7 +135,6 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
     error NotPowerOf2();
     error RingSizeMustBePowerOf2();
     error InvalidChallenge();
-
 
     // =========================================================================
     // CONSTRUCTOR
@@ -260,12 +262,15 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
         for (uint256 j = 0; j < m; j++) {
             // Check: z_A[j] * G = X[j] + f * A_j
             // Since we use CryptoLib, we perform real scalar multiplications and additions
-            
-            // This is still a simplified version of the full Triptych transcript, 
+
+            // This is still a simplified version of the full Triptych transcript,
             // but it uses real elliptic curve math.
-            
-            CryptoLib.G1Point memory zaG = CryptoLib.g1Mul(GENERATOR_G(), uint256(ctx.proof.z_A[j]));
-            
+
+            CryptoLib.G1Point memory zaG = CryptoLib.g1Mul(
+                GENERATOR_G(),
+                uint256(ctx.proof.z_A[j])
+            );
+
             // X[j] is bytes32, we assume it's a commitment point (simplified mapping)
             // In a full implementation, we'd decode it to a G1Point
             if (zaG.x == 0) return false;
@@ -278,7 +283,7 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
     function _verifyKeyImage(
         VerificationContext calldata ctx,
         uint256 n
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         // Key image J should satisfy: J = x * H_p(P) for some ring member P
         // We can't check this directly, but we verify the proof structure
         CryptoLib.G1Point memory genU = GENERATOR_U();
@@ -344,7 +349,6 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
         }
     }
 
-
     // =========================================================================
     // VIEW FUNCTIONS
     // =========================================================================
@@ -362,7 +366,6 @@ contract TriptychSignatures is AccessControl, ReentrancyGuard {
         // = 4 + 2m + 1 + 2m + 2 = 7 + 4m bytes32
         return (7 + 4 * m) * 32;
     }
-
 
     /// @notice Estimate verification gas for ring size
     function estimateVerificationGas(
@@ -402,7 +405,13 @@ contract TriptychProver {
         verifier = TriptychSignatures(_verifier);
     }
 
-    function getProofDimensions(uint256 ringSize) external pure returns (uint256 xLength, uint256 yLength, uint256 zLength) {
+    function getProofDimensions(
+        uint256 ringSize
+    )
+        external
+        pure
+        returns (uint256 xLength, uint256 yLength, uint256 zLength)
+    {
         uint256 m = 0;
         uint256 n = ringSize;
         while (n > 1) {
@@ -414,7 +423,6 @@ contract TriptychProver {
         yLength = m;
         zLength = m;
     }
-
 
     /// @notice Compute key image from secret key and public key
     /// @dev Off-chain: J = x * H_p(P) where H_p is hash-to-curve
@@ -428,4 +436,3 @@ contract TriptychProver {
         return keccak256(abi.encodePacked(secretKey, hashPoint));
     }
 }
-

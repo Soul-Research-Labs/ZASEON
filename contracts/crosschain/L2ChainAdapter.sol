@@ -3,15 +3,25 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title L2ChainAdapter
  * @notice Adapter for connecting Soul to Layer 2 networks
- * @dev Handles chain-specific messaging and proof verification
+ * @dev Handles chain-specific messaging and proof verification with full
+ *      Merkle proof validation and oracle signature verification
  */
 contract L2ChainAdapter is AccessControl, ReentrancyGuard {
+    using ECDSA for bytes32;
+
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+
+    /// @notice secp256k1 curve order / 2 for signature malleability protection
+    uint256 private constant SECP256K1_N_DIV_2 =
+        0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
     // Chain configuration
     struct ChainConfig {
@@ -53,12 +63,36 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
     error InvalidMagicBytes();
     error PayloadHashMismatch();
     error ProofExpired();
+    error InvalidMerkleProof();
+    error InvalidOracleSignature();
+    error InsufficientOracleSignatures();
+    error StateRootNotSet();
+    error SignatureMalleability();
 
     mapping(bytes32 => Message) public messages;
+
+    /// @notice State roots from source chains (chainId => blockNumber => stateRoot)
+    mapping(uint256 => mapping(uint256 => bytes32)) public stateRoots;
+
+    /// @notice Latest known block number per chain
+    mapping(uint256 => uint256) public latestBlockNumber;
+
+    /// @notice Registered oracle addresses per chain
+    mapping(uint256 => address[]) public chainOracles;
+
+    /// @notice Minimum oracle signatures required per chain
+    mapping(uint256 => uint256) public minOracleSignatures;
 
     // Events
     event ChainAdded(uint256 indexed chainId, string name, address bridge);
     event ChainUpdated(uint256 indexed chainId, bool enabled);
+    event StateRootUpdated(
+        uint256 indexed chainId,
+        uint256 indexed blockNumber,
+        bytes32 stateRoot
+    );
+    event OracleAdded(uint256 indexed chainId, address indexed oracle);
+    event OracleRemoved(uint256 indexed chainId, address indexed oracle);
     event MessageSent(
         bytes32 indexed messageId,
         uint256 sourceChain,
@@ -301,8 +335,16 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev Verify message proof (chain-specific implementation)
-     * @notice SECURITY: This function MUST be properly implemented before production deployment
+     * @dev Verify message proof with full cryptographic validation
+     * @notice Implements Merkle proof verification and oracle signature validation
+     * @param sourceChain The source chain ID
+     * @param messageId The unique message identifier
+     * @param payload The message payload
+     * @param proof Encoded proof containing:
+     *   - bytes32 stateRoot (32 bytes)
+     *   - uint256 blockNumber (32 bytes)
+     *   - bytes32[] merkleProof (variable)
+     *   - bytes[] oracleSignatures (variable)
      */
     function _verifyMessageProof(
         uint256 sourceChain,
@@ -310,14 +352,8 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         bytes calldata payload,
         bytes calldata proof
     ) internal view returns (bool) {
-        // CRITICAL SECURITY WARNING: Placeholder implementation
-        // In production, this MUST verify:
-        // 1. Merkle proof against source chain's state root
-        // 2. Message inclusion in the source chain's outbox
-        // 3. Proper chain adapter signature validation
-
-        // Validate proof length (minimum expected for real implementation)
-        if (proof.length < 32) {
+        // Minimum proof length: stateRoot(32) + blockNumber(32) + at least 1 merkle node(32) + signature(65)
+        if (proof.length < 161) {
             return false;
         }
 
@@ -327,31 +363,237 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
             return false;
         }
 
-        // CRITICAL: Require real proof verification before mainnet deployment
-        // This is a fail-safe that prevents Nomad-style exploits
+        // Decode proof components
+        (
+            bytes32 claimedStateRoot,
+            uint256 blockNumber,
+            bytes32[] memory merkleProof,
+            bytes[] memory oracleSignatures
+        ) = _decodeProof(proof);
 
-        // Verify proof contains valid magic bytes matching chain and message
-        bytes4 magicBytes = bytes4(proof[:4]);
-        bytes4 expectedMagic = bytes4(
-            keccak256(abi.encodePacked(sourceChain, messageId))
+        // 1. Verify state root is known and matches
+        bytes32 knownStateRoot = stateRoots[sourceChain][blockNumber];
+        if (knownStateRoot == bytes32(0)) {
+            // State root not yet submitted - verify via oracle signatures
+            if (
+                !_verifyStateRootWithOracles(
+                    sourceChain,
+                    blockNumber,
+                    claimedStateRoot,
+                    oracleSignatures
+                )
+            ) {
+                revert InvalidOracleSignature();
+            }
+        } else if (knownStateRoot != claimedStateRoot) {
+            revert InvalidProof();
+        }
+
+        // 2. Compute message leaf for Merkle verification
+        bytes32 messageLeaf = keccak256(
+            abi.encodePacked(
+                sourceChain,
+                block.chainid,
+                messageId,
+                keccak256(payload)
+            )
         );
 
-        // Verify proof structure
-        if (magicBytes != expectedMagic) revert InvalidMagicBytes();
+        // 3. Verify Merkle proof against state root
+        if (!MerkleProof.verify(merkleProof, claimedStateRoot, messageLeaf)) {
+            revert InvalidMerkleProof();
+        }
 
-        // Verify payload hash is included in proof
-        bytes32 payloadHash = keccak256(payload);
-        bytes32 proofPayloadHash = bytes32(proof[4:36]);
-        if (payloadHash != proofPayloadHash) revert PayloadHashMismatch();
-
-        // Verify timestamp freshness (prevent replay of old proofs)
-        uint256 proofTimestamp = uint256(bytes32(proof[36:68]));
-        if (block.timestamp - proofTimestamp >= 1 hours) revert ProofExpired();
-
-        // TODO: Add Merkle proof verification against source chain state root
-        // TODO: Add oracle signature validation
+        // 4. Verify block is not too old (prevent replay of ancient proofs)
+        if (
+            latestBlockNumber[sourceChain] > 0 &&
+            blockNumber + config.confirmations <
+            latestBlockNumber[sourceChain] - 1000
+        ) {
+            revert ProofExpired();
+        }
 
         return true;
+    }
+
+    /**
+     * @dev Decode proof bytes into components
+     */
+    function _decodeProof(
+        bytes calldata proof
+    )
+        internal
+        pure
+        returns (
+            bytes32 stateRoot,
+            uint256 blockNumber,
+            bytes32[] memory merkleProof,
+            bytes[] memory oracleSignatures
+        )
+    {
+        // First 64 bytes are stateRoot and blockNumber
+        stateRoot = bytes32(proof[0:32]);
+        blockNumber = uint256(bytes32(proof[32:64]));
+
+        // Next 2 bytes indicate merkle proof length
+        uint256 merkleProofLength = uint16(bytes2(proof[64:66]));
+        merkleProof = new bytes32[](merkleProofLength);
+
+        uint256 offset = 66;
+        for (uint256 i = 0; i < merkleProofLength; i++) {
+            merkleProof[i] = bytes32(proof[offset:offset + 32]);
+            offset += 32;
+        }
+
+        // Remaining bytes are oracle signatures (each 65 bytes)
+        uint256 remainingBytes = proof.length - offset;
+        uint256 numSignatures = remainingBytes / 65;
+        oracleSignatures = new bytes[](numSignatures);
+
+        for (uint256 i = 0; i < numSignatures; i++) {
+            oracleSignatures[i] = proof[offset:offset + 65];
+            offset += 65;
+        }
+    }
+
+    /**
+     * @dev Verify state root using oracle signatures
+     * @param sourceChain The source chain ID
+     * @param blockNumber The block number
+     * @param stateRoot The claimed state root
+     * @param signatures Oracle signatures
+     */
+    function _verifyStateRootWithOracles(
+        uint256 sourceChain,
+        uint256 blockNumber,
+        bytes32 stateRoot,
+        bytes[] memory signatures
+    ) internal view returns (bool) {
+        uint256 minSigs = minOracleSignatures[sourceChain];
+        if (minSigs == 0) minSigs = 1; // Default to at least 1 signature
+
+        if (signatures.length < minSigs) {
+            revert InsufficientOracleSignatures();
+        }
+
+        // Create the message hash that oracles should have signed
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(sourceChain, blockNumber, stateRoot))
+            )
+        );
+
+        address[] memory oracles = chainOracles[sourceChain];
+        uint256 validSignatures = 0;
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            address signer = _recoverSigner(messageHash, signatures[i]);
+
+            // Check if signer is a registered oracle for this chain
+            for (uint256 j = 0; j < oracles.length; j++) {
+                if (oracles[j] == signer) {
+                    validSignatures++;
+                    break;
+                }
+            }
+        }
+
+        return validSignatures >= minSigs;
+    }
+
+    /**
+     * @dev Recover signer from signature with malleability protection
+     */
+    function _recoverSigner(
+        bytes32 hash,
+        bytes memory signature
+    ) internal pure returns (address) {
+        if (signature.length != 65) return address(0);
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+
+        assembly {
+            r := mload(add(signature, 32))
+            s := mload(add(signature, 64))
+            v := byte(0, mload(add(signature, 96)))
+        }
+
+        if (v < 27) v += 27;
+
+        // Signature malleability protection
+        if (uint256(s) > SECP256K1_N_DIV_2) {
+            return address(0);
+        }
+
+        return ecrecover(hash, v, r, s);
+    }
+
+    /**
+     * @notice Update state root for a source chain (called by oracles)
+     * @param sourceChain The source chain ID
+     * @param blockNumber The block number
+     * @param stateRoot The state root
+     */
+    function updateStateRoot(
+        uint256 sourceChain,
+        uint256 blockNumber,
+        bytes32 stateRoot
+    ) external onlyRole(ORACLE_ROLE) {
+        stateRoots[sourceChain][blockNumber] = stateRoot;
+
+        if (blockNumber > latestBlockNumber[sourceChain]) {
+            latestBlockNumber[sourceChain] = blockNumber;
+        }
+
+        emit StateRootUpdated(sourceChain, blockNumber, stateRoot);
+    }
+
+    /**
+     * @notice Add an oracle for a chain
+     * @param chainId The chain ID
+     * @param oracle The oracle address
+     */
+    function addOracle(
+        uint256 chainId,
+        address oracle
+    ) external onlyRole(ADMIN_ROLE) {
+        chainOracles[chainId].push(oracle);
+        emit OracleAdded(chainId, oracle);
+    }
+
+    /**
+     * @notice Remove an oracle for a chain
+     * @param chainId The chain ID
+     * @param oracle The oracle address
+     */
+    function removeOracle(
+        uint256 chainId,
+        address oracle
+    ) external onlyRole(ADMIN_ROLE) {
+        address[] storage oracles = chainOracles[chainId];
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (oracles[i] == oracle) {
+                oracles[i] = oracles[oracles.length - 1];
+                oracles.pop();
+                emit OracleRemoved(chainId, oracle);
+                break;
+            }
+        }
+    }
+
+    /**
+     * @notice Set minimum oracle signatures required for a chain
+     * @param chainId The chain ID
+     * @param minSigs Minimum signatures required
+     */
+    function setMinOracleSignatures(
+        uint256 chainId,
+        uint256 minSigs
+    ) external onlyRole(ADMIN_ROLE) {
+        minOracleSignatures[chainId] = minSigs;
     }
 
     /**
