@@ -1,8 +1,8 @@
 {
   "name": "@soul/sdk",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Soul Protocol - Cross-chain private state and ZK proof middleware",
+  "description": "Soul Protocol - Cross-chain ZK privacy middleware for confidential state transfer across L2 networks",
   "scripts": {
     "compile": "hardhat compile",
     "compile:forge": "forge build",

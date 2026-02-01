@@ -69,7 +69,6 @@ contract SoulUniversalVerifier is Ownable {
     error LengthMismatch();
     error PublicInputsMismatch();
 
-
     // ============================================
     // Events
     // ============================================
@@ -104,7 +103,6 @@ contract SoulUniversalVerifier is Ownable {
         uint256 gasLimit
     ) external onlyOwner {
         if (verifier == address(0)) revert InvalidVerifier();
-
 
         verifiers[system] = VerifierConfig({
             verifier: verifier,
@@ -168,7 +166,6 @@ contract SoulUniversalVerifier is Ownable {
         if (!config.active) revert VerifierNotActive();
         if (config.verifier == address(0)) revert VerifierNotRegistered();
 
-
         // Compute proof hash for deduplication
         bytes32 proofHash = keccak256(
             abi.encode(
@@ -184,7 +181,6 @@ contract SoulUniversalVerifier is Ownable {
         // Verify public inputs hash
         if (keccak256(publicInputs) != proof.publicInputsHash)
             revert PublicInputsMismatch();
-
 
         // Call the appropriate verifier
         valid = _callVerifier(
@@ -219,7 +215,6 @@ contract SoulUniversalVerifier is Ownable {
         bytes[] calldata publicInputsArray
     ) external returns (bool[] memory results) {
         if (proofs.length != publicInputsArray.length) revert LengthMismatch();
-
 
         results = new bool[](proofs.length);
 
@@ -317,9 +312,13 @@ contract SoulUniversalVerifier is Ownable {
             address targetVerifier = verifier;
             if (verifierRegistry != address(0)) {
                 // Try to resolve circuit-specific adapter from registry
-                (bool regSuccess, bytes memory regData) = verifierRegistry.staticcall(
-                    abi.encodeWithSignature("getVerifier(bytes32)", proof.vkeyOrCircuitHash)
-                );
+                (bool regSuccess, bytes memory regData) = verifierRegistry
+                    .staticcall(
+                        abi.encodeWithSignature(
+                            "getVerifier(bytes32)",
+                            proof.vkeyOrCircuitHash
+                        )
+                    );
                 if (regSuccess && regData.length == 32) {
                     address resolved = abi.decode(regData, (address));
                     if (resolved != address(0)) {
@@ -334,7 +333,7 @@ contract SoulUniversalVerifier is Ownable {
                 proof.proof,
                 publicInputs
             );
-            
+
             // Override the verifier address if we found a better one in the registry
             verifier = targetVerifier;
         } else {

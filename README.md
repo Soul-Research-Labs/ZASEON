@@ -1,8 +1,10 @@
 # Soul Protocol
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.22-blue.svg)](https://docs.soliditylang.org/)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://docs.soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg)](https://getfoundry.sh/)
+[![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-5.4.0-4E5EE4.svg)](https://openzeppelin.com/contracts/)
+[![Security Audit](https://img.shields.io/badge/Security-Audited-success.svg)](SECURITY.md)
 
 > **Move privately between chains. No metadata. No lock-in.**
 
@@ -341,6 +343,8 @@ Soul provides native adapters for major L2 networks:
 | `SecurityOracle.sol` | Cross-chain threat intelligence |
 | `ThresholdSignature.sol` | t-of-n multi-sig (ECDSA/BLS/FROST) |
 | `ZKFraudProof.sol` | Fast finality fraud proofs |
+| `HybridCryptoVerifier.sol` | ECDSA + PQC hybrid signature verification |
+
 
 ### Verification
 

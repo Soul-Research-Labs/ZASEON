@@ -23,17 +23,18 @@
 
 | Requirement | Minimum Version | Check Command |
 |-------------|-----------------|---------------|
-| Node.js | 18.0+ | `node --version` |
-| npm | 9.0+ | `npm --version` |
-| Git | 2.30+ | `git --version` |
+| Node.js | 20.0+ | `node --version` |
+| npm | 10.0+ | `npm --version` |
+| Git | 2.40+ | `git --version` |
+| Foundry | Latest | `forge --version` |
 
 **Network Access:**
 - RPC endpoint (Alchemy, Infura, or local Anvil)
 - Testnet ETH for Sepolia (get from [faucets](#testnet-faucets))
 
 **Optional:**
-- TypeScript 5.0+ (for type safety)
-- Hardhat or Foundry (for contract interaction)
+- TypeScript 5.9+ (for type safety)
+- Noir 1.0+ (for ZK circuit development)
 
 ---
 
@@ -48,17 +49,28 @@ npm install @soulprotocol/sdk
 ### From Source
 
 ```bash
-git clone https://github.com/soul-research-labs/Soul.git
-cd Soul
+git clone https://github.com/Soul-Research-Labs/SOUL.git
+cd SOUL
 npm install
-npm run build
+npx hardhat compile
+```
+
+### Foundry Setup
+
+```bash
+# Install Foundry if not already installed
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Build with Foundry
+forge build
 ```
 
 ### Verify Installation
 
 ```bash
-npx soul-sdk --version
-# Output: @soulprotocol/sdk v2.0.0
+npx hardhat compile --quiet && echo "✅ Hardhat compilation successful"
+forge build --quiet && echo "✅ Foundry compilation successful"
 ```
 
 ---

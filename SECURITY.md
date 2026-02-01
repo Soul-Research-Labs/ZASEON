@@ -106,6 +106,20 @@ We take security seriously. If you discover a security vulnerability within Soul
 - Poseidon hash function for circuits
 - Post-quantum cryptography (Dilithium, Kyber, SPHINCS+)
 - Formal verification of key invariants
+- **Signature malleability protection** on all ECDSA operations
+- **VRF verification** for randomness in relayer selection
+- **Cross-chain replay protection** via chain ID validation
+
+### Recent Security Fixes (February 2026)
+
+| Fix | Severity | Description |
+|-----|----------|-------------|
+| Signature Malleability | CRITICAL | Added SECP256K1_N_DIV_2 check to reject malleable signatures |
+| VRF Bypass | CRITICAL | Fixed logic error allowing any non-zero gamma to pass VRF |
+| Chain ID Validation | CRITICAL | Added block.chainid check in cross-chain message execution |
+| DoS Protection | HIGH | O(1) relayer removal prevents unbounded loop gas griefing |
+| ReentrancyGuard | HIGH | Added nonReentrant to depositStake() |
+| Zero-Address Checks | MEDIUM | Validation added to setVerifier/setVerifierRegistry |
 
 ### Operational Security
 

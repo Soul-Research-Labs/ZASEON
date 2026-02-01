@@ -148,7 +148,6 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
     error TooManyRelayers();
     error TransferFailed();
 
-
     // =========================================================================
     // CONSTRUCTOR
     // =========================================================================
@@ -215,7 +214,6 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
         // Transfer stake back
         (bool success, ) = payable(msg.sender).call{value: stake}("");
         if (!success) revert TransferFailed();
-
 
         emit RelayerDeactivated(msg.sender, stake);
     }

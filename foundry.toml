@@ -57,12 +57,29 @@ wrap_comments = true
 
 [doc]
 out = "docs/foundry"
-title = "Soul Private Exchange"
+title = "Soul Protocol - Cross-Chain ZK Privacy Middleware"
+repository = "https://github.com/Soul-Research-Labs/SOUL"
 
 # Remappings for OpenZeppelin and other dependencies
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "forge-std/=lib/forge-std/src/",
 ]
+
+# RPC endpoints for forking (use environment variables)
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
+arbitrum = "${ARBITRUM_RPC_URL}"
+optimism = "${OPTIMISM_RPC_URL}"
+base = "${BASE_RPC_URL}"
+
+# Etherscan API keys for verification
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+arbitrum = { key = "${ARBISCAN_API_KEY}" }
+optimism = { key = "${OPTIMISM_API_KEY}" }
+base = { key = "${BASESCAN_API_KEY}" }
 
 

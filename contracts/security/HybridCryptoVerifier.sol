@@ -55,7 +55,8 @@ contract HybridCryptoVerifier is
     uint256 public constant ECDSA_SIG_SIZE = 65;
 
     /// @notice secp256k1 curve order / 2 for signature malleability protection
-    uint256 private constant SECP256K1_N_DIV_2 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
+    uint256 private constant SECP256K1_N_DIV_2 =
+        0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
     /*//////////////////////////////////////////////////////////////
                                  TYPES
@@ -164,7 +165,6 @@ contract HybridCryptoVerifier is
     error KeyAlreadyExists(bytes32 keyId);
     error InvalidKeyLength();
     error ArrayLengthMismatch();
-
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
