@@ -62,6 +62,7 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "node test/sdk.test.mjs",
+    "test:live": "node test/live.test.mjs",
     "test:all": "mocha -r ts-node/register test/**/*.ts",
     "test:coverage": "nyc mocha -r ts-node/register test/**/*.ts",
     "lint": "eslint src --ext .ts",
