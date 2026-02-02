@@ -19,14 +19,14 @@ This document consolidates ALL next steps for cross-chain privacy and security i
 | Category | Completion | Key Deliverables |
 |----------|------------|------------------|
 | Core Privacy Contracts | 100% | CrossChainPrivacyHub, StealthAddressRegistry, RingCT, UnifiedNullifierManager |
-| Bridge Adapters | 100% | 41+ adapters (Ethereum, L2s, Monero, Zcash, Secret, Oasis, Railgun, etc.) |
+| Bridge Adapters | 100% | 22 adapters (Ethereum, L2s, Zcash, Starknet, Bitcoin, Aztec, etc.) |
 | Formal Verification | 100% | K Framework specs, Certora CVL, TLA+ |
 | Security Modules | 100% | MEV protection, flash loan guards, rate limiters, circuit breakers |
 | Testing | 95% | 450+ unit tests, fuzz tests, integration tests, attack simulations |
-| SDK | 100% | StealthAddressClient, RingCTClient, NullifierClient, PrivacyHubClient |
+| SDK | 90% | StealthAddressClient, RingCTClient, NullifierClient, PrivacyHubClient (some modules WIP) |
 | ZK Privacy Circuits | 100% | CrossDomainNullifier, PrivateTransfer, RingSignature circuits |
 | Advanced Privacy Contracts | 100% | HomomorphicBalanceVerifier, MLSAGSignatures, RecursiveProofAggregator |
-| Privacy Infrastructure | 100% | PrivateRelayerNetwork, ViewKeyRegistry |
+| Privacy Infrastructure | 90% | PrivateRelayerNetwork, ViewKeyRegistry (MixnetNodeRegistry planned) |
 
 ### ✅ New Completions (This Session)
 

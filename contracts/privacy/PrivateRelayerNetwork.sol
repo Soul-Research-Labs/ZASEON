@@ -680,6 +680,14 @@ contract PrivateRelayerNetwork is
 
     /**
      * @notice Slash a relayer for misbehavior
+     * @dev Current implementation relies on trusted SLASHER_ROLE.
+     *      V2 Enhancement: Add cryptographic fraud proof verification:
+     *      - ZK proof of invalid relay behavior
+     *      - Merkle proof of commitment/reveal mismatch
+     *      - Signature proof of censorship or double-processing
+     *      This would enable permissionless slashing with on-chain evidence.
+     * @param relayerAddress The relayer to slash
+     * @param reason Human-readable reason for the slash
      */
     function slashRelayer(
         address relayerAddress,

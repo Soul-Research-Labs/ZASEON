@@ -726,6 +726,8 @@ struct CertificateChallenge {
 
 ## 6. Mixnet Receipt Proofs (MRP)
 
+> **Status: PLANNED** - The contracts described in this section (`MixnetReceiptProofs.sol`, `MixnetNodeRegistry.sol`, `AnonymousDeliveryVerifier.sol`) are architectural designs for a future release. Current privacy relaying is handled by `PrivateRelayerNetwork.sol` with commit-reveal MEV protection.
+
 ### Overview
 
 **Mixnet Receipt Proofs (MRP)** provide verifiable delivery proofs for anonymous message routing. This enables cryptographic confirmation that a message was delivered without revealing the sender's identity.

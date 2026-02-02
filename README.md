@@ -322,10 +322,12 @@ Soul provides native adapters for major L2 networks:
 
 ## ZK & Post-Quantum
 
-**Proof Systems:** Groth16 (BN254/BLS12-381), PLONK, FRI/STARK  
+**Proof Systems:** Groth16 (BN254 production, BLS12-381 post-EIP-2537), PLONK, FRI/STARK  
 **Noir Circuits:** 18 production circuits (nullifiers, transfers, ring sigs, PC³, PBP, EASC)  
 **PQC:** Dilithium3/5, SPHINCS+-128s, Kyber768/1024 (hybrid mode available)  
 **Privacy:** Triptych O(log n) ring sigs, Nova IVC, Seraphis 3-key, TFHE, stealth addresses  
+
+> **Note:** BLS12-381 Groth16 verification uses EIP-2537 precompiles which are available after the Pectra upgrade. BN254 verification works on all EVM chains today.  
 
 ---
 

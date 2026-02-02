@@ -32,13 +32,29 @@ export interface ProofParams {
 export class ProverModule {
   constructor(public proverUrl: string) {}
 
+  /**
+   * Generate a ZK proof for the given circuit and inputs.
+   * @todo Implement actual prover integration (snarkjs, rapidsnark, or remote prover)
+   * @param params - Circuit identifier and witness inputs
+   * @returns Proof and public inputs
+   */
   async generateProof(params: ProofParams): Promise<ProofResult> {
-    // Placeholder: Call remote prover or local snarkjs
+    // TODO: Implement actual prover - currently returns stub for testing
+    // Integration options: snarkjs (WASM), rapidsnark (native), or remote prover service
+    console.warn("ProverModule.generateProof: Using placeholder implementation");
     return { proof: Buffer.from("proof"), publicInputs: Buffer.from("inputs") };
   }
 
+  /**
+   * Verify a ZK proof against the given state root.
+   * @todo Implement actual verification logic
+   * @param proof - The proof to verify
+   * @param stateRoot - Expected state root
+   * @returns True if proof is valid
+   */
   async verifyProof(proof: ProofResult, stateRoot: string): Promise<boolean> {
-    // Placeholder: Always returns true
+    // TODO: Implement actual verification - currently returns true for testing
+    console.warn("ProverModule.verifyProof: Using placeholder implementation");
     return true;
   }
 }
@@ -53,13 +69,31 @@ export interface RelayerOptions {
 export class RelayerClient {
   constructor(public endpoint: string) {}
 
+  /**
+   * Send an encrypted packet through the relayer network.
+   * @todo Implement actual relayer communication via HTTP/WebSocket
+   * @todo Implement mixnet routing when MixnetNodeRegistry is available
+   * @param packet - Encrypted state packet
+   * @param opts - Relay options (mixnet, decoy traffic)
+   * @returns Transaction receipt
+   */
   async send(packet: RelayerPacket, opts: RelayerOptions): Promise<Receipt> {
-    // Placeholder: Simulate relayer send
+    // TODO: Implement actual relayer communication
+    // Note: mixnet and decoyTraffic options are reserved for future implementation
+    console.warn("RelayerClient.send: Using placeholder implementation");
     return { txHash: "0x123", status: "sent" };
   }
 
+  /**
+   * Subscribe to incoming packets on a chain.
+   * @todo Implement WebSocket subscription to relayer network
+   * @param chainId - Chain to subscribe to
+   * @param callback - Handler for incoming packets
+   * @returns Subscription handle
+   */
   async subscribe(chainId: string, callback: (packet: RelayerPacket) => void): Promise<Subscription> {
-    // Placeholder: Simulate subscription
+    // TODO: Implement actual subscription via WebSocket
+    console.warn("RelayerClient.subscribe: Using placeholder implementation");
     return { unsubscribe: () => {} };
   }
 }
