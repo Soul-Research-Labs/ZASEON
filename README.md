@@ -330,6 +330,17 @@ Soul provides native adapters for major L2 networks:
 
 > **Note:** BLS12-381 Groth16 verification uses EIP-2537 precompiles which are available after the Pectra upgrade. BN254 verification works on all EVM chains today.  
 
+### Cryptographic Maturity Tiers
+
+| Tier | Systems | Status |
+|------|---------|--------|
+| **Production** | Groth16 (BN254), AES-256-GCM, Poseidon, ECDSA, Stealth addresses | Tested, ready for audit |
+| **Beta** | PLONK, CDNA nullifiers, Commit-reveal | Tested, pending audit |
+| **Research** | Nova IVC, Triptych, TFHE, Seraphis, FRI/STARK | Experimental, not for production |
+| **Future** | Groth16 (BLS12-381), Dilithium, Kyber, SPHINCS+ | Waiting for EIP-2537 / PQC standardization |
+
+> ⚠️ **Important:** Only Production-tier crypto should be used in mainnet deployments. Research-tier systems are included for R&D and future development.  
+
 ---
 
 ## Security
@@ -356,6 +367,26 @@ npm run certora      # Formal verification
 npm run security:all # Full security suite
 npm run security:mutation # Mutation testing
 ```
+
+### Metadata Resistance (Privacy Limitations)
+
+> **Honest assessment:** Even with encryption and ZK proofs, metadata can leak. Here's our current status:
+
+| Attack Vector | Status | Notes |
+|--------------|--------|-------|
+| Payload content | ✅ Hidden | AES-256-GCM encryption |
+| Transaction amounts | ✅ Hidden | Pedersen commitments |
+| Sender/recipient identity | ✅ Hidden | Stealth addresses, CDNA |
+| MEV/frontrunning | ✅ Protected | Commit-reveal (3-block delay) |
+| Bridge message observation | ⚠️ Partial | Encrypted, but events visible |
+| Timing correlation | ⚠️ Partial | Commit-reveal helps, batching planned |
+| Gas usage patterns | ❌ Visible | Gas normalization planned |
+| Relayer set correlation | ❌ Visible | Mixnet routing planned |
+| Low-traffic deanonymization | ❌ Vulnerable | Cover traffic planned |
+
+📄 **Full roadmap:** [docs/METADATA_RESISTANCE_ROADMAP.md](docs/METADATA_RESISTANCE_ROADMAP.md)
+
+---
 
 ## SDK
 
