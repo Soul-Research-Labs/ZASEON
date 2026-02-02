@@ -9,11 +9,11 @@ import "../Groth16VerifierBN254.sol";
  */
 contract PedersenCommitmentAdapter {
     Groth16VerifierBN254 public immutable verifier;
-    
+
     constructor(address _verifier) {
         verifier = Groth16VerifierBN254(_verifier);
     }
-    
+
     /// @notice Standard interface for proof verification
     function verifyProof(
         bytes calldata proof,
@@ -21,7 +21,7 @@ contract PedersenCommitmentAdapter {
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
-    
+
     /// @notice Verify commitment ownership
     function verifyCommitment(
         bytes calldata proof,
@@ -33,7 +33,7 @@ contract PedersenCommitmentAdapter {
         inputs[1] = uint256(ownerPubkey);
         return verifier.verify(proof, inputs);
     }
-    
+
     function verify(
         bytes calldata proof,
         bytes32 commitment,
@@ -44,7 +44,7 @@ contract PedersenCommitmentAdapter {
         inputs[0] = uint256(commitment);
         inputs[1] = value;
         inputs[2] = uint256(blinding);
-        
+
         return verifier.verify(proof, inputs);
     }
 }

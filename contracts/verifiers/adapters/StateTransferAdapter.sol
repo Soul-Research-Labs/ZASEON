@@ -9,11 +9,11 @@ import "../Groth16VerifierBN254.sol";
  */
 contract StateTransferAdapter {
     Groth16VerifierBN254 public immutable verifier;
-    
+
     constructor(address _verifier) {
         verifier = Groth16VerifierBN254(_verifier);
     }
-    
+
     /// @notice Standard interface for proof verification
     function verifyProof(
         bytes calldata proof,
@@ -21,7 +21,7 @@ contract StateTransferAdapter {
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
-    
+
     function verify(
         bytes calldata proof,
         bytes32 oldStateRoot,
@@ -32,7 +32,7 @@ contract StateTransferAdapter {
         inputs[0] = uint256(oldStateRoot);
         inputs[1] = uint256(newStateRoot);
         inputs[2] = uint256(transferHash);
-        
+
         return verifier.verify(proof, inputs);
     }
 }

@@ -9,11 +9,11 @@ import "../Groth16VerifierBN254.sol";
  */
 contract AggregatorAdapter {
     Groth16VerifierBN254 public immutable verifier;
-    
+
     constructor(address _verifier) {
         verifier = Groth16VerifierBN254(_verifier);
     }
-    
+
     /// @notice Standard interface for proof verification
     function verifyProof(
         bytes calldata proof,
@@ -21,7 +21,7 @@ contract AggregatorAdapter {
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
-    
+
     function verifyBatch(
         bytes calldata aggregatedProof,
         bytes32[] calldata publicInputs
@@ -30,7 +30,7 @@ contract AggregatorAdapter {
         for (uint256 i = 0; i < publicInputs.length; i++) {
             inputs[i] = uint256(publicInputs[i]);
         }
-        
+
         return verifier.verify(aggregatedProof, inputs);
     }
 }

@@ -9,11 +9,11 @@ import "../Groth16VerifierBN254.sol";
  */
 contract BalanceProofAdapter {
     Groth16VerifierBN254 public immutable verifier;
-    
+
     constructor(address _verifier) {
         verifier = Groth16VerifierBN254(_verifier);
     }
-    
+
     /// @notice Standard interface for proof verification
     function verifyProof(
         bytes calldata proof,
@@ -21,7 +21,7 @@ contract BalanceProofAdapter {
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
-    
+
     function verify(
         bytes calldata proof,
         uint256 balance,
@@ -32,7 +32,7 @@ contract BalanceProofAdapter {
         inputs[0] = balance;
         inputs[1] = minRequired;
         inputs[2] = uint256(commitment);
-        
+
         return verifier.verify(proof, inputs);
     }
 }

@@ -264,25 +264,18 @@ contract VerifierGasBenchmark is Test {
     function test_gas_RegistryVerification() public {
         // Register a verifier using VerifierRegistry interface
         bytes32 proofType = keccak256("BALANCE_PROOF");
-        registry.registerVerifier(
-            proofType,
-            address(mockVerifier)
-        );
+        registry.registerVerifier(proofType, address(mockVerifier));
 
         bytes memory proof = _generateMockProof(93);
-        
+
         // Create uint256[] public inputs for registry interface
         uint256[] memory publicInputs = new uint256[](3);
-        publicInputs[0] = 1000;  // balance
-        publicInputs[1] = 500;   // minRequired
+        publicInputs[0] = 1000; // balance
+        publicInputs[1] = 500; // minRequired
         publicInputs[2] = uint256(keccak256("commitment"));
 
         uint256 gasBefore = gasleft();
-        bool result = registry.verifyProof(
-            proofType,
-            proof,
-            publicInputs
-        );
+        bool result = registry.verifyProof(proofType, proof, publicInputs);
         uint256 gasUsed = gasBefore - gasleft();
 
         assertTrue(result, "Registry verification should succeed");

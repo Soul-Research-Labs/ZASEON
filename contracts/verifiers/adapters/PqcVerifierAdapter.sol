@@ -20,7 +20,7 @@ contract PqcVerifierAdapter {
         // PQC verification would decode and verify signature
         return true;
     }
-    
+
     /// @notice Verify WOTS+ hash chain
     function verifyWotsChain(
         bytes calldata /* proof */,
@@ -29,7 +29,7 @@ contract PqcVerifierAdapter {
         // WOTS+ chain verification stub
         return true;
     }
-    
+
     /// @notice Batch verify WOTS+ hash chains
     function batchVerifyWotsChains(
         bytes[] calldata /* proofs */,
@@ -56,16 +56,19 @@ contract PqcVerifierAdapter {
         if (signature.length == 0 || publicKey.length == 0) {
             return false;
         }
-        
+
         // Simplified check - real impl would verify cryptographically
         bytes32 messageHash = keccak256(message);
         bytes32 sigHash = keccak256(signature);
         bytes32 keyHash = keccak256(publicKey);
-        
+
         // Return true if all components are non-zero (stub behavior)
-        return messageHash != bytes32(0) && sigHash != bytes32(0) && keyHash != bytes32(0);
+        return
+            messageHash != bytes32(0) &&
+            sigHash != bytes32(0) &&
+            keyHash != bytes32(0);
     }
-    
+
     /**
      * @notice Verify a hybrid signature (ECDSA + Dilithium)
      */
@@ -81,7 +84,7 @@ contract PqcVerifierAdapter {
         if (dilithiumSignature.length == 0) return false;
         if (dilithiumPublicKey.length == 0) return false;
         if (ecdsaSigner == address(0)) return false;
-        
+
         // Stub: real implementation would verify both signatures
         return keccak256(message) != bytes32(0);
     }

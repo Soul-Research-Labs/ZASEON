@@ -10,11 +10,14 @@ pragma solidity ^0.8.20;
 contract FHEGateway {
     // Re-encryption request tracking
     mapping(bytes32 => bool) public reencryptionRequests;
-    
+
     // Events
-    event ReencryptionRequested(bytes32 indexed requestId, address indexed requester);
+    event ReencryptionRequested(
+        bytes32 indexed requestId,
+        address indexed requester
+    );
     event ReencryptionCompleted(bytes32 indexed requestId);
-    
+
     /**
      * @notice Request re-encryption of a ciphertext
      * @param ciphertext The encrypted value to re-encrypt
@@ -25,11 +28,18 @@ contract FHEGateway {
         bytes32 ciphertext,
         bytes32 targetPublicKey
     ) external returns (bytes32 requestId) {
-        requestId = keccak256(abi.encodePacked(ciphertext, targetPublicKey, msg.sender, block.timestamp));
+        requestId = keccak256(
+            abi.encodePacked(
+                ciphertext,
+                targetPublicKey,
+                msg.sender,
+                block.timestamp
+            )
+        );
         reencryptionRequests[requestId] = true;
         emit ReencryptionRequested(requestId, msg.sender);
     }
-    
+
     /**
      * @notice Complete a re-encryption request (called by FHE oracle)
      * @param requestId The request to complete
