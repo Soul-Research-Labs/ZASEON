@@ -105,6 +105,16 @@ export {
 } from "./config/addresses";
 
 export {
+  MAINNET_ADDRESSES,
+  ARBITRUM_ADDRESSES,
+  BASE_ADDRESSES,
+  OPTIMISM_ADDRESSES,
+  CHAIN_ADDRESSES,
+  getAddressesForChain,
+  verifyAddressesConfigured,
+} from "./config/mainnet-addresses";
+
+export {
   ZK_BOUND_STATE_LOCKS_ABI,
   NULLIFIER_REGISTRY_ABI,
   CROSS_CHAIN_PROOF_HUB_ABI,
