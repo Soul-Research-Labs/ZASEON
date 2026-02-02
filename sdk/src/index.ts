@@ -83,6 +83,51 @@ import {
   BridgeTransferResult,
 } from "./bridges";
 
+// Soul Protocol Client (main entry point)
+export {
+  SoulProtocolClient,
+  createSoulClient,
+  createReadOnlySoulClient,
+  type SoulProtocolConfig,
+  type LockParams,
+  type UnlockParams,
+  type LockInfo,
+  type ProtocolStats,
+} from "./client/SoulProtocolClient";
+
+// Contract Addresses & ABIs
+export {
+  SEPOLIA_ADDRESSES,
+  getAddresses,
+  SUPPORTED_CHAIN_IDS,
+  type SoulContractAddresses,
+  type SupportedChainId,
+} from "./config/addresses";
+
+export {
+  ZK_BOUND_STATE_LOCKS_ABI,
+  NULLIFIER_REGISTRY_ABI,
+  CROSS_CHAIN_PROOF_HUB_ABI,
+  ATOMIC_SWAP_ABI,
+  CONFIDENTIAL_STATE_CONTAINER_ABI,
+} from "./config/abis";
+
+// Noir ZK Prover
+export {
+  NoirProver,
+  getProver,
+  createProver,
+  Circuit,
+  type ProofResult,
+  type CircuitArtifact,
+  type WitnessInput,
+  type StateCommitmentInputs,
+  type StateTransferInputs,
+  type MerkleProofInputs,
+  type NullifierInputs,
+  type BalanceProofInputs,
+} from "./zkprover/NoirProver";
+
 // React Hooks (lazy loaded)
 export * as ReactHooks from "./react/hooks";
 

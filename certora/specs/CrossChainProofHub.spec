@@ -14,11 +14,14 @@ using CrossChainProofHubV3 as hub;
 methods {
     // View functions
     function totalProofs() external returns (uint256) envfree;
+    function totalBatches() external returns (uint256) envfree;
     function challengePeriod() external returns (uint256) envfree;
     function minRelayerStake() external returns (uint256) envfree;
+    function minChallengerStake() external returns (uint256) envfree;
     function paused() external returns (bool) envfree;
     function supportedChains(uint256) external returns (bool) envfree;
     function relayerStakes(address) external returns (uint256) envfree;
+    function accumulatedFees() external returns (uint256) envfree;
     
     // Stake management
     function depositStake() external;
@@ -30,8 +33,39 @@ methods {
 }
 
 // ============================================================================
+// INVARIANTS
+// ============================================================================
+
+/**
+ * INV-HUB-001: Challenge period positive
+ */
+invariant challengePeriodPositive()
+    challengePeriod() > 0;
+
+/**
+ * INV-HUB-002: Min stake positive
+ */
+invariant minStakePositive()
+    minRelayerStake() > 0 && minChallengerStake() > 0;
+
+// ============================================================================
 // RULES
 // ============================================================================
+
+/**
+ * @title Monotonic proof count
+ */
+rule monotonicProofCount(method f) filtered { f -> !f.isView } {
+    mathint countBefore = totalProofs();
+    
+    env e;
+    calldataarg args;
+    f(e, args);
+    
+    mathint countAfter = totalProofs();
+    
+    assert countAfter >= countBefore, "Proof count must be monotonically increasing";
+}
 
 /**
  * @title Deposit Increases Stake
