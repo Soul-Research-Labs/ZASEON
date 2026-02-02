@@ -2,6 +2,31 @@
 pragma solidity ^0.8.22;
 
 /**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                      ⚠️  FUTURE-READY CRYPTO  ⚠️                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: FUTURE - Waiting for EVM precompiles and ecosystem support     ║
+ * ║                                                                           ║
+ * ║ This contract implements ML-DSA (Dilithium), a NIST-standardized         ║
+ * ║ post-quantum signature scheme. While the cryptography is mature,         ║
+ * ║ EVM integration is NOT PRODUCTION-READY.                                 ║
+ * ║                                                                           ║
+ * ║ LIMITATIONS:                                                              ║
+ * ║ • No EVM precompile exists - verification uses ZK proofs or is mocked   ║
+ * ║ • Native verification would cost ~50M+ gas (impractical)                ║
+ * ║ • Signature/key sizes (3-5 KB) are expensive for on-chain storage       ║
+ * ║ • ZK verification of Dilithium is experimental (lattice ↔ R1CS)         ║
+ * ║                                                                           ║
+ * ║ QUANTUM TIMELINE:                                                         ║
+ * ║ • NIST finalized ML-DSA in 2024                                          ║
+ * ║ • EVM precompiles likely 2025-2027 via EIP process                       ║
+ * ║ • Cryptographically-relevant quantum computers: 10-20+ years             ║
+ * ║                                                                           ║
+ * ║ RECOMMENDATION: Use hybrid mode (ECDSA + Dilithium) when deploying.      ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
+/**
  * @title DilithiumVerifier
  * @author Soul Protocol
  * @notice On-chain verifier for NIST ML-DSA (Dilithium) post-quantum signatures
@@ -15,6 +40,10 @@ pragma solidity ^0.8.22;
  * Dilithium Parameters:
  * - Dilithium3: 128-bit quantum security, 3.3 KB signatures, 1.9 KB public keys
  * - Dilithium5: 192-bit quantum security, 4.6 KB signatures, 2.6 KB public keys
+ *
+ * @custom:security-contact security@soulprotocol.io
+ * @custom:research-status FUTURE - Waiting for EVM precompiles
+ * @custom:maturity-tier Future
  */
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";

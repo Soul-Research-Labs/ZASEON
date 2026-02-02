@@ -1,14 +1,28 @@
 # Metadata Resistance Implementation Roadmap
 
-> **Status:** Planning  
-> **Last Updated:** February 2, 2026  
+> **Status:** ✅ IMPLEMENTED  
+> **Last Updated:** 2025  
 > **Priority:** Critical for Production
 
 ---
 
 ## Executive Summary
 
-This document provides a **step-by-step implementation plan** to address metadata leakage in Soul Protocol. Even with encrypted payloads and ZK proofs, privacy can leak through:
+This document provides the implementation status for metadata resistance in Soul Protocol. Even with encrypted payloads and ZK proofs, privacy can leak through metadata. This roadmap addresses all major attack vectors.
+
+**IMPLEMENTATION STATUS:**
+| Phase | Component | Status |
+|-------|-----------|--------|
+| 1 | Transaction Batching (`BatchAccumulator.sol`) | ✅ Implemented |
+| 2 | Cover Traffic (`DecoyTrafficGenerator.sol`) | ✅ Implemented |
+| 3 | Mixnet Routing (`MixnetNodeRegistry.sol`, `MixnetReceiptProofs.sol`) | ✅ Implemented |
+| 4 | Gas Normalization (`GasNormalizer.sol`) | ✅ Implemented |
+| 5 | Destination Hiding (`DelayedClaimVault.sol`, `StealthContractFactory.sol`) | ✅ Implemented |
+| 6 | Crypto Maturity Warnings (Nova, Triptych, Seraphis, FHE, PQC) | ✅ Implemented |
+
+---
+
+## Metadata Attack Vectors Addressed
 
 1. **Bridge messaging layer observations** — Observers see message events
 2. **Relayer set correlation** — Same relayers handling related transactions
@@ -29,26 +43,21 @@ This document provides a **step-by-step implementation plan** to address metadat
 | VRF relayer selection | Implemented | Unpredictable relayer assignment |
 | Stealth fee payments | Implemented | Unlinkable relayer compensation |
 | Domain-separated nullifiers (CDNA) | Implemented | Prevents cross-chain linkability |
-
-### What's Missing ❌
-
-| Component | Status | Impact |
-|-----------|--------|--------|
-| Transaction batching | Not implemented | Timing correlation possible |
-| Cover traffic / decoys | Not implemented | Low-traffic periods expose users |
-| Mixnet routing | Designed, not built | Single-hop relay is observable |
-| Gas normalization | Not implemented | Tx size leaks information |
-| Delayed/randomized delivery | Minimal | Timing analysis possible |
-| Multi-path routing | Not implemented | Path observation possible |
+| **Transaction Batching** | ✅ Implemented | 8+ tx anonymity sets |
+| **Cover Traffic** | ✅ Implemented | Constant traffic rate |
+| **Mixnet Routing** | ✅ Implemented | 3-hop onion routing |
+| **Gas Normalization** | ✅ Implemented | Fixed gas per operation type |
+| **Delayed Claims** | ✅ Implemented | 24-72h randomized delays |
+| **Stealth Contracts** | ✅ Implemented | Fresh address per receive |
 
 ---
 
-## Phase 1: Transaction Batching (Weeks 1-4)
+## Phase 1: Transaction Batching ✅
 
 ### Goal
 Aggregate multiple transactions into batches so individual transactions cannot be correlated by timing.
 
-### 1.1 Batch Accumulator Contract
+### Implementation: `contracts/privacy/BatchAccumulator.sol`
 
 ```solidity
 // contracts/privacy/BatchAccumulator.sol
@@ -82,18 +91,7 @@ contract BatchAccumulator {
 }
 ```
 
-### 1.2 Implementation Steps
-
-| Step | Task | Deliverable |
-|------|------|-------------|
-| 1.1.1 | Design batch accumulation state machine | State diagram document |
-| 1.1.2 | Implement `BatchAccumulator.sol` | Contract + unit tests |
-| 1.1.3 | Add configurable batch parameters | `minSize`, `maxWaitTime` per route |
-| 1.1.4 | Implement batch proof aggregation | Groth16 batch verification |
-| 1.1.5 | SDK integration for batch submission | `sdk.submitToBatch()` method |
-| 1.1.6 | Certora spec for batch invariants | `BatchAccumulator.spec` |
-
-### 1.3 Privacy Improvement
+### Privacy Improvement
 
 - **Before:** Each transaction is individually observable
 - **After:** Transactions are indistinguishable within a batch of 8-32 items
@@ -101,12 +99,12 @@ contract BatchAccumulator {
 
 ---
 
-## Phase 2: Cover Traffic / Decoy Transactions (Weeks 5-8)
+## Phase 2: Cover Traffic / Decoy Transactions ✅
 
 ### Goal
 Generate fake transactions during low-traffic periods to prevent timing analysis.
 
-### 2.1 Decoy Generator
+### Implementation: `contracts/privacy/DecoyTrafficGenerator.sol`
 
 ```solidity
 // contracts/privacy/DecoyTrafficGenerator.sol

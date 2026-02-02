@@ -4,12 +4,37 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        ⚠️  RESEARCH-GRADE CRYPTO  ⚠️                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: RESEARCH - NOT FOR PRODUCTION USE                              ║
+ * ║                                                                           ║
+ * ║ This contract implements Nova IVC (2022), which is cutting-edge research.║
+ * ║                                                                           ║
+ * ║ RISKS:                                                                    ║
+ * ║ • No production implementations exist in any blockchain                   ║
+ * ║ • Pasta curves (Pallas/Vesta) not supported natively on Ethereum         ║
+ * ║ • Folding scheme security assumptions still being analyzed                ║
+ * ║ • Gas costs make on-chain verification impractical (~10M+ gas)           ║
+ * ║ • This is a SIMULATION for research/demonstration purposes               ║
+ * ║                                                                           ║
+ * ║ DO NOT use this contract for securing real value.                        ║
+ * ║ DO NOT assume the cryptographic properties are correctly implemented.    ║
+ * ║                                                                           ║
+ * ║ For production recursive proofs, wait for:                               ║
+ * ║ • EIP-2537 (BLS12-381) + native Groth16 recursion                       ║
+ * ║ • Proven implementations with security audits                            ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
 /// @title NovaRecursiveVerifier
 /// @notice Implements Nova-style Incrementally Verifiable Computation (IVC)
 /// @dev Based on "Nova: Recursive Zero-Knowledge Arguments from Folding Schemes"
 ///      by Abhiram Kothapalli, Srinath Setty, and Ioanna Tzialla (2022)
 /// @custom:security-contact security@soulprotocol.io
-/// @custom:research-status Research implementation
+/// @custom:research-status RESEARCH - Not for production use
+/// @custom:maturity-tier Research
 contract NovaRecursiveVerifier is AccessControl, ReentrancyGuard {
     // =========================================================================
     // CONSTANTS

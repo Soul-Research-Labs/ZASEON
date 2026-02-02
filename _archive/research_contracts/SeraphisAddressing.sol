@@ -4,6 +4,27 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        ⚠️  RESEARCH-GRADE CRYPTO  ⚠️                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: RESEARCH - Pending Monero mainnet adoption                     ║
+ * ║                                                                           ║
+ * ║ This contract implements Seraphis (MRL-0015), a next-generation          ║
+ * ║ addressing protocol designed for Monero but NOT YET DEPLOYED.            ║
+ * ║                                                                           ║
+ * ║ RISKS:                                                                    ║
+ * ║ • Seraphis is still in development for Monero                            ║
+ * ║ • Ed25519 curve operations are simulated (not native on Ethereum)        ║
+ * ║ • 3-key separation adds complexity without battle-testing                ║
+ * ║ • Protocol may change before Monero adoption                             ║
+ * ║ • Forward secrecy assumptions untested in smart contract context         ║
+ * ║                                                                           ║
+ * ║ DO NOT use this contract for securing real value.                        ║
+ * ║ Wait for Monero mainnet deployment and security analysis.                ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
 /// @title SeraphisAddressing
 /// @notice Implements Seraphis-style address generation and verification
 /// @dev Based on Monero Research Lab's Seraphis protocol (MRL-0015)
@@ -11,7 +32,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 ///      - Forward secrecy through ephemeral keys
 ///      - Address separation for receiving/viewing/spending
 /// @custom:security-contact security@soulprotocol.io
-/// @custom:research-status Research implementation - pending Monero mainnet adoption
+/// @custom:research-status RESEARCH - Pending Monero mainnet adoption
+/// @custom:maturity-tier Research
 contract SeraphisAddressing is AccessControl, ReentrancyGuard {
     // =========================================================================
     // CONSTANTS

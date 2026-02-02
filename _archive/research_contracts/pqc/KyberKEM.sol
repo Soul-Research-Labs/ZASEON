@@ -2,6 +2,31 @@
 pragma solidity ^0.8.22;
 
 /**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                      ⚠️  FUTURE-READY CRYPTO  ⚠️                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: FUTURE - Waiting for EVM precompiles and ecosystem support     ║
+ * ║                                                                           ║
+ * ║ This contract implements ML-KEM (Kyber), a NIST-standardized             ║
+ * ║ post-quantum key encapsulation mechanism. While the cryptography is      ║
+ * ║ mature, EVM integration is NOT PRODUCTION-READY.                         ║
+ * ║                                                                           ║
+ * ║ LIMITATIONS:                                                              ║
+ * ║ • No EVM precompile exists - operations use mock mode or off-chain       ║
+ * ║ • Native encapsulation would cost ~100M+ gas (impractical)              ║
+ * ║ • Key/ciphertext sizes (1-3 KB) expensive for on-chain storage          ║
+ * ║ • Lattice operations not EVM-native                                      ║
+ * ║                                                                           ║
+ * ║ QUANTUM TIMELINE:                                                         ║
+ * ║ • NIST finalized ML-KEM in 2024                                          ║
+ * ║ • EVM precompiles likely 2025-2027 via EIP process                       ║
+ * ║ • Use for future-proofing key exchanges in hybrid mode                   ║
+ * ║                                                                           ║
+ * ║ RECOMMENDATION: Use hybrid mode (ECDH + Kyber) when deploying.           ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
+/**
  * @title KyberKEM
  * @author Soul Protocol
  * @notice On-chain Key Encapsulation Mechanism using NIST ML-KEM (Kyber)
@@ -16,6 +41,10 @@ pragma solidity ^0.8.22;
  * Security Modes:
  * - Precompile Mode: Uses EVM precompile when available (production)
  * - Mock Mode: For testing only - NOT allowed on mainnet
+ *
+ * @custom:security-contact security@soulprotocol.io
+ * @custom:research-status FUTURE - Waiting for EVM precompiles
+ * @custom:maturity-tier Future
  */
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";

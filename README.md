@@ -4,12 +4,27 @@
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://docs.soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg)](https://getfoundry.sh/)
 [![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-5.4.0-4E5EE4.svg)](https://openzeppelin.com/contracts/)
-[![Security](https://img.shields.io/badge/Security-Unaudited-orange.svg)](SECURITY.md)
-[![Tests](https://img.shields.io/badge/Tests-846%20passing-brightgreen.svg)](test/)
+
 
 > **Move privately between chains. No metadata. No lock-in.**
 
-Soul Protocol makes secrets portable. It's a zero-knowledge middleware that lets you transfer confidential state across blockchains without leaking timing, amounts, or identity—solving the privacy lock-in problem that traps users on single chains.     
+Soul Protocol is zero-knowledge middleware for cross-chain confidential state transfer. It solves the privacy lock-in problem that traps users on single chains.
+
+---
+
+## Project Status
+
+| Component | Status |
+|-----------|--------|
+| Core ZK Bridge (Groth16 BN254) | ✅ Ready for audit |
+| Confidential State Containers | ✅ Ready for audit |
+| Stealth Addresses | ✅ Ready for audit |
+| L2 Adapters (6 adapters) | ✅ Ready for audit |
+| Security Modules (timelock, rate limiter, circuit breaker) | ✅ Ready for audit |
+
+**44 production contracts.** Everything else archived to `_archive/` for reference.
+
+**Audit Status:** Unaudited. See [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ---
 
@@ -100,10 +115,10 @@ Chain A                              Chain B
 | Feature | What It Does |
 |---------|--------------|
 | **Confidential State** | AES-256-GCM encrypted containers verified by ZK proofs |
-| **Cross-Chain ZK Bridge** | Transfer proofs across chains (Groth16, PLONK, STARK) |
-| **L2 Interoperability** | Native adapters for 8 L2s + LayerZero/Hyperlane |
+| **Cross-Chain ZK Bridge** | Transfer proofs across chains via Groth16 (BN254) |
+| **L2 Interoperability** | Arbitrum, Base, LayerZero, Hyperlane adapters |
+| **Stealth Addresses** | Unlinkable receiving addresses for privacy |
 | **Atomic Swaps** | HTLC private swaps with stealth commitments |
-| **Post-Quantum Ready** | NIST-approved Dilithium, SPHINCS+, Kyber |
 
 ---
 
@@ -248,19 +263,21 @@ Soul sits between **privacy chains** and **public chains**, enabling confidentia
 ## Project Structure
 
 ```
-contracts/           # 148 Solidity contracts
-├── core/            # ConfidentialStateContainer, NullifierRegistry
-├── primitives/      # ZK-SLocks, PC³, CDNA, EASC, TEE
-├── crosschain/      # 18 bridge adapters (Arbitrum, Optimism, Base, Aztec...)
-├── privacy/         # Ring sigs (Triptych), stealth, FHE, Nova IVC
-├── pqc/             # Dilithium, Kyber, SPHINCS+
-├── verifiers/       # Groth16, PLONK, FRI verifiers
-└── security/        # Timelock, circuit breaker, MEV protection
+contracts/           # Production Solidity contracts (44 files)
+├── core/            # ConfidentialStateContainer, NullifierRegistry, SovereignPrivacyDomain
+├── primitives/      # ZK-SLocks, PC³, CDNA, EASC, Orchestrator
+├── crosschain/      # Bridge adapters (Arbitrum, Base, LayerZero, Hyperlane)
+├── privacy/         # Stealth addresses, constant-time crypto
+├── bridge/          # AtomicSwap, CrossChainProofHub
+├── verifiers/       # Groth16 BN254 verifier, VerifierRegistry
+├── libraries/       # CryptoLib, PoseidonYul, GasOptimizations
+├── interfaces/      # Contract interfaces
+└── security/        # Timelock, circuit breaker, rate limiter, MEV protection
 
-noir/                # 18 Noir ZK circuits
-sdk/                 # TypeScript SDK + React hooks  
-certora/             # 38 formal verification specs
-test/                # Unit, fuzz, invariant, attack tests
+noir/                # 12 Noir ZK circuits
+sdk/                 # TypeScript SDK
+certora/             # Formal verification specs
+_archive/            # Non-essential contracts (research, tests, experimental)
 ```
 
 ## Quick Start
@@ -295,51 +312,29 @@ See [API Reference](docs/API_REFERENCE.md) for full contract documentation.
 
 ## L2 Bridge Adapters
 
-Soul provides native adapters for major L2 networks:
+Soul provides adapters for major cross-chain messaging:
 
-| Network | Adapter | Key Features |
-|---------|---------|--------------|
-| **Arbitrum** | `ArbitrumBridgeAdapter` | Nitro, Retryable Tickets |
-| **Base** | `BaseBridgeAdapter` | OP Stack, CCTP |
-| **Bitcoin** | `BitcoinBridgeAdapter` | HTLC, SPV Verification |
-| **Starknet** | `StarknetBridgeAdapter` | L1 Verification, STARKs |
-| **Aztec** | `AztecBridgeAdapter` | UltraPLONK, Note-based |
+| Adapter | Key Features |
+|---------|--------------|
+| `ArbitrumBridgeAdapter` | Arbitrum Nitro, Retryable Tickets |
+| `BaseBridgeAdapter` | OP Stack, CCTP support |
+| `LayerZeroAdapter` | 120+ chains via LayerZero V2 |
+| `HyperlaneAdapter` | Modular security with ISM |
+| `DirectL2Messenger` | Direct L2-to-L2 messaging |
+| `CrossChainMessageRelay` | General message relay |
 
-**Privacy chain bridges:**
-- `AztecBridgeAdapter` - Soul ↔ Aztec note conversion with cross-domain nullifiers
-- `RailgunBridgeAdapter` - RAILGUN private transaction integration
-- `MidnightBridgeAdapter` - Midnight Network support (planned)
-
-**Cross-chain messaging protocols:**
-- `LayerZeroAdapter` - 120+ chains via LayerZero V2
-- `HyperlaneAdapter` - Modular security with ISM
-
-**Additional infrastructure:**
-- `DirectL2Messenger` - Direct L2-to-L2 messaging
-- `SharedSequencerIntegration` - Espresso/Astria support
-- `CrossL2Atomicity` - Atomic multi-chain bundles
+> **Archived adapters:** Optimism, zkSync, Scroll, Linea, Polygon zkEVM, Starknet, Aztec, Bitcoin/BitVM adapters are in `_archive/` for reference.
 
 ---
 
-## ZK & Post-Quantum
+## Cryptography
 
-**Proof Systems:** Groth16 (BN254 production, BLS12-381 post-EIP-2537), PLONK, FRI/STARK  
-**Noir Circuits:** 18 production circuits (nullifiers, transfers, ring sigs, PC³, PBP, EASC)  
-**PQC:** Dilithium3/5, SPHINCS+-128s, Kyber768/1024 (hybrid mode available)  
-**Privacy:** Triptych O(log n) ring sigs, Nova IVC, Seraphis 3-key, TFHE, stealth addresses  
-
-> **Note:** BLS12-381 Groth16 verification uses EIP-2537 precompiles which are available after the Pectra upgrade. BN254 verification works on all EVM chains today.  
-
-### Cryptographic Maturity Tiers
-
-| Tier | Systems | Status |
-|------|---------|--------|
-| **Production** | Groth16 (BN254), AES-256-GCM, Poseidon, ECDSA, Stealth addresses | Tested, ready for audit |
-| **Beta** | PLONK, CDNA nullifiers, Commit-reveal | Tested, pending audit |
-| **Research** | Nova IVC, Triptych, TFHE, Seraphis, FRI/STARK | Experimental, not for production |
-| **Future** | Groth16 (BLS12-381), Dilithium, Kyber, SPHINCS+ | Waiting for EIP-2537 / PQC standardization |
-
-> ⚠️ **Important:** Only Production-tier crypto should be used in mainnet deployments. Research-tier systems are included for R&D and future development.  
+**Proof System:** Groth16 on BN254 (production-ready, works on all EVM chains)  
+**Encryption:** AES-256-GCM for confidential state containers  
+**Hashing:** Poseidon (ZK-friendly), Keccak256 (EVM-native)  
+**Signatures:** ECDSA with signature malleability protection  
+**Privacy:** Stealth addresses, domain-separated nullifiers (CDNA)  
+**Circuits:** 12 Noir circuits (nullifiers, transfers, commitments, PC³, PBP, EASC)
 
 ---
 
@@ -349,15 +344,13 @@ Soul provides native adapters for major L2 networks:
 
 | Module | Purpose |
 |--------|---------|
-| `SoulTimelock.sol` | 48-hour delay for admin operations |
+| `SoulUpgradeTimelock.sol` | Time-delayed admin operations |
 | `BridgeCircuitBreaker.sol` | Anomaly detection and auto-pause |
 | `BridgeRateLimiter.sol` | Volume and rate limiting |
 | `MEVProtection.sol` | Commit-reveal for MEV resistance |
 | `FlashLoanGuard.sol` | Flash loan attack prevention |
-| `SecurityOracle.sol` | Cross-chain threat intelligence |
-| `ThresholdSignature.sol` | t-of-n multi-sig (ECDSA/BLS/FROST) |
-| `ZKFraudProof.sol` | Fast finality fraud proofs |
-| `HybridCryptoVerifier.sol` | ECDSA + PQC hybrid signature verification |
+| `EmergencyRecovery.sol` | Emergency pause and recovery |
+| `SecurityModule.sol` | Core security primitives |
 
 
 ### Verification
@@ -368,9 +361,7 @@ npm run security:all # Full security suite
 npm run security:mutation # Mutation testing
 ```
 
-### Metadata Resistance (Privacy Limitations)
-
-> **Honest assessment:** Even with encryption and ZK proofs, metadata can leak. Here's our current status:
+### Privacy Status
 
 | Attack Vector | Status | Notes |
 |--------------|--------|-------|
@@ -379,12 +370,9 @@ npm run security:mutation # Mutation testing
 | Sender/recipient identity | ✅ Hidden | Stealth addresses, CDNA |
 | MEV/frontrunning | ✅ Protected | Commit-reveal (3-block delay) |
 | Bridge message observation | ⚠️ Partial | Encrypted, but events visible |
-| Timing correlation | ⚠️ Partial | Commit-reveal helps, batching planned |
-| Gas usage patterns | ❌ Visible | Gas normalization planned |
-| Relayer set correlation | ❌ Visible | Mixnet routing planned |
-| Low-traffic deanonymization | ❌ Vulnerable | Cover traffic planned |
-
-📄 **Full roadmap:** [docs/METADATA_RESISTANCE_ROADMAP.md](docs/METADATA_RESISTANCE_ROADMAP.md)
+| Timing correlation | ⚠️ Partial | Commit-reveal helps |
+| Gas usage patterns | ❌ Visible | Future work |
+| Relayer set correlation | ❌ Visible | Future work |
 
 ---
 

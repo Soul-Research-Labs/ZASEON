@@ -5,12 +5,34 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../libraries/CryptoLib.sol";
 
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        ⚠️  RESEARCH-GRADE CRYPTO  ⚠️                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: RESEARCH - Experimental ring signature implementation          ║
+ * ║                                                                           ║
+ * ║ This contract implements Triptych (2020), an academic ring signature     ║
+ * ║ scheme that has NOT been deployed in production anywhere.                 ║
+ * ║                                                                           ║
+ * ║ RISKS:                                                                    ║
+ * ║ • Not adopted by Monero (designed for it but replaced by Seraphis)       ║
+ * ║ • No production implementations exist                                     ║
+ * ║ • BN254 pairing costs make large rings prohibitively expensive           ║
+ * ║ • Security proofs assume random oracle model                             ║
+ * ║ • Linkability tag construction may have subtle vulnerabilities           ║
+ * ║                                                                           ║
+ * ║ DO NOT use this contract for securing real value.                        ║
+ * ║ For production ring signatures, use audited implementations.             ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
 /// @title TriptychSignatures
 /// @notice Implements Triptych ring signatures with O(log n) verification
 /// @dev Based on "Triptych: Logarithmic-sized Linkable Ring Signatures with Applications"
 ///      by Sarang Noether and Brandon Goodell (2020)
 /// @custom:security-contact security@soulprotocol.io
-/// @custom:research-status Production-ready implementation
+/// @custom:research-status RESEARCH - Not for production use
+/// @custom:maturity-tier Research
 contract TriptychSignatures is AccessControl, ReentrancyGuard {
     // =========================================================================
     // CONSTANTS

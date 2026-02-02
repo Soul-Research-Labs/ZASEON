@@ -5,9 +5,34 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        ⚠️  RESEARCH-GRADE CRYPTO  ⚠️                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║ MATURITY: RESEARCH - FHE in smart contracts is experimental              ║
+ * ║                                                                           ║
+ * ║ This contract implements Fully Homomorphic Encryption patterns.          ║
+ * ║ FHE on Ethereum is NOT PRACTICAL with current technology.                ║
+ * ║                                                                           ║
+ * ║ RISKS:                                                                    ║
+ * ║ • FHE operations are 1000-10000x slower than plaintext                   ║
+ * ║ • Ciphertext sizes are megabytes (not storable on-chain)                 ║
+ * ║ • Key management for FHE is unsolved in decentralized settings           ║
+ * ║ • TFHE/CKKS libraries are not EVM-compatible                             ║
+ * ║ • This is an ORACLE/OFFCHAIN pattern, not true on-chain FHE              ║
+ * ║ • Security depends entirely on trusted oracle/MPC committee              ║
+ * ║                                                                           ║
+ * ║ DO NOT use this contract for securing real value.                        ║
+ * ║ For FHE applications, see: fhEVM (Zama), but note it's also early-stage. ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
+/**
  * @title SoulFHEModule
  * @notice Fully Homomorphic Encryption integration for Soul
  * @dev Implements hybrid FHE-ZK architecture for encrypted computations
+ * @custom:security-contact security@soulprotocol.io
+ * @custom:research-status RESEARCH - FHE on EVM is experimental
+ * @custom:maturity-tier Research
  */
 contract SoulFHEModule is Ownable, ReentrancyGuard {
     // ============================================
@@ -147,7 +172,6 @@ contract SoulFHEModule is Ownable, ReentrancyGuard {
     error AmountMismatch();
     error InvalidRoot();
     error LengthMismatch();
-
 
     // ============================================
     // Constructor
