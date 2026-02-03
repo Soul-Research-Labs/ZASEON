@@ -36,9 +36,7 @@
 | Contract | Address | Verified |
 |----------|---------|----------|
 | MockProofVerifier | [`0x1f830a178020d9d9b968b9f4d13e6e4cdbc9fa57`](https://sepolia.etherscan.io/address/0x1f830a178020d9d9b968b9f4d13e6e4cdbc9fa57) | ✅ |
-| Groth16VerifierBLS12381 | [`0x09cf3f57c213218446aa49d89236247fbe1d08bd`](https://sepolia.etherscan.io/address/0x09cf3f57c213218446aa49d89236247fbe1d08bd) | ✅ |
-| PLONKVerifier | [`0x7c73fbd4affdd797c7dae7a1fb23bfd6ced387f2`](https://sepolia.etherscan.io/address/0x7c73fbd4affdd797c7dae7a1fb23bfd6ced387f2) | ✅ |
-| FRIVerifier | [`0x2e9fceb9a74fba5d8edb6420b350a4edd242bb09`](https://sepolia.etherscan.io/address/0x2e9fceb9a74fba5d8edb6420b350a4edd242bb09) | ✅ |
+| Groth16VerifierBN254 | [`0x09cf3f57c213218446aa49d89236247fbe1d08bd`](https://sepolia.etherscan.io/address/0x09cf3f57c213218446aa49d89236247fbe1d08bd) | ✅ |
 
 #### Core Infrastructure
 | Contract | Address | Verified |
@@ -80,9 +78,7 @@
 #### Integration Test Run (January 22, 2026)
 ```
 ✅ MockProofVerifier - Read verification result
-✅ Groth16VerifierBLS12381 - Contract accessible
-✅ PLONKVerifier - Contract accessible
-✅ FRIVerifier - Contract accessible
+✅ Groth16VerifierBN254 - Contract accessible
 ✅ ConfidentialStateContainerV3 - Read total states
 ✅ NullifierRegistryV3 - Check nullifier not used
 ✅ CrossChainProofHubV3 - Contract accessible

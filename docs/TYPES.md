@@ -2,7 +2,7 @@
 
 ## Type Documentation
 
-This document provides comprehensive type definitions for the Soul Protocol (Soul), a cross-chain middleware for private state transfer and zero-knowledge proof verification across heterogeneous blockchain networks.
+This document provides comprehensive type definitions for the Soul Protocol (Soul), a cross-chain privacy middleware for confidential state transfer and zero-knowledge proof verification across Ethereum L2 networks.
 
 ---
 
@@ -129,9 +129,11 @@ interface CDNAConfig {
 
 ### Zero-Knowledge Proof Types
 
+> **Production Status:** Only `Groth16Proof` (BN254) is currently deployed in production. `PLONKProof` and `STARKProof` types are defined for future compatibility and research purposes.
+
 ```typescript
 /**
- * Groth16 proof structure (BN254 curve)
+ * Groth16 proof structure (BN254 curve) - PRODUCTION
  */
 interface Groth16Proof {
   /** Proof point A (G1) */
@@ -145,7 +147,8 @@ interface Groth16Proof {
 }
 
 /**
- * PLONK proof structure
+ * PLONK proof structure - RESEARCH/FUTURE USE
+ * @deprecated Not deployed in production. Reserved for future proof system support.
  */
 interface PLONKProof {
   /** Wire commitments */
@@ -168,7 +171,8 @@ interface PLONKProof {
 }
 
 /**
- * FRI/STARK proof structure
+ * FRI/STARK proof structure - RESEARCH/FUTURE USE
+ * @deprecated Not deployed in production. Reserved for future proof system support.
  */
 interface STARKProof {
   /** FRI layers */
@@ -191,7 +195,8 @@ interface STARKProof {
 }
 
 /**
- * FRI layer data
+ * FRI layer data - RESEARCH/FUTURE USE
+ * @deprecated Not deployed in production. Used with STARKProof.
  */
 interface FRILayer {
   /** Layer commitment */

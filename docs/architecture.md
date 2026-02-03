@@ -32,8 +32,8 @@ The Soul Protocol (Soul) is designed as a modular middleware protocol that enabl
 ## Core Design Principles
 
 1. **Privacy-First**: All state transfers are encrypted; only commitments are on-chain
-2. **Proof Agnostic**: Support multiple ZK proof systems (Groth16, PLONK, FRI)
-3. **Chain Agnostic**: Work across EVM chains with planned support for non-EVM
+2. **Production-Ready**: Ships Groth16 (BN254) - battle-tested, EVM-native precompiles
+3. **Chain Agnostic**: Work across EVM chains (Arbitrum, Base, Optimism, zkSync, Scroll, Linea)
 4. **Decentralized**: No single point of failure or trust
 5. **Composable**: Modular design for easy integration
 
@@ -80,24 +80,24 @@ struct EncryptedState {
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Proof Verifiers                        │
-├─────────────┬─────────────┬─────────────┬───────────────┤
-│   Groth16   │    PLONK    │     FRI     │    Native     │
-│  BLS12-381  │   BN254     │  (Stark)    │   Adapter     │
-├─────────────┴─────────────┴─────────────┴───────────────┤
+├─────────────────────────────────────────────────────────┤
+│                     Groth16 (BN254)                      │
+│               Production-Ready Verifier                  │
+├─────────────────────────────────────────────────────────┤
 │              Universal Verifier Interface                │
 │  verifyProof(circuitId, proof, publicInputs) → bool     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### Groth16 Verifier (BLS12-381)
+#### Groth16 Verifier (BN254)
 
-The main verifier uses the BLS12-381 curve for maximum security:
+The main verifier uses the BN254 curve with EVM precompiles (ecAdd, ecMul, ecPairing):
 
 ```
-Security Level: 128-bit (classical), 64-bit (quantum)
-Field Size: ~381 bits
-Proof Size: 3 group elements (~384 bytes)
-Verification: ~3ms (with precompiles)
+Security Level: 128-bit (classical)
+Curve: BN254 (alt_bn128) - EVM native precompiles
+Proof Size: 3 group elements (~256 bytes)
+Verification: ~200k gas on EVM
 ```
 
 #### Verification Key Structure
@@ -325,23 +325,22 @@ function registerState(
 
 ## Future Enhancements
 
-### Phase 3: Advanced Verifiers
+### Phase 3: Additional L2 Support
 
+- **Optimism Adapter**: OP Stack native messaging
+- **Base + CCTP**: Circle's cross-chain transfer protocol
+- **zkSync Era**: ZK rollup native integration
+
+### Phase 4: Research (Archived)
+
+The following are in research/archive for future consideration:
 - **PLONK Verifier**: Universal trusted setup
 - **FRI Verifier**: StarkNet compatibility
-- **Bulletproofs**: Range proofs without trusted setup
-
-### Phase 4: Enhanced Privacy
-
-- **Stealth Addresses**: Unlinkable recipients
 - **Ring Signatures**: Sender anonymity sets
-- **Recursive Proofs**: Proof composition
+- **Recursive Proofs**: Proof composition via Nova IVC
+- **Post-Quantum Cryptography**: NIST PQC algorithms
 
-### Phase 5: Scalability
-
-- **Proof Aggregation**: Multiple proofs → single proof
-- **zkRollup Integration**: Native L2 support
-- **Parallel Verification**: Multi-threaded proof checking
+Note: These are not in production. See `_archive/` for research implementations.
 
 ---
 

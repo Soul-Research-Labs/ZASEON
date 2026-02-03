@@ -1,10 +1,37 @@
 # Cross-Chain Privacy Architecture
 
-> Unified cross-chain privacy for 41+ blockchain networks.
+> Unified cross-chain privacy for Ethereum L2 networks.
 
-**Features:** Stealth Addresses • Ring Signatures • Confidential Amounts • Cross-Domain Nullifiers • Multi-proof support (Groth16, PLONK, STARK, Bulletproof, Halo2, CLSAG)
+**Features:** Stealth Addresses • Confidential Commitments • Cross-Domain Nullifiers • Groth16 Proofs (BN254)
 
-**Privacy Guarantees:** Sender (ring sigs) • Receiver (stealth addresses) • Amount (Pedersen) • Graph (CDNA) • Metadata (encrypted)
+**Privacy Guarantees:** Sender (stealth addresses) • Receiver (stealth addresses) • Amount (Pedersen commitments) • Graph (CDNA)
+
+---
+
+## Production Status
+
+> **⚠️ Important:** This document contains both production-ready features and research reference material.
+
+### Production-Ready (Audited)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Stealth Addresses | ✅ Production | ERC-5564 compliant, secp256k1 |
+| Pedersen Commitments | ✅ Production | Amount hiding with homomorphic properties |
+| Cross-Domain Nullifiers (CDNA) | ✅ Production | Double-spend prevention across chains |
+| Groth16 Proofs (BN254) | ✅ Production | Efficient ZK proofs via native precompiles |
+| View Tag Optimization | ✅ Production | 256x scanning speedup |
+
+### Research Reference (Not Deployed)
+
+The following sections document cryptographic primitives for educational purposes. These are **not implemented** in production:
+
+- Ring Signatures (CLSAG) - Reference only
+- Bulletproof Range Proofs - Reference only  
+- Ring Confidential Transactions (RingCT) - Reference only
+- Privacy chain adapters (Monero, Zcash, Secret, etc.) - Planned for future
+
+---
 
 ## Architecture
 
@@ -38,54 +65,43 @@
 
 ```
 contracts/privacy/
-├── CrossChainPrivacyHub.sol       # Main aggregator (41+ adapters)
 ├── StealthAddressRegistry.sol     # ERC-5564 stealth addresses
-├── RingConfidentialTransactions.sol # RingCT + Bulletproofs
-└── UnifiedNullifierManager.sol    # CDNA implementation
 
 contracts/crosschain/
-├── ArbitrumBridgeAdapter.sol
-├── OptimismBridgeAdapter.sol
-├── BaseBridgeAdapter.sol
-├── zkSyncBridgeAdapter.sol
-├── ScrollBridgeAdapter.sol
-├── LineaBridgeAdapter.sol
-├── PolygonZkEVMBridgeAdapter.sol
-├── StarkNetBridgeAdapter.sol
-├── MoneroBridgeAdapter.sol
-├── RailgunBridgeAdapter.sol
-├── TornadoBridgeAdapter.sol
-├── SecretBridgeAdapter.sol
-├── OasisBridgeAdapter.sol
-├── ZcashBridgeAdapter.sol (via AztecBridgeAdapter)
-├── MidnightBridgeAdapter.sol
-├── ... (41+ total adapters)
+├── ArbitrumBridgeAdapter.sol      # Arbitrum native messaging
+├── OptimismBridgeAdapter.sol      # OP Stack CrossDomainMessenger (planned)
+├── BaseBridgeAdapter.sol          # Base + CCTP (planned)
+├── LayerZeroAdapter.sol           # LayerZero V2 OApp
+├── DirectL2Messenger.sol          # Direct L2-to-L2 messaging
+├── EthereumL1Bridge.sol           # L1 state commitments
+
+contracts/core/
+├── NullifierRegistryV3.sol        # CDNA implementation
+└── ConfidentialStateContainerV3.sol # Encrypted state management
 ```
 
 ---
 
 ## Privacy Levels
 
-Soul supports five privacy levels, configurable per transfer:
+Soul supports three privacy levels, configurable per transfer:
 
 | Level | ID | Sender | Receiver | Amount | Proof |
 |-------|-----|--------|----------|--------|-------|
 | **NONE** | 0 | Public | Public | Public | None |
 | **BASIC** | 1 | Hidden | Public | Public | Hash |
-| **MEDIUM** | 2 | Hidden | Hidden | Public | ZK |
-| **HIGH** | 3 | Hidden | Hidden | Hidden | ZK + Range |
-| **MAXIMUM** | 4 | Hidden | Hidden | Hidden | Ring + ZK |
+| **HIGH** | 2 | Hidden | Hidden | Hidden | ZK (Groth16) |
 
 ### Level Selection
 
 ```solidity
-// Example: Maximum privacy transfer
-crossChainPrivacyHub.initiatePrivateTransfer{value: 1 ether}(
-    destChainId,
-    recipientStealthPubKey,
-    PrivacyLevel.MAXIMUM,
-    zkProof,
-    encryptedMetadata
+// Example: High privacy transfer
+zkSlocks.createLock(
+    commitment,
+    predicateHash,
+    policyHash,
+    domainSeparator,
+    unlockDeadline
 );
 ```
 
@@ -93,9 +109,9 @@ crossChainPrivacyHub.initiatePrivateTransfer{value: 1 ether}(
 
 ## Core Components
 
-### 1. CrossChainPrivacyHub
+### 1. ZK-Bound State Locks (ZK-SLocks)
 
-The main aggregator that routes transfers to appropriate bridge adapters.
+The flagship primitive for cross-chain state transfers.
 
 ```solidity
 interface ICrossChainPrivacyHub {
@@ -235,6 +251,12 @@ where:
 - **Hiding**: Cannot determine amount without blinding factor
 - **Binding**: Cannot change amount without changing commitment
 - **Homomorphic**: `C(a) + C(b) = C(a+b)` for balance verification
+
+---
+
+## Research Reference Material
+
+> **Note:** The following sections document cryptographic primitives used by privacy chains (Monero, Zcash). These are provided for **educational reference only** and are **not implemented** in Soul Protocol's production contracts. Soul uses Groth16 (BN254) proofs with stealth addresses and CDNA for privacy.
 
 ### Ring Signatures (CLSAG)
 
@@ -464,40 +486,35 @@ Source Chain                    Soul                      Destination Chain
 
 ## Supported Chains
 
-### Privacy Chains
+### Production Adapters
 
-| Chain | Adapter | Nullifier Type | Proof System |
-|-------|---------|----------------|--------------|
-| Monero | `MoneroBridgeAdapter` | Key Image | CLSAG |
-| Zcash | `AztecBridgeAdapter` | Sapling/Orchard | Groth16/Halo2 |
-| Secret Network | `SecretBridgeAdapter` | TEE-based | SGX |
-| Oasis Sapphire | `OasisBridgeAdapter` | TEE-based | SGX |
-| Railgun | `RailgunBridgeAdapter` | Poseidon | Groth16 |
-| Tornado Cash | `TornadoBridgeAdapter` | MiMC | Groth16 |
-| Midnight | `MidnightBridgeAdapter` | UTXO | PLONK |
+| Chain | Adapter | Chain ID | Status |
+|-------|---------|----------|--------|
+| Ethereum L1 | `EthereumL1Bridge` | 1 | ✅ Production |
+| Arbitrum | `ArbitrumBridgeAdapter` | 42161 | ✅ Production |
+| Any (LayerZero) | `LayerZeroAdapter` | Various | ✅ Production |
+| Direct L2 | `DirectL2Messenger` | Various | ✅ Production |
 
-### Layer 2 Networks
+### Planned Adapters (Q2-Q3 2026)
 
-| Chain | Adapter | Chain ID | Proof System |
-|-------|---------|----------|--------------|
-| Arbitrum | `ArbitrumBridgeAdapter` | 42161 | Fraud Proofs |
-| Optimism | `OptimismBridgeAdapter` | 10 | Fault Proofs |
-| Base | `BaseBridgeAdapter` | 8453 | OP Stack |
-| zkSync Era | `zkSyncBridgeAdapter` | 324 | PLONK |
-| Scroll | `ScrollBridgeAdapter` | 534352 | zk-rollup |
-| Linea | `LineaBridgeAdapter` | 59144 | PLONK |
-| Polygon zkEVM | `PolygonZkEVMBridgeAdapter` | 1101 | zkEVM |
+| Chain | Adapter | Chain ID | Status |
+|-------|---------|----------|--------|
+| Optimism | `OptimismBridgeAdapter` | 10 | 🔄 Q2 2026 |
+| Base | `BaseBridgeAdapter` | 8453 | 🔄 Q2 2026 |
+| zkSync Era | `zkSyncBridgeAdapter` | 324 | 🔄 Q3 2026 |
+| Scroll | `ScrollBridgeAdapter` | 534352 | 🔄 Q3 2026 |
+| Linea | `LineaBridgeAdapter` | 59144 | 🔄 Q3 2026 |
+| Polygon zkEVM | `PolygonZkEVMBridgeAdapter` | 1101 | 🔄 Q3 2026 |
 
-### Alternative L1s
+### Research Roadmap (Privacy Chains)
 
-| Chain | Adapter | Type | Signature |
-|-------|---------|------|-----------|
-| Starknet | `StarkNetBridgeAdapter` | STARK | Stark |
-| Solana | `SolanaBridgeAdapter` | Account | Ed25519 |
-| Aptos | `AptosBridgeAdapter` | Account | BLS/Ed25519 |
-| Sui | `SuiBridgeAdapter` | Object | BLS |
-| Celestia | `CelestiaBridgeAdapter` | DA | BLS |
-| Sei | `SeiBridgeAdapter` | Cosmos | secp256k1 |
+> **Note:** The following adapters are part of the long-term research roadmap for interoperability with native privacy chains. These are **not currently implemented**.
+
+| Chain | Notes |
+|-------|-------|
+| Zcash | Sapling/Orchard nullifier translation |
+| Secret Network | TEE-based confidential compute |
+| Railgun | EVM privacy layer integration |
 
 ---
 
@@ -556,9 +573,12 @@ await privacyHub.completeTransfer(
 );
 ```
 
-### RingCT Integration
+### RingCT Integration (Research Reference)
+
+> **Note:** RingCT integration is provided for **reference only**. This API is not yet implemented in the production SDK. Soul Protocol currently uses Groth16 proofs for privacy.
 
 ```typescript
+// RESEARCH REFERENCE - Not yet implemented
 import { RingConfidentialTransactions } from '@soulprotocol/sdk';
 
 const ringCT = new RingConfidentialTransactions(provider);
@@ -598,10 +618,10 @@ const success = await ringCT.verifyAndExecuteRCT(
 
 | Threat | Mitigation |
 |--------|------------|
-| Double Spend | Cross-domain nullifier registry |
+| Double Spend | Cross-domain nullifier registry (CDNA) |
 | Front-running | Commit-reveal for stealth announcements |
-| Graph Analysis | Ring signatures + realistic decoys |
-| Amount Correlation | Fixed denominations / Bulletproofs |
+| Graph Analysis | Stealth addresses + CDNA unlinkability |
+| Amount Correlation | Pedersen commitments with ZK range proofs |
 | Timing Analysis | Delayed relay + random jitter |
 | Key Compromise | Separate view/spending keys |
 
@@ -617,4 +637,4 @@ const success = await ringCT.verifyAndExecuteRCT(
 
 ## References
 
-[ERC-5564 Stealth](https://eips.ethereum.org/EIPS/eip-5564) • [Monero RingCT](https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf) • [Bulletproofs](https://eprint.iacr.org/2017/1066) • [CLSAG](https://eprint.iacr.org/2019/654) • [Zcash Spec](https://zips.z.cash/protocol/protocol.pdf)
+[ERC-5564 Stealth](https://eips.ethereum.org/EIPS/eip-5564) • [Groth16](https://eprint.iacr.org/2016/260) • [Poseidon Hash](https://www.poseidon-hash.info/) • [CDNA Design](./architecture.md)

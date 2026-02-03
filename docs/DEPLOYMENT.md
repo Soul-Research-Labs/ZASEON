@@ -110,8 +110,6 @@ Expected costs (at ~30 gwei):
 | Contract | Estimated Gas | Cost (ETH) |
 |----------|---------------|------------|
 | Groth16VerifierBN254 | ~2,500,000 | ~0.075 |
-| PLONKVerifier | ~3,000,000 | ~0.090 |
-| FRIVerifier | ~2,800,000 | ~0.084 |
 | ProofCarryingContainer | ~2,800,000 | ~0.084 |
 | PolicyBoundProofs | ~2,300,000 | ~0.069 |
 | EASC | ~2,000,000 | ~0.060 |
@@ -120,7 +118,8 @@ Expected costs (at ~30 gwei):
 | SoulTimelock | ~2,300,000 | ~0.069 |
 | SoulGovernance | ~3,500,000 | ~0.105 |
 | TEEAttestation | ~2,200,000 | ~0.066 |
-| **Total** | **~27,100,000** | **~0.81** |
+| ZKBoundStateLocks | ~3,000,000 | ~0.090 |
+| **Total** | **~24,300,000** | **~0.73** |
 
 ### Step 3: Deploy to Mainnet
 

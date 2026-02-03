@@ -31,11 +31,11 @@ This document provides a comprehensive threat model for the Soul Protocol (Soul)
 │  ┌────────▼────────────────────▼────────────────────▼────────┐  │
 │  │              Cross-Chain Proof Hub                         │  │
 │  └────────────────────────────────────────────────────────────┘  │
-│           │                    │                    │            │
-│  ┌────────▼────────┐  ┌────────▼────────┐  ┌────────▼────────┐  │
-│  │  Groth16        │  │  PLONK          │  │  FRI            │  │
-│  │  Verifier       │  │  Verifier       │  │  Verifier       │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+│                            │                                     │
+│                   ┌────────▼────────┐                           │
+│                   │  Groth16 (BN254)│                           │
+│                   │  Verifier       │                           │
+│                   └─────────────────┘                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,9 +148,9 @@ DEFAULT_ADMIN_ROLE
 **Threat**: Creating valid-looking proofs without knowing secrets.
 
 **Mitigations**:
-- ✅ Multiple verifier implementations (Groth16, PLONK, FRI)
-- ✅ Curve-specific verification (BN254, BLS12-381)
+- ✅ Groth16 verifier (BN254) using EVM precompiles
 - ✅ Input validation before verification
+- ✅ Trusted setup ceremony with secure parameters
 
 **Verification Flow**:
 ```

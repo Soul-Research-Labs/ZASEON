@@ -2,7 +2,7 @@
 
 > Cross-chain privacy-preserving transfers via unified `IBridgeAdapter` interface.
 
-Soul Bridge Adapters provide a unified interface for cross-chain operations while handling the complexity of different blockchain protocols. Each adapter implements the `IBridgeAdapter` interface:
+Soul Bridge Adapters provide a unified interface for cross-chain operations. Each adapter implements the `IBridgeAdapter` interface:
 
 ```solidity
 interface IBridgeAdapter {
@@ -29,18 +29,14 @@ interface IBridgeAdapter {
 
 ## Supported Chains
 
-| Chain | Adapter | Protocol | Finality | Notes |
-|-------|---------|----------|----------|-------|
-| Cardano | `CardanoBridgeAdapter` | Plutus Light Client | ~20 blocks | Ouroboros consensus |
-| Midnight | `MidnightBridgeAdapter` | DustJS ZK | ~10 blocks | Native privacy |
-| Polkadot | `PolkadotBridgeAdapter` | XCMP | ~30 blocks | Relay chain verification |
-| Cosmos | `CosmosBridgeAdapter` | IBC | ~15 blocks | Tendermint light client |
-| NEAR | `NEARBridgeAdapter` | Rainbow Bridge | ~4 epochs | ED25519 signatures |
-| zkSync Era | `zkSyncBridgeAdapter` | Priority Ops | Instant (L2) | ZK rollup |
-| Avalanche | `AvalancheBridgeAdapter` | Warp Messaging | ~2 seconds | BLS signatures |
-| Arbitrum | `ArbitrumBridgeAdapter` | Retryable Tickets | 7 days (withdrawal) | Optimistic rollup |
-| Solana | `SolanaBridgeAdapter` | SPL Bridge | ~32 slots | Ed25519 validators |
-| Bitcoin | `BitcoinBridgeAdapter` | HTLC | 6 blocks | Hash time-locked contracts |
+| Chain | Adapter | Protocol | Finality | Status |
+|-------|---------|----------|----------|--------|
+| Arbitrum One | `ArbitrumBridgeAdapter` | Retryable Tickets | 7 days (withdrawal) | ✅ Production |
+| Arbitrum Sepolia | `ArbitrumBridgeAdapter` | Retryable Tickets | 7 days | ✅ Production |
+| Base | `BaseBridgeAdapter` | OP Stack | 7 days | 🔄 Planned |
+| Optimism | `OptimismBridgeAdapter` | OP Stack | 7 days | 🔄 Planned |
+| LayerZero | `LayerZeroAdapter` | OApp V2 | Chain-dependent | ✅ Production |
+| Ethereum L1 | `EthereumL1Bridge` | Native | Finalized | ✅ Production |
 
 ---
 
@@ -78,224 +74,83 @@ const completed = await bridge.completeBridge(transferId, proof);
 
 ## Chain-Specific Integration
 
-### Cardano / Midnight
+### Arbitrum
 
 ```typescript
-import { CardanoBridge } from '@soulprotocol/sdk/bridges';
+import { SoulBridge, ChainId } from '@soulprotocol/sdk';
 
-const cardanoBridge = new CardanoBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  cardanoNode: 'https://cardano-node...',
-  blockfrostApiKey: 'your-api-key'
-});
+const bridge = new SoulBridge(provider);
 
-// Bridge ETH to Cardano
-const transfer = await cardanoBridge.bridgeToCardano({
+// Bridge to Arbitrum using native messaging
+const transferId = await bridge.transfer({
+  sourceChain: ChainId.ETHEREUM,
+  targetChain: ChainId.ARBITRUM,
   amount: ethers.parseEther('1.0'),
-  cardanoAddress: 'addr1...',
-  proof: zkProof
+  recipient: '0x...',
+  privateTransfer: true
 });
 
-// Wait for Plutus verification
-await transfer.waitForConfirmation(20); // 20 block confirmations
+// Arbitrum uses retryable tickets - may need to manually redeem
+const status = await bridge.getTransferStatus(transferId);
+if (status === 'pending_retry') {
+  await bridge.redeemRetryableTicket(transferId);
+}
 ```
 
-### Cosmos / IBC
+### LayerZero
 
 ```typescript
-import { CosmosBridge } from '@soulprotocol/sdk/bridges';
+import { LayerZeroAdapter } from '@soulprotocol/sdk/bridges';
 
-const cosmosBridge = new CosmosBridge({
+const lzBridge = new LayerZeroAdapter({
   sourceRpc: 'https://eth-mainnet...',
-  cosmosRpc: 'https://cosmos-rpc...',
-  ibcChannel: 'channel-0'
+  endpoint: '0x1a44076050125825900e736c501f859c50fE728c', // LZ V2 endpoint
 });
 
-// Bridge via IBC
-const transfer = await cosmosBridge.bridgeViaiBC({
+// Bridge via LayerZero OApp
+const transfer = await lzBridge.send({
+  dstEid: 30110, // Arbitrum endpoint ID
   amount: ethers.parseEther('1.0'),
-  cosmosAddress: 'cosmos1...',
-  timeoutHeight: { revisionNumber: 1n, revisionHeight: 1000000n },
-  timeoutTimestamp: BigInt(Date.now() + 3600000) * 1000000n
-});
-
-// Monitor IBC packet
-const packetStatus = await cosmosBridge.getPacketStatus(transfer.packetId);
-```
-
-### Polkadot / Substrate
-
-```typescript
-import { PolkadotBridge } from '@soulprotocol/sdk/bridges';
-
-const polkadotBridge = new PolkadotBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  relayChainRpc: 'wss://rpc.polkadot.io',
-  paraId: 2000
-});
-
-// Bridge via XCMP
-const transfer = await polkadotBridge.bridgeViaXCMP({
-  amount: ethers.parseEther('1.0'),
-  destinationParaId: 2004,
-  recipientMultiLocation: {
-    parents: 1,
-    interior: { X1: { AccountId32: { id: '0x...', network: null } } }
+  recipient: '0x...',
+  options: {
+    gas: 200000n,
+    value: 0n
   }
 });
 ```
 
-### NEAR / Rainbow Bridge
+### Direct L2-to-L2
 
 ```typescript
-import { NEARBridge } from '@soulprotocol/sdk/bridges';
+import { DirectL2Messenger } from '@soulprotocol/sdk/bridges';
 
-const nearBridge = new NEARBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  nearRpc: 'https://rpc.mainnet.near.org',
-  rainbowBridgeAddress: '0x...'
+const messenger = new DirectL2Messenger({
+  sourceRpc: process.env.ARBITRUM_RPC,
+  destRpc: process.env.BASE_RPC,
 });
 
-// Bridge to NEAR
-const transfer = await nearBridge.bridgeToNEAR({
-  amount: ethers.parseEther('1.0'),
-  nearAccountId: 'user.near',
-  proof: zkProof
+// Send message directly between L2s
+const messageId = await messenger.sendMessage({
+  destChainId: 8453, // Base
+  target: '0x...',
+  data: encodedCalldata,
+  gasLimit: 100000n
 });
-
-// Wait for Rainbow Bridge relay (4 epochs)
-await transfer.waitForRelayerConfirmation();
 ```
 
-### zkSync Era
+---
 
-```typescript
-import { zkSyncBridge } from '@soulprotocol/sdk/bridges';
+## Future Integrations
 
-const bridge = new zkSyncBridge({
-  l1Rpc: 'https://eth-mainnet...',
-  l2Rpc: 'https://mainnet.era.zksync.io'
-});
+The following chains are planned for future releases:
 
-// Deposit to zkSync (priority operation)
-const deposit = await bridge.deposit({
-  amount: ethers.parseEther('1.0'),
-  l2Recipient: '0x...',
-  l2GasLimit: 2000000n,
-  gasPerPubdataByte: 800n
-});
-
-// Withdraw from zkSync
-const withdrawal = await bridge.withdraw({
-  amount: ethers.parseEther('1.0'),
-  l1Recipient: '0x...'
-});
-
-// Wait for L2 batch verification
-await withdrawal.waitForVerification();
-```
-
-### Avalanche
-
-```typescript
-import { AvalancheBridge } from '@soulprotocol/sdk/bridges';
-
-const avaxBridge = new AvalancheBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  cChainRpc: 'https://api.avax.network/ext/bc/C/rpc'
-});
-
-// Bridge via Warp Messaging
-const transfer = await avaxBridge.bridgeViaWarp({
-  amount: ethers.parseEther('1.0'),
-  destinationBlockchainId: C_CHAIN_ID,
-  recipientAddress: '0x...'
-});
-
-// Fast finality with BLS signatures
-const finalized = await transfer.waitForWarpSignatures(67); // 67% threshold
-```
-
-### Arbitrum
-
-```typescript
-import { ArbitrumBridge } from '@soulprotocol/sdk/bridges';
-
-const arbitrumBridge = new ArbitrumBridge({
-  l1Rpc: 'https://eth-mainnet...',
-  l2Rpc: 'https://arb1.arbitrum.io/rpc'
-});
-
-// Deposit via retryable ticket
-const deposit = await arbitrumBridge.depositViaRetryable({
-  amount: ethers.parseEther('1.0'),
-  l2Recipient: '0x...',
-  maxSubmissionCost: ethers.parseEther('0.001'),
-  gasLimit: 1000000n,
-  maxFeePerGas: 100000000n // 0.1 gwei
-});
-
-// Track retryable ticket
-const ticketStatus = await arbitrumBridge.getRetryableStatus(deposit.ticketId);
-
-// Withdraw (7 day challenge period)
-const withdrawal = await arbitrumBridge.initiateWithdrawal({
-  amount: ethers.parseEther('1.0'),
-  l1Recipient: '0x...'
-});
-
-// Wait for challenge period
-await withdrawal.waitForChallengePeriod(); // ~7 days
-
-// Claim on L1
-await withdrawal.executeWithdrawal();
-```
-
-### Solana
-
-```typescript
-import { SolanaBridge } from '@soulprotocol/sdk/bridges';
-
-const solanaBridge = new SolanaBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  solanaRpc: 'https://api.mainnet-beta.solana.com'
-});
-
-// Bridge to Solana
-const transfer = await solanaBridge.bridgeToSolana({
-  amount: ethers.parseEther('1.0'),
-  solanaWallet: new PublicKey('...'),
-  proof: zkProof
-});
-
-// Claim wrapped token on Solana
-await transfer.claimOnSolana(solanaKeypair);
-```
-
-### Bitcoin
-
-```typescript
-import { BitcoinBridge } from '@soulprotocol/sdk/bridges';
-
-const btcBridge = new BitcoinBridge({
-  sourceRpc: 'https://eth-mainnet...',
-  bitcoinRpc: 'https://blockstream.info/api'
-});
-
-// Bridge via HTLC
-const htlc = await btcBridge.createHTLC({
-  amount: ethers.parseEther('1.0'),
-  bitcoinRecipient: 'bc1q...',
-  secretHash: keccak256(secret),
-  lockTime: Math.floor(Date.now() / 1000) + 86400 // 24 hours
-});
-
-// Monitor Bitcoin transaction
-const btcTx = await htlc.waitForBitcoinLock();
-
-// Claim with preimage
-await htlc.claimWithSecret(secret);
-```
+| Chain | Status | Expected |
+|-------|--------|----------|
+| Optimism | 🔄 In Development | Q2 2026 |
+| Base (with CCTP) | 🔄 In Development | Q2 2026 |
+| zkSync Era | 📋 Planned | Q3 2026 |
+| Scroll | 📋 Planned | Q3 2026 |
+| Linea | 📋 Planned | Q3 2026 |
 
 ---
 
