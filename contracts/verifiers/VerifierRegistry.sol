@@ -321,9 +321,9 @@ contract VerifierRegistry is AccessControl, IVerifierRegistry {
         }
         if (codeSize == 0) return false;
 
-        // Try to call isReady() - if it doesn't revert, consider it valid
-        try IProofVerifier(verifier).isReady() returns (bool) {
-            return true;
+        // Try to call isReady() - verifier must be ready to be valid
+        try IProofVerifier(verifier).isReady() returns (bool ready) {
+            return ready;
         } catch {
             return false;
         }

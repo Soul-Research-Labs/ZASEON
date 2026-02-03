@@ -667,12 +667,19 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
             }
         }
 
+        // CEI: Mark as executing before external call to prevent reentrancy
+        // Temporarily set to EXECUTED, will be reverted to FAILED if call fails
+        msg_.status = MessageStatus.EXECUTED;
+
         // Execute call
         (bool success, bytes memory returnData) = msg_.recipient.call(
             msg_.payload
         );
 
-        msg_.status = success ? MessageStatus.EXECUTED : MessageStatus.FAILED;
+        // Update final status after call
+        if (!success) {
+            msg_.status = MessageStatus.FAILED;
+        }
 
         emit MessageExecuted(messageId, success, returnData);
     }
@@ -797,6 +804,10 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         L2Message storage msg_ = messages[messageId];
         uint256 bond = challengeBonds[messageId];
 
+        // CEI: Clear state BEFORE external calls to prevent reentrancy
+        delete challengers[messageId];
+        delete challengeBonds[messageId];
+
         if (fraudProven) {
             // Fraud proven: slash relayers, reward challenger
             RelayerConfirmation[] storage confirmations = messageConfirmations[
@@ -813,7 +824,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
 
             // Calculate total reward (bond + configurable reward)
             uint256 totalReward = bond + challengerReward;
-            
+
             // Ensure contract has sufficient balance
             if (address(this).balance < totalReward) {
                 // Fall back to just returning the bond if reward pool is depleted
@@ -828,9 +839,6 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
             msg_.status = MessageStatus.EXECUTED;
             // Bond is kept by protocol
         }
-
-        delete challengers[messageId];
-        delete challengeBonds[messageId];
 
         emit ChallengeResolved(
             messageId,
@@ -861,8 +869,9 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         uint256 challengeWindow
     ) external onlyRole(OPERATOR_ROLE) {
         // Validate chain IDs are non-zero
-        if (sourceChainId == 0 || destChainId == 0) revert InvalidDestinationChain();
-        
+        if (sourceChainId == 0 || destChainId == 0)
+            revert InvalidDestinationChain();
+
         // Validate adapter is a contract (if provided)
         if (adapter != address(0)) {
             uint256 codeSize;
@@ -871,7 +880,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
             }
             if (codeSize == 0) revert InvalidRelayer(); // Reusing error for "invalid adapter"
         }
-        
+
         routes[sourceChainId][destChainId] = RouteConfig({
             preferredPath: path,
             adapter: adapter,

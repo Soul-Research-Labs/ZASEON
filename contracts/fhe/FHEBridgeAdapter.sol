@@ -46,6 +46,9 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     mapping(uint256 => ChainConfig) public chainConfigs;
     mapping(bytes32 => OutboundTransfer) public outboundTransfers;
+    /// @dev Maps FHE re-encryption request IDs to transfer IDs. 
+    /// @notice This mapping is populated when requesting re-encryption from the FHE gateway.
+    /// Currently a placeholder for future FHE integration.
     mapping(bytes32 => bytes32) public reencryptionToTransfer;
 
     uint64 public transferNonce;
