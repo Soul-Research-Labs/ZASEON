@@ -325,8 +325,8 @@ contract VerifierGasBenchmark is Test {
 
         uint256 gasBefore = gasleft();
         // Call mock verifier directly (skips field validation in adapter)
-        bytes32[] memory signals = new bytes32[](1);
-        signals[0] = randomInput;
+        uint256[] memory signals = new uint256[](1);
+        signals[0] = uint256(randomInput);
         try mockVerifier.verify(randomProof, signals) {
             // Mock returns true
         } catch {
@@ -496,14 +496,36 @@ contract VerifierGasBenchmark is Test {
 
 /**
  * @title MockNoirVerifier
- * @notice Mock verifier that always returns true (for gas measurement)
+ * @notice Mock verifier that implements IProofVerifier (for gas measurement)
  * @dev In production tests, use actual generated verifiers with valid proofs
  */
 contract MockNoirVerifier {
     function verify(
         bytes calldata,
-        bytes32[] calldata
+        uint256[] calldata
     ) external pure returns (bool) {
+        return true;
+    }
+
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure returns (bool) {
+        return true;
+    }
+
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external pure returns (bool) {
+        return true;
+    }
+
+    function getPublicInputCount() external pure returns (uint256) {
+        return 3;
+    }
+
+    function isReady() external pure returns (bool) {
         return true;
     }
 }

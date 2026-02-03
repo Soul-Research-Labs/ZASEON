@@ -81,6 +81,8 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     error InsufficientConfirmations();
     error MessageNotFound();
     error WithdrawalFailed();
+    error ZeroAddress();
+    error InvalidConfirmationCount();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -127,6 +129,8 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     );
 
     event SharedSequencerUpdated(address indexed sequencer, bool active);
+    event RequiredConfirmationsUpdated(uint256 newCount);
+    event ChallengerRewardUpdated(uint256 newReward);
 
     event MessageChallenged(
         bytes32 indexed messageId,
@@ -241,6 +245,9 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
 
     /// @notice Message expiry
     uint256 public constant MESSAGE_EXPIRY = 24 hours;
+
+    /// @notice Challenger reward for successful fraud proofs
+    uint256 public challengerReward = 0.1 ether;
 
     /// @notice Required confirmations for fast path
     uint256 public requiredConfirmations = 3;
@@ -783,7 +790,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     function resolveChallenge(
         bytes32 messageId,
         bool fraudProven
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external onlyRole(OPERATOR_ROLE) nonReentrant {
         address challenger = challengers[messageId];
         if (challenger == address(0)) revert MessageNotFound();
 
@@ -804,8 +811,17 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
 
             msg_.status = MessageStatus.FAILED;
 
-            // Return bond + reward to challenger
-            (bool success, ) = challenger.call{value: bond + 0.1 ether}("");
+            // Calculate total reward (bond + configurable reward)
+            uint256 totalReward = bond + challengerReward;
+            
+            // Ensure contract has sufficient balance
+            if (address(this).balance < totalReward) {
+                // Fall back to just returning the bond if reward pool is depleted
+                totalReward = bond;
+            }
+
+            // Return bond + reward to challenger (CEI: state changes done above)
+            (bool success, ) = challenger.call{value: totalReward}("");
             if (!success) revert TransferFailed();
         } else {
             // Challenge failed: burn challenger bond
@@ -844,6 +860,18 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         uint256 minConfirmations,
         uint256 challengeWindow
     ) external onlyRole(OPERATOR_ROLE) {
+        // Validate chain IDs are non-zero
+        if (sourceChainId == 0 || destChainId == 0) revert InvalidDestinationChain();
+        
+        // Validate adapter is a contract (if provided)
+        if (adapter != address(0)) {
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(adapter)
+            }
+            if (codeSize == 0) revert InvalidRelayer(); // Reusing error for "invalid adapter"
+        }
+        
         routes[sourceChainId][destChainId] = RouteConfig({
             preferredPath: path,
             adapter: adapter,
@@ -864,6 +892,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     function setSuperchainMessenger(
         address messenger
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (messenger == address(0)) revert ZeroAddress();
         superchainMessenger = messenger;
     }
 
@@ -874,6 +903,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     function setEspressoSequencer(
         address sequencer
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (sequencer == address(0)) revert ZeroAddress();
         espressoSequencer = sequencer;
     }
 
@@ -884,6 +914,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     function setAstriaSequencer(
         address sequencer
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (sequencer == address(0)) revert ZeroAddress();
         astriaSequencer = sequencer;
     }
 
@@ -894,7 +925,20 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     function setRequiredConfirmations(
         uint256 count
     ) external onlyRole(OPERATOR_ROLE) {
+        if (count == 0) revert InvalidConfirmationCount();
         requiredConfirmations = count;
+        emit RequiredConfirmationsUpdated(count);
+    }
+
+    /**
+     * @notice Update challenger reward amount
+     * @param reward New reward amount in wei
+     */
+    function setChallengerReward(
+        uint256 reward
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        challengerReward = reward;
+        emit ChallengerRewardUpdated(reward);
     }
 
     /*//////////////////////////////////////////////////////////////

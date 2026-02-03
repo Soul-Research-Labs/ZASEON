@@ -780,6 +780,10 @@ contract CrossChainPrivacyHub is
      * @param spendingPubKey Recipient's spending public key
      * @param viewingPubKey Recipient's viewing public key
      * @param chainId Target chain ID
+     * @dev WARNING: This function uses block.prevrandao which is predictable by validators.
+     *      For production use, ephemeral keys should be generated off-chain with proper
+     *      randomness (e.g., CSPRNG) and only verified on-chain. This on-chain generation
+     *      is provided for testing and low-value use cases only.
      */
     function generateStealthAddress(
         bytes32 spendingPubKey,
