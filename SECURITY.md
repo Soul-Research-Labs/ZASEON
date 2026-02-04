@@ -63,7 +63,41 @@ We take security seriously. If you discover a security vulnerability within Soul
 
 ## Internal Security Program
 
-> **Note:** External bug bounty and third-party audits are currently on hold. All security efforts are focused on internal hardening.
+> **Note:** Bug bounty program in preparation. Third-party audits scheduled for Q2 2026.
+
+### Bug Bounty Program (Planned)
+
+| Severity | Reward Range | Examples |
+|----------|--------------|----------|
+| Critical | $50,000 - $500,000 | Direct fund theft, proof forgery |
+| High | $10,000 - $50,000 | Access control bypass, cross-chain manipulation |
+| Medium | $2,000 - $10,000 | DoS attacks, gas griefing |
+| Low | $500 - $2,000 | Information disclosure, non-critical issues |
+
+**Scope:**
+- Smart contracts in `/contracts`
+- Noir circuits in `/noir`
+- SDK security issues affecting contract interaction
+
+**Out of Scope:**
+- Documentation errors
+- UI/frontend issues
+- Already-known issues in SECURITY_AUDIT_REPORT.md
+
+### Monitoring Recommendations
+
+| Component | Monitoring Tool | Alert Threshold |
+|-----------|-----------------|-----------------|
+| Bridge Deposits | Tenderly/OpenZeppelin Defender | > $100k single tx |
+| Proof Verifications | Custom Indexer | Failure rate > 1% |
+| TVL Changes | Dune Dashboard | > 10% in 1 hour |
+| Admin Actions | Defender Sentinels | Any timelock proposal |
+| Relayer Health | Prometheus/Grafana | Latency > 30s |
+
+**Recommended Alert Channels:**
+- PagerDuty for Critical (24/7)
+- Slack/Discord for High/Medium
+- Email digest for Low
 
 ### Internal Security Testing
 
@@ -158,6 +192,47 @@ For complete details, see [docs/SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_
 - Emergency withdrawal mechanisms
 - Continuous automated security testing
 - Incident response procedures documented
+
+### Incident Response Procedures
+
+**Severity Classification:**
+| Level | Response Time | Escalation |
+|-------|---------------|------------|
+| P0 (Critical) | 15 minutes | All hands, pause contracts |
+| P1 (High) | 1 hour | Security team + on-call |
+| P2 (Medium) | 4 hours | Security team |
+| P3 (Low) | 24 hours | Normal triage |
+
+**Response Steps:**
+1. **Detect** - Monitoring alerts or user report
+2. **Assess** - Determine severity and scope
+3. **Contain** - Pause affected contracts if needed
+4. **Remediate** - Deploy fix via timelock (or emergency if P0)
+5. **Recover** - Restore normal operations
+6. **Review** - Post-mortem within 48 hours
+
+**Emergency Contacts:**
+- Primary: Security Lead (on-call rotation)
+- Secondary: Protocol Lead
+- Tertiary: Legal/Comms
+
+### Key Management & Rotation
+
+**Key Types:**
+| Key | Rotation Period | Storage |
+|-----|-----------------|---------|
+| Admin Multisig | Annual review | Hardware wallets |
+| Operator Keys | Quarterly | HSM or hardware wallet |
+| Relayer Keys | Monthly | Secure enclave |
+| Monitoring Keys | On compromise | Environment vars |
+
+**Rotation Procedure:**
+1. Generate new key in secure environment
+2. Add new key via timelock proposal
+3. Wait for timelock execution
+4. Remove old key via timelock
+5. Update documentation
+6. Revoke old key access
 
 ## Security Roadmap
 
