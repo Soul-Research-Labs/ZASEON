@@ -184,6 +184,10 @@ contract CrossChainProofHubV3 is
     /// @notice Relayer pending proof count (TOCTOU protection)
     mapping(address => uint256) public relayerPendingProofs;
 
+    /// @notice Claimable rewards for non-relayer challengers
+    /// @dev Separate from relayerStakes to allow anyone to claim challenge winnings
+    mapping(address => uint256) public claimableRewards;
+
     /// @notice Trusted remote contract addresses per chain
     mapping(uint256 => address) public trustedRemotes;
 
@@ -441,6 +445,20 @@ contract CrossChainProofHubV3 is
         if (!success) revert WithdrawFailed();
 
         emit RelayerStakeWithdrawn(msg.sender, amount);
+    }
+
+    /// @notice Withdraws claimable rewards (for challengers who won disputes)
+    /// @param amount Amount to withdraw
+    function withdrawRewards(uint256 amount) external nonReentrant {
+        if (claimableRewards[msg.sender] < amount)
+            revert InsufficientStake(claimableRewards[msg.sender], amount);
+
+        claimableRewards[msg.sender] -= amount;
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        if (!success) revert WithdrawFailed();
+
+        emit RelayerStakeWithdrawn(msg.sender, amount); // Reuse event for simplicity
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -744,7 +762,8 @@ contract CrossChainProofHubV3 is
             // Reward relayer with challenger's stake
             uint256 reward = challenge.stake;
             relayerStakes[submission.relayer] += reward;
-            relayerSuccessCount[submission.relayer]++;
+            // NOTE: Do NOT increment relayerSuccessCount here - finalizeProof handles it
+            // to avoid double-counting when proof moves from Verified -> Finalized
 
             emit ChallengeResolved(proofId, false, submission.relayer, reward);
             emit ProofVerified(proofId, ProofStatus.Verified);
@@ -778,8 +797,9 @@ contract CrossChainProofHubV3 is
             // FIX: Only reward what was actually slashed to prevent inflation
             uint256 reward = challenge.stake + actualSlashed;
 
-            // Credit rewards to claimable balance (pull pattern - safer than push)
-            relayerStakes[challengerAddr] += reward;
+            // H-5 FIX: Credit rewards to claimableRewards instead of relayerStakes
+            // This allows non-relayer challengers to withdraw their winnings
+            claimableRewards[challengerAddr] += reward;
 
             emit ChallengeResolved(proofId, true, challengerAddr, reward);
             emit ProofRejected(proofId, challenge.reason);

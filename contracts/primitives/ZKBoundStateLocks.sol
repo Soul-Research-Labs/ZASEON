@@ -163,8 +163,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
      * @dev Domain configuration for cross-chain coordination
      */
     struct Domain {
-        uint16 chainId;
-        uint16 appId;
+        uint64 chainId;  // H-3 FIX: Extended to support Arbitrum, Linea, Scroll etc.
+        uint64 appId;    // H-3 FIX: Extended for consistency
         uint32 epoch;
         string name;
         bool isActive;
@@ -304,8 +304,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     event DomainRegistered(
         bytes32 indexed domainSeparator,
-        uint16 chainId,
-        uint16 appId,
+        uint64 chainId,
+        uint64 appId,
         uint32 epoch,
         string name
     );
@@ -667,15 +667,21 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Registers a new domain
+     * @notice Registers a new domain with extended chain ID support
+     * @dev H-3 FIX: Uses uint64 chainId to support Arbitrum (42161), Linea (59144), Scroll (534352), etc.
+     * @param chainId The chain ID (supports values > 65535)
+     * @param appId The application ID
+     * @param epoch The epoch for versioning
+     * @param name Human-readable domain name
      */
     function registerDomain(
-        uint16 chainId,
-        uint16 appId,
+        uint64 chainId,
+        uint64 appId,
         uint32 epoch,
         string calldata name
     ) external onlyRole(DOMAIN_ADMIN_ROLE) returns (bytes32 domainSeparator) {
-        domainSeparator = generateDomainSeparator(chainId, appId, epoch);
+        // H-3 FIX: Use extended generator that supports full uint64 chain IDs
+        domainSeparator = generateDomainSeparatorExtended(chainId, appId, epoch);
 
         // M-1 Fix: Prevent overwriting existing domains
         if (domains[domainSeparator].registeredAt != 0) {
@@ -697,13 +703,29 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Force unlock a lock (Emergency Recovery)
      * @dev Only callable by RECOVERY_ROLE (e.g., PQCProtectedLock)
+     * @param lockId The lock to recover
+     * @param recipient The address that initiated recovery (for event tracking)
      */
     function recoverLock(
         bytes32 lockId,
-        address /* recipient */
-    ) external onlyRole(RECOVERY_ROLE) {
+        address recipient
+    ) external nonReentrant onlyRole(RECOVERY_ROLE) {
         ZKSLock storage lock = locks[lockId];
         if (lock.lockId == bytes32(0)) revert InvalidLock(lockId);
+        
+        // H-2 FIX: Check if lock is already unlocked
+        if (lock.isUnlocked) revert LockAlreadyUnlocked(lockId);
+
+        // H-2 FIX: Generate a recovery-specific nullifier to prevent replay
+        // Use a deterministic nullifier based on lockId and recovery context
+        bytes32 recoveryNullifier = keccak256(abi.encode(lockId, "RECOVERY", block.chainid));
+        
+        // Mark nullifier as used to prevent the same lock from being recovered twice
+        // or from being unlocked normally after recovery
+        if (nullifierUsed[recoveryNullifier]) {
+            revert NullifierAlreadyUsed(recoveryNullifier);
+        }
+        nullifierUsed[recoveryNullifier] = true;
 
         // Force unlock logic - remove lock
         // Mark as unlocked
@@ -716,9 +738,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         emit LockUnlocked(
             lockId,
             bytes32(0),
-            bytes32(0),
+            recoveryNullifier,
             lock.domainSeparator,
-            msg.sender
+            recipient
         );
     }
 
