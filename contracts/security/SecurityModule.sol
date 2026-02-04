@@ -68,17 +68,21 @@ abstract contract SecurityModule {
 
     // ============ Packed Security Flags (Gas Optimization) ============
     // Pack 5 boolean flags into a single uint8 to save ~8,400 gas (4 storage slots)
-    
+
     /// @dev Bit positions for packed security flags
-    uint8 private constant FLAG_RATE_LIMITING = 1 << 0;      // bit 0
-    uint8 private constant FLAG_CIRCUIT_BREAKER = 1 << 1;    // bit 1
-    uint8 private constant FLAG_CIRCUIT_TRIPPED = 1 << 2;    // bit 2
-    uint8 private constant FLAG_FLASH_LOAN_GUARD = 1 << 3;   // bit 3
-    uint8 private constant FLAG_WITHDRAWAL_LIMITS = 1 << 4;  // bit 4
-    
+    uint8 private constant FLAG_RATE_LIMITING = 1 << 0; // bit 0
+    uint8 private constant FLAG_CIRCUIT_BREAKER = 1 << 1; // bit 1
+    uint8 private constant FLAG_CIRCUIT_TRIPPED = 1 << 2; // bit 2
+    uint8 private constant FLAG_FLASH_LOAN_GUARD = 1 << 3; // bit 3
+    uint8 private constant FLAG_WITHDRAWAL_LIMITS = 1 << 4; // bit 4
+
     /// @notice Packed security flags - all enabled by default except circuit tripped
     /// @dev Default: rate limiting | circuit breaker | flash loan guard | withdrawal limits = 0x1B
-    uint8 private _securityFlags = FLAG_RATE_LIMITING | FLAG_CIRCUIT_BREAKER | FLAG_FLASH_LOAN_GUARD | FLAG_WITHDRAWAL_LIMITS;
+    uint8 private _securityFlags =
+        FLAG_RATE_LIMITING |
+            FLAG_CIRCUIT_BREAKER |
+            FLAG_FLASH_LOAN_GUARD |
+            FLAG_WITHDRAWAL_LIMITS;
 
     // ============ Rate Limiting ============
 
@@ -147,36 +151,36 @@ abstract contract SecurityModule {
 
     /// @notice Per-account maximum daily withdrawal
     uint256 public accountMaxDailyWithdrawal = 100_000 * 1e18;
-    
+
     // ============ Backward-Compatible Public Getters for Packed Flags ============
-    
+
     /// @notice Whether rate limiting is enabled
     function rateLimitingEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_RATE_LIMITING) != 0;
     }
-    
+
     /// @notice Whether circuit breaker is enabled
     function circuitBreakerEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_CIRCUIT_BREAKER) != 0;
     }
-    
+
     /// @notice Whether circuit breaker is currently tripped
     function circuitBreakerTripped() public view returns (bool) {
         return (_securityFlags & FLAG_CIRCUIT_TRIPPED) != 0;
     }
-    
+
     /// @notice Whether flash loan guard is enabled
     function flashLoanGuardEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_FLASH_LOAN_GUARD) != 0;
     }
-    
+
     /// @notice Whether withdrawal limits are enabled
     function withdrawalLimitsEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_WITHDRAWAL_LIMITS) != 0;
     }
-    
+
     // ============ Internal Flag Setters ============
-    
+
     /// @dev Set a security flag
     function _setFlag(uint8 flag, bool value) private {
         if (value) {

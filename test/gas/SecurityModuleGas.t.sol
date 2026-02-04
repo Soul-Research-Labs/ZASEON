@@ -27,17 +27,17 @@ contract SecurityModuleGasTest is Test {
     /// @notice Measure gas for reading all flag values
     function test_gas_readAllFlags() public view {
         uint256 gasBefore = gasleft();
-        
+
         bool a = module.rateLimitingEnabled();
         bool b = module.circuitBreakerEnabled();
         bool c = module.circuitBreakerTripped();
         bool d = module.flashLoanGuardEnabled();
         bool e = module.withdrawalLimitsEnabled();
-        
+
         uint256 gasUsed = gasBefore - gasleft();
-        
+
         console.log("Read all 5 flags gas:", gasUsed);
-        
+
         // With packed flags, all reads come from same storage slot
         // Should be ~2100 gas for SLOAD + ~200 for bitwise ops
         // Much cheaper than 5 x 2100 = 10500 for separate SLOADs
@@ -47,13 +47,13 @@ contract SecurityModuleGasTest is Test {
     /// @notice Measure gas for toggling security features
     function test_gas_setSecurityFeatures() public {
         uint256 gasBefore = gasleft();
-        
+
         module.setSecurityFeatures(false, false, false, false);
-        
+
         uint256 gasUsed = gasBefore - gasleft();
-        
+
         console.log("Set 4 security features gas:", gasUsed);
-        
+
         // With packed flags, single SSTORE updates all 4 flags
         // Should be ~5000-22000 gas for single SSTORE
         // Much cheaper than 4 x 5000+ = 20000+ for separate SSTOREs
@@ -68,11 +68,11 @@ contract SecurityModuleGasTest is Test {
     /// @notice Measure gas for rate limited operation
     function test_gas_rateLimitedOperation() public {
         uint256 gasBefore = gasleft();
-        
+
         module.performRateLimitedAction();
-        
+
         uint256 gasUsed = gasBefore - gasleft();
-        
+
         console.log("Rate limited action gas:", gasUsed);
     }
 
@@ -81,13 +81,13 @@ contract SecurityModuleGasTest is Test {
         // First record a deposit in a previous block
         module.recordTestDeposit(address(this));
         vm.roll(block.number + 2);
-        
+
         uint256 gasBefore = gasleft();
-        
+
         module.performFlashLoanGuardedAction();
-        
+
         uint256 gasUsed = gasBefore - gasleft();
-        
+
         console.log("Flash loan guarded action gas:", gasUsed);
     }
 }
@@ -106,7 +106,12 @@ contract TestableSecurityModule is SecurityModule {
         bool flashLoanGuard,
         bool withdrawalLimits
     ) external {
-        _setSecurityFeatures(rateLimiting, circuitBreakers, flashLoanGuard, withdrawalLimits);
+        _setSecurityFeatures(
+            rateLimiting,
+            circuitBreakers,
+            flashLoanGuard,
+            withdrawalLimits
+        );
     }
 
     /// @notice Simulate volume increase to trigger circuit breaker
