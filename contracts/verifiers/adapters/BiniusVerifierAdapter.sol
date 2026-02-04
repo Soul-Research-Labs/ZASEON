@@ -76,10 +76,10 @@ contract BiniusVerifierAdapter is IProofVerifier {
     ) external view override returns (bool success) {
         // Encode public inputs to bytes
         bytes memory encodedInputs = abi.encode(publicInputs);
-        
+
         // Decode and verify using BiniusVerifier
         BiniusVerifier.BiniusProof memory biniusProof = _decodeProof(proof);
-        
+
         // Note: BiniusVerifier.verifyProof is not view, so we use staticcall pattern
         // For now, return true for valid proof structure (actual verification requires state change)
         return _validateProofStructure(biniusProof, encodedInputs);
@@ -169,7 +169,12 @@ contract BiniusVerifierAdapter is IProofVerifier {
      * @notice Get the expected number of public inputs
      * @return count Number of public inputs expected
      */
-    function getPublicInputCount() external view override returns (uint256 count) {
+    function getPublicInputCount()
+        external
+        view
+        override
+        returns (uint256 count)
+    {
         return publicInputCount;
     }
 
@@ -208,17 +213,19 @@ contract BiniusVerifierAdapter is IProofVerifier {
     ) internal view returns (bool valid) {
         // Check proof ID exists
         if (biniusProof.proofId == bytes32(0)) return false;
-        
+
         // Check commitment root exists
         if (biniusProof.commitment.root == bytes32(0)) return false;
-        
+
         // Check dimension is within bounds
         (uint8 minDim, uint8 maxDim, , , ) = biniusVerifier.config();
-        if (biniusProof.commitment.dimension < minDim || 
-            biniusProof.commitment.dimension > maxDim) {
+        if (
+            biniusProof.commitment.dimension < minDim ||
+            biniusProof.commitment.dimension > maxDim
+        ) {
             return false;
         }
-        
+
         // Check public input hash matches
         bytes32 expectedHash = keccak256(publicInputs);
         if (biniusProof.publicInputHash != expectedHash) {
@@ -227,7 +234,7 @@ contract BiniusVerifierAdapter is IProofVerifier {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -254,13 +261,13 @@ contract BiniusVerifierAdapter is IProofVerifier {
         // Fixed-size fields
         biniusProof.proofId = bytes32(proof[0:32]);
         biniusProof.variant = BiniusVerifier.BiniusVariant(uint8(proof[32]));
-        
+
         // Commitment
         biniusProof.commitment.root = bytes32(proof[33:65]);
         biniusProof.commitment.dimension = uint8(proof[65]);
         biniusProof.commitment.towerLevel = uint8(proof[66]);
         biniusProof.commitment.evalHash = bytes32(proof[67:99]);
-        
+
         biniusProof.publicInputHash = bytes32(proof[99:131]);
         biniusProof.timestamp = uint64(bytes8(proof[131:139]));
 
@@ -275,7 +282,9 @@ contract BiniusVerifierAdapter is IProofVerifier {
                 if (merkleLen > 0 && offset + merkleLen * 32 <= proof.length) {
                     biniusProof.merkleProof = new bytes32[](merkleLen);
                     for (uint256 i = 0; i < merkleLen; i++) {
-                        biniusProof.merkleProof[i] = bytes32(proof[offset:offset + 32]);
+                        biniusProof.merkleProof[i] = bytes32(
+                            proof[offset:offset + 32]
+                        );
                         offset += 32;
                     }
                 }
@@ -283,13 +292,14 @@ contract BiniusVerifierAdapter is IProofVerifier {
 
             // Skip evaluations for now (complex struct)
             // Skip friRounds for now
-            
+
             // Sumcheck proof (variable bytes)
             if (offset + 4 <= proof.length) {
                 uint32 sumcheckLen = uint32(bytes4(proof[offset:offset + 4]));
                 offset += 4;
                 if (sumcheckLen > 0 && offset + sumcheckLen <= proof.length) {
-                    biniusProof.sumcheckProof = proof[offset:offset + sumcheckLen];
+                    biniusProof.sumcheckProof = proof[offset:offset +
+                        sumcheckLen];
                 }
             }
         }
@@ -306,11 +316,14 @@ contract BiniusVerifierAdapter is IProofVerifier {
         // Calculate merkle proof length
         uint256 merkleLen = biniusProof.merkleProof.length;
         uint256 sumcheckLen = biniusProof.sumcheckProof.length;
-        
+
         // Calculate total length
         uint256 totalLen = 139 + // Fixed fields
-            4 + merkleLen * 32 + // Merkle proof with length prefix
-            4 + sumcheckLen; // Sumcheck proof with length prefix
+            4 +
+            merkleLen *
+            32 + // Merkle proof with length prefix
+            4 +
+            sumcheckLen; // Sumcheck proof with length prefix
 
         proof = new bytes(totalLen);
 
@@ -318,28 +331,28 @@ contract BiniusVerifierAdapter is IProofVerifier {
         assembly {
             mstore(add(proof, 32), mload(add(biniusProof, 0))) // proofId
         }
-        
+
         proof[32] = bytes1(uint8(biniusProof.variant));
-        
+
         // Commitment
         bytes32 commitmentRoot = biniusProof.commitment.root;
         assembly {
             mstore(add(proof, 65), commitmentRoot)
         }
-        
+
         proof[65] = bytes1(biniusProof.commitment.dimension);
         proof[66] = bytes1(biniusProof.commitment.towerLevel);
-        
+
         bytes32 evalHash = biniusProof.commitment.evalHash;
         assembly {
             mstore(add(proof, 99), evalHash)
         }
-        
+
         bytes32 pubInputHash = biniusProof.publicInputHash;
         assembly {
             mstore(add(proof, 131), pubInputHash)
         }
-        
+
         // Timestamp (8 bytes)
         bytes8 timestamp = bytes8(biniusProof.timestamp);
         for (uint256 i = 0; i < 8; i++) {
@@ -348,14 +361,14 @@ contract BiniusVerifierAdapter is IProofVerifier {
 
         // Variable length fields
         uint256 offset = 139;
-        
+
         // Merkle proof
         bytes4 merkleBytes = bytes4(uint32(merkleLen));
         for (uint256 i = 0; i < 4; i++) {
             proof[offset + i] = merkleBytes[i];
         }
         offset += 4;
-        
+
         for (uint256 i = 0; i < merkleLen; i++) {
             bytes32 elem = biniusProof.merkleProof[i];
             assembly {
@@ -370,7 +383,7 @@ contract BiniusVerifierAdapter is IProofVerifier {
             proof[offset + i] = sumcheckBytes[i];
         }
         offset += 4;
-        
+
         for (uint256 i = 0; i < sumcheckLen; i++) {
             proof[offset + i] = biniusProof.sumcheckProof[i];
         }

@@ -668,9 +668,7 @@ contract SoulProtocolHub is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Set MPC Gateway
      */
-    function setMPCGateway(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
+    function setMPCGateway(address _module) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
         mpcGateway = _module;
         emit MPCModuleRegistered("MPC_GATEWAY", _module);
@@ -807,9 +805,7 @@ contract SoulProtocolHub is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Set Bitcoin HTLC
      */
-    function setBitcoinHTLC(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
+    function setBitcoinHTLC(address _module) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
         bitcoinHtlc = _module;
         emit ComponentRegistered(
@@ -823,9 +819,7 @@ contract SoulProtocolHub is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Set BitVM Circuit
      */
-    function setBitVMCircuit(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
+    function setBitVMCircuit(address _module) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
         bitvmCircuit = _module;
         emit ComponentRegistered(
@@ -906,9 +900,7 @@ contract SoulProtocolHub is AccessControl, ReentrancyGuard, Pausable {
      * @param chainId The target chain ID
      * @return Bridge adapter address
      */
-    function getBridgeAdapter(
-        uint256 chainId
-    ) external view returns (address) {
+    function getBridgeAdapter(uint256 chainId) external view returns (address) {
         return bridgeAdapters[chainId].adapter;
     }
 

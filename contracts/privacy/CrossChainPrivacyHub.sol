@@ -497,9 +497,7 @@ contract CrossChainPrivacyHub is
      * @notice Set Soul Protocol Hub address
      * @param _hub The SoulProtocolHub address
      */
-    function setSoulProtocolHub(
-        address _hub
-    ) external onlyRole(OPERATOR_ROLE) {
+    function setSoulProtocolHub(address _hub) external onlyRole(OPERATOR_ROLE) {
         if (_hub == address(0)) revert ZeroAddress();
         soulProtocolHub = _hub;
     }
