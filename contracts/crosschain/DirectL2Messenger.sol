@@ -301,7 +301,7 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
         if (_admin == address(0)) revert ZeroAddress();
         // M-4: Validate soulHub is not zero - required for nullifier binding
         if (_soulHub == address(0)) revert ZeroAddress();
-        
+
         currentChainId = block.chainid;
         soulHub = _soulHub;
 

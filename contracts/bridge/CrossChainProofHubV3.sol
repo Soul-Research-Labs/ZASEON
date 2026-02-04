@@ -307,7 +307,10 @@ contract CrossChainProofHubV3 is
     event VerifierSet(bytes32 indexed proofType, address verifier);
 
     /// @notice Emitted when verifier registry is updated
-    event VerifierRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+    event VerifierRegistryUpdated(
+        address indexed oldRegistry,
+        address indexed newRegistry
+    );
 
     /// @notice Emitted when challenge period is updated
     event ChallengePeriodUpdated(uint256 oldPeriod, uint256 newPeriod);

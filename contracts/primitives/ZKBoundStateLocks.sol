@@ -362,7 +362,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         if (_activeLockIds.length >= MAX_ACTIVE_LOCKS) {
             revert TooManyActiveLocks();
         }
-        
+
         // SECURITY FIX: Use abi.encode instead of abi.encodePacked
         // abi.encodePacked with multiple variable-length inputs can cause hash collisions
         // abi.encode pads each argument to 32 bytes, preventing collisions
@@ -1139,15 +1139,15 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     ///      different addresses hold different roles
     function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
         address admin = msg.sender;
-        
+
         // Verify admin doesn't hold other critical roles
         require(
             !hasRole(DISPUTE_RESOLVER_ROLE, admin) &&
-            !hasRole(RECOVERY_ROLE, admin) &&
-            !hasRole(OPERATOR_ROLE, admin),
+                !hasRole(RECOVERY_ROLE, admin) &&
+                !hasRole(OPERATOR_ROLE, admin),
             "Admin must not hold operational roles"
         );
-        
+
         rolesSeparated = true;
     }
 

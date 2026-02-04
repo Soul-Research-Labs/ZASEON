@@ -217,7 +217,12 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     );
 
     /// @notice Emitted when gas limits are updated
-    event GasLimitsUpdated(uint256 oldMin, uint256 newMin, uint256 oldMax, uint256 newMax);
+    event GasLimitsUpdated(
+        uint256 oldMin,
+        uint256 newMin,
+        uint256 oldMax,
+        uint256 newMax
+    );
 
     /// @notice Emitted when message expiry is updated
     event MessageExpiryUpdated(uint256 oldExpiry, uint256 newExpiry);

@@ -112,15 +112,37 @@ We take security seriously. If you discover a security vulnerability within Soul
 
 ### Recent Security Fixes (February 2026)
 
-| Fix | Severity | Description |
+#### Critical Fixes
+| Fix | Contract | Description |
 |-----|----------|-------------|
-| Signature Malleability | CRITICAL | Added SECP256K1_N_DIV_2 check to reject malleable signatures |
-| VRF Bypass | CRITICAL | Fixed logic error allowing any non-zero gamma to pass VRF |
-| Chain ID Validation | CRITICAL | Added block.chainid check in cross-chain message execution |
-| DoS Protection | HIGH | O(1) relayer removal prevents unbounded loop gas griefing |
-| ReentrancyGuard | HIGH | Added nonReentrant to depositStake() and DirectL2Messenger |
-| Zero-Address Checks | MEDIUM | Validation added to setVerifier/setVerifierRegistry |
-| Unused Return Value | LOW | Fixed unused return in VerifierRegistry._isValidVerifier |
+| Nullifier Race Condition | ZKBoundStateLocks | Fixed double-spend via optimisticUnlock() race |
+| Access Control | CrossChainProofHubV3 | Added role checks to submitProofInstant/submitBatch |
+| Proof Verification | UnifiedNullifierManager | Fixed _verifyDerivationProof accepting any proof |
+| Signature Malleability | Various | Added SECP256K1_N_DIV_2 check |
+| VRF Bypass | Various | Fixed logic error allowing any non-zero gamma |
+| Chain ID Validation | CrossChainMessageRelay | Added block.chainid check in proof verification |
+
+#### High Fixes
+| Fix | Contract | Description |
+|-----|----------|-------------|
+| EIP-712 Binding | ConfidentialStateContainerV3 | Signature now binds to encryptedState/metadata |
+| Hash Collision | UnifiedNullifierManager | Changed abi.encodePacked to abi.encode |
+| Recovery Bypass | ZKBoundStateLocks | recoverLock now validates unlock state + nullifier |
+| Chain ID Truncation | ZKBoundStateLocks | Extended domain separator to uint64 chainId |
+| Double-Counting | CrossChainProofHubV3 | Fixed relayerSuccessCount double increment |
+| Challenger Rewards | CrossChainProofHubV3 | Added claimableRewards + withdrawRewards() |
+
+#### Medium Fixes
+| Fix | Contract | Description |
+|-----|----------|-------------|
+| Missing Events | Multiple | Added events for all admin configuration changes |
+| Input Validation | DirectL2Messenger | Zero-checks, upper bounds on parameters |
+| DoS Prevention | ZKBoundStateLocks | MAX_ACTIVE_LOCKS enforcement |
+| Pagination | ConfidentialStateContainerV3, UnifiedNullifierManager | Added paginated getters |
+| Role Separation | ZKBoundStateLocks | Added confirmRoleSeparation() |
+| Silent Failures | CrossChainMessageRelay | Emit MessageFailed on batch verification failure |
+
+For complete details, see [docs/SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_REPORT.md).
 
 ### Known Dependency Issues
 
@@ -162,7 +184,7 @@ See [docs/SECURITY_ROADMAP.md](./docs/SECURITY_ROADMAP.md) for the comprehensive
 | Document | Description |
 |----------|-------------|
 | [SECURITY_ROADMAP.md](./docs/SECURITY_ROADMAP.md) | Complete security plan |
-| [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) | Latest findings |
+| [SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_REPORT.md) | February 2026 audit findings (26 fixes) |
 | [SECURITY_INVARIANTS.md](./docs/SECURITY_INVARIANTS.md) | Formal invariants |
 | [THREAT_MODEL.md](./docs/THREAT_MODEL.md) | Threat analysis |
 

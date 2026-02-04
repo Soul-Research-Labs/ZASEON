@@ -795,18 +795,20 @@ contract UnifiedNullifierManager is
     ) external view returns (bytes32[] memory nullifiers, uint256 total) {
         bytes32[] storage allNullifiers = reverseSoulLookup[soulBinding];
         total = allNullifiers.length;
-        
+
         if (offset >= total) {
             return (new bytes32[](0), total);
         }
-        
+
         uint256 remaining = total - offset;
         uint256 count = remaining < limit ? remaining : limit;
         nullifiers = new bytes32[](count);
-        
+
         for (uint256 i = 0; i < count; ) {
             nullifiers[i] = allNullifiers[offset + i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
