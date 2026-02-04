@@ -1,0 +1,227 @@
+{
+  "$schema": "https://docs.tenderly.co/web3-gateway/reference/config-schema",
+  "version": "1.0.0",
+  "project": "soul-protocol",
+  "networks": {
+    "mainnet": {
+      "chainId": 1,
+      "contracts": []
+    },
+    "arbitrum": {
+      "chainId": 42161,
+      "contracts": []
+    },
+    "optimism": {
+      "chainId": 10,
+      "contracts": []
+    },
+    "base": {
+      "chainId": 8453,
+      "contracts": []
+    }
+  },
+  "alerts": {
+    "critical": {
+      "contract_paused": {
+        "name": "Contract Paused",
+        "description": "Any Soul Protocol contract has been paused",
+        "type": "event",
+        "event": "Paused(address)",
+        "severity": "critical",
+        "notification": {
+          "pagerduty": true,
+          "slack": "#soul-critical",
+          "email": true
+        }
+      },
+      "emergency_withdrawal": {
+        "name": "Emergency Withdrawal",
+        "description": "Emergency withdrawal executed - possible breach",
+        "type": "event",
+        "event": "EmergencyWithdraw(address,address,uint256)",
+        "severity": "critical",
+        "notification": {
+          "pagerduty": true,
+          "slack": "#soul-critical",
+          "sms": true
+        }
+      },
+      "circuit_breaker_triggered": {
+        "name": "Circuit Breaker Triggered",
+        "description": "Security circuit breaker has been triggered",
+        "type": "event",
+        "event": "CircuitBreakerTriggered()",
+        "severity": "critical",
+        "notification": {
+          "pagerduty": true,
+          "slack": "#soul-critical"
+        }
+      },
+      "large_value_transfer": {
+        "name": "Large Value Transfer",
+        "description": "Transfer exceeding 1000 ETH threshold",
+        "type": "function",
+        "function": "transfer",
+        "condition": "value > 1000 ether",
+        "severity": "critical",
+        "notification": {
+          "pagerduty": true,
+          "slack": "#soul-security"
+        }
+      },
+      "duplicate_nullifier": {
+        "name": "Double-Spend Attempt",
+        "description": "Attempted reuse of nullifier detected",
+        "type": "event",
+        "event": "DuplicateNullifierAttempt(bytes32,address)",
+        "severity": "critical",
+        "notification": {
+          "pagerduty": true,
+          "slack": "#soul-security"
+        }
+      }
+    },
+    "high": {
+      "proof_verification_failed": {
+        "name": "Proof Verification Failed",
+        "description": "ZK proof verification failed",
+        "type": "event",
+        "event": "ProofVerificationFailed(bytes32,string)",
+        "severity": "high",
+        "threshold": {
+          "count": 5,
+          "window": "1h"
+        },
+        "notification": {
+          "slack": "#soul-alerts",
+          "email": true
+        }
+      },
+      "relayer_slashed": {
+        "name": "Relayer Slashed",
+        "description": "A relayer has been slashed for malicious behavior",
+        "type": "event",
+        "event": "RelayerSlashed(address,uint256,bytes32)",
+        "severity": "high",
+        "notification": {
+          "slack": "#soul-security",
+          "email": true
+        }
+      },
+      "message_challenged": {
+        "name": "Cross-Chain Message Challenged",
+        "description": "A cross-chain message has been challenged",
+        "type": "event",
+        "event": "MessageChallenged(bytes32,address,bytes32)",
+        "severity": "high",
+        "notification": {
+          "slack": "#soul-alerts"
+        }
+      },
+      "admin_function_called": {
+        "name": "Admin Function Called",
+        "description": "Administrative function executed",
+        "type": "function_call",
+        "functions": [
+          "grantRole",
+          "revokeRole",
+          "setConfig",
+          "upgradeToAndCall"
+        ],
+        "severity": "high",
+        "notification": {
+          "slack": "#soul-admin"
+        }
+      }
+    },
+    "medium": {
+      "swap_refunded": {
+        "name": "Atomic Swap Refunded",
+        "description": "An atomic swap expired and was refunded",
+        "type": "event",
+        "event": "SwapRefunded(bytes32,address,uint256)",
+        "severity": "medium",
+        "threshold": {
+          "count": 10,
+          "window": "1h"
+        },
+        "notification": {
+          "slack": "#soul-alerts"
+        }
+      },
+      "high_gas_usage": {
+        "name": "High Gas Usage",
+        "description": "Transaction gas exceeds threshold",
+        "type": "transaction",
+        "condition": "gasUsed > 1000000",
+        "severity": "medium",
+        "notification": {
+          "slack": "#soul-ops"
+        }
+      },
+      "pending_proof_queue_full": {
+        "name": "Proof Queue Depth High",
+        "description": "Too many proofs pending verification",
+        "type": "contract_state",
+        "contract": "CrossChainProofHubV3",
+        "condition": "pendingProofCount > 100",
+        "severity": "medium",
+        "notification": {
+          "slack": "#soul-ops"
+        }
+      }
+    },
+    "low": {
+      "new_lock_created": {
+        "name": "State Lock Created",
+        "description": "Track state lock creation rate",
+        "type": "event",
+        "event": "StateLockCreated(bytes32,address,uint256)",
+        "severity": "low",
+        "aggregation": "hourly"
+      },
+      "proof_submitted": {
+        "name": "Proof Submitted",
+        "description": "Track proof submission volume",
+        "type": "event",
+        "event": "ProofSubmitted(bytes32,uint256,uint256,uint8,address)",
+        "severity": "low",
+        "aggregation": "hourly"
+      }
+    }
+  },
+  "web3Actions": {
+    "pause_on_breach": {
+      "name": "Auto-Pause on Security Breach",
+      "description": "Automatically pause contracts on critical security events",
+      "trigger": "critical.circuit_breaker_triggered",
+      "action": "pause_all_contracts",
+      "enabled": false
+    },
+    "alert_rate_limit": {
+      "name": "Rate Limit Exceeded Response",
+      "description": "Respond to rate limit violations",
+      "trigger": "high.rate_limit_exceeded",
+      "action": "notify_and_log",
+      "enabled": true
+    }
+  },
+  "simulations": {
+    "daily_health_check": {
+      "name": "Daily Health Simulation",
+      "description": "Simulate key protocol operations daily",
+      "schedule": "0 8 * * *",
+      "transactions": [
+        {
+          "to": "${PROOF_HUB_ADDRESS}",
+          "function": "getConfiguration()"
+        },
+        {
+          "to": "${NULLIFIER_REGISTRY_ADDRESS}",
+          "function": "isNullifierUsed(bytes32)",
+          "args": ["0x0000000000000000000000000000000000000000000000000000000000000000"]
+        }
+      ]
+    }
+  }
+}

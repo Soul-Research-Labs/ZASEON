@@ -1,0 +1,278 @@
+{
+  "$schema": "https://docs.openzeppelin.com/defender/v2/reference/schema",
+  "version": "2.0",
+  "project": {
+    "name": "Soul Protocol",
+    "network": "mainnet",
+    "description": "Cross-chain ZK privacy middleware"
+  },
+  "monitors": {
+    "critical_events": {
+      "name": "Soul Critical Events",
+      "description": "Monitor critical security events across all Soul contracts",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "Paused(address)",
+          "expression": null
+        },
+        {
+          "eventSignature": "EmergencyWithdraw(address,address,uint256)",
+          "expression": null
+        },
+        {
+          "eventSignature": "CircuitBreakerTriggered()",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-pagerduty",
+        "soul-slack-critical",
+        "soul-email-critical"
+      ],
+      "riskCategory": "TECHNICAL"
+    },
+    "double_spend_detection": {
+      "name": "Double-Spend Detection",
+      "description": "Detect nullifier reuse attempts",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "DuplicateNullifierAttempt(bytes32,address)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-pagerduty",
+        "soul-slack-security"
+      ],
+      "riskCategory": "FINANCIAL"
+    },
+    "proof_failures": {
+      "name": "Proof Verification Failures",
+      "description": "Monitor failed ZK proof verifications",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "ProofVerificationFailed(bytes32,string)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 5,
+        "windowSeconds": 3600
+      },
+      "notificationChannels": [
+        "soul-slack-alerts"
+      ],
+      "riskCategory": "TECHNICAL"
+    },
+    "relayer_slashing": {
+      "name": "Relayer Slashing Events",
+      "description": "Track when relayers are slashed",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "RelayerSlashed(address,uint256,bytes32)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-slack-security"
+      ],
+      "riskCategory": "FINANCIAL"
+    },
+    "large_transfers": {
+      "name": "Large Value Transfers",
+      "description": "Monitor transfers above threshold",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "Transfer(address,address,uint256)",
+          "expression": "value > 1000000000000000000000"
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-slack-security",
+        "soul-email-security"
+      ],
+      "riskCategory": "FINANCIAL"
+    },
+    "admin_actions": {
+      "name": "Admin Actions",
+      "description": "Track privileged function calls",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "RoleGranted(bytes32,address,address)",
+          "expression": null
+        },
+        {
+          "eventSignature": "RoleRevoked(bytes32,address,address)",
+          "expression": null
+        },
+        {
+          "eventSignature": "Upgraded(address)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-slack-admin"
+      ],
+      "riskCategory": "ACCESS-CONTROL"
+    },
+    "cross_chain_messages": {
+      "name": "Cross-Chain Message Monitoring",
+      "description": "Track cross-chain message flow",
+      "type": "BLOCK",
+      "network": "mainnet",
+      "addresses": [],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "MessageSent(bytes32,uint256,uint256,address,address,bytes,uint256,uint8)",
+          "expression": null
+        },
+        {
+          "eventSignature": "MessageExecuted(bytes32,bool,bytes)",
+          "expression": null
+        },
+        {
+          "eventSignature": "MessageChallenged(bytes32,address,bytes32)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-slack-ops"
+      ],
+      "riskCategory": "TECHNICAL"
+    }
+  },
+  "actions": {
+    "emergency_pause": {
+      "name": "Emergency Pause Handler",
+      "description": "Automatically execute emergency procedures",
+      "trigger": "critical_events",
+      "type": "AUTOTASK",
+      "code": "scripts/defender/emergency-pause.js",
+      "enabled": false
+    },
+    "alert_aggregator": {
+      "name": "Alert Aggregator",
+      "description": "Aggregate and deduplicate alerts",
+      "trigger": "all",
+      "type": "AUTOTASK",
+      "code": "scripts/defender/alert-aggregator.js",
+      "enabled": true
+    }
+  },
+  "notifications": {
+    "soul-pagerduty": {
+      "type": "pagerduty",
+      "name": "Soul PagerDuty",
+      "config": {
+        "serviceKey": "${PAGERDUTY_SERVICE_KEY}",
+        "severity": "critical"
+      }
+    },
+    "soul-slack-critical": {
+      "type": "slack",
+      "name": "Soul Slack Critical",
+      "config": {
+        "webhookUrl": "${SLACK_CRITICAL_WEBHOOK}"
+      }
+    },
+    "soul-slack-security": {
+      "type": "slack",
+      "name": "Soul Slack Security",
+      "config": {
+        "webhookUrl": "${SLACK_SECURITY_WEBHOOK}"
+      }
+    },
+    "soul-slack-alerts": {
+      "type": "slack",
+      "name": "Soul Slack Alerts",
+      "config": {
+        "webhookUrl": "${SLACK_ALERTS_WEBHOOK}"
+      }
+    },
+    "soul-slack-admin": {
+      "type": "slack",
+      "name": "Soul Slack Admin",
+      "config": {
+        "webhookUrl": "${SLACK_ADMIN_WEBHOOK}"
+      }
+    },
+    "soul-slack-ops": {
+      "type": "slack",
+      "name": "Soul Slack Ops",
+      "config": {
+        "webhookUrl": "${SLACK_OPS_WEBHOOK}"
+      }
+    },
+    "soul-email-critical": {
+      "type": "email",
+      "name": "Soul Email Critical",
+      "config": {
+        "emails": ["security@soulprotocol.io"]
+      }
+    },
+    "soul-email-security": {
+      "type": "email",
+      "name": "Soul Email Security",
+      "config": {
+        "emails": ["security@soulprotocol.io"]
+      }
+    }
+  },
+  "secrets": [
+    "PAGERDUTY_SERVICE_KEY",
+    "SLACK_CRITICAL_WEBHOOK",
+    "SLACK_SECURITY_WEBHOOK",
+    "SLACK_ALERTS_WEBHOOK",
+    "SLACK_ADMIN_WEBHOOK",
+    "SLACK_OPS_WEBHOOK"
+  ]
+}
