@@ -90,7 +90,8 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant MAX_REPUTATION = 10000; // 100%
 
     /// @notice Domain separator for signatures
-    bytes32 public constant DOMAIN_SEPARATOR = keccak256("SoulFHECoprocessor_v1");
+    bytes32 public constant DOMAIN_SEPARATOR =
+        keccak256("SoulFHECoprocessor_v1");
 
     // ============================================
     // TYPES
@@ -99,9 +100,9 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Coprocessor node information
     struct Node {
         address nodeAddress;
-        bytes32 publicKeyHash;      // Hash of node's FHE key share
-        uint256 stake;              // Staked collateral
-        uint256 reputation;         // Performance score (0-10000 bps)
+        bytes32 publicKeyHash; // Hash of node's FHE key share
+        uint256 stake; // Staked collateral
+        uint256 reputation; // Performance score (0-10000 bps)
         uint64 registeredAt;
         uint64 lastActiveAt;
         uint256 successfulOps;
@@ -113,12 +114,12 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Computation task
     struct Task {
         bytes32 taskId;
-        bytes32 gatewayRequestId;   // FHEGateway request ID
+        bytes32 gatewayRequestId; // FHEGateway request ID
         uint8 opcode;
         bytes32[] inputHandles;
         bytes32 expectedOutputHandle;
         address requester;
-        uint256 reward;             // Payment for computation
+        uint256 reward; // Payment for computation
         uint64 createdAt;
         uint64 deadline;
         TaskStatus status;
@@ -140,8 +141,8 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         bytes32 taskId;
         address node;
         bytes32 outputHandle;
-        bytes32 proofHash;          // Hash of ZK proof
-        bytes signature;            // Node signature
+        bytes32 proofHash; // Hash of ZK proof
+        bytes signature; // Node signature
         uint64 submittedAt;
         bool accepted;
     }
@@ -221,10 +222,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         bytes32 publicKeyHash
     );
 
-    event NodeDeregistered(
-        address indexed node,
-        uint256 stakeReturned
-    );
+    event NodeDeregistered(address indexed node, uint256 stakeReturned);
 
     event NodeSlashed(
         address indexed node,
@@ -238,10 +236,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         address indexed requester
     );
 
-    event TaskAssigned(
-        bytes32 indexed taskId,
-        address indexed node
-    );
+    event TaskAssigned(bytes32 indexed taskId, address indexed node);
 
     event ResponseSubmitted(
         bytes32 indexed taskId,
@@ -255,35 +250,20 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         uint256 votes
     );
 
-    event TaskCompleted(
-        bytes32 indexed taskId,
-        bytes32 indexed outputHandle
-    );
+    event TaskCompleted(bytes32 indexed taskId, bytes32 indexed outputHandle);
 
-    event TaskFailed(
-        bytes32 indexed taskId,
-        string reason
-    );
+    event TaskFailed(bytes32 indexed taskId, string reason);
 
-    event RewardsDistributed(
-        bytes32 indexed taskId,
-        uint256 totalReward
-    );
+    event RewardsDistributed(bytes32 indexed taskId, uint256 totalReward);
 
-    event DecryptionTaskCreated(
-        bytes32 indexed taskId,
-        bytes32 indexed handle
-    );
+    event DecryptionTaskCreated(bytes32 indexed taskId, bytes32 indexed handle);
 
     event DecryptionShareSubmitted(
         bytes32 indexed taskId,
         address indexed node
     );
 
-    event DecryptionCompleted(
-        bytes32 indexed taskId,
-        bytes32 result
-    );
+    event DecryptionCompleted(bytes32 indexed taskId, bytes32 result);
 
     // ============================================
     // ERRORS
@@ -333,7 +313,8 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
     ) external payable nonReentrant whenNotPaused {
         if (msg.value < MIN_STAKE) revert InsufficientStake();
         if (msg.value > MAX_STAKE) revert ExcessiveStake();
-        if (nodes[msg.sender].nodeAddress != address(0)) revert NodeAlreadyRegistered();
+        if (nodes[msg.sender].nodeAddress != address(0))
+            revert NodeAlreadyRegistered();
 
         nodes[msg.sender] = Node({
             nodeAddress: msg.sender,
@@ -373,7 +354,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         _revokeRole(NODE_ROLE, msg.sender);
 
         // Return stake
-        (bool success,) = msg.sender.call{value: stakeToReturn}("");
+        (bool success, ) = msg.sender.call{value: stakeToReturn}("");
         require(success, "Transfer failed");
 
         emit NodeDeregistered(msg.sender, stakeToReturn);
@@ -419,12 +400,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
 
         taskNonce++;
         taskId = keccak256(
-            abi.encode(
-                gatewayRequestId,
-                msg.sender,
-                taskNonce,
-                block.chainid
-            )
+            abi.encode(gatewayRequestId, msg.sender, taskNonce, block.chainid)
         );
 
         tasks[taskId] = Task({
@@ -465,7 +441,8 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         if (task.taskId == bytes32(0)) revert InvalidTask();
         if (block.timestamp > task.deadline) revert TaskExpired();
         if (!node.isActive) revert NodeNotActive();
-        if (responses[taskId][msg.sender].node != address(0)) revert AlreadyResponded();
+        if (responses[taskId][msg.sender].node != address(0))
+            revert AlreadyResponded();
 
         // Verify signature
         bytes32 messageHash = keccak256(
@@ -502,10 +479,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
      * @param taskId The task ID
      * @param outputHandle The proposed output
      */
-    function _checkConsensus(
-        bytes32 taskId,
-        bytes32 outputHandle
-    ) internal {
+    function _checkConsensus(bytes32 taskId, bytes32 outputHandle) internal {
         uint256 votes = consensusVotes[taskId][outputHandle];
         uint256 threshold = (activeNodeCount * QUORUM_BPS) / 10000;
 
@@ -581,7 +555,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
 
         pendingRewards[msg.sender] = 0;
 
-        (bool success,) = msg.sender.call{value: rewards}("");
+        (bool success, ) = msg.sender.call{value: rewards}("");
         require(success, "Transfer failed");
     }
 
@@ -639,7 +613,8 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         if (task.taskId == bytes32(0)) revert InvalidTask();
         if (task.completed) revert InvalidTask();
         if (block.timestamp > task.deadline) revert TaskExpired();
-        if (partialDecryptions[taskId][msg.sender] != bytes32(0)) revert AlreadyResponded();
+        if (partialDecryptions[taskId][msg.sender] != bytes32(0))
+            revert AlreadyResponded();
 
         partialDecryptions[taskId][msg.sender] = share;
         task.responseCount++;
@@ -674,7 +649,7 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
         task.finalResult = combinedResult;
 
         // Execute callback
-        (bool success,) = task.callbackContract.call(
+        (bool success, ) = task.callbackContract.call(
             abi.encodeWithSelector(
                 task.callbackSelector,
                 taskId,
@@ -729,7 +704,9 @@ contract SoulFHECoprocessor is AccessControl, ReentrancyGuard, Pausable {
      * @param nodeAddr The node address
      * @return node The node info
      */
-    function getNode(address nodeAddr) external view returns (Node memory node) {
+    function getNode(
+        address nodeAddr
+    ) external view returns (Node memory node) {
         return nodes[nodeAddr];
     }
 

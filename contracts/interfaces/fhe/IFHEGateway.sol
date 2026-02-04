@@ -19,10 +19,7 @@ interface IFHEGateway {
         address indexed creator
     );
 
-    event HandleVerified(
-        bytes32 indexed handleId,
-        address indexed verifier
-    );
+    event HandleVerified(bytes32 indexed handleId, address indexed verifier);
 
     event AccessGranted(
         bytes32 indexed handleId,
@@ -54,10 +51,7 @@ interface IFHEGateway {
         address indexed requester
     );
 
-    event DecryptionCompleted(
-        bytes32 indexed requestId,
-        bytes32 result
-    );
+    event DecryptionCompleted(bytes32 indexed requestId, bytes32 result);
 
     event ReencryptionRequested(
         bytes32 indexed requestId,
@@ -175,10 +169,7 @@ interface IFHEGateway {
      * @param requestId The request ID
      * @param proof ZK proof of correct computation
      */
-    function completeCompute(
-        bytes32 requestId,
-        bytes calldata proof
-    ) external;
+    function completeCompute(bytes32 requestId, bytes calldata proof) external;
 
     // ============================================
     // DECRYPTION

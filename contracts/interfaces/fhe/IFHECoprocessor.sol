@@ -46,10 +46,7 @@ interface IFHECoprocessor {
         bytes32 publicKeyHash
     );
 
-    event NodeDeregistered(
-        address indexed node,
-        uint256 stakeReturned
-    );
+    event NodeDeregistered(address indexed node, uint256 stakeReturned);
 
     event NodeSlashed(
         address indexed node,
@@ -75,25 +72,16 @@ interface IFHECoprocessor {
         uint256 votes
     );
 
-    event TaskCompleted(
-        bytes32 indexed taskId,
-        bytes32 indexed outputHandle
-    );
+    event TaskCompleted(bytes32 indexed taskId, bytes32 indexed outputHandle);
 
-    event DecryptionTaskCreated(
-        bytes32 indexed taskId,
-        bytes32 indexed handle
-    );
+    event DecryptionTaskCreated(bytes32 indexed taskId, bytes32 indexed handle);
 
     event DecryptionShareSubmitted(
         bytes32 indexed taskId,
         address indexed node
     );
 
-    event DecryptionCompleted(
-        bytes32 indexed taskId,
-        bytes32 result
-    );
+    event DecryptionCompleted(bytes32 indexed taskId, bytes32 result);
 
     // ============================================
     // ERRORS
@@ -136,7 +124,9 @@ interface IFHECoprocessor {
      * @param nodeAddr The node address
      * @return node The node info
      */
-    function getNode(address nodeAddr) external view returns (NodeInfo memory node);
+    function getNode(
+        address nodeAddr
+    ) external view returns (NodeInfo memory node);
 
     // ============================================
     // TASK MANAGEMENT
@@ -202,10 +192,7 @@ interface IFHECoprocessor {
      * @param taskId The decryption task ID
      * @param share The partial decryption share
      */
-    function submitDecryptionShare(
-        bytes32 taskId,
-        bytes32 share
-    ) external;
+    function submitDecryptionShare(bytes32 taskId, bytes32 share) external;
 
     // ============================================
     // SLASHING

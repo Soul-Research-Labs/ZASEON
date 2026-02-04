@@ -97,7 +97,8 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
     mapping(address => EncryptedBalance) public encryptedBalances;
 
     /// @notice Encrypted allowances: owner => spender => encrypted allowance
-    mapping(address => mapping(address => EncryptedAllowance)) public encryptedAllowances;
+    mapping(address => mapping(address => EncryptedAllowance))
+        public encryptedAllowances;
 
     /// @notice Balance viewers: address => viewer => allowed
     mapping(address => mapping(address => bool)) public balanceViewers;
@@ -134,25 +135,13 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         bytes32 encryptedAmountHandle
     );
 
-    event EncryptedMint(
-        address indexed to,
-        bytes32 encryptedAmountHandle
-    );
+    event EncryptedMint(address indexed to, bytes32 encryptedAmountHandle);
 
-    event EncryptedBurn(
-        address indexed from,
-        bytes32 encryptedAmountHandle
-    );
+    event EncryptedBurn(address indexed from, bytes32 encryptedAmountHandle);
 
-    event BalanceViewerAdded(
-        address indexed account,
-        address indexed viewer
-    );
+    event BalanceViewerAdded(address indexed account, address indexed viewer);
 
-    event BalanceViewerRemoved(
-        address indexed account,
-        address indexed viewer
-    );
+    event BalanceViewerRemoved(address indexed account, address indexed viewer);
 
     event BalanceDecrypted(
         address indexed account,
@@ -291,9 +280,14 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         if (to == msg.sender) revert InvalidAmount();
 
         // Verify caller has access to the encrypted amount handle
-        (bool valid, bool verified) = fheGateway.checkHandle(encryptedAmount.handle);
+        (bool valid, bool verified) = fheGateway.checkHandle(
+            encryptedAmount.handle
+        );
         require(valid && verified, "Invalid amount handle");
-        require(fheGateway.hasAccess(encryptedAmount.handle, msg.sender), "No access to amount");
+        require(
+            fheGateway.hasAccess(encryptedAmount.handle, msg.sender),
+            "No access to amount"
+        );
 
         // Get current balances
         EncryptedBalance storage senderBal = encryptedBalances[msg.sender];
@@ -308,12 +302,18 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         // Compute new balances using FHE
         // sender: balance - amount
         // recipient: balance + amount
-        euint256 memory newSenderBalance = senderBal.balance.sub(encryptedAmount);
-        euint256 memory newRecipientBalance = recipientBal.balance.add(encryptedAmount);
+        euint256 memory newSenderBalance = senderBal.balance.sub(
+            encryptedAmount
+        );
+        euint256 memory newRecipientBalance = recipientBal.balance.add(
+            encryptedAmount
+        );
 
         // Verify sufficient balance (encrypted comparison)
         // This creates a proof that sender had enough balance
-        ebool memory hasSufficientBalance = senderBal.balance.ge(encryptedAmount);
+        ebool memory hasSufficientBalance = senderBal.balance.ge(
+            encryptedAmount
+        );
 
         // Update balances
         senderBal.balance = newSenderBalance;
@@ -356,7 +356,9 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
         if (from == to) revert InvalidAmount();
 
         // Check allowance
-        EncryptedAllowance storage allowance = encryptedAllowances[from][msg.sender];
+        EncryptedAllowance storage allowance = encryptedAllowances[from][
+            msg.sender
+        ];
         require(allowance.amount.handle != bytes32(0), "No allowance");
 
         // Verify allowance is sufficient (encrypted)
@@ -375,8 +377,12 @@ contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
             recipientBal.lastUpdated = uint64(block.timestamp);
         }
 
-        euint256 memory newSenderBalance = senderBal.balance.sub(encryptedAmount);
-        euint256 memory newRecipientBalance = recipientBal.balance.add(encryptedAmount);
+        euint256 memory newSenderBalance = senderBal.balance.sub(
+            encryptedAmount
+        );
+        euint256 memory newRecipientBalance = recipientBal.balance.add(
+            encryptedAmount
+        );
 
         senderBal.balance = newSenderBalance;
         senderBal.lastUpdated = uint64(block.timestamp);

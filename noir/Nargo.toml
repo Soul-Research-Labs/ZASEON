@@ -22,5 +22,9 @@ members = [
     "preconfirmation_proof",    # The Merge: SSF preconfirmations
     # FHE Implementation
     "fhe_computation",          # ZK proof of valid FHE computation
-    "encrypted_transfer"        # Confidential transfer proofs
+    "encrypted_transfer",       # Confidential transfer proofs
+    # Post-Quantum Cryptography (NIST FIPS 203/204/205)
+    "dilithium_proof",          # ZK proof of Dilithium (ML-DSA) verification
+    "sphincs_proof",            # ZK proof of SPHINCS+ (SLH-DSA) verification
+    "hybrid_pqc_proof"          # ZK proof of hybrid ECDSA+PQC verification
 ]

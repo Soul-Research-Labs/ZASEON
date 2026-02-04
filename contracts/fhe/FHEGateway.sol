@@ -96,7 +96,8 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => mapping(address => bool)) public acl;
 
     /// @notice Delegated access: handleId => delegator => delegate => allowed
-    mapping(bytes32 => mapping(address => mapping(address => bool))) public delegatedAccess;
+    mapping(bytes32 => mapping(address => mapping(address => bool)))
+        public delegatedAccess;
 
     /// @notice Security zones (enabled zones)
     mapping(bytes32 => bool) public securityZones;
@@ -143,10 +144,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         address indexed creator
     );
 
-    event HandleVerified(
-        bytes32 indexed handleId,
-        address indexed verifier
-    );
+    event HandleVerified(bytes32 indexed handleId, address indexed verifier);
 
     event AccessGranted(
         bytes32 indexed handleId,
@@ -178,10 +176,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         address indexed requester
     );
 
-    event DecryptionCompleted(
-        bytes32 indexed requestId,
-        bytes32 result
-    );
+    event DecryptionCompleted(bytes32 indexed requestId, bytes32 result);
 
     event ReencryptionRequested(
         bytes32 indexed requestId,
@@ -189,14 +184,9 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         address indexed requester
     );
 
-    event ReencryptionCompleted(
-        bytes32 indexed requestId
-    );
+    event ReencryptionCompleted(bytes32 indexed requestId);
 
-    event SchemeUpdated(
-        FHELib.FHEScheme oldScheme,
-        FHELib.FHEScheme newScheme
-    );
+    event SchemeUpdated(FHELib.FHEScheme oldScheme, FHELib.FHEScheme newScheme);
 
     event SecurityZoneEnabled(bytes32 indexed zone);
     event SecurityZoneDisabled(bytes32 indexed zone);
@@ -205,11 +195,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     // CONSTRUCTOR
     // ============================================
 
-    constructor(
-        address _coprocessor,
-        address _kms,
-        FHELib.FHEScheme _scheme
-    ) {
+    constructor(address _coprocessor, address _kms, FHELib.FHEScheme _scheme) {
         if (_coprocessor == address(0)) revert ZeroAddress();
         if (_kms == address(0)) revert ZeroAddress();
 
@@ -316,10 +302,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
      * @param handleId The handle to grant access to
      * @param grantee The address to grant access
      */
-    function grantAccess(
-        bytes32 handleId,
-        address grantee
-    ) external {
+    function grantAccess(bytes32 handleId, address grantee) external {
         if (handles[handleId].id == bytes32(0)) revert InvalidHandle();
         if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
         if (grantee == address(0)) revert ZeroAddress();
@@ -334,10 +317,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
      * @param handleId The handle to revoke access from
      * @param revokee The address to revoke access
      */
-    function revokeAccess(
-        bytes32 handleId,
-        address revokee
-    ) external {
+    function revokeAccess(bytes32 handleId, address revokee) external {
         if (handles[handleId].id == bytes32(0)) revert InvalidHandle();
         if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
 
@@ -364,10 +344,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
      * @param handleId The handle
      * @param delegate The delegate address
      */
-    function delegateAccess(
-        bytes32 handleId,
-        address delegate
-    ) external {
+    function delegateAccess(bytes32 handleId, address delegate) external {
         if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
         if (delegate == address(0)) revert ZeroAddress();
 
@@ -390,9 +367,15 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         uint8 opcode,
         bytes32[] calldata inputHandles,
         uint64 deadline
-    ) external whenNotPaused nonReentrant returns (bytes32 requestId, bytes32 outputHandle) {
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        returns (bytes32 requestId, bytes32 outputHandle)
+    {
         if (inputHandles.length > MAX_BATCH_SIZE) revert TooManyInputs();
-        if (!FHELib.validateInputCount(opcode, inputHandles.length)) revert InvalidOpcode();
+        if (!FHELib.validateInputCount(opcode, inputHandles.length))
+            revert InvalidOpcode();
         if (deadline > block.timestamp + MAX_REQUEST_TTL) {
             deadline = uint64(block.timestamp + MAX_REQUEST_TTL);
         }
@@ -414,7 +397,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
 
         // Determine output type based on operation
         uint8 outputType = _computeOutputType(opcode, inputHandles);
-        
+
         outputHandle = FHELib.computeHandleId(
             address(this),
             outputType,
@@ -464,9 +447,10 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata proof
     ) external onlyRole(COPROCESSOR_ROLE) nonReentrant {
         FHELib.ComputeRequest storage req = computeRequests[requestId];
-        
+
         if (req.requestId == bytes32(0)) revert InvalidHandle();
-        if (req.status != FHELib.RequestStatus.Pending) revert InvalidRequestStatus();
+        if (req.status != FHELib.RequestStatus.Pending)
+            revert InvalidRequestStatus();
         if (block.timestamp > req.deadline) revert RequestExpired();
 
         // Verify proof (simplified - full implementation would verify ZK proof)
@@ -553,7 +537,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         req.result = plaintextResult;
 
         // Execute callback
-        (bool success,) = req.callbackContract.call(
+        (bool success, ) = req.callbackContract.call(
             abi.encodeWithSelector(
                 req.callbackSelector,
                 requestId,
@@ -619,7 +603,9 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes32 requestId,
         bytes calldata reencryptedValue
     ) external onlyRole(KMS_ROLE) {
-        FHELib.ReencryptionRequest storage req = reencryptionRequests[requestId];
+        FHELib.ReencryptionRequest storage req = reencryptionRequests[
+            requestId
+        ];
 
         if (req.requestId == bytes32(0)) revert InvalidHandle();
         if (req.fulfilled) revert RequestAlreadyFulfilled();
@@ -639,9 +625,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Enable a security zone
      * @param zone The zone identifier
      */
-    function enableSecurityZone(
-        bytes32 zone
-    ) external onlyRole(OPERATOR_ROLE) {
+    function enableSecurityZone(bytes32 zone) external onlyRole(OPERATOR_ROLE) {
         securityZones[zone] = true;
         emit SecurityZoneEnabled(zone);
     }
@@ -670,7 +654,7 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         address _coprocessor
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_coprocessor == address(0)) revert ZeroAddress();
-        
+
         _revokeRole(COPROCESSOR_ROLE, coprocessor);
         coprocessor = _coprocessor;
         _grantRole(COPROCESSOR_ROLE, _coprocessor);
@@ -680,11 +664,9 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Update the KMS address
      * @param _kms New KMS address
      */
-    function setKMS(
-        address _kms
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setKMS(address _kms) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_kms == address(0)) revert ZeroAddress();
-        
+
         _revokeRole(KMS_ROLE, kms);
         kms = _kms;
         _grantRole(KMS_ROLE, _kms);
@@ -765,7 +747,10 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata inputHandles
     ) internal view returns (uint8 outputType) {
         // Comparison operations return ebool
-        if (opcode >= uint8(FHELib.Opcode.EQ) && opcode <= uint8(FHELib.Opcode.LT)) {
+        if (
+            opcode >= uint8(FHELib.Opcode.EQ) &&
+            opcode <= uint8(FHELib.Opcode.LT)
+        ) {
             return uint8(FHELib.ValueType.ebool);
         }
 

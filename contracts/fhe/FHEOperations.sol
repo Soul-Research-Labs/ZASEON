@@ -38,7 +38,8 @@ library FHEOperations {
 
     /// @notice Storage slot for gateway address
     /// @dev keccak256("soul.fhe.gateway") - 1
-    bytes32 private constant GATEWAY_SLOT = 0x8a35acfbc15ff81a39ae7d344fd709f28e8600b4aa8c65c6b64bfe7fe36bd19a;
+    bytes32 private constant GATEWAY_SLOT =
+        0x8a35acfbc15ff81a39ae7d344fd709f28e8600b4aa8c65c6b64bfe7fe36bd19a;
 
     /**
      * @notice Set the gateway address (called once during initialization)
@@ -73,7 +74,9 @@ library FHEOperations {
      */
     function asEbool(bool value) internal returns (ebool memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.ebool));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = ebool(handle, ctHash);
     }
 
@@ -84,7 +87,9 @@ library FHEOperations {
      */
     function asEuint8(uint8 value) internal returns (euint8 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint8));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint8(handle, ctHash);
     }
 
@@ -95,7 +100,9 @@ library FHEOperations {
      */
     function asEuint16(uint16 value) internal returns (euint16 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint16));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint16(handle, ctHash);
     }
 
@@ -106,7 +113,9 @@ library FHEOperations {
      */
     function asEuint32(uint32 value) internal returns (euint32 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint32));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint32(handle, ctHash);
     }
 
@@ -117,7 +126,9 @@ library FHEOperations {
      */
     function asEuint64(uint64 value) internal returns (euint64 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint64));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint64(handle, ctHash);
     }
 
@@ -126,9 +137,13 @@ library FHEOperations {
      * @param value The plaintext value
      * @return result Encrypted uint128 handle
      */
-    function asEuint128(uint128 value) internal returns (euint128 memory result) {
+    function asEuint128(
+        uint128 value
+    ) internal returns (euint128 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint128));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint128(handle, ctHash);
     }
 
@@ -137,9 +152,13 @@ library FHEOperations {
      * @param value The plaintext value
      * @return result Encrypted uint256 handle
      */
-    function asEuint256(uint256 value) internal returns (euint256 memory result) {
+    function asEuint256(
+        uint256 value
+    ) internal returns (euint256 memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.euint256));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = euint256(handle, ctHash);
     }
 
@@ -148,9 +167,13 @@ library FHEOperations {
      * @param value The plaintext address
      * @return result Encrypted address handle
      */
-    function asEaddress(address value) internal returns (eaddress memory result) {
+    function asEaddress(
+        address value
+    ) internal returns (eaddress memory result) {
         bytes32 handle = _createHandle(uint8(FHELib.ValueType.eaddress));
-        bytes32 ctHash = keccak256(abi.encode("TRIVIAL", value, block.timestamp));
+        bytes32 ctHash = keccak256(
+            abi.encode("TRIVIAL", value, block.timestamp)
+        );
         result = eaddress(handle, ctHash);
     }
 
@@ -171,8 +194,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.ADD), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.ADD),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("ADD", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -204,8 +230,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.SUB), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.SUB),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("SUB", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -237,8 +266,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.MUL), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.MUL),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("MUL", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -274,7 +306,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.LT), inputs);
         bytes32 ctHash = keccak256(abi.encode("LT", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -293,7 +325,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.LE), inputs);
         bytes32 ctHash = keccak256(abi.encode("LE", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -312,7 +344,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.GT), inputs);
         bytes32 ctHash = keccak256(abi.encode("GT", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -331,7 +363,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.GE), inputs);
         bytes32 ctHash = keccak256(abi.encode("GE", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -350,7 +382,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.EQ), inputs);
         bytes32 ctHash = keccak256(abi.encode("EQ", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -369,7 +401,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.NE), inputs);
         bytes32 ctHash = keccak256(abi.encode("NE", a.handle, b.handle));
         result = ebool(outputHandle, ctHash);
@@ -392,8 +424,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.AND), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.AND),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("AND", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -411,7 +446,7 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
+
         bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.OR), inputs);
         bytes32 ctHash = keccak256(abi.encode("OR", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
@@ -430,8 +465,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.XOR), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.XOR),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("XOR", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -441,13 +479,14 @@ library FHEOperations {
      * @param a Operand
      * @return result Encrypted NOT result
      */
-    function not(
-        euint256 memory a
-    ) internal returns (euint256 memory result) {
+    function not(euint256 memory a) internal returns (euint256 memory result) {
         bytes32[] memory inputs = new bytes32[](1);
         inputs[0] = a.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.NOT), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.NOT),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("NOT", a.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -472,9 +511,14 @@ library FHEOperations {
         inputs[0] = condition.handle;
         inputs[1] = a.handle;
         inputs[2] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.SELECT), inputs);
-        bytes32 ctHash = keccak256(abi.encode("SELECT", condition.handle, a.handle, b.handle));
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.SELECT),
+            inputs
+        );
+        bytes32 ctHash = keccak256(
+            abi.encode("SELECT", condition.handle, a.handle, b.handle)
+        );
         result = euint256(outputHandle, ctHash);
     }
 
@@ -491,8 +535,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.MIN), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.MIN),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("MIN", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -510,8 +557,11 @@ library FHEOperations {
         bytes32[] memory inputs = new bytes32[](2);
         inputs[0] = a.handle;
         inputs[1] = b.handle;
-        
-        bytes32 outputHandle = _requestCompute(uint8(FHELib.Opcode.MAX), inputs);
+
+        bytes32 outputHandle = _requestCompute(
+            uint8(FHELib.Opcode.MAX),
+            inputs
+        );
         bytes32 ctHash = keccak256(abi.encode("MAX", a.handle, b.handle));
         result = euint256(outputHandle, ctHash);
     }
@@ -534,7 +584,7 @@ library FHEOperations {
     ) internal returns (bytes32 requestId) {
         address gateway = getGateway();
         require(gateway != address(0), "FHE: Gateway not set");
-        
+
         requestId = FHEGateway(gateway).requestDecryption(
             encrypted.handle,
             callbackContract,
@@ -574,7 +624,9 @@ library FHEOperations {
      * @param handle The handle ID
      * @return encrypted The wrapped encrypted value
      */
-    function wrap(bytes32 handle) internal pure returns (euint256 memory encrypted) {
+    function wrap(
+        bytes32 handle
+    ) internal pure returns (euint256 memory encrypted) {
         return euint256(handle, bytes32(0));
     }
 
@@ -590,7 +642,7 @@ library FHEOperations {
     function _createHandle(uint8 valueType) private returns (bytes32 handle) {
         address gateway = getGateway();
         require(gateway != address(0), "FHE: Gateway not set");
-        
+
         bytes32 defaultZone = keccak256("DEFAULT");
         handle = FHEGateway(gateway).createHandle(valueType, defaultZone);
     }
@@ -607,9 +659,9 @@ library FHEOperations {
     ) private returns (bytes32 outputHandle) {
         address gateway = getGateway();
         require(gateway != address(0), "FHE: Gateway not set");
-        
+
         uint64 deadline = uint64(block.timestamp + FHELib.MAX_REQUEST_TTL);
-        
+
         (, outputHandle) = FHEGateway(gateway).requestCompute(
             opcode,
             inputs,

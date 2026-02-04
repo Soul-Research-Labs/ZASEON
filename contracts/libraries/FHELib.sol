@@ -49,18 +49,18 @@ library FHELib {
 
     /// @notice Encrypted value types compatible with fhEVM
     enum ValueType {
-        ebool,      // 0: Encrypted boolean
-        euint4,     // 1: Encrypted 4-bit unsigned integer
-        euint8,     // 2: Encrypted 8-bit unsigned integer  
-        euint16,    // 3: Encrypted 16-bit unsigned integer
-        euint32,    // 4: Encrypted 32-bit unsigned integer
-        euint64,    // 5: Encrypted 64-bit unsigned integer
-        euint128,   // 6: Encrypted 128-bit unsigned integer
-        euint256,   // 7: Encrypted 256-bit unsigned integer
-        eaddress,   // 8: Encrypted address (160-bit)
-        ebytes64,   // 9: Encrypted 64-byte value
-        ebytes128,  // 10: Encrypted 128-byte value
-        ebytes256   // 11: Encrypted 256-byte value
+        ebool, // 0: Encrypted boolean
+        euint4, // 1: Encrypted 4-bit unsigned integer
+        euint8, // 2: Encrypted 8-bit unsigned integer
+        euint16, // 3: Encrypted 16-bit unsigned integer
+        euint32, // 4: Encrypted 32-bit unsigned integer
+        euint64, // 5: Encrypted 64-bit unsigned integer
+        euint128, // 6: Encrypted 128-bit unsigned integer
+        euint256, // 7: Encrypted 256-bit unsigned integer
+        eaddress, // 8: Encrypted address (160-bit)
+        ebytes64, // 9: Encrypted 64-byte value
+        ebytes128, // 10: Encrypted 128-byte value
+        ebytes256 // 11: Encrypted 256-byte value
     }
 
     // ============================================
@@ -69,10 +69,10 @@ library FHELib {
 
     /// @notice Supported FHE schemes
     enum FHEScheme {
-        TFHE,   // Torus FHE (best for binary/small integers)
-        BFV,    // Brakerski-Fan-Vercauteren (exact arithmetic)
-        BGV,    // Brakerski-Gentry-Vaikuntanathan (modular arithmetic)
-        CKKS    // Cheon-Kim-Kim-Song (approximate/floating-point)
+        TFHE, // Torus FHE (best for binary/small integers)
+        BFV, // Brakerski-Fan-Vercauteren (exact arithmetic)
+        BGV, // Brakerski-Gentry-Vaikuntanathan (modular arithmetic)
+        CKKS // Cheon-Kim-Kim-Song (approximate/floating-point)
     }
 
     // ============================================
@@ -82,44 +82,39 @@ library FHELib {
     /// @notice FHE operation codes for coprocessor
     enum Opcode {
         // Arithmetic (0-5)
-        ADD,        // ct + ct or ct + pt
-        SUB,        // ct - ct or ct - pt
-        MUL,        // ct * ct or ct * pt
-        DIV,        // ct / pt (integer division)
-        REM,        // ct % pt (remainder)
-        NEG,        // -ct (negation)
-        
+        ADD, // ct + ct or ct + pt
+        SUB, // ct - ct or ct - pt
+        MUL, // ct * ct or ct * pt
+        DIV, // ct / pt (integer division)
+        REM, // ct % pt (remainder)
+        NEG, // -ct (negation)
         // Comparison (6-11)
-        EQ,         // ct == ct
-        NE,         // ct != ct
-        GE,         // ct >= ct
-        GT,         // ct > ct
-        LE,         // ct <= ct
-        LT,         // ct < ct
-        
+        EQ, // ct == ct
+        NE, // ct != ct
+        GE, // ct >= ct
+        GT, // ct > ct
+        LE, // ct <= ct
+        LT, // ct < ct
         // Bitwise (12-19)
-        AND,        // ct & ct
-        OR,         // ct | ct
-        XOR,        // ct ^ ct
-        NOT,        // ~ct
-        SHL,        // ct << n
-        SHR,        // ct >> n
-        ROTL,       // rotate left
-        ROTR,       // rotate right
-        
+        AND, // ct & ct
+        OR, // ct | ct
+        XOR, // ct ^ ct
+        NOT, // ~ct
+        SHL, // ct << n
+        SHR, // ct >> n
+        ROTL, // rotate left
+        ROTR, // rotate right
         // Min/Max (20-21)
-        MIN,        // min(ct, ct)
-        MAX,        // max(ct, ct)
-        
+        MIN, // min(ct, ct)
+        MAX, // max(ct, ct)
         // Conditional (22-23)
-        SELECT,     // condition ? ct1 : ct2
-        CMUX,       // encrypted multiplexer
-        
+        SELECT, // condition ? ct1 : ct2
+        CMUX, // encrypted multiplexer
         // Special (24-27)
-        RAND,       // generate random encrypted value
-        TRIVIAL,    // encrypt plaintext to ciphertext
-        DECRYPT,    // request async decryption
-        REENCRYPT   // reencrypt to new public key
+        RAND, // generate random encrypted value
+        TRIVIAL, // encrypt plaintext to ciphertext
+        DECRYPT, // request async decryption
+        REENCRYPT // reencrypt to new public key
     }
 
     // ============================================
@@ -142,21 +137,21 @@ library FHELib {
     /// @notice Handle to an encrypted ciphertext
     /// @dev Handles are opaque references to off-chain ciphertexts
     struct Handle {
-        bytes32 id;             // Unique identifier
-        uint8 valueType;        // ValueType enum value
-        bytes32 securityZone;   // Security domain for ACL
-        bool verified;          // Whether ciphertext is verified
-        uint64 createdAt;       // Creation timestamp
+        bytes32 id; // Unique identifier
+        uint8 valueType; // ValueType enum value
+        bytes32 securityZone; // Security domain for ACL
+        bool verified; // Whether ciphertext is verified
+        uint64 createdAt; // Creation timestamp
     }
 
     /// @notice FHE computation request
     struct ComputeRequest {
         bytes32 requestId;
-        uint8 opcode;           // Opcode enum value
-        bytes32[] inputs;       // Input handle IDs
-        bytes32 output;         // Output handle ID
+        uint8 opcode; // Opcode enum value
+        bytes32[] inputs; // Input handle IDs
+        bytes32 output; // Output handle ID
         address requester;
-        uint256 gasEstimate;    // Estimated FHE gas units
+        uint256 gasEstimate; // Estimated FHE gas units
         uint64 timestamp;
         uint64 deadline;
         RequestStatus status;
@@ -171,7 +166,7 @@ library FHELib {
         bytes4 callbackSelector;
         uint64 maxTimestamp;
         bool fulfilled;
-        bytes32 result;         // Decrypted value (when fulfilled)
+        bytes32 result; // Decrypted value (when fulfilled)
     }
 
     /// @notice Reencryption request
@@ -198,20 +193,20 @@ library FHELib {
 
     /// @notice Security parameters for encryption
     struct SecurityParams {
-        uint16 securityLevel;   // Security bits (e.g., 128)
-        uint16 noiseLevel;      // Noise budget
-        FHEScheme scheme;       // FHE scheme used
-        bytes32 publicKeyHash;  // Hash of public key
+        uint16 securityLevel; // Security bits (e.g., 128)
+        uint16 noiseLevel; // Noise budget
+        FHEScheme scheme; // FHE scheme used
+        bytes32 publicKeyHash; // Hash of public key
     }
 
     /// @notice Access control for encrypted values
     struct ACLEntry {
         address grantee;
         bytes32 handle;
-        bool canRead;           // Can request decryption
-        bool canCompute;        // Can use in computations
-        bool canDelegate;       // Can grant access to others
-        uint64 expiresAt;       // 0 = no expiration
+        bool canRead; // Can request decryption
+        bool canCompute; // Can use in computations
+        bool canDelegate; // Can grant access to others
+        uint64 expiresAt; // 0 = no expiration
     }
 
     // ============================================
@@ -250,7 +245,9 @@ library FHELib {
      * @param valueType The type to check
      * @return valid Whether the type is valid
      */
-    function isValidValueType(uint8 valueType) internal pure returns (bool valid) {
+    function isValidValueType(
+        uint8 valueType
+    ) internal pure returns (bool valid) {
         return valueType <= uint8(ValueType.ebytes256);
     }
 
@@ -259,7 +256,9 @@ library FHELib {
      * @param valueType The type to check
      * @return size Size in bytes
      */
-    function getValueTypeSize(uint8 valueType) internal pure returns (uint256 size) {
+    function getValueTypeSize(
+        uint8 valueType
+    ) internal pure returns (uint256 size) {
         if (valueType == uint8(ValueType.ebool)) return 1;
         if (valueType == uint8(ValueType.euint4)) return 1;
         if (valueType == uint8(ValueType.euint8)) return 1;
@@ -305,7 +304,7 @@ library FHELib {
             // Special operations
             gasEstimate = 200_000;
         }
-        
+
         return gasEstimate * FHE_GAS_MULTIPLIER;
     }
 
@@ -320,28 +319,30 @@ library FHELib {
         uint256 inputCount
     ) internal pure returns (bool valid) {
         // Unary operations
-        if (opcode == uint8(Opcode.NEG) || 
+        if (
+            opcode == uint8(Opcode.NEG) ||
             opcode == uint8(Opcode.NOT) ||
             opcode == uint8(Opcode.DECRYPT) ||
-            opcode == uint8(Opcode.REENCRYPT)) {
+            opcode == uint8(Opcode.REENCRYPT)
+        ) {
             return inputCount == 1;
         }
-        
+
         // Binary operations
         if (opcode <= uint8(Opcode.MAX)) {
             return inputCount == 2;
         }
-        
+
         // Ternary (SELECT, CMUX)
         if (opcode == uint8(Opcode.SELECT) || opcode == uint8(Opcode.CMUX)) {
             return inputCount == 3;
         }
-        
+
         // Special operations
         if (opcode == uint8(Opcode.RAND) || opcode == uint8(Opcode.TRIVIAL)) {
             return inputCount <= 1;
         }
-        
+
         return false;
     }
 
@@ -360,13 +361,7 @@ library FHELib {
         uint256 nonce
     ) internal view returns (bytes32 requestId) {
         requestId = keccak256(
-            abi.encode(
-                requester,
-                opcode,
-                inputs,
-                nonce,
-                block.chainid
-            )
+            abi.encode(requester, opcode, inputs, nonce, block.chainid)
         );
     }
 }

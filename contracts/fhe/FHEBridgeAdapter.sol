@@ -65,11 +65,11 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Chain configuration
     struct ChainConfig {
-        bytes32 bridgeAdapter;      // Remote bridge adapter address (as bytes32)
-        bytes32 fhePublicKey;       // Remote chain's FHE public key
+        bytes32 bridgeAdapter; // Remote bridge adapter address (as bytes32)
+        bytes32 fhePublicKey; // Remote chain's FHE public key
         uint256 minTransfer;
         uint256 maxTransfer;
-        uint64 transferDelay;       // Minimum time before completion
+        uint64 transferDelay; // Minimum time before completion
         uint32 requiredConfirmations; // L1 confirmations required
         bool enabled;
     }
@@ -81,8 +81,8 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         address token;
         address recipient;
         uint256 destinationChainId;
-        euint256 encryptedAmount;    // Encrypted with source chain key
-        bytes32 amountCommitment;    // Commitment for verification
+        euint256 encryptedAmount; // Encrypted with source chain key
+        bytes32 amountCommitment; // Commitment for verification
         bytes32 reencryptionRequest; // Gateway reencryption request ID
         uint64 timestamp;
         uint64 completedAt;
@@ -94,11 +94,11 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 transferId;
         bytes32 sourceTransferId;
         uint256 sourceChainId;
-        address sender;             // Original sender on source chain
+        address sender; // Original sender on source chain
         address recipient;
         address token;
-        euint256 encryptedAmount;   // Reencrypted with destination key
-        bytes zkProof;              // Proof of correct reencryption
+        euint256 encryptedAmount; // Reencrypted with destination key
+        bytes zkProof; // Proof of correct reencryption
         uint64 receivedAt;
         uint64 claimedAt;
         TransferStatus status;
@@ -171,10 +171,7 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         bytes32 indexed reencryptionRequestId
     );
 
-    event TransferLocked(
-        bytes32 indexed transferId,
-        uint64 timestamp
-    );
+    event TransferLocked(bytes32 indexed transferId, uint64 timestamp);
 
     event TransferReceived(
         bytes32 indexed transferId,
@@ -187,19 +184,11 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         address indexed recipient
     );
 
-    event TransferCompleted(
-        bytes32 indexed transferId
-    );
+    event TransferCompleted(bytes32 indexed transferId);
 
-    event TransferRefunded(
-        bytes32 indexed transferId,
-        address indexed sender
-    );
+    event TransferRefunded(bytes32 indexed transferId, address indexed sender);
 
-    event ChainConfigured(
-        uint256 indexed chainId,
-        bytes32 bridgeAdapter
-    );
+    event ChainConfigured(uint256 indexed chainId, bytes32 bridgeAdapter);
 
     event ChainDisabled(uint256 indexed chainId);
 
@@ -311,9 +300,14 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         if (recipient == address(0)) revert ZeroAddress();
 
         // Verify caller has access to encrypted amount
-        (bool valid, bool verified) = fheGateway.checkHandle(encryptedAmount.handle);
+        (bool valid, bool verified) = fheGateway.checkHandle(
+            encryptedAmount.handle
+        );
         require(valid && verified, "Invalid amount handle");
-        require(fheGateway.hasAccess(encryptedAmount.handle, msg.sender), "No access");
+        require(
+            fheGateway.hasAccess(encryptedAmount.handle, msg.sender),
+            "No access"
+        );
 
         // Generate transfer ID
         transferNonce++;
@@ -441,7 +435,13 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Verify ZK proof of correct reencryption
-        if (!_verifyReencryptionProof(zkProof, sourceTransferId, reencryptedAmount)) {
+        if (
+            !_verifyReencryptionProof(
+                zkProof,
+                sourceTransferId,
+                reencryptedAmount
+            )
+        ) {
             revert InvalidProof();
         }
 
@@ -485,13 +485,12 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Claim inbound transfer
      * @param transferId Inbound transfer ID
      */
-    function claimTransfer(
-        bytes32 transferId
-    ) external nonReentrant {
+    function claimTransfer(bytes32 transferId) external nonReentrant {
         InboundTransfer storage transfer = inboundTransfers[transferId];
 
         if (transfer.recipient != msg.sender) revert Unauthorized();
-        if (transfer.status != TransferStatus.ReadyToClaim) revert TransferNotReady();
+        if (transfer.status != TransferStatus.ReadyToClaim)
+            revert TransferNotReady();
 
         ChainConfig storage config = chainConfigs[transfer.sourceChainId];
         if (block.timestamp < transfer.receivedAt + config.transferDelay) {
@@ -516,14 +515,14 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Refund a failed outbound transfer
      * @param transferId The transfer to refund
      */
-    function refundTransfer(
-        bytes32 transferId
-    ) external nonReentrant {
+    function refundTransfer(bytes32 transferId) external nonReentrant {
         OutboundTransfer storage transfer = outboundTransfers[transferId];
 
         if (transfer.sender != msg.sender) revert Unauthorized();
-        if (transfer.status == TransferStatus.Completed) revert InvalidTransfer();
-        if (transfer.status == TransferStatus.Refunded) revert InvalidTransfer();
+        if (transfer.status == TransferStatus.Completed)
+            revert InvalidTransfer();
+        if (transfer.status == TransferStatus.Refunded)
+            revert InvalidTransfer();
 
         // Can only refund after timeout
         ChainConfig storage config = chainConfigs[transfer.destinationChainId];
@@ -557,9 +556,10 @@ contract FHEBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     ) internal pure returns (bool valid) {
         // Simplified verification - full implementation would verify ZK proof
         // that reencryption was done correctly without revealing amount
-        return proof.length > 0 && 
-               sourceTransferId != bytes32(0) && 
-               reencryptedAmount.handle != bytes32(0);
+        return
+            proof.length > 0 &&
+            sourceTransferId != bytes32(0) &&
+            reencryptedAmount.handle != bytes32(0);
     }
 
     // ============================================

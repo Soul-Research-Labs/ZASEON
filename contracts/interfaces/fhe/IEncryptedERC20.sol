@@ -26,25 +26,13 @@ interface IEncryptedERC20 {
         bytes32 encryptedAmountHandle
     );
 
-    event EncryptedMint(
-        address indexed to,
-        bytes32 encryptedAmountHandle
-    );
+    event EncryptedMint(address indexed to, bytes32 encryptedAmountHandle);
 
-    event EncryptedBurn(
-        address indexed from,
-        bytes32 encryptedAmountHandle
-    );
+    event EncryptedBurn(address indexed from, bytes32 encryptedAmountHandle);
 
-    event BalanceViewerAdded(
-        address indexed account,
-        address indexed viewer
-    );
+    event BalanceViewerAdded(address indexed account, address indexed viewer);
 
-    event BalanceViewerRemoved(
-        address indexed account,
-        address indexed viewer
-    );
+    event BalanceViewerRemoved(address indexed account, address indexed viewer);
 
     event BalanceDecrypted(
         address indexed account,
