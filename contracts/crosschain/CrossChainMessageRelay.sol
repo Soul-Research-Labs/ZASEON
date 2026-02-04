@@ -154,6 +154,28 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant MAX_BATCH_SIZE = 50;
 
     /*//////////////////////////////////////////////////////////////
+                        SECURITY MODULE INTEGRATION
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Soul Protocol Hub for component discovery
+    address public soulProtocolHub;
+
+    /// @notice Bridge proof validator for cross-chain proof verification
+    address public bridgeProofValidator;
+
+    /// @notice Bridge watchtower for fraud monitoring
+    address public bridgeWatchtower;
+
+    /// @notice Security oracle for threat detection
+    address public securityOracle;
+
+    /// @notice Hybrid crypto verifier for PQC + classical verification
+    address public hybridCryptoVerifier;
+
+    /// @notice Cross-chain message verifier for signature validation
+    address public crossChainMessageVerifier;
+
+    /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -654,6 +676,76 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
         uint256 _expiry
     ) external onlyRole(OPERATOR_ROLE) {
         messageExpiry = _expiry;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     SECURITY MODULE SETTERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Set Soul Protocol Hub for component discovery
+     * @param _hub The SoulProtocolHub address
+     */
+    function setSoulProtocolHub(
+        address _hub
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_hub == address(0)) revert ZeroAddress();
+        soulProtocolHub = _hub;
+    }
+
+    /**
+     * @notice Set Bridge Proof Validator
+     * @param _validator The BridgeProofValidator contract address
+     */
+    function setBridgeProofValidator(
+        address _validator
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_validator == address(0)) revert ZeroAddress();
+        bridgeProofValidator = _validator;
+    }
+
+    /**
+     * @notice Set Bridge Watchtower
+     * @param _watchtower The BridgeWatchtower contract address
+     */
+    function setBridgeWatchtower(
+        address _watchtower
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_watchtower == address(0)) revert ZeroAddress();
+        bridgeWatchtower = _watchtower;
+    }
+
+    /**
+     * @notice Set Security Oracle for threat detection
+     * @param _oracle The SecurityOracle contract address
+     */
+    function setSecurityOracle(
+        address _oracle
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_oracle == address(0)) revert ZeroAddress();
+        securityOracle = _oracle;
+    }
+
+    /**
+     * @notice Set Hybrid Crypto Verifier for PQC+classical verification
+     * @param _verifier The HybridCryptoVerifier contract address
+     */
+    function setHybridCryptoVerifier(
+        address _verifier
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_verifier == address(0)) revert ZeroAddress();
+        hybridCryptoVerifier = _verifier;
+    }
+
+    /**
+     * @notice Set Cross-Chain Message Verifier
+     * @param _verifier The CrossChainMessageVerifier contract address
+     */
+    function setCrossChainMessageVerifier(
+        address _verifier
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_verifier == address(0)) revert ZeroAddress();
+        crossChainMessageVerifier = _verifier;
     }
 
     /**
