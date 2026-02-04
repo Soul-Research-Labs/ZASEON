@@ -230,6 +230,18 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
         activeProvers.push(ProverSystem.NOIR);
         activeProvers.push(ProverSystem.SP1);
         activeProvers.push(ProverSystem.JOLT);
+
+        // Register Binius prover (binary field, ~5x faster than Mersenne31)
+        // Reference: https://vitalik.eth.limo/general/2024/04/29/binius.html
+        provers[ProverSystem.BINIUS] = ProverConfig({
+            system: ProverSystem.BINIUS,
+            verifier: address(0), // Set via registerProver()
+            isActive: true,
+            weight: 1,
+            successCount: 0,
+            failureCount: 0
+        });
+        activeProvers.push(ProverSystem.BINIUS);
     }
 
     /*//////////////////////////////////////////////////////////////
