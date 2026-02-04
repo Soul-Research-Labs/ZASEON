@@ -19,5 +19,8 @@ members = [
     "erc7683_intent",           # The Surge: ERC-7683 private intents
     "verkle_witness",           # The Verge: Verkle tree verification  
     "state_expiry_proof",       # The Purge: EIP-7736 resurrection proofs
-    "preconfirmation_proof"     # The Merge: SSF preconfirmations
+    "preconfirmation_proof",    # The Merge: SSF preconfirmations
+    # FHE Implementation
+    "fhe_computation",          # ZK proof of valid FHE computation
+    "encrypted_transfer"        # Confidential transfer proofs
 ]
