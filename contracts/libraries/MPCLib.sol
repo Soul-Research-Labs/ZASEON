@@ -39,10 +39,12 @@ library MPCLib {
     // ============================================
 
     /// @notice BN254 curve order (for Shamir over prime field)
-    uint256 public constant BN254_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 public constant BN254_ORDER =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice Secp256k1 curve order
-    uint256 public constant SECP256K1_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
+    uint256 public constant SECP256K1_ORDER =
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
     /// @notice Maximum number of participants in MPC session
     uint256 public constant MAX_PARTICIPANTS = 256;
@@ -82,71 +84,71 @@ library MPCLib {
      * @notice MPC protocol types
      */
     enum ProtocolType {
-        None,               // 0: Invalid
-        ShamirSS,           // 1: Shamir Secret Sharing
-        TSSBLS,             // 2: Threshold BLS signatures
-        TSSEcdsa,           // 3: Threshold ECDSA (GG20)
-        TSSSchnorr,         // 4: Threshold Schnorr (FROST)
-        DKGFeldman,         // 5: Feldman's DKG
-        DKGPedersen,        // 6: Pedersen's DKG
-        SPDZ,               // 7: SPDZ protocol for arithmetic
-        GMW,                // 8: GMW protocol for boolean
-        Yao                 // 9: Yao's Garbled Circuits
+        None, // 0: Invalid
+        ShamirSS, // 1: Shamir Secret Sharing
+        TSSBLS, // 2: Threshold BLS signatures
+        TSSEcdsa, // 3: Threshold ECDSA (GG20)
+        TSSSchnorr, // 4: Threshold Schnorr (FROST)
+        DKGFeldman, // 5: Feldman's DKG
+        DKGPedersen, // 6: Pedersen's DKG
+        SPDZ, // 7: SPDZ protocol for arithmetic
+        GMW, // 8: GMW protocol for boolean
+        Yao // 9: Yao's Garbled Circuits
     }
 
     /**
      * @notice Session status
      */
     enum SessionStatus {
-        None,               // 0: Invalid
-        Created,            // 1: Session created, awaiting participants
-        CommitmentPhase,    // 2: Collecting commitments
-        ShareDistribution,  // 3: Distributing shares
-        Computation,        // 4: MPC computation in progress
-        Reconstruction,     // 5: Reconstructing output
-        Completed,          // 6: Successfully completed
-        Failed,             // 7: Failed (timeout/malicious)
-        Cancelled           // 8: Cancelled by owner
+        None, // 0: Invalid
+        Created, // 1: Session created, awaiting participants
+        CommitmentPhase, // 2: Collecting commitments
+        ShareDistribution, // 3: Distributing shares
+        Computation, // 4: MPC computation in progress
+        Reconstruction, // 5: Reconstructing output
+        Completed, // 6: Successfully completed
+        Failed, // 7: Failed (timeout/malicious)
+        Cancelled // 8: Cancelled by owner
     }
 
     /**
      * @notice Participant status
      */
     enum ParticipantStatus {
-        None,               // 0: Not registered
-        Registered,         // 1: Registered, awaiting setup
-        Committed,          // 2: Committed to shares
-        SharesDistributed,  // 3: Has distributed shares
-        Ready,              // 4: Ready for computation
-        Computed,           // 5: Has submitted computation result
-        Malicious,          // 6: Detected malicious behavior
-        Excluded            // 7: Excluded from session
+        None, // 0: Not registered
+        Registered, // 1: Registered, awaiting setup
+        Committed, // 2: Committed to shares
+        SharesDistributed, // 3: Has distributed shares
+        Ready, // 4: Ready for computation
+        Computed, // 5: Has submitted computation result
+        Malicious, // 6: Detected malicious behavior
+        Excluded // 7: Excluded from session
     }
 
     /**
      * @notice Share verification status
      */
     enum VerificationStatus {
-        None,               // 0: Not verified
-        Pending,            // 1: Verification pending
-        Valid,              // 2: Share verified valid
-        Invalid,            // 3: Share failed verification
-        Contested           // 4: Under dispute
+        None, // 0: Not verified
+        Pending, // 1: Verification pending
+        Valid, // 2: Share verified valid
+        Invalid, // 3: Share failed verification
+        Contested // 4: Under dispute
     }
 
     /**
      * @notice Computation type for MPC
      */
     enum ComputationType {
-        None,               // 0: Invalid
-        Addition,           // 1: Secret addition
-        Multiplication,     // 2: Secret multiplication
-        Comparison,         // 3: Secret comparison
-        SignatureGen,       // 4: Threshold signature
-        KeyGen,             // 5: Distributed key generation
-        Decryption,         // 6: Threshold decryption
-        RandomGen,          // 7: Distributed random generation
-        Custom              // 8: Custom MPC function
+        None, // 0: Invalid
+        Addition, // 1: Secret addition
+        Multiplication, // 2: Secret multiplication
+        Comparison, // 3: Secret comparison
+        SignatureGen, // 4: Threshold signature
+        KeyGen, // 5: Distributed key generation
+        Decryption, // 6: Threshold decryption
+        RandomGen, // 7: Distributed random generation
+        Custom // 8: Custom MPC function
     }
 
     // ============================================
@@ -160,12 +162,12 @@ library MPCLib {
         bytes32 sessionId;
         ProtocolType protocol;
         ComputationType computation;
-        uint8 threshold;           // t in t-of-n
-        uint8 totalParticipants;   // n
+        uint8 threshold; // t in t-of-n
+        uint8 totalParticipants; // n
         uint256 createdAt;
         uint256 deadline;
         address coordinator;
-        bytes32 publicKeyHash;     // Hash of aggregated public key
+        bytes32 publicKeyHash; // Hash of aggregated public key
         bool requiresZKProof;
     }
 
@@ -174,11 +176,11 @@ library MPCLib {
      */
     struct Participant {
         address participantAddress;
-        bytes32 publicKeyCommitment;    // Commitment to public key share
-        bytes32 shareCommitment;        // Commitment to secret share
-        uint8 participantIndex;         // Index in the session (1-based)
+        bytes32 publicKeyCommitment; // Commitment to public key share
+        bytes32 shareCommitment; // Commitment to secret share
+        uint8 participantIndex; // Index in the session (1-based)
         ParticipantStatus status;
-        uint256 stake;                  // Collateral for slashing
+        uint256 stake; // Collateral for slashing
         uint256 joinedAt;
         bool hasSubmittedResult;
     }
@@ -189,9 +191,9 @@ library MPCLib {
     struct Share {
         bytes32 shareId;
         bytes32 sessionId;
-        uint8 shareIndex;              // Index i (evaluation point)
-        bytes32 shareValue;            // f(i) for Shamir
-        bytes32 commitment;            // Pedersen commitment to share
+        uint8 shareIndex; // Index i (evaluation point)
+        bytes32 shareValue; // f(i) for Shamir
+        bytes32 commitment; // Pedersen commitment to share
         address holder;
         VerificationStatus verification;
     }
@@ -202,7 +204,7 @@ library MPCLib {
     struct VSSCommitment {
         bytes32 sessionId;
         address dealer;
-        bytes32[] coefficientCommitments;  // g^a_i for each coefficient
+        bytes32[] coefficientCommitments; // g^a_i for each coefficient
         uint256 createdAt;
         bool verified;
     }
@@ -213,7 +215,7 @@ library MPCLib {
     struct SignatureRequest {
         bytes32 requestId;
         bytes32 messageHash;
-        bytes32 publicKeyHash;         // Which threshold key to use
+        bytes32 publicKeyHash; // Which threshold key to use
         uint8 threshold;
         address requester;
         uint256 createdAt;
@@ -228,8 +230,8 @@ library MPCLib {
         bytes32 requestId;
         address signer;
         uint8 signerIndex;
-        bytes signature;               // Partial signature data
-        bytes32 commitment;            // Commitment for verification
+        bytes signature; // Partial signature data
+        bytes32 commitment; // Commitment for verification
         bool verified;
     }
 
@@ -238,8 +240,8 @@ library MPCLib {
      */
     struct ThresholdSignature {
         bytes32 requestId;
-        bytes signature;               // Final aggregated signature
-        uint8[] signerIndices;         // Which participants signed
+        bytes signature; // Final aggregated signature
+        uint8[] signerIndices; // Which participants signed
         bytes32 publicKeyHash;
         bool valid;
     }
@@ -252,8 +254,8 @@ library MPCLib {
         ProtocolType protocol;
         uint8 threshold;
         uint8 totalParticipants;
-        uint8 currentPhase;            // 0=setup, 1=commit, 2=reveal, 3=verify, 4=complete
-        bytes32 aggregatedPublicKey;   // Final public key
+        uint8 currentPhase; // 0=setup, 1=commit, 2=reveal, 3=verify, 4=complete
+        bytes32 aggregatedPublicKey; // Final public key
         uint256 createdAt;
         uint256 deadline;
         bool completed;
@@ -264,9 +266,9 @@ library MPCLib {
      */
     struct ComputationResult {
         bytes32 sessionId;
-        bytes32 resultCommitment;      // Commitment to result
-        bytes32 resultValue;           // Revealed result (when applicable)
-        bytes32 proofHash;             // Hash of ZK proof
+        bytes32 resultCommitment; // Commitment to result
+        bytes32 resultValue; // Revealed result (when applicable)
+        bytes32 proofHash; // Hash of ZK proof
         uint256 completedAt;
         bool verified;
     }
@@ -282,7 +284,11 @@ library MPCLib {
      * @param p Prime modulus
      * @return result a + b mod p
      */
-    function addMod(uint256 a, uint256 b, uint256 p) internal pure returns (uint256 result) {
+    function addMod(
+        uint256 a,
+        uint256 b,
+        uint256 p
+    ) internal pure returns (uint256 result) {
         assembly {
             result := addmod(a, b, p)
         }
@@ -295,7 +301,11 @@ library MPCLib {
      * @param p Prime modulus
      * @return result a - b mod p
      */
-    function subMod(uint256 a, uint256 b, uint256 p) internal pure returns (uint256 result) {
+    function subMod(
+        uint256 a,
+        uint256 b,
+        uint256 p
+    ) internal pure returns (uint256 result) {
         assembly {
             // (a - b) mod p = (a + (p - b)) mod p when b > a
             result := addmod(a, sub(p, mod(b, p)), p)
@@ -309,7 +319,11 @@ library MPCLib {
      * @param p Prime modulus
      * @return result a * b mod p
      */
-    function mulMod(uint256 a, uint256 b, uint256 p) internal pure returns (uint256 result) {
+    function mulMod(
+        uint256 a,
+        uint256 b,
+        uint256 p
+    ) internal pure returns (uint256 result) {
         assembly {
             result := mulmod(a, b, p)
         }
@@ -322,24 +336,28 @@ library MPCLib {
      * @param p Prime modulus
      * @return result base^exponent mod p
      */
-    function expMod(uint256 base, uint256 exponent, uint256 p) internal view returns (uint256 result) {
+    function expMod(
+        uint256 base,
+        uint256 exponent,
+        uint256 p
+    ) internal view returns (uint256 result) {
         assembly {
             // Free memory pointer
             let ptr := mload(0x40)
-            
+
             // Store arguments for precompile
-            mstore(ptr, 0x20)              // Length of base
-            mstore(add(ptr, 0x20), 0x20)   // Length of exponent
-            mstore(add(ptr, 0x40), 0x20)   // Length of modulus
+            mstore(ptr, 0x20) // Length of base
+            mstore(add(ptr, 0x20), 0x20) // Length of exponent
+            mstore(add(ptr, 0x40), 0x20) // Length of modulus
             mstore(add(ptr, 0x60), base)
             mstore(add(ptr, 0x80), exponent)
             mstore(add(ptr, 0xa0), p)
-            
+
             // Call modexp precompile (0x05)
             if iszero(staticcall(gas(), 0x05, ptr, 0xc0, ptr, 0x20)) {
                 revert(0, 0)
             }
-            
+
             result := mload(ptr)
         }
     }
@@ -350,7 +368,10 @@ library MPCLib {
      * @param p Prime modulus
      * @return result a^(-1) mod p
      */
-    function invMod(uint256 a, uint256 p) internal view returns (uint256 result) {
+    function invMod(
+        uint256 a,
+        uint256 p
+    ) internal view returns (uint256 result) {
         require(a != 0, "Cannot invert zero");
         // a^(-1) = a^(p-2) mod p (Fermat's little theorem)
         result = expMod(a, p - 2, p);
@@ -375,7 +396,7 @@ library MPCLib {
     ) internal view returns (uint256 coeff) {
         coeff = 1;
         uint256 numIndices = indices.length;
-        
+
         for (uint256 j = 0; j < numIndices; j++) {
             if (indices[j] != i) {
                 // numerator: (0 - indices[j]) = p - indices[j]
@@ -402,10 +423,10 @@ library MPCLib {
     ) internal view returns (uint256 secret) {
         require(shares.length == indices.length, "Length mismatch");
         require(shares.length >= MIN_THRESHOLD, "Not enough shares");
-        
+
         secret = 0;
         uint256 numShares = shares.length;
-        
+
         for (uint256 i = 0; i < numShares; i++) {
             uint256 basis = lagrangeBasis(indices[i], indices, p);
             secret = addMod(secret, mulMod(shares[i], basis, p), p);
@@ -429,11 +450,7 @@ library MPCLib {
     ) internal pure returns (bytes32 commitment) {
         // Simplified: hash-based commitment
         // Real implementation would use elliptic curve operations
-        commitment = keccak256(abi.encodePacked(
-            MPC_DOMAIN,
-            value,
-            randomness
-        ));
+        commitment = keccak256(abi.encodePacked(MPC_DOMAIN, value, randomness));
     }
 
     /**
@@ -457,7 +474,10 @@ library MPCLib {
      * @param nonce Random nonce
      * @return commitment The commitment
      */
-    function hashCommit(bytes32 value, bytes32 nonce) internal pure returns (bytes32 commitment) {
+    function hashCommit(
+        bytes32 value,
+        bytes32 nonce
+    ) internal pure returns (bytes32 commitment) {
         commitment = keccak256(abi.encodePacked(value, nonce));
     }
 
@@ -472,7 +492,9 @@ library MPCLib {
      * @param coefficient Polynomial coefficient
      * @return commitment Commitment to coefficient
      */
-    function coefficientCommitment(bytes32 coefficient) internal pure returns (bytes32 commitment) {
+    function coefficientCommitment(
+        bytes32 coefficient
+    ) internal pure returns (bytes32 commitment) {
         // Simplified: hash-based
         // Real: would compute g^coefficient on curve
         commitment = keccak256(abi.encodePacked(DKG_DOMAIN, coefficient));
@@ -496,14 +518,11 @@ library MPCLib {
         bytes32 expected = coeffCommitments[0];
         for (uint256 j = 1; j < coeffCommitments.length; j++) {
             // Add contribution from each coefficient
-            expected = keccak256(abi.encodePacked(
-                expected,
-                coeffCommitments[j],
-                shareIndex,
-                j
-            ));
+            expected = keccak256(
+                abi.encodePacked(expected, coeffCommitments[j], shareIndex, j)
+            );
         }
-        
+
         bytes32 shareCommit = coefficientCommitment(shareValue);
         valid = (expected != bytes32(0) && shareCommit != bytes32(0));
     }
@@ -524,14 +543,16 @@ library MPCLib {
         address coordinator,
         uint256 nonce
     ) internal view returns (bytes32 sessionId) {
-        sessionId = keccak256(abi.encodePacked(
-            MPC_DOMAIN,
-            protocol,
-            coordinator,
-            nonce,
-            block.chainid,
-            block.timestamp
-        ));
+        sessionId = keccak256(
+            abi.encodePacked(
+                MPC_DOMAIN,
+                protocol,
+                coordinator,
+                nonce,
+                block.chainid,
+                block.timestamp
+            )
+        );
     }
 
     /**
@@ -546,11 +567,7 @@ library MPCLib {
         uint8 shareIndex,
         address holder
     ) internal pure returns (bytes32 shareId) {
-        shareId = keccak256(abi.encodePacked(
-            sessionId,
-            shareIndex,
-            holder
-        ));
+        shareId = keccak256(abi.encodePacked(sessionId, shareIndex, holder));
     }
 
     /**
@@ -563,15 +580,13 @@ library MPCLib {
         uint8 threshold,
         uint8 totalParticipants
     ) internal pure returns (bool valid) {
-        valid = (
-            threshold >= MIN_THRESHOLD &&
+        valid = (threshold >= MIN_THRESHOLD &&
             threshold <= MAX_THRESHOLD &&
             totalParticipants >= MIN_PARTICIPANTS &&
             totalParticipants <= MAX_PARTICIPANTS &&
             threshold <= totalParticipants &&
             // t must be at least majority for security against malicious adversary
-            threshold > totalParticipants / 2
-        );
+            threshold > totalParticipants / 2);
     }
 
     /**
@@ -586,13 +601,15 @@ library MPCLib {
         bytes32 publicKeyHash,
         uint256 nonce
     ) internal view returns (bytes32 requestId) {
-        requestId = keccak256(abi.encodePacked(
-            TSS_DOMAIN,
-            messageHash,
-            publicKeyHash,
-            nonce,
-            block.chainid
-        ));
+        requestId = keccak256(
+            abi.encodePacked(
+                TSS_DOMAIN,
+                messageHash,
+                publicKeyHash,
+                nonce,
+                block.chainid
+            )
+        );
     }
 
     /**
@@ -600,7 +617,9 @@ library MPCLib {
      * @param indices Array of participant indices
      * @return encoded Encoded participant set
      */
-    function encodeParticipantSet(uint8[] memory indices) internal pure returns (bytes32 encoded) {
+    function encodeParticipantSet(
+        uint8[] memory indices
+    ) internal pure returns (bytes32 encoded) {
         encoded = keccak256(abi.encodePacked(indices));
     }
 

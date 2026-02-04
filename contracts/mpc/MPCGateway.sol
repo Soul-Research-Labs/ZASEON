@@ -58,7 +58,8 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
     // ROLES
     // ============================================
 
-    bytes32 public constant GATEWAY_ADMIN_ROLE = keccak256("GATEWAY_ADMIN_ROLE");
+    bytes32 public constant GATEWAY_ADMIN_ROLE =
+        keccak256("GATEWAY_ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
     bytes32 public constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
@@ -68,14 +69,16 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
 
     /// @notice EIP-712 Domain separator
-    bytes32 public constant DOMAIN_SEPARATOR = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
+    bytes32 public constant DOMAIN_SEPARATOR =
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
 
     /// @notice Request typehash for EIP-712
-    bytes32 public constant REQUEST_TYPEHASH = keccak256(
-        "MPCRequest(bytes32 requestId,uint8 requestType,bytes32 keyId,bytes data,uint256 deadline,uint256 nonce)"
-    );
+    bytes32 public constant REQUEST_TYPEHASH =
+        keccak256(
+            "MPCRequest(bytes32 requestId,uint8 requestType,bytes32 keyId,bytes data,uint256 deadline,uint256 nonce)"
+        );
 
     /// @notice Maximum request lifetime
     uint256 public constant MAX_REQUEST_LIFETIME = 1 hours;
@@ -91,27 +94,27 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Type of MPC request
      */
     enum RequestType {
-        None,              // 0: Invalid
-        ThresholdSign,     // 1: Request threshold signature
-        SecretShare,       // 2: Create secret sharing session
+        None, // 0: Invalid
+        ThresholdSign, // 1: Request threshold signature
+        SecretShare, // 2: Create secret sharing session
         SecretReconstruct, // 3: Reconstruct shared secret
-        DKGInitiate,       // 4: Start DKG protocol
-        KeyRotation,       // 5: Rotate existing key
-        ComputePrivate,    // 6: Privacy-preserving computation
-        CrossChainRelay    // 7: Cross-chain MPC coordination
+        DKGInitiate, // 4: Start DKG protocol
+        KeyRotation, // 5: Rotate existing key
+        ComputePrivate, // 6: Privacy-preserving computation
+        CrossChainRelay // 7: Cross-chain MPC coordination
     }
 
     /**
      * @notice Request status
      */
     enum RequestStatus {
-        None,       // 0: Not submitted
-        Pending,    // 1: Awaiting processing
+        None, // 0: Not submitted
+        Pending, // 1: Awaiting processing
         Processing, // 2: Being processed
-        Completed,  // 3: Successfully completed
-        Failed,     // 4: Failed
-        Expired,    // 5: Deadline passed
-        Cancelled   // 6: Cancelled by requester
+        Completed, // 3: Successfully completed
+        Failed, // 4: Failed
+        Expired, // 5: Deadline passed
+        Cancelled // 6: Cancelled by requester
     }
 
     // ============================================
@@ -131,10 +134,17 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes32 resultHash
     );
 
-    event RequestCancelled(bytes32 indexed requestId, address indexed canceller);
+    event RequestCancelled(
+        bytes32 indexed requestId,
+        address indexed canceller
+    );
     event RequestExpired(bytes32 indexed requestId);
 
-    event ModuleUpdated(string moduleName, address indexed oldAddress, address indexed newAddress);
+    event ModuleUpdated(
+        string moduleName,
+        address indexed oldAddress,
+        address indexed newAddress
+    );
 
     event CrossChainRequestSent(
         bytes32 indexed requestId,
@@ -180,16 +190,16 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes32 requestId;
         RequestType requestType;
         address requester;
-        bytes32 keyId;              // Associated key (if applicable)
-        bytes data;                 // Request-specific data
-        bytes32 dataHash;           // Hash of data for verification
-        uint256 fee;                // Fee paid
+        bytes32 keyId; // Associated key (if applicable)
+        bytes data; // Request-specific data
+        bytes32 dataHash; // Hash of data for verification
+        uint256 fee; // Fee paid
         uint256 deadline;
         uint256 submittedAt;
         uint256 processedAt;
         RequestStatus status;
-        bytes32 resultHash;         // Hash of result (if completed)
-        bytes result;               // Result data (if applicable)
+        bytes32 resultHash; // Hash of result (if completed)
+        bytes result; // Result data (if applicable)
     }
 
     /**
@@ -303,7 +313,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (address(thresholdSigModule) == address(0)) {
             revert ModuleNotSet("ThresholdSignature");
         }
-        
+
         _validateDeadline(deadline);
         _validateFee(RequestType.ThresholdSign);
 
@@ -335,7 +345,12 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         // Note: deadline will be handled by the gateway
         thresholdSigModule.createSigningRequest(keyId, messageHash, deadline);
 
-        emit RequestSubmitted(requestId, RequestType.ThresholdSign, msg.sender, keyId);
+        emit RequestSubmitted(
+            requestId,
+            RequestType.ThresholdSign,
+            msg.sender,
+            keyId
+        );
         emit FeeCollected(requestId, msg.value);
     }
 
@@ -356,7 +371,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (address(shamirModule) == address(0)) {
             revert ModuleNotSet("ShamirSecretSharing");
         }
-        
+
         _validateDeadline(deadline);
         _validateFee(RequestType.SecretShare);
 
@@ -395,7 +410,12 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         );
         requests[requestId].result = abi.encode(sessionId);
 
-        emit RequestSubmitted(requestId, RequestType.SecretShare, msg.sender, bytes32(0));
+        emit RequestSubmitted(
+            requestId,
+            RequestType.SecretShare,
+            msg.sender,
+            bytes32(0)
+        );
         emit FeeCollected(requestId, msg.value);
     }
 
@@ -418,13 +438,18 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (address(keyRegistryModule) == address(0)) {
             revert ModuleNotSet("MPCKeyRegistry");
         }
-        
+
         _validateDeadline(deadline);
         _validateFee(RequestType.DKGInitiate);
 
         requestId = _generateRequestId(RequestType.DKGInitiate);
 
-        bytes memory data = abi.encode(protocol, keyPurpose, threshold, participants);
+        bytes memory data = abi.encode(
+            protocol,
+            keyPurpose,
+            threshold,
+            participants
+        );
 
         requests[requestId] = MPCRequest({
             requestId: requestId,
@@ -457,7 +482,12 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         // Store session ID in result
         requests[requestId].result = abi.encode(sessionId);
 
-        emit RequestSubmitted(requestId, RequestType.DKGInitiate, msg.sender, sessionId);
+        emit RequestSubmitted(
+            requestId,
+            RequestType.DKGInitiate,
+            msg.sender,
+            sessionId
+        );
         emit FeeCollected(requestId, msg.value);
     }
 
@@ -478,13 +508,17 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (address(coordinatorModule) == address(0)) {
             revert ModuleNotSet("MPCCoordinator");
         }
-        
+
         _validateDeadline(deadline);
         _validateFee(RequestType.ComputePrivate);
 
         requestId = _generateRequestId(RequestType.ComputePrivate);
 
-        bytes memory data = abi.encode(computationType, inputCommitments, program);
+        bytes memory data = abi.encode(
+            computationType,
+            inputCommitments,
+            program
+        );
 
         requests[requestId] = MPCRequest({
             requestId: requestId,
@@ -508,8 +542,10 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
 
         // Determine MPC protocol based on computation type
         MPCLib.ProtocolType protocol;
-        if (computationType == MPCLib.ComputationType.Addition || 
-            computationType == MPCLib.ComputationType.Multiplication) {
+        if (
+            computationType == MPCLib.ComputationType.Addition ||
+            computationType == MPCLib.ComputationType.Multiplication
+        ) {
             protocol = MPCLib.ProtocolType.SPDZ;
         } else if (computationType == MPCLib.ComputationType.Comparison) {
             protocol = MPCLib.ProtocolType.GMW;
@@ -530,7 +566,12 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         );
         requests[requestId].result = abi.encode(sessionId);
 
-        emit RequestSubmitted(requestId, RequestType.ComputePrivate, msg.sender, program);
+        emit RequestSubmitted(
+            requestId,
+            RequestType.ComputePrivate,
+            msg.sender,
+            program
+        );
         emit FeeCollected(requestId, msg.value);
     }
 
@@ -560,7 +601,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (chainMessengers[targetChainId] == address(0)) {
             revert ModuleNotSet("ChainMessenger");
         }
-        
+
         _validateDeadline(deadline);
         if (msg.value < feeConfig.crossChainFee) {
             revert InsufficientFee();
@@ -611,7 +652,11 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         totalFeesCollected += msg.value;
 
         emit RequestSubmitted(requestId, requestType, msg.sender, keyId);
-        emit CrossChainRequestSent(requestId, targetChainId, keccak256(payload));
+        emit CrossChainRequestSent(
+            requestId,
+            targetChainId,
+            keccak256(payload)
+        );
         emit FeeCollected(requestId, msg.value);
     }
 
@@ -638,13 +683,14 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
             bytes32 keyId,
             bytes memory data,
             uint256 deadline
-        ) = abi.decode(payload, (bytes32, RequestType, address, bytes32, bytes, uint256));
+        ) = abi.decode(
+                payload,
+                (bytes32, RequestType, address, bytes32, bytes, uint256)
+            );
 
-        bytes32 localRequestId = keccak256(abi.encodePacked(
-            sourceChainId,
-            originalRequestId,
-            block.timestamp
-        ));
+        bytes32 localRequestId = keccak256(
+            abi.encodePacked(sourceChainId, originalRequestId, block.timestamp)
+        );
 
         // Store cross-chain request
         crossChainRequests[localRequestId] = CrossChainRequest({
@@ -675,7 +721,11 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
             result: ""
         });
 
-        emit CrossChainRequestReceived(localRequestId, sourceChainId, keccak256(payload));
+        emit CrossChainRequestReceived(
+            localRequestId,
+            sourceChainId,
+            keccak256(payload)
+        );
     }
 
     // ============================================
@@ -688,7 +738,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      */
     function cancelRequest(bytes32 requestId) external nonReentrant {
         MPCRequest storage request = requests[requestId];
-        
+
         if (request.submittedAt == 0) {
             revert RequestNotFound(requestId);
         }
@@ -700,7 +750,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         }
 
         request.status = RequestStatus.Cancelled;
-        
+
         // Refund fee (minus gas cost)
         if (request.fee > 0) {
             uint256 refund = (request.fee * 90) / 100; // 10% cancellation fee
@@ -719,11 +769,14 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      */
     function markExpired(bytes32 requestId) external {
         MPCRequest storage request = requests[requestId];
-        
+
         if (request.submittedAt == 0) {
             revert RequestNotFound(requestId);
         }
-        if (request.status != RequestStatus.Pending && request.status != RequestStatus.Processing) {
+        if (
+            request.status != RequestStatus.Pending &&
+            request.status != RequestStatus.Processing
+        ) {
             return;
         }
         if (block.timestamp <= request.deadline) {
@@ -746,7 +799,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata result
     ) external onlyRole(ROUTER_ROLE) {
         MPCRequest storage request = requests[requestId];
-        
+
         if (request.submittedAt == 0) {
             revert RequestNotFound(requestId);
         }
@@ -769,7 +822,7 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata reason
     ) external onlyRole(ROUTER_ROLE) {
         MPCRequest storage request = requests[requestId];
-        
+
         if (request.submittedAt == 0) {
             revert RequestNotFound(requestId);
         }
@@ -778,22 +831,31 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         request.processedAt = block.timestamp;
         request.result = reason;
 
-        emit RequestProcessed(requestId, RequestStatus.Failed, keccak256(reason));
+        emit RequestProcessed(
+            requestId,
+            RequestStatus.Failed,
+            keccak256(reason)
+        );
     }
 
     // ============================================
     // INTERNAL FUNCTIONS
     // ============================================
 
-    function _generateRequestId(RequestType requestType) internal returns (bytes32) {
-        return keccak256(abi.encodePacked(
-            block.chainid,
-            address(this),
-            requestType,
-            msg.sender,
-            requestNonce++,
-            block.timestamp
-        ));
+    function _generateRequestId(
+        RequestType requestType
+    ) internal returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    block.chainid,
+                    address(this),
+                    requestType,
+                    msg.sender,
+                    requestNonce++,
+                    block.timestamp
+                )
+            );
     }
 
     function _validateDeadline(uint256 deadline) internal view {
@@ -810,11 +872,11 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
 
     function _validateFee(RequestType requestType) internal view {
         uint256 requiredFee = feeConfig.baseFee;
-        
+
         if (requestType == RequestType.ComputePrivate) {
             requiredFee += feeConfig.computeFee;
         }
-        
+
         if (msg.value < requiredFee) {
             revert InsufficientFee();
         }
@@ -829,7 +891,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @param requestId Request identifier
      * @return request Request data
      */
-    function getRequest(bytes32 requestId) external view returns (MPCRequest memory request) {
+    function getRequest(
+        bytes32 requestId
+    ) external view returns (MPCRequest memory request) {
         request = requests[requestId];
     }
 
@@ -838,7 +902,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @param user User address
      * @return requestIds Array of request IDs
      */
-    function getUserRequests(address user) external view returns (bytes32[] memory requestIds) {
+    function getUserRequests(
+        address user
+    ) external view returns (bytes32[] memory requestIds) {
         requestIds = userRequests[user];
     }
 
@@ -867,11 +933,11 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
     ) external view returns (uint256 fee) {
         fee = feeConfig.baseFee;
         fee += uint256(numParticipants) * feeConfig.perParticipantFee;
-        
+
         if (requestType == RequestType.ComputePrivate) {
             fee += feeConfig.computeFee;
         }
-        
+
         if (isCrossChain) {
             fee += feeConfig.crossChainFee;
         }
@@ -885,7 +951,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Set Shamir module
      * @param module Module address
      */
-    function setShamirModule(address module) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function setShamirModule(
+        address module
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         if (module == address(0)) revert ZeroAddress();
         address old = address(shamirModule);
         shamirModule = ShamirSecretSharing(module);
@@ -896,7 +964,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Set Threshold Signature module
      * @param module Module address
      */
-    function setThresholdSigModule(address module) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function setThresholdSigModule(
+        address module
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         if (module == address(0)) revert ZeroAddress();
         address old = address(thresholdSigModule);
         thresholdSigModule = ThresholdSignature(module);
@@ -907,7 +977,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Set Coordinator module
      * @param module Module address
      */
-    function setCoordinatorModule(address payable module) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function setCoordinatorModule(
+        address payable module
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         if (module == address(0)) revert ZeroAddress();
         address old = address(coordinatorModule);
         coordinatorModule = MPCCoordinator(module);
@@ -918,7 +990,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Set Key Registry module
      * @param module Module address
      */
-    function setKeyRegistryModule(address module) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function setKeyRegistryModule(
+        address module
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         if (module == address(0)) revert ZeroAddress();
         address old = address(keyRegistryModule);
         keyRegistryModule = MPCKeyRegistry(module);
@@ -942,7 +1016,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Remove supported chain
      * @param chainId Chain to remove
      */
-    function removeSupportedChain(uint256 chainId) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function removeSupportedChain(
+        uint256 chainId
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         supportedChains[chainId] = false;
         chainMessengers[chainId] = address(0);
     }
@@ -951,7 +1027,9 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
      * @notice Update fee configuration
      * @param newConfig New fee configuration
      */
-    function updateFeeConfig(FeeConfig calldata newConfig) external onlyRole(GATEWAY_ADMIN_ROLE) {
+    function updateFeeConfig(
+        FeeConfig calldata newConfig
+    ) external onlyRole(GATEWAY_ADMIN_ROLE) {
         feeConfig = newConfig;
     }
 
@@ -968,12 +1046,12 @@ contract MPCGateway is AccessControl, ReentrancyGuard, Pausable {
         if (amount > address(this).balance) {
             amount = address(this).balance;
         }
-        
+
         (bool success, ) = recipient.call{value: amount}("");
         if (!success) {
             revert TransferFailed();
         }
-        
+
         emit FeeWithdrawn(recipient, amount);
     }
 

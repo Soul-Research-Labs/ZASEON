@@ -120,10 +120,7 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         uint256 completedAt
     );
 
-    event SessionFailed(
-        bytes32 indexed sessionId,
-        string reason
-    );
+    event SessionFailed(bytes32 indexed sessionId, string reason);
 
     event ParticipantSlashed(
         bytes32 indexed sessionId,
@@ -141,7 +138,10 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
 
     error SessionNotFound(bytes32 sessionId);
     error SessionAlreadyExists(bytes32 sessionId);
-    error InvalidSessionPhase(MPCLib.SessionStatus current, MPCLib.SessionStatus expected);
+    error InvalidSessionPhase(
+        MPCLib.SessionStatus current,
+        MPCLib.SessionStatus expected
+    );
     error SessionExpired(bytes32 sessionId);
     error InvalidThreshold(uint8 threshold, uint8 total);
     error ParticipantNotFound(address participant);
@@ -176,9 +176,9 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         uint256 createdAt;
         uint256 deadline;
         uint256 phaseDeadline;
-        bytes32 inputCommitmentRoot;   // Merkle root of all input commitments
+        bytes32 inputCommitmentRoot; // Merkle root of all input commitments
         bytes32 resultHash;
-        bytes metadata;                 // Protocol-specific metadata
+        bytes metadata; // Protocol-specific metadata
     }
 
     /**
@@ -219,7 +219,8 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => Session) public sessions;
 
     /// @notice Session participants: sessionId => address => participant
-    mapping(bytes32 => mapping(address => SessionParticipant)) public sessionParticipants;
+    mapping(bytes32 => mapping(address => SessionParticipant))
+        public sessionParticipants;
 
     /// @notice Participant by index: sessionId => index => address
     mapping(bytes32 => mapping(uint8 => address)) public participantByIndex;
@@ -249,7 +250,10 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      */
     function depositStake() external payable nonReentrant {
         require(msg.value >= MIN_STAKE, "Below minimum stake");
-        require(stakes[msg.sender].totalStake + msg.value <= MAX_STAKE, "Exceeds max stake");
+        require(
+            stakes[msg.sender].totalStake + msg.value <= MAX_STAKE,
+            "Exceeds max stake"
+        );
 
         stakes[msg.sender].totalStake += msg.value;
 
@@ -262,16 +266,16 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      */
     function withdrawStake(uint256 amount) external nonReentrant {
         StakeInfo storage stake = stakes[msg.sender];
-        
+
         uint256 available = stake.totalStake - stake.lockedStake;
         require(amount <= available, "Insufficient available stake");
-        
+
         if (stake.unlockTime > 0 && block.timestamp < stake.unlockTime) {
             revert WithdrawalLocked(stake.unlockTime);
         }
 
         stake.totalStake -= amount;
-        
+
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Transfer failed");
 
@@ -299,7 +303,12 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         uint8 totalParticipants,
         uint256 duration,
         bytes calldata metadata
-    ) external whenNotPaused onlyRole(COORDINATOR_ROLE) returns (bytes32 sessionId) {
+    )
+        external
+        whenNotPaused
+        onlyRole(COORDINATOR_ROLE)
+        returns (bytes32 sessionId)
+    {
         if (!MPCLib.validateThreshold(threshold, totalParticipants)) {
             revert InvalidThreshold(threshold, totalParticipants);
         }
@@ -307,7 +316,11 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
             duration = MIN_DURATION;
         }
 
-        sessionId = MPCLib.generateSessionId(protocol, msg.sender, sessionNonce++);
+        sessionId = MPCLib.generateSessionId(
+            protocol,
+            msg.sender,
+            sessionNonce++
+        );
 
         if (sessions[sessionId].createdAt != 0) {
             revert SessionAlreadyExists(sessionId);
@@ -355,12 +368,15 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         uint256 stakeAmount
     ) external whenNotPaused nonReentrant returns (uint8 participantIndex) {
         Session storage session = sessions[sessionId];
-        
+
         if (session.createdAt == 0) {
             revert SessionNotFound(sessionId);
         }
         if (session.status != MPCLib.SessionStatus.Created) {
-            revert InvalidSessionPhase(session.status, MPCLib.SessionStatus.Created);
+            revert InvalidSessionPhase(
+                session.status,
+                MPCLib.SessionStatus.Created
+            );
         }
         if (block.timestamp > session.deadline) {
             revert SessionExpired(sessionId);
@@ -401,7 +417,12 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         participantByIndex[sessionId][participantIndex] = msg.sender;
         _grantRole(PARTICIPANT_ROLE, msg.sender);
 
-        emit ParticipantJoined(sessionId, msg.sender, participantIndex, stakeAmount);
+        emit ParticipantJoined(
+            sessionId,
+            msg.sender,
+            participantIndex,
+            stakeAmount
+        );
 
         // If all participants joined, advance to commitment phase
         if (session.joinedCount == session.totalParticipants) {
@@ -415,13 +436,18 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      */
     function leaveSession(bytes32 sessionId) external nonReentrant {
         Session storage session = sessions[sessionId];
-        SessionParticipant storage participant = sessionParticipants[sessionId][msg.sender];
-        
+        SessionParticipant storage participant = sessionParticipants[sessionId][
+            msg.sender
+        ];
+
         if (participant.joinedAt == 0) {
             revert ParticipantNotFound(msg.sender);
         }
         if (session.status != MPCLib.SessionStatus.Created) {
-            revert InvalidSessionPhase(session.status, MPCLib.SessionStatus.Created);
+            revert InvalidSessionPhase(
+                session.status,
+                MPCLib.SessionStatus.Created
+            );
         }
 
         // Unlock stake
@@ -449,10 +475,15 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         bytes32 inputCommitment
     ) external whenNotPaused nonReentrant {
         Session storage session = sessions[sessionId];
-        SessionParticipant storage participant = sessionParticipants[sessionId][msg.sender];
-        
+        SessionParticipant storage participant = sessionParticipants[sessionId][
+            msg.sender
+        ];
+
         if (session.status != MPCLib.SessionStatus.CommitmentPhase) {
-            revert InvalidSessionPhase(session.status, MPCLib.SessionStatus.CommitmentPhase);
+            revert InvalidSessionPhase(
+                session.status,
+                MPCLib.SessionStatus.CommitmentPhase
+            );
         }
         if (participant.status != MPCLib.ParticipantStatus.Registered) {
             revert ParticipantNotFound(msg.sender);
@@ -485,10 +516,15 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata proof
     ) external whenNotPaused nonReentrant {
         Session storage session = sessions[sessionId];
-        SessionParticipant storage participant = sessionParticipants[sessionId][msg.sender];
-        
+        SessionParticipant storage participant = sessionParticipants[sessionId][
+            msg.sender
+        ];
+
         if (session.status != MPCLib.SessionStatus.Computation) {
-            revert InvalidSessionPhase(session.status, MPCLib.SessionStatus.Computation);
+            revert InvalidSessionPhase(
+                session.status,
+                MPCLib.SessionStatus.Computation
+            );
         }
         if (participant.status != MPCLib.ParticipantStatus.Committed) {
             revert ParticipantNotFound(msg.sender);
@@ -528,8 +564,10 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
 
         for (uint8 i = 1; i <= session.joinedCount; i++) {
             address participant = participantByIndex[sessionId][i];
-            SessionParticipant storage p = sessionParticipants[sessionId][participant];
-            
+            SessionParticipant storage p = sessionParticipants[sessionId][
+                participant
+            ];
+
             if (p.status == MPCLib.ParticipantStatus.Computed) {
                 if (consensusResult == bytes32(0)) {
                     consensusResult = p.resultCommitment;
@@ -544,7 +582,7 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         if (matchCount >= session.threshold) {
             session.resultHash = consensusResult;
             session.status = MPCLib.SessionStatus.Completed;
-            
+
             // Unlock stakes for successful participants
             _unlockStakes(sessionId, true);
 
@@ -561,10 +599,13 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Advance session to next phase
      */
-    function _advancePhase(bytes32 sessionId, MPCLib.SessionStatus newPhase) internal {
+    function _advancePhase(
+        bytes32 sessionId,
+        MPCLib.SessionStatus newPhase
+    ) internal {
         Session storage session = sessions[sessionId];
         MPCLib.SessionStatus oldPhase = session.status;
-        
+
         session.status = newPhase;
         session.phaseDeadline = block.timestamp + PHASE_TIMEOUT;
 
@@ -579,13 +620,15 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
 
         for (uint8 i = 1; i <= session.joinedCount; i++) {
             address participant = participantByIndex[sessionId][i];
-            SessionParticipant storage p = sessionParticipants[sessionId][participant];
-            
+            SessionParticipant storage p = sessionParticipants[sessionId][
+                participant
+            ];
+
             if (!p.slashed) {
                 StakeInfo storage stake = stakes[participant];
                 stake.lockedStake -= p.stakeAmount;
                 stake.activeSessions--;
-                
+
                 // Set unlock delay if unsuccessful
                 if (!successful) {
                     stake.unlockTime = block.timestamp + 1 days;
@@ -609,14 +652,16 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
         address participant,
         string calldata reason
     ) external onlyRole(SLASHER_ROLE) {
-        SessionParticipant storage p = sessionParticipants[sessionId][participant];
-        
+        SessionParticipant storage p = sessionParticipants[sessionId][
+            participant
+        ];
+
         if (p.joinedAt == 0 || p.slashed) {
             revert ParticipantNotFound(participant);
         }
 
         uint256 slashAmount = (p.stakeAmount * SLASH_BPS) / 10000;
-        
+
         p.slashed = true;
         p.status = MPCLib.ParticipantStatus.Malicious;
 
@@ -638,9 +683,15 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      */
     function handleTimeout(bytes32 sessionId) external {
         Session storage session = sessions[sessionId];
-        
-        if (block.timestamp <= session.phaseDeadline && block.timestamp <= session.deadline) {
-            revert InvalidSessionPhase(session.status, MPCLib.SessionStatus.Failed);
+
+        if (
+            block.timestamp <= session.phaseDeadline &&
+            block.timestamp <= session.deadline
+        ) {
+            revert InvalidSessionPhase(
+                session.status,
+                MPCLib.SessionStatus.Failed
+            );
         }
 
         session.status = MPCLib.SessionStatus.Failed;
@@ -659,7 +710,9 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return session Session data
      */
-    function getSession(bytes32 sessionId) external view returns (Session memory session) {
+    function getSession(
+        bytes32 sessionId
+    ) external view returns (Session memory session) {
         session = sessions[sessionId];
     }
 
@@ -681,7 +734,9 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      * @param participant Address to check
      * @return info Stake data
      */
-    function getStakeInfo(address participant) external view returns (StakeInfo memory info) {
+    function getStakeInfo(
+        address participant
+    ) external view returns (StakeInfo memory info) {
         info = stakes[participant];
     }
 
@@ -690,13 +745,16 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return active True if session is ongoing
      */
-    function isSessionActive(bytes32 sessionId) external view returns (bool active) {
+    function isSessionActive(
+        bytes32 sessionId
+    ) external view returns (bool active) {
         Session storage session = sessions[sessionId];
-        active = session.status != MPCLib.SessionStatus.None &&
-                 session.status != MPCLib.SessionStatus.Completed &&
-                 session.status != MPCLib.SessionStatus.Failed &&
-                 session.status != MPCLib.SessionStatus.Cancelled &&
-                 block.timestamp <= session.deadline;
+        active =
+            session.status != MPCLib.SessionStatus.None &&
+            session.status != MPCLib.SessionStatus.Completed &&
+            session.status != MPCLib.SessionStatus.Failed &&
+            session.status != MPCLib.SessionStatus.Cancelled &&
+            block.timestamp <= session.deadline;
     }
 
     /**
@@ -705,10 +763,9 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      * @return resultHash Hash of the computation result
      * @return completed Whether session completed successfully
      */
-    function getSessionResult(bytes32 sessionId) external view returns (
-        bytes32 resultHash,
-        bool completed
-    ) {
+    function getSessionResult(
+        bytes32 sessionId
+    ) external view returns (bytes32 resultHash, bool completed) {
         Session storage session = sessions[sessionId];
         resultHash = session.resultHash;
         completed = session.status == MPCLib.SessionStatus.Completed;
@@ -724,8 +781,11 @@ contract MPCCoordinator is AccessControl, ReentrancyGuard, Pausable {
      */
     function cancelSession(bytes32 sessionId) external {
         Session storage session = sessions[sessionId];
-        
-        if (session.coordinator != msg.sender && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+
+        if (
+            session.coordinator != msg.sender &&
+            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+        ) {
             revert NotCoordinator(msg.sender);
         }
 

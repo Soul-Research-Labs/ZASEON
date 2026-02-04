@@ -66,7 +66,8 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant DEFAULT_TIMEOUT = 300; // 5 minutes
 
     /// @notice Domain separator
-    bytes32 public constant DOMAIN_SEPARATOR = keccak256("SoulThresholdSignature_v1");
+    bytes32 public constant DOMAIN_SEPARATOR =
+        keccak256("SoulThresholdSignature_v1");
 
     // ============================================
     // ENUMS
@@ -76,22 +77,22 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @notice Signature scheme type
      */
     enum SignatureScheme {
-        None,           // 0: Invalid
-        ECDSA_GG20,     // 1: Threshold ECDSA using GG20 protocol
-        Schnorr_FROST,  // 2: Threshold Schnorr using FROST
-        BLS             // 3: BLS threshold signatures
+        None, // 0: Invalid
+        ECDSA_GG20, // 1: Threshold ECDSA using GG20 protocol
+        Schnorr_FROST, // 2: Threshold Schnorr using FROST
+        BLS // 3: BLS threshold signatures
     }
 
     /**
      * @notice Signing request status
      */
     enum RequestStatus {
-        None,           // 0: Invalid
-        Pending,        // 1: Awaiting partial signatures
-        Aggregating,    // 2: Aggregating partials
-        Completed,      // 3: Signature ready
-        Failed,         // 4: Failed (timeout/malicious)
-        Cancelled       // 5: Cancelled
+        None, // 0: Invalid
+        Pending, // 1: Awaiting partial signatures
+        Aggregating, // 2: Aggregating partials
+        Completed, // 3: Signature ready
+        Failed, // 4: Failed (timeout/malicious)
+        Cancelled // 5: Cancelled
     }
 
     // ============================================
@@ -127,7 +128,11 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bool valid
     );
 
-    event SignerAdded(bytes32 indexed keyId, address indexed signer, uint8 signerIndex);
+    event SignerAdded(
+        bytes32 indexed keyId,
+        address indexed signer,
+        uint8 signerIndex
+    );
     event SignerRemoved(bytes32 indexed keyId, address indexed signer);
 
     // ============================================
@@ -158,11 +163,11 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      */
     struct ThresholdKey {
         bytes32 keyId;
-        bytes32 publicKeyHash;         // Hash of aggregated public key
-        bytes publicKeyData;           // Serialized public key
+        bytes32 publicKeyHash; // Hash of aggregated public key
+        bytes publicKeyData; // Serialized public key
         SignatureScheme scheme;
-        uint8 threshold;               // t in t-of-n
-        uint8 totalSigners;            // n
+        uint8 threshold; // t in t-of-n
+        uint8 totalSigners; // n
         uint256 registeredAt;
         uint256 lastUsedAt;
         bool active;
@@ -174,8 +179,8 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      */
     struct SignerInfo {
         address signerAddress;
-        uint8 signerIndex;             // Index in the signing group (1-based)
-        bytes32 publicKeyShareHash;    // Hash of signer's public key share
+        uint8 signerIndex; // Index in the signing group (1-based)
+        bytes32 publicKeyShareHash; // Hash of signer's public key share
         bool active;
         uint256 successfulSigns;
         uint256 failedSigns;
@@ -204,7 +209,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         address signer;
         uint8 signerIndex;
         bytes signature;
-        bytes32 commitment;            // R commitment for ECDSA/Schnorr
+        bytes32 commitment; // R commitment for ECDSA/Schnorr
         uint256 submittedAt;
         bool verified;
     }
@@ -266,7 +271,12 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         uint8 threshold,
         address[] calldata signers,
         bytes32[] calldata publicKeyShares
-    ) external whenNotPaused onlyRole(KEY_MANAGER_ROLE) returns (bytes32 keyId) {
+    )
+        external
+        whenNotPaused
+        onlyRole(KEY_MANAGER_ROLE)
+        returns (bytes32 keyId)
+    {
         if (scheme == SignatureScheme.None) {
             revert UnsupportedScheme(scheme);
         }
@@ -278,13 +288,15 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Generate key ID
-        keyId = keccak256(abi.encodePacked(
-            DOMAIN_SEPARATOR,
-            publicKeyData,
-            scheme,
-            keyNonce++,
-            block.chainid
-        ));
+        keyId = keccak256(
+            abi.encodePacked(
+                DOMAIN_SEPARATOR,
+                publicKeyData,
+                scheme,
+                keyNonce++,
+                block.chainid
+            )
+        );
 
         if (thresholdKeys[keyId].registeredAt != 0) {
             revert KeyAlreadyExists(keyId);
@@ -309,7 +321,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         // Register signers
         for (uint8 i = 0; i < signers.length; i++) {
             uint8 signerIndex = i + 1; // 1-based index
-            
+
             keySigners[keyId][signers[i]] = SignerInfo({
                 signerAddress: signers[i],
                 signerIndex: signerIndex,
@@ -340,7 +352,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      */
     function revokeKey(bytes32 keyId) external onlyRole(KEY_MANAGER_ROLE) {
         ThresholdKey storage key = thresholdKeys[keyId];
-        
+
         if (key.registeredAt == 0) {
             revert KeyNotFound(keyId);
         }
@@ -368,7 +380,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         uint256 timeout
     ) external whenNotPaused nonReentrant returns (bytes32 requestId) {
         ThresholdKey storage key = thresholdKeys[keyId];
-        
+
         if (key.registeredAt == 0) {
             revert KeyNotFound(keyId);
         }
@@ -380,13 +392,15 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Generate request ID
-        requestId = keccak256(abi.encodePacked(
-            DOMAIN_SEPARATOR,
-            keyId,
-            messageHash,
-            requestNonce++,
-            block.timestamp
-        ));
+        requestId = keccak256(
+            abi.encodePacked(
+                DOMAIN_SEPARATOR,
+                keyId,
+                messageHash,
+                requestNonce++,
+                block.timestamp
+            )
+        );
 
         signingRequests[requestId] = SigningRequest({
             requestId: requestId,
@@ -418,7 +432,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 commitment
     ) external whenNotPaused nonReentrant {
         SigningRequest storage request = signingRequests[requestId];
-        
+
         if (request.createdAt == 0) {
             revert RequestNotFound(requestId);
         }
@@ -460,7 +474,11 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         partialsArray[requestId].push(partialSig);
         request.partialCount++;
 
-        emit PartialSignatureSubmitted(requestId, msg.sender, signer.signerIndex);
+        emit PartialSignatureSubmitted(
+            requestId,
+            msg.sender,
+            signer.signerIndex
+        );
 
         // Check if we have enough partials
         ThresholdKey storage key = thresholdKeys[request.keyId];
@@ -485,11 +503,23 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bool valid;
 
         if (key.scheme == SignatureScheme.ECDSA_GG20) {
-            (aggregated, valid) = _aggregateECDSA(partials, key, request.messageHash);
+            (aggregated, valid) = _aggregateECDSA(
+                partials,
+                key,
+                request.messageHash
+            );
         } else if (key.scheme == SignatureScheme.Schnorr_FROST) {
-            (aggregated, valid) = _aggregateSchnorr(partials, key, request.messageHash);
+            (aggregated, valid) = _aggregateSchnorr(
+                partials,
+                key,
+                request.messageHash
+            );
         } else if (key.scheme == SignatureScheme.BLS) {
-            (aggregated, valid) = _aggregateBLS(partials, key, request.messageHash);
+            (aggregated, valid) = _aggregateBLS(
+                partials,
+                key,
+                request.messageHash
+            );
         } else {
             revert UnsupportedScheme(key.scheme);
         }
@@ -500,7 +530,9 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
         // Update signer stats
         for (uint256 i = 0; i < partials.length; i++) {
-            SignerInfo storage signer = keySigners[request.keyId][partials[i].signer];
+            SignerInfo storage signer = keySigners[request.keyId][
+                partials[i].signer
+            ];
             if (valid) {
                 signer.successfulSigns++;
             } else {
@@ -521,10 +553,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     ) internal view returns (bytes memory signature, bool valid) {
         // Simplified: In production, use proper GG20 aggregation
         // This combines R commitments and s values using Lagrange
-        
+
         bytes32 aggregatedR;
         uint256 aggregatedS;
-        
+
         uint256[] memory indices = new uint256[](partials.length);
         for (uint256 i = 0; i < partials.length; i++) {
             indices[i] = partials[i].signerIndex;
@@ -538,10 +570,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
                 indices,
                 MPCLib.SECP256K1_ORDER
             );
-            
+
             // In production: properly combine R points and scale s values
             aggregatedR = partials[i].commitment; // Simplified
-            
+
             // Extract s from partial signature
             if (partials[i].signature.length >= 32) {
                 bytes memory sig = partials[i].signature;
@@ -558,8 +590,12 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Construct final signature (r, s, v)
-        signature = abi.encodePacked(aggregatedR, bytes32(aggregatedS), uint8(27));
-        
+        signature = abi.encodePacked(
+            aggregatedR,
+            bytes32(aggregatedS),
+            uint8(27)
+        );
+
         // Verify against public key
         // In production: proper ECDSA verification
         valid = signature.length == 65;
@@ -575,18 +611,24 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     ) internal view returns (bytes memory signature, bool valid) {
         // FROST aggregation: sum of partial signatures
         // σ = Σ σ_i, R = Σ R_i
-        
+
         bytes32 aggregatedR;
         uint256 aggregatedS;
 
         for (uint256 i = 0; i < partials.length; i++) {
             // XOR R values (simplified - real impl uses point addition)
-            aggregatedR = bytes32(uint256(aggregatedR) ^ uint256(partials[i].commitment));
-            
+            aggregatedR = bytes32(
+                uint256(aggregatedR) ^ uint256(partials[i].commitment)
+            );
+
             // Add s values
             if (partials[i].signature.length >= 32) {
                 uint256 s_i = uint256(bytes32(partials[i].signature));
-                aggregatedS = MPCLib.addMod(aggregatedS, s_i, MPCLib.BN254_ORDER);
+                aggregatedS = MPCLib.addMod(
+                    aggregatedS,
+                    s_i,
+                    MPCLib.BN254_ORDER
+                );
             }
         }
 
@@ -604,7 +646,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
     ) internal view returns (bytes memory signature, bool valid) {
         // BLS aggregation: multiply signature points with Lagrange coefficients
         // σ = Σ λ_i * σ_i
-        
+
         uint256[] memory indices = new uint256[](partials.length);
         for (uint256 i = 0; i < partials.length; i++) {
             indices[i] = partials[i].signerIndex;
@@ -620,7 +662,11 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
                 MPCLib.BN254_ORDER
             );
             // Would multiply signature point by lambda
-            combined = abi.encodePacked(combined, partials[i].signature, lambda);
+            combined = abi.encodePacked(
+                combined,
+                partials[i].signature,
+                lambda
+            );
         }
 
         // Return hash as simplified "aggregated signature"
@@ -637,7 +683,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 commitment
     ) internal view returns (bool valid) {
         ThresholdKey storage key = thresholdKeys[keyId];
-        
+
         if (key.scheme == SignatureScheme.ECDSA_GG20) {
             // ECDSA partial: 32 bytes (s value)
             valid = signature.length >= 32 && commitment != bytes32(0);
@@ -669,7 +715,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes calldata signature
     ) external view returns (bool valid) {
         ThresholdKey storage key = thresholdKeys[keyId];
-        
+
         if (key.registeredAt == 0 || key.revoked) {
             return false;
         }
@@ -685,14 +731,19 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
                     s := calldataload(add(signature.offset, 32))
                     v := byte(0, calldataload(add(signature.offset, 64)))
                 }
-                
+
                 // Check s-value for malleability
                 if (uint256(s) > MPCLib.SECP256K1_ORDER / 2) {
                     return false;
                 }
-                
+
                 // In production: verify recovered address matches derived address from public key
-                address recovered = ecrecover(messageHash.toEthSignedMessageHash(), v, r, s);
+                address recovered = ecrecover(
+                    messageHash.toEthSignedMessageHash(),
+                    v,
+                    r,
+                    s
+                );
                 valid = recovered != address(0);
             }
         } else if (key.scheme == SignatureScheme.Schnorr_FROST) {
@@ -713,7 +764,9 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @param keyId Key identifier
      * @return key Key data
      */
-    function getThresholdKey(bytes32 keyId) external view returns (ThresholdKey memory key) {
+    function getThresholdKey(
+        bytes32 keyId
+    ) external view returns (ThresholdKey memory key) {
         key = thresholdKeys[keyId];
     }
 
@@ -735,7 +788,9 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @param requestId Request identifier
      * @return request Request data
      */
-    function getSigningRequest(bytes32 requestId) external view returns (SigningRequest memory request) {
+    function getSigningRequest(
+        bytes32 requestId
+    ) external view returns (SigningRequest memory request) {
         request = signingRequests[requestId];
     }
 
@@ -759,7 +814,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @param signer Address to check
      * @return isSigner True if signer is authorized
      */
-    function isAuthorizedSigner(bytes32 keyId, address signer) external view returns (bool isSigner) {
+    function isAuthorizedSigner(
+        bytes32 keyId,
+        address signer
+    ) external view returns (bool isSigner) {
         isSigner = keySigners[keyId][signer].active;
     }
 
@@ -779,7 +837,7 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
         bytes32 publicKeyShareHash
     ) external onlyRole(KEY_MANAGER_ROLE) {
         ThresholdKey storage key = thresholdKeys[keyId];
-        
+
         if (key.registeredAt == 0) {
             revert KeyNotFound(keyId);
         }
@@ -810,10 +868,13 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      * @param keyId Key to modify
      * @param signer Signer to remove
      */
-    function removeSigner(bytes32 keyId, address signer) external onlyRole(KEY_MANAGER_ROLE) {
+    function removeSigner(
+        bytes32 keyId,
+        address signer
+    ) external onlyRole(KEY_MANAGER_ROLE) {
         ThresholdKey storage key = thresholdKeys[keyId];
         SignerInfo storage info = keySigners[keyId][signer];
-        
+
         if (key.registeredAt == 0) {
             revert KeyNotFound(keyId);
         }
@@ -838,11 +899,14 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
      */
     function cancelRequest(bytes32 requestId) external {
         SigningRequest storage request = signingRequests[requestId];
-        
+
         if (request.createdAt == 0) {
             revert RequestNotFound(requestId);
         }
-        if (request.requester != msg.sender && !hasRole(COORDINATOR_ROLE, msg.sender)) {
+        if (
+            request.requester != msg.sender &&
+            !hasRole(COORDINATOR_ROLE, msg.sender)
+        ) {
             revert NotAuthorizedSigner(msg.sender);
         }
 

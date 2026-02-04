@@ -71,10 +71,7 @@ interface IMPCCoordinator {
         bytes32 resultHash
     );
 
-    event SessionCompleted(
-        bytes32 indexed sessionId,
-        bytes32 resultHash
-    );
+    event SessionCompleted(bytes32 indexed sessionId, bytes32 resultHash);
 
     event SessionFailed(bytes32 indexed sessionId, string reason);
 
@@ -129,7 +126,9 @@ interface IMPCCoordinator {
      * @param sessionId Session to join
      * @return participantIndex Assigned index
      */
-    function joinSession(bytes32 sessionId) external returns (uint8 participantIndex);
+    function joinSession(
+        bytes32 sessionId
+    ) external returns (uint8 participantIndex);
 
     /**
      * @notice Leave an MPC session
@@ -179,19 +178,25 @@ interface IMPCCoordinator {
      * @param sessionId Session identifier
      * @return session Session data
      */
-    function getSession(bytes32 sessionId) external view returns (Session memory session);
+    function getSession(
+        bytes32 sessionId
+    ) external view returns (Session memory session);
 
     /**
      * @notice Get stake info for a participant
      * @param participant Participant address
      * @return info Stake information
      */
-    function getStakeInfo(address participant) external view returns (StakeInfo memory info);
+    function getStakeInfo(
+        address participant
+    ) external view returns (StakeInfo memory info);
 
     /**
      * @notice Check if participant can join sessions
      * @param participant Participant address
      * @return canJoin True if participant has sufficient stake
      */
-    function canParticipate(address participant) external view returns (bool canJoin);
+    function canParticipate(
+        address participant
+    ) external view returns (bool canJoin);
 }

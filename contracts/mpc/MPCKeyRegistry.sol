@@ -44,7 +44,8 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
 
     bytes32 public constant KEY_ADMIN_ROLE = keccak256("KEY_ADMIN_ROLE");
-    bytes32 public constant DKG_PARTICIPANT_ROLE = keccak256("DKG_PARTICIPANT_ROLE");
+    bytes32 public constant DKG_PARTICIPANT_ROLE =
+        keccak256("DKG_PARTICIPANT_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     // ============================================
@@ -61,7 +62,8 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant DEFAULT_KEY_VALIDITY = 365 days;
 
     /// @notice Domain separator
-    bytes32 public constant DOMAIN_SEPARATOR = keccak256("SoulMPCKeyRegistry_v1");
+    bytes32 public constant DOMAIN_SEPARATOR =
+        keccak256("SoulMPCKeyRegistry_v1");
 
     // ============================================
     // ENUMS
@@ -71,25 +73,25 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @notice Key purpose
      */
     enum KeyPurpose {
-        None,           // 0: Invalid
-        Signing,        // 1: For threshold signatures
-        Encryption,     // 2: For threshold encryption
-        KeyExchange,    // 3: For key exchange (Kyber, ECDH)
-        Custom          // 4: Custom purpose
+        None, // 0: Invalid
+        Signing, // 1: For threshold signatures
+        Encryption, // 2: For threshold encryption
+        KeyExchange, // 3: For key exchange (Kyber, ECDH)
+        Custom // 4: Custom purpose
     }
 
     /**
      * @notice DKG protocol phase
      */
     enum DKGPhase {
-        Inactive,       // 0: Not started
-        Setup,          // 1: Participants registering
-        Commitment,     // 2: Broadcasting commitments
+        Inactive, // 0: Not started
+        Setup, // 1: Participants registering
+        Commitment, // 2: Broadcasting commitments
         ShareDistribution, // 3: Sending encrypted shares
-        Verification,   // 4: Verifying received shares
-        Complaint,      // 5: Raising complaints about invalid shares
-        Complete,       // 6: Successfully completed
-        Failed          // 7: Failed (too many complaints)
+        Verification, // 4: Verifying received shares
+        Complaint, // 5: Raising complaints about invalid shares
+        Complete, // 6: Successfully completed
+        Failed // 7: Failed (too many complaints)
     }
 
     // ============================================
@@ -212,7 +214,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     struct DKGParticipant {
         address participantAddress;
         uint8 participantIndex;
-        bytes32 publicKeyCommitment;   // Commitment to this participant's public contribution
+        bytes32 publicKeyCommitment; // Commitment to this participant's public contribution
         bytes32[] coefficientCommitments; // C_ij = g^{a_ij}
         MPCLib.ParticipantStatus status;
         uint256 sharesDistributed;
@@ -226,10 +228,10 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      */
     struct DistributedKey {
         bytes32 keyId;
-        bytes32 dkgSessionId;          // DKG session that created this key
+        bytes32 dkgSessionId; // DKG session that created this key
         KeyPurpose purpose;
         bytes32 publicKeyHash;
-        bytes publicKeyData;           // Serialized public key
+        bytes publicKeyData; // Serialized public key
         uint8 threshold;
         uint8 totalHolders;
         uint256 createdAt;
@@ -246,7 +248,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     struct KeyHolder {
         address holderAddress;
         uint8 holderIndex;
-        bytes32 shareCommitment;       // Commitment to key share
+        bytes32 shareCommitment; // Commitment to key share
         bool active;
         uint256 addedAt;
     }
@@ -258,8 +260,8 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         bytes32 sessionId;
         address sender;
         address recipient;
-        bytes32 encryptedValue;        // Encrypted with recipient's public key
-        bytes32 commitment;            // VSS commitment for verification
+        bytes32 encryptedValue; // Encrypted with recipient's public key
+        bytes32 commitment; // VSS commitment for verification
         bool distributed;
         bool verified;
     }
@@ -281,13 +283,15 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => DKGSession) public dkgSessions;
 
     /// @notice DKG Participants: sessionId => address => participant
-    mapping(bytes32 => mapping(address => DKGParticipant)) public dkgParticipants;
+    mapping(bytes32 => mapping(address => DKGParticipant))
+        public dkgParticipants;
 
     /// @notice Participant by index: sessionId => index => address
     mapping(bytes32 => mapping(uint8 => address)) public participantByIndex;
 
     /// @notice Encrypted shares: sessionId => sender => recipient => share
-    mapping(bytes32 => mapping(address => mapping(address => EncryptedShare))) public encryptedShares;
+    mapping(bytes32 => mapping(address => mapping(address => EncryptedShare)))
+        public encryptedShares;
 
     /// @notice Distributed keys: keyId => key
     mapping(bytes32 => DistributedKey) public keys;
@@ -328,16 +332,27 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         KeyPurpose keyPurpose,
         uint8 threshold,
         uint8 totalParticipants
-    ) external whenNotPaused onlyRole(KEY_ADMIN_ROLE) returns (bytes32 sessionId) {
-        if (protocol != MPCLib.ProtocolType.DKGFeldman && 
-            protocol != MPCLib.ProtocolType.DKGPedersen) {
+    )
+        external
+        whenNotPaused
+        onlyRole(KEY_ADMIN_ROLE)
+        returns (bytes32 sessionId)
+    {
+        if (
+            protocol != MPCLib.ProtocolType.DKGFeldman &&
+            protocol != MPCLib.ProtocolType.DKGPedersen
+        ) {
             revert InvalidThreshold();
         }
         if (!MPCLib.validateThreshold(threshold, totalParticipants)) {
             revert InvalidThreshold();
         }
 
-        sessionId = MPCLib.generateSessionId(protocol, msg.sender, sessionNonce++);
+        sessionId = MPCLib.generateSessionId(
+            protocol,
+            msg.sender,
+            sessionNonce++
+        );
 
         if (dkgSessions[sessionId].createdAt != 0) {
             revert SessionAlreadyExists(sessionId);
@@ -360,7 +375,12 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
             coordinator: msg.sender
         });
 
-        emit DKGSessionCreated(sessionId, protocol, threshold, totalParticipants);
+        emit DKGSessionCreated(
+            sessionId,
+            protocol,
+            threshold,
+            totalParticipants
+        );
     }
 
     /**
@@ -374,7 +394,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         bytes32 publicKeyCommitment
     ) external whenNotPaused nonReentrant returns (uint8 participantIndex) {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         if (session.createdAt == 0) {
             revert SessionNotFound(sessionId);
         }
@@ -427,8 +447,10 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata coeffCommitments
     ) external whenNotPaused nonReentrant {
         DKGSession storage session = dkgSessions[sessionId];
-        DKGParticipant storage participant = dkgParticipants[sessionId][msg.sender];
-        
+        DKGParticipant storage participant = dkgParticipants[sessionId][
+            msg.sender
+        ];
+
         if (session.phase != DKGPhase.Commitment) {
             revert InvalidDKGPhase(session.phase, DKGPhase.Commitment);
         }
@@ -472,8 +494,10 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     ) external whenNotPaused nonReentrant {
         DKGSession storage session = dkgSessions[sessionId];
         DKGParticipant storage sender = dkgParticipants[sessionId][msg.sender];
-        DKGParticipant storage recipientP = dkgParticipants[sessionId][recipient];
-        
+        DKGParticipant storage recipientP = dkgParticipants[sessionId][
+            recipient
+        ];
+
         if (session.phase != DKGPhase.ShareDistribution) {
             revert InvalidDKGPhase(session.phase, DKGPhase.ShareDistribution);
         }
@@ -514,9 +538,11 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         bool valid
     ) external whenNotPaused nonReentrant {
         DKGSession storage session = dkgSessions[sessionId];
-        EncryptedShare storage share = encryptedShares[sessionId][sender][msg.sender];
+        EncryptedShare storage share = encryptedShares[sessionId][sender][
+            msg.sender
+        ];
         DKGParticipant storage senderP = dkgParticipants[sessionId][sender];
-        
+
         if (session.phase != DKGPhase.Verification) {
             revert InvalidDKGPhase(session.phase, DKGPhase.Verification);
         }
@@ -532,12 +558,12 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         );
 
         share.verified = valid && vssValid;
-        
+
         if (!share.verified) {
             // Raise implicit complaint
             session.complaintCount++;
             senderP.complaintsReceived++;
-            
+
             if (senderP.complaintsReceived > session.threshold) {
                 senderP.disqualified = true;
             }
@@ -564,7 +590,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     ) external whenNotPaused {
         DKGSession storage session = dkgSessions[sessionId];
         DKGParticipant storage accusedP = dkgParticipants[sessionId][accused];
-        
+
         if (session.phase != DKGPhase.Complaint) {
             revert InvalidDKGPhase(session.phase, DKGPhase.Complaint);
         }
@@ -592,7 +618,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
     function _advanceDKGPhase(bytes32 sessionId, DKGPhase newPhase) internal {
         DKGSession storage session = dkgSessions[sessionId];
         DKGPhase oldPhase = session.phase;
-        
+
         session.phase = newPhase;
         session.phaseDeadline = block.timestamp + DKG_PHASE_TIMEOUT;
 
@@ -601,7 +627,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
 
     function _checkShareDistributionComplete(bytes32 sessionId) internal {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         // Check if all participants have distributed to all others
         bool allDistributed = true;
         for (uint8 i = 1; i <= session.registeredCount && allDistributed; i++) {
@@ -620,11 +646,15 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
 
     function _checkVerificationComplete(bytes32 sessionId) internal {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         // Expected verifications: n * (n-1)
-        uint256 expectedVerifications = uint256(session.registeredCount) * (session.registeredCount - 1);
-        
-        if (session.verifiedCount + session.complaintCount >= expectedVerifications) {
+        uint256 expectedVerifications = uint256(session.registeredCount) *
+            (session.registeredCount - 1);
+
+        if (
+            session.verifiedCount + session.complaintCount >=
+            expectedVerifications
+        ) {
             if (session.complaintCount > 0) {
                 _advanceDKGPhase(sessionId, DKGPhase.Complaint);
             } else {
@@ -635,7 +665,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
 
     function _checkComplaintsResolution(bytes32 sessionId) internal {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         // Count disqualified participants
         uint8 disqualifiedCount = 0;
         for (uint8 i = 1; i <= session.registeredCount; i++) {
@@ -656,26 +686,30 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
 
     function _completeDKG(bytes32 sessionId) internal {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         // Generate key ID
-        bytes32 keyId = keccak256(abi.encodePacked(
-            DOMAIN_SEPARATOR,
-            sessionId,
-            keyNonce++,
-            block.timestamp
-        ));
+        bytes32 keyId = keccak256(
+            abi.encodePacked(
+                DOMAIN_SEPARATOR,
+                sessionId,
+                keyNonce++,
+                block.timestamp
+            )
+        );
 
         // Aggregate public key (simplified - XOR of all contributions)
         bytes32 aggregatedPK;
         uint8 qualifiedCount = 0;
-        
+
         for (uint8 i = 1; i <= session.registeredCount; i++) {
             address participant = participantByIndex[sessionId][i];
             DKGParticipant storage p = dkgParticipants[sessionId][participant];
-            
+
             if (!p.disqualified && p.coefficientCommitments.length > 0) {
                 // First commitment is g^{a_i0} (contribution to public key)
-                aggregatedPK = bytes32(uint256(aggregatedPK) ^ uint256(p.coefficientCommitments[0]));
+                aggregatedPK = bytes32(
+                    uint256(aggregatedPK) ^ uint256(p.coefficientCommitments[0])
+                );
                 qualifiedCount++;
             }
         }
@@ -702,7 +736,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         for (uint8 i = 1; i <= session.registeredCount; i++) {
             address participant = participantByIndex[sessionId][i];
             DKGParticipant storage p = dkgParticipants[sessionId][participant];
-            
+
             if (!p.disqualified) {
                 holderIndex++;
                 keyHolders[keyId][participant] = KeyHolder({
@@ -713,7 +747,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
                     addedAt: block.timestamp
                 });
                 holderByIndex[keyId][holderIndex] = participant;
-                
+
                 emit KeyHolderAdded(keyId, participant);
             }
         }
@@ -724,7 +758,12 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         keysByPurpose[session.keyPurpose].push(keyId);
 
         emit DKGCompleted(sessionId, keyId, keys[keyId].publicKeyHash);
-        emit KeyRegistered(keyId, session.keyPurpose, keys[keyId].publicKeyHash, session.threshold);
+        emit KeyRegistered(
+            keyId,
+            session.keyPurpose,
+            keys[keyId].publicKeyHash,
+            session.threshold
+        );
     }
 
     // ============================================
@@ -737,7 +776,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      */
     function revokeKey(bytes32 keyId) external onlyRole(KEY_ADMIN_ROLE) {
         DistributedKey storage key = keys[keyId];
-        
+
         if (key.createdAt == 0) {
             revert KeyNotFound(keyId);
         }
@@ -757,14 +796,14 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
         bytes32 oldKeyId
     ) external onlyRole(KEY_ADMIN_ROLE) returns (bytes32 newSessionId) {
         DistributedKey storage oldKey = keys[oldKeyId];
-        
+
         if (oldKey.createdAt == 0) {
             revert KeyNotFound(oldKeyId);
         }
 
         // Create new DKG session with same parameters
         DKGSession storage oldSession = dkgSessions[oldKey.dkgSessionId];
-        
+
         newSessionId = MPCLib.generateSessionId(
             oldSession.protocol,
             msg.sender,
@@ -788,7 +827,12 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
             coordinator: msg.sender
         });
 
-        emit DKGSessionCreated(newSessionId, oldSession.protocol, oldKey.threshold, oldKey.totalHolders);
+        emit DKGSessionCreated(
+            newSessionId,
+            oldSession.protocol,
+            oldKey.threshold,
+            oldKey.totalHolders
+        );
         emit KeyRotated(oldKeyId, newSessionId);
     }
 
@@ -801,7 +845,9 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return session Session data
      */
-    function getDKGSession(bytes32 sessionId) external view returns (DKGSession memory session) {
+    function getDKGSession(
+        bytes32 sessionId
+    ) external view returns (DKGSession memory session) {
         session = dkgSessions[sessionId];
     }
 
@@ -823,7 +869,9 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @param keyId Key identifier
      * @return key Key data
      */
-    function getKey(bytes32 keyId) external view returns (DistributedKey memory key) {
+    function getKey(
+        bytes32 keyId
+    ) external view returns (DistributedKey memory key) {
         key = keys[keyId];
     }
 
@@ -846,7 +894,10 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @param holder Address to check
      * @return isHolder True if address holds this key
      */
-    function isKeyHolder(bytes32 keyId, address holder) external view returns (bool isHolder) {
+    function isKeyHolder(
+        bytes32 keyId,
+        address holder
+    ) external view returns (bool isHolder) {
         isHolder = keyHolders[keyId][holder].active;
     }
 
@@ -855,7 +906,9 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @param purpose Key purpose
      * @return keyIds Array of key IDs
      */
-    function getKeysByPurpose(KeyPurpose purpose) external view returns (bytes32[] memory keyIds) {
+    function getKeysByPurpose(
+        KeyPurpose purpose
+    ) external view returns (bytes32[] memory keyIds) {
         keyIds = keysByPurpose[purpose];
     }
 
@@ -864,16 +917,22 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      * @param purpose Key purpose
      * @return keyId Most recent active key, or bytes32(0) if none
      */
-    function getActiveKeyForPurpose(KeyPurpose purpose) external view returns (bytes32 keyId) {
+    function getActiveKeyForPurpose(
+        KeyPurpose purpose
+    ) external view returns (bytes32 keyId) {
         bytes32[] storage purposeKeys = keysByPurpose[purpose];
-        
+
         for (uint256 i = purposeKeys.length; i > 0; i--) {
             bytes32 k = purposeKeys[i - 1];
-            if (keys[k].active && !keys[k].revoked && keys[k].expiresAt > block.timestamp) {
+            if (
+                keys[k].active &&
+                !keys[k].revoked &&
+                keys[k].expiresAt > block.timestamp
+            ) {
                 return k;
             }
         }
-        
+
         return bytes32(0);
     }
 
@@ -887,7 +946,7 @@ contract MPCKeyRegistry is AccessControl, ReentrancyGuard, Pausable {
      */
     function handleDKGTimeout(bytes32 sessionId) external {
         DKGSession storage session = dkgSessions[sessionId];
-        
+
         if (block.timestamp <= session.phaseDeadline) {
             revert InvalidDKGPhase(session.phase, DKGPhase.Failed);
         }

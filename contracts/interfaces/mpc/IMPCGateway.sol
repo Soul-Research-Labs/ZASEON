@@ -89,10 +89,17 @@ interface IMPCGateway {
         bytes32 resultHash
     );
 
-    event RequestCancelled(bytes32 indexed requestId, address indexed canceller);
+    event RequestCancelled(
+        bytes32 indexed requestId,
+        address indexed canceller
+    );
     event RequestExpired(bytes32 indexed requestId);
 
-    event ModuleUpdated(string moduleName, address indexed oldAddress, address indexed newAddress);
+    event ModuleUpdated(
+        string moduleName,
+        address indexed oldAddress,
+        address indexed newAddress
+    );
 
     event CrossChainRequestSent(
         bytes32 indexed requestId,
@@ -238,14 +245,18 @@ interface IMPCGateway {
      * @param requestId Request identifier
      * @return request Request data
      */
-    function getRequest(bytes32 requestId) external view returns (MPCRequest memory request);
+    function getRequest(
+        bytes32 requestId
+    ) external view returns (MPCRequest memory request);
 
     /**
      * @notice Get user's requests
      * @param user User address
      * @return requestIds Array of request IDs
      */
-    function getUserRequests(address user) external view returns (bytes32[] memory requestIds);
+    function getUserRequests(
+        address user
+    ) external view returns (bytes32[] memory requestIds);
 
     /**
      * @notice Get cross-chain request details

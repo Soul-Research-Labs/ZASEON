@@ -71,12 +71,12 @@ interface IShamirSecretSharing {
         uint8 shareIndex
     );
 
-    event SecretReconstructed(
-        bytes32 indexed sessionId,
-        bytes32 secretHash
-    );
+    event SecretReconstructed(bytes32 indexed sessionId, bytes32 secretHash);
 
-    event ShareRefreshInitiated(bytes32 indexed sessionId, bytes32 indexed newSessionId);
+    event ShareRefreshInitiated(
+        bytes32 indexed sessionId,
+        bytes32 indexed newSessionId
+    );
 
     // ============================================
     // FUNCTIONS
@@ -104,7 +104,9 @@ interface IShamirSecretSharing {
      * @param sessionId Session to join
      * @return participantIndex Assigned index
      */
-    function registerParticipant(bytes32 sessionId) external returns (uint8 participantIndex);
+    function registerParticipant(
+        bytes32 sessionId
+    ) external returns (uint8 participantIndex);
 
     /**
      * @notice Publish VSS commitments
@@ -156,19 +158,25 @@ interface IShamirSecretSharing {
      * @param sessionId Original session ID
      * @return newSessionId New session for refreshed shares
      */
-    function initiateShareRefresh(bytes32 sessionId) external returns (bytes32 newSessionId);
+    function initiateShareRefresh(
+        bytes32 sessionId
+    ) external returns (bytes32 newSessionId);
 
     /**
      * @notice Get session details
      * @param sessionId Session identifier
      * @return session Session data
      */
-    function getSession(bytes32 sessionId) external view returns (SharingSession memory session);
+    function getSession(
+        bytes32 sessionId
+    ) external view returns (SharingSession memory session);
 
     /**
      * @notice Check if session is complete
      * @param sessionId Session identifier
      * @return complete True if reconstruction is complete
      */
-    function isComplete(bytes32 sessionId) external view returns (bool complete);
+    function isComplete(
+        bytes32 sessionId
+    ) external view returns (bool complete);
 }

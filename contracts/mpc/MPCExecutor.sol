@@ -61,7 +61,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
 
     /// @notice BN254 field order
-    uint256 public constant FIELD_ORDER = 
+    uint256 public constant FIELD_ORDER =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice MAC key domain separator
@@ -81,28 +81,28 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @notice Gate type for circuits
      */
     enum GateType {
-        None,    // 0: Invalid
-        ADD,     // 1: Addition gate
-        MUL,     // 2: Multiplication gate
-        XOR,     // 3: XOR gate (for GMW)
-        AND,     // 4: AND gate (for GMW)
-        NOT,     // 5: NOT gate
-        INPUT,   // 6: Input wire
-        OUTPUT   // 7: Output wire
+        None, // 0: Invalid
+        ADD, // 1: Addition gate
+        MUL, // 2: Multiplication gate
+        XOR, // 3: XOR gate (for GMW)
+        AND, // 4: AND gate (for GMW)
+        NOT, // 5: NOT gate
+        INPUT, // 6: Input wire
+        OUTPUT // 7: Output wire
     }
 
     /**
      * @notice Computation phase
      */
     enum ComputePhase {
-        Inactive,       // 0: Not started
-        Setup,          // 1: Circuit setup
-        InputSharing,   // 2: Parties sharing inputs
-        Preprocessing,  // 3: Generate Beaver triples (SPDZ)
-        Evaluation,     // 4: Gate-by-gate evaluation
+        Inactive, // 0: Not started
+        Setup, // 1: Circuit setup
+        InputSharing, // 2: Parties sharing inputs
+        Preprocessing, // 3: Generate Beaver triples (SPDZ)
+        Evaluation, // 4: Gate-by-gate evaluation
         OutputReconstruction, // 5: Reconstruct outputs
-        Complete,       // 6: Successfully completed
-        Failed          // 7: Failed
+        Complete, // 6: Successfully completed
+        Failed // 7: Failed
     }
 
     // ============================================
@@ -134,10 +134,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint8 wireIndex
     );
 
-    event BeaverTripleGenerated(
-        bytes32 indexed computeId,
-        uint256 tripleIndex
-    );
+    event BeaverTripleGenerated(bytes32 indexed computeId, uint256 tripleIndex);
 
     event GateEvaluated(
         bytes32 indexed computeId,
@@ -151,10 +148,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         bytes32 outputHash
     );
 
-    event ComputationCompleted(
-        bytes32 indexed computeId,
-        bytes32 resultHash
-    );
+    event ComputationCompleted(bytes32 indexed computeId, bytes32 resultHash);
 
     event ComputationFailed(bytes32 indexed computeId, string reason);
 
@@ -185,9 +179,9 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      */
     struct Gate {
         GateType gateType;
-        uint256 leftInput;    // Wire index
-        uint256 rightInput;   // Wire index (0 for unary gates)
-        uint256 output;       // Wire index
+        uint256 leftInput; // Wire index
+        uint256 rightInput; // Wire index (0 for unary gates)
+        uint256 output; // Wire index
     }
 
     /**
@@ -208,8 +202,8 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @notice SPDZ share with MAC
      */
     struct SPDZShare {
-        uint256 share;        // The actual share value
-        uint256 mac;          // MAC tag for verification
+        uint256 share; // The actual share value
+        uint256 mac; // MAC tag for verification
     }
 
     /**
@@ -218,7 +212,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
     struct BeaverTriple {
         SPDZShare a;
         SPDZShare b;
-        SPDZShare c;          // c = a * b
+        SPDZShare c; // c = a * b
         bool used;
     }
 
@@ -257,7 +251,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      */
     struct Wire {
         uint256 wireIndex;
-        SPDZShare[] shares;  // One per participant
+        SPDZShare[] shares; // One per participant
         bool isInput;
         bool isOutput;
         bool evaluated;
@@ -286,7 +280,8 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => Computation) public computations;
 
     /// @notice Computation participants: computeId => address => participant
-    mapping(bytes32 => mapping(address => ComputeParticipant)) public participants;
+    mapping(bytes32 => mapping(address => ComputeParticipant))
+        public participants;
 
     /// @notice Participant by index: computeId => index => address
     mapping(bytes32 => mapping(uint8 => address)) public participantByIndex;
@@ -360,7 +355,12 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
 
         totalCircuits++;
 
-        emit CircuitRegistered(circuitId, gates.length, numInputWires, numOutputWires);
+        emit CircuitRegistered(
+            circuitId,
+            gates.length,
+            numInputWires,
+            numOutputWires
+        );
     }
 
     // ============================================
@@ -380,23 +380,32 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         MPCLib.ProtocolType protocol,
         uint8 numParticipants,
         uint256 deadline
-    ) external whenNotPaused onlyRole(COORDINATOR_ROLE) returns (bytes32 computeId) {
+    )
+        external
+        whenNotPaused
+        onlyRole(COORDINATOR_ROLE)
+        returns (bytes32 computeId)
+    {
         if (!circuits[circuitId].registered) {
             revert CircuitNotFound(circuitId);
         }
-        if (protocol != MPCLib.ProtocolType.SPDZ && 
-            protocol != MPCLib.ProtocolType.GMW && 
-            protocol != MPCLib.ProtocolType.Yao) {
+        if (
+            protocol != MPCLib.ProtocolType.SPDZ &&
+            protocol != MPCLib.ProtocolType.GMW &&
+            protocol != MPCLib.ProtocolType.Yao
+        ) {
             revert InvalidGateType();
         }
 
-        computeId = keccak256(abi.encodePacked(
-            circuitId,
-            protocol,
-            msg.sender,
-            computeNonce++,
-            block.timestamp
-        ));
+        computeId = keccak256(
+            abi.encodePacked(
+                circuitId,
+                protocol,
+                msg.sender,
+                computeNonce++,
+                block.timestamp
+            )
+        );
 
         computations[computeId] = Computation({
             computeId: computeId,
@@ -430,7 +439,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint256 macKeyShare
     ) external whenNotPaused nonReentrant returns (uint8 participantIndex) {
         Computation storage comp = computations[computeId];
-        
+
         if (comp.createdAt == 0) {
             revert ComputationNotFound(computeId);
         }
@@ -453,7 +462,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         });
 
         participantByIndex[computeId][participantIndex] = msg.sender;
-        
+
         // Store MAC key share for SPDZ
         if (comp.protocol == MPCLib.ProtocolType.SPDZ) {
             macKeyShares[computeId][participantIndex] = macKeyShare;
@@ -481,8 +490,10 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint256 mac
     ) external whenNotPaused nonReentrant {
         Computation storage comp = computations[computeId];
-        ComputeParticipant storage participant = participants[computeId][msg.sender];
-        
+        ComputeParticipant storage participant = participants[computeId][
+            msg.sender
+        ];
+
         if (comp.phase != ComputePhase.InputSharing) {
             revert InvalidPhase(comp.phase, ComputePhase.InputSharing);
         }
@@ -505,10 +516,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // Add share
-        wire.shares.push(SPDZShare({
-            share: share,
-            mac: mac
-        }));
+        wire.shares.push(SPDZShare({share: share, mac: mac}));
 
         participant.inputSubmitted = true;
         comp.inputsReceived++;
@@ -548,7 +556,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint256 cMac
     ) external whenNotPaused nonReentrant {
         Computation storage comp = computations[computeId];
-        
+
         if (comp.phase != ComputePhase.Preprocessing) {
             revert InvalidPhase(comp.phase, ComputePhase.Preprocessing);
         }
@@ -557,7 +565,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         }
 
         BeaverTriple storage triple = beaverTriples[computeId][tripleIndex];
-        
+
         // Aggregate shares
         triple.a.share = addmod(triple.a.share, aShare, FIELD_ORDER);
         triple.a.mac = addmod(triple.a.mac, aMac, FIELD_ORDER);
@@ -573,7 +581,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         // Check if preprocessing complete
         Circuit storage circuit = circuits[comp.circuitId];
         uint256 mulGates = _countMulGates(comp.circuitId, circuit.numGates);
-        
+
         if (tripleIndex >= mulGates - 1) {
             comp.triplesGenerated = mulGates;
             _advancePhase(computeId, ComputePhase.Evaluation);
@@ -596,7 +604,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint256 resultMac
     ) external whenNotPaused nonReentrant {
         Computation storage comp = computations[computeId];
-        
+
         if (comp.phase != ComputePhase.Evaluation) {
             revert InvalidPhase(comp.phase, ComputePhase.Evaluation);
         }
@@ -615,30 +623,22 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         if (gate.gateType == GateType.ADD) {
             // Addition: [z] = [x] + [y]
             // Each party locally adds their shares
-            outputWire.shares.push(SPDZShare({
-                share: resultShare,
-                mac: resultMac
-            }));
+            outputWire.shares.push(
+                SPDZShare({share: resultShare, mac: resultMac})
+            );
         } else if (gate.gateType == GateType.MUL) {
             // Multiplication using Beaver triples
             // d = x - a, e = y - b (opened)
             // [z] = [c] + e*[a] + d*[b] + d*e
-            outputWire.shares.push(SPDZShare({
-                share: resultShare,
-                mac: resultMac
-            }));
+            outputWire.shares.push(
+                SPDZShare({share: resultShare, mac: resultMac})
+            );
         } else if (gate.gateType == GateType.XOR) {
             // XOR for GMW: each party XORs shares
-            outputWire.shares.push(SPDZShare({
-                share: resultShare,
-                mac: 0
-            }));
+            outputWire.shares.push(SPDZShare({share: resultShare, mac: 0}));
         } else if (gate.gateType == GateType.AND) {
             // AND for GMW: requires OT
-            outputWire.shares.push(SPDZShare({
-                share: resultShare,
-                mac: 0
-            }));
+            outputWire.shares.push(SPDZShare({share: resultShare, mac: 0}));
         }
 
         outputWire.evaluated = true;
@@ -666,7 +666,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         uint256 mac
     ) external whenNotPaused nonReentrant {
         Computation storage comp = computations[computeId];
-        
+
         if (comp.phase != ComputePhase.OutputReconstruction) {
             revert InvalidPhase(comp.phase, ComputePhase.OutputReconstruction);
         }
@@ -675,15 +675,14 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         }
 
         Circuit storage circuit = circuits[comp.circuitId];
-        
+
         // Output wires are the last numOutputWires wires
-        uint256 outputWireIndex = circuit.numWires - circuit.numOutputWires + outputIndex;
+        uint256 outputWireIndex = circuit.numWires -
+            circuit.numOutputWires +
+            outputIndex;
         Wire storage wire = wires[computeId][outputWireIndex];
-        
-        wire.shares.push(SPDZShare({
-            share: share,
-            mac: mac
-        }));
+
+        wire.shares.push(SPDZShare({share: share, mac: mac}));
         wire.isOutput = true;
 
         // Check if we have all shares for this output
@@ -691,14 +690,20 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
             // Reconstruct
             uint256 reconstructed = 0;
             for (uint256 i = 0; i < wire.shares.length; i++) {
-                reconstructed = addmod(reconstructed, wire.shares[i].share, FIELD_ORDER);
+                reconstructed = addmod(
+                    reconstructed,
+                    wire.shares[i].share,
+                    FIELD_ORDER
+                );
             }
 
             // Verify MAC (simplified - in practice would check against aggregated MAC key)
-            bytes32 outputHash = keccak256(abi.encodePacked(outputIndex, reconstructed));
-            
+            bytes32 outputHash = keccak256(
+                abi.encodePacked(outputIndex, reconstructed)
+            );
+
             emit OutputReconstructed(computeId, outputIndex, outputHash);
-            
+
             comp.outputsReconstructed++;
             participants[computeId][msg.sender].outputReconstructed = true;
 
@@ -722,20 +727,26 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
 
     function _completeComputation(bytes32 computeId) internal {
         Computation storage comp = computations[computeId];
-        
+
         // Generate result hash from all outputs
         Circuit storage circuit = circuits[comp.circuitId];
         bytes32 resultHash;
-        
+
         for (uint256 i = 0; i < circuit.numOutputWires; i++) {
-            uint256 outputWireIndex = circuit.numWires - circuit.numOutputWires + i;
+            uint256 outputWireIndex = circuit.numWires -
+                circuit.numOutputWires +
+                i;
             Wire storage wire = wires[computeId][outputWireIndex];
-            
+
             uint256 reconstructed = 0;
             for (uint256 j = 0; j < wire.shares.length; j++) {
-                reconstructed = addmod(reconstructed, wire.shares[j].share, FIELD_ORDER);
+                reconstructed = addmod(
+                    reconstructed,
+                    wire.shares[j].share,
+                    FIELD_ORDER
+                );
             }
-            
+
             resultHash = keccak256(abi.encodePacked(resultHash, reconstructed));
         }
 
@@ -745,7 +756,10 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
         emit ComputationCompleted(computeId, resultHash);
     }
 
-    function _countMulGates(bytes32 circuitId, uint256 numGates) internal view returns (uint256 count) {
+    function _countMulGates(
+        bytes32 circuitId,
+        uint256 numGates
+    ) internal view returns (uint256 count) {
         for (uint256 i = 0; i < numGates; i++) {
             if (circuitGates[circuitId][i].gateType == GateType.MUL) {
                 count++;
@@ -779,7 +793,9 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @param circuitId Circuit identifier
      * @return circuit Circuit data
      */
-    function getCircuit(bytes32 circuitId) external view returns (Circuit memory circuit) {
+    function getCircuit(
+        bytes32 circuitId
+    ) external view returns (Circuit memory circuit) {
         circuit = circuits[circuitId];
     }
 
@@ -789,7 +805,10 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @param gateIndex Gate index
      * @return gate Gate data
      */
-    function getGate(bytes32 circuitId, uint256 gateIndex) external view returns (Gate memory gate) {
+    function getGate(
+        bytes32 circuitId,
+        uint256 gateIndex
+    ) external view returns (Gate memory gate) {
         gate = circuitGates[circuitId][gateIndex];
     }
 
@@ -798,7 +817,9 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @param computeId Computation identifier
      * @return computation Computation data
      */
-    function getComputation(bytes32 computeId) external view returns (Computation memory computation) {
+    function getComputation(
+        bytes32 computeId
+    ) external view returns (Computation memory computation) {
         computation = computations[computeId];
     }
 
@@ -833,7 +854,9 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      * @param computeId Computation identifier
      * @return complete True if computation is complete
      */
-    function isComplete(bytes32 computeId) external view returns (bool complete) {
+    function isComplete(
+        bytes32 computeId
+    ) external view returns (bool complete) {
         complete = computations[computeId].phase == ComputePhase.Complete;
     }
 
@@ -847,7 +870,7 @@ contract MPCExecutor is AccessControl, ReentrancyGuard, Pausable {
      */
     function handleTimeout(bytes32 computeId) external {
         Computation storage comp = computations[computeId];
-        
+
         if (block.timestamp <= comp.deadline) {
             revert InvalidPhase(comp.phase, ComputePhase.Failed);
         }

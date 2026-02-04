@@ -84,10 +84,7 @@ interface IThresholdSignature {
         uint8 signerIndex
     );
 
-    event SignatureCompleted(
-        bytes32 indexed requestId,
-        bytes32 signatureHash
-    );
+    event SignatureCompleted(bytes32 indexed requestId, bytes32 signatureHash);
 
     event SigningFailed(bytes32 indexed requestId, string reason);
 
@@ -182,14 +179,18 @@ interface IThresholdSignature {
      * @param keyId Key identifier
      * @return key Key data
      */
-    function getThresholdKey(bytes32 keyId) external view returns (ThresholdKey memory key);
+    function getThresholdKey(
+        bytes32 keyId
+    ) external view returns (ThresholdKey memory key);
 
     /**
      * @notice Get signing request details
      * @param requestId Request identifier
      * @return request Request data
      */
-    function getSigningRequest(bytes32 requestId) external view returns (SigningRequest memory request);
+    function getSigningRequest(
+        bytes32 requestId
+    ) external view returns (SigningRequest memory request);
 
     /**
      * @notice Check if address is a signer for a key
@@ -197,5 +198,8 @@ interface IThresholdSignature {
      * @param signer Address to check
      * @return isSigner True if address is an active signer
      */
-    function isSigner(bytes32 keyId, address signer) external view returns (bool isSigner);
+    function isSigner(
+        bytes32 keyId,
+        address signer
+    ) external view returns (bool isSigner);
 }

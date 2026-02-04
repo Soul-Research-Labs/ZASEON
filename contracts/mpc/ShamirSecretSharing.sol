@@ -136,8 +136,8 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         MPCLib.SessionStatus status;
         uint256 createdAt;
         uint256 deadline;
-        bytes32 secretCommitment;      // Commitment to original secret
-        bytes32 reconstructedHash;     // Hash of reconstructed secret
+        bytes32 secretCommitment; // Commitment to original secret
+        bytes32 reconstructedHash; // Hash of reconstructed secret
     }
 
     /**
@@ -145,7 +145,7 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      */
     struct ParticipantShare {
         uint8 shareIndex;
-        bytes32 encryptedShare;        // Encrypted with participant's public key
+        bytes32 encryptedShare; // Encrypted with participant's public key
         bytes32 shareCommitment;
         MPCLib.VerificationStatus status;
         uint256 receivedAt;
@@ -168,7 +168,8 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
     mapping(bytes32 => bytes32[]) public vssCommitments;
 
     /// @notice Participants: sessionId => address => participant info
-    mapping(bytes32 => mapping(address => MPCLib.Participant)) public participants;
+    mapping(bytes32 => mapping(address => MPCLib.Participant))
+        public participants;
 
     /// @notice Participant addresses: sessionId => index => address
     mapping(bytes32 => mapping(uint8 => address)) public participantByIndex;
@@ -242,7 +243,12 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         // Grant dealer role
         _grantRole(DEALER_ROLE, msg.sender);
 
-        emit SharingSessionCreated(sessionId, msg.sender, threshold, totalParticipants);
+        emit SharingSessionCreated(
+            sessionId,
+            msg.sender,
+            threshold,
+            totalParticipants
+        );
     }
 
     /**
@@ -256,7 +262,7 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         bytes32 publicKeyCommitment
     ) external whenNotPaused nonReentrant returns (uint8 participantIndex) {
         SharingSession storage session = sessions[sessionId];
-        
+
         if (session.createdAt == 0) {
             revert SessionNotFound(sessionId);
         }
@@ -266,7 +272,10 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         if (block.timestamp > session.deadline) {
             revert SessionExpired(sessionId);
         }
-        if (participants[sessionId][msg.sender].status != MPCLib.ParticipantStatus.None) {
+        if (
+            participants[sessionId][msg.sender].status !=
+            MPCLib.ParticipantStatus.None
+        ) {
             revert ParticipantAlreadyRegistered(msg.sender);
         }
         if (session.registeredCount >= session.totalParticipants) {
@@ -314,12 +323,15 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata coefficientCommitments
     ) external whenNotPaused nonReentrant {
         SharingSession storage session = sessions[sessionId];
-        
+
         if (session.dealer != msg.sender) {
             revert NotDealer(msg.sender);
         }
         if (session.status != MPCLib.SessionStatus.CommitmentPhase) {
-            revert SessionNotInPhase(sessionId, MPCLib.SessionStatus.CommitmentPhase);
+            revert SessionNotInPhase(
+                sessionId,
+                MPCLib.SessionStatus.CommitmentPhase
+            );
         }
         if (coefficientCommitments.length != session.threshold) {
             revert InvalidCommitmentCount();
@@ -333,7 +345,11 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
 
         session.status = MPCLib.SessionStatus.ShareDistribution;
 
-        emit CommitmentsPublished(sessionId, msg.sender, coefficientCommitments.length);
+        emit CommitmentsPublished(
+            sessionId,
+            msg.sender,
+            coefficientCommitments.length
+        );
     }
 
     // ============================================
@@ -354,14 +370,22 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         bytes32 shareCommitment
     ) external whenNotPaused nonReentrant {
         SharingSession storage session = sessions[sessionId];
-        
+
         if (session.dealer != msg.sender) {
             revert NotDealer(msg.sender);
         }
         if (session.status != MPCLib.SessionStatus.ShareDistribution) {
-            revert SessionNotInPhase(sessionId, MPCLib.SessionStatus.ShareDistribution);
+            revert SessionNotInPhase(
+                sessionId,
+                MPCLib.SessionStatus.ShareDistribution
+            );
         }
-        if (!MPCLib.isValidParticipantIndex(participantIndex, session.totalParticipants)) {
+        if (
+            !MPCLib.isValidParticipantIndex(
+                participantIndex,
+                session.totalParticipants
+            )
+        ) {
             revert InvalidShareIndex(participantIndex);
         }
 
@@ -407,7 +431,7 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
     ) external whenNotPaused nonReentrant {
         SharingSession storage session = sessions[sessionId];
         ParticipantShare storage share = shares[sessionId][msg.sender];
-        
+
         if (share.receivedAt == 0) {
             revert ParticipantNotRegistered(msg.sender);
         }
@@ -417,17 +441,30 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify share against VSS commitments
         bytes32[] memory commitments = vssCommitments[sessionId];
-        bool vssValid = MPCLib.verifyVSSShare(shareValue, share.shareIndex, commitments);
+        bool vssValid = MPCLib.verifyVSSShare(
+            shareValue,
+            share.shareIndex,
+            commitments
+        );
 
         if (valid && vssValid) {
             share.status = MPCLib.VerificationStatus.Valid;
-            participants[sessionId][msg.sender].shareCommitment = share.shareCommitment;
-            participants[sessionId][msg.sender].status = MPCLib.ParticipantStatus.Ready;
+            participants[sessionId][msg.sender].shareCommitment = share
+                .shareCommitment;
+            participants[sessionId][msg.sender].status = MPCLib
+                .ParticipantStatus
+                .Ready;
             session.verifiedCount++;
         } else {
             share.status = MPCLib.VerificationStatus.Invalid;
-            participants[sessionId][msg.sender].status = MPCLib.ParticipantStatus.Malicious;
-            emit ParticipantExcluded(sessionId, msg.sender, "Share verification failed");
+            participants[sessionId][msg.sender].status = MPCLib
+                .ParticipantStatus
+                .Malicious;
+            emit ParticipantExcluded(
+                sessionId,
+                msg.sender,
+                "Share verification failed"
+            );
         }
 
         emit ShareVerified(sessionId, msg.sender, valid && vssValid);
@@ -447,8 +484,10 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         uint256 shareValue
     ) external whenNotPaused nonReentrant {
         SharingSession storage session = sessions[sessionId];
-        MPCLib.Participant storage participant = participants[sessionId][msg.sender];
-        
+        MPCLib.Participant storage participant = participants[sessionId][
+            msg.sender
+        ];
+
         if (participant.status != MPCLib.ParticipantStatus.Ready) {
             revert ParticipantNotRegistered(msg.sender);
         }
@@ -475,7 +514,7 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      */
     function _reconstructSecret(bytes32 sessionId) internal {
         SharingSession storage session = sessions[sessionId];
-        
+
         uint256[] memory shareValues = reconstructionShares[sessionId];
         uint256[] memory indices = reconstructionIndices[sessionId];
 
@@ -512,7 +551,7 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
         bytes32 sessionId
     ) external whenNotPaused returns (bytes32 refreshSessionId) {
         SharingSession storage session = sessions[sessionId];
-        
+
         if (session.dealer != msg.sender) {
             revert NotDealer(msg.sender);
         }
@@ -554,7 +593,9 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return session Session data
      */
-    function getSession(bytes32 sessionId) external view returns (SharingSession memory session) {
+    function getSession(
+        bytes32 sessionId
+    ) external view returns (SharingSession memory session) {
         session = sessions[sessionId];
     }
 
@@ -576,7 +617,9 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return commitments Array of coefficient commitments
      */
-    function getVSSCommitments(bytes32 sessionId) external view returns (bytes32[] memory commitments) {
+    function getVSSCommitments(
+        bytes32 sessionId
+    ) external view returns (bytes32[] memory commitments) {
         commitments = vssCommitments[sessionId];
     }
 
@@ -598,7 +641,9 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      * @param sessionId Session identifier
      * @return ready True if reconstruction is possible
      */
-    function isReconstructionReady(bytes32 sessionId) external view returns (bool ready) {
+    function isReconstructionReady(
+        bytes32 sessionId
+    ) external view returns (bool ready) {
         SharingSession storage session = sessions[sessionId];
         ready = reconstructionShares[sessionId].length >= session.threshold;
     }
@@ -613,8 +658,11 @@ contract ShamirSecretSharing is AccessControl, ReentrancyGuard, Pausable {
      */
     function cancelSession(bytes32 sessionId) external {
         SharingSession storage session = sessions[sessionId];
-        
-        if (session.dealer != msg.sender && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+
+        if (
+            session.dealer != msg.sender &&
+            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+        ) {
             revert NotDealer(msg.sender);
         }
 
