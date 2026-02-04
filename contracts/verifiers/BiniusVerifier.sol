@@ -114,17 +114,17 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
     /// @notice Binius proof variants
     enum BiniusVariant {
-        STANDARD,       // Standard Binius
-        FRI_BINIUS,     // With FRI-style folding
-        PACKED,         // Packed field elements
-        RECURSIVE       // Recursive composition
+        STANDARD, // Standard Binius
+        FRI_BINIUS, // With FRI-style folding
+        PACKED, // Packed field elements
+        RECURSIVE // Recursive composition
     }
 
     /// @notice Sumcheck protocol variant
     enum SumcheckVariant {
-        STANDARD,       // Standard sumcheck
-        PRODUCT,        // Product-based
-        LOOKUP          // Lookup argument
+        STANDARD, // Standard sumcheck
+        PRODUCT, // Product-based
+        LOOKUP // Lookup argument
     }
 
     // ============================================
@@ -133,45 +133,45 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
     /// @notice Binary tower field element (up to F_2^128)
     struct TowerElement {
-        uint128 low;    // Lower 64 bits of representation
-        uint128 high;   // Upper 64 bits for F_2^128
-        uint8 level;    // Tower level (0-7)
+        uint128 low; // Lower 64 bits of representation
+        uint128 high; // Upper 64 bits for F_2^128
+        uint8 level; // Tower level (0-7)
     }
 
     /// @notice Hypercube commitment
     struct HypercubeCommitment {
-        bytes32 root;           // Merkle root of evaluations
-        uint8 dimension;        // Hypercube dimension k (2^k points)
-        uint8 towerLevel;       // Field extension level
-        bytes32 evalHash;       // Hash of evaluation domain
+        bytes32 root; // Merkle root of evaluations
+        uint8 dimension; // Hypercube dimension k (2^k points)
+        uint8 towerLevel; // Field extension level
+        bytes32 evalHash; // Hash of evaluation domain
     }
 
     /// @notice Binius proof structure
     struct BiniusProof {
-        bytes32 proofId;                    // Unique identifier
-        BiniusVariant variant;              // Proof variant
-        HypercubeCommitment commitment;     // Polynomial commitment
-        bytes32[] merkleProof;              // Merkle authentication path
-        TowerElement[] evaluations;         // Evaluation claims
-        bytes32[] friRounds;                // FRI round commitments
-        bytes sumcheckProof;                // Sumcheck transcript
-        bytes32 publicInputHash;            // Hash of public inputs
-        uint64 timestamp;                   // Proof creation time
+        bytes32 proofId; // Unique identifier
+        BiniusVariant variant; // Proof variant
+        HypercubeCommitment commitment; // Polynomial commitment
+        bytes32[] merkleProof; // Merkle authentication path
+        TowerElement[] evaluations; // Evaluation claims
+        bytes32[] friRounds; // FRI round commitments
+        bytes sumcheckProof; // Sumcheck transcript
+        bytes32 publicInputHash; // Hash of public inputs
+        uint64 timestamp; // Proof creation time
     }
 
     /// @notice FRI layer for binary field
     struct FRILayer {
-        bytes32 commitment;     // Layer commitment
-        uint256 degree;         // Polynomial degree at this layer
-        bytes32[] queries;      // Query responses
-        bytes32[] paths;        // Merkle paths for queries
+        bytes32 commitment; // Layer commitment
+        uint256 degree; // Polynomial degree at this layer
+        bytes32[] queries; // Query responses
+        bytes32[] paths; // Merkle paths for queries
     }
 
     /// @notice Sumcheck round
     struct SumcheckRound {
-        TowerElement claimed;       // Claimed sum for this round
-        TowerElement[] coeffs;      // Univariate polynomial coefficients
-        bytes32 challenge;          // Verifier challenge
+        TowerElement claimed; // Claimed sum for this round
+        TowerElement[] coeffs; // Univariate polynomial coefficients
+        bytes32 challenge; // Verifier challenge
     }
 
     /// @notice Verification result
@@ -186,11 +186,11 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
     /// @notice Verifier configuration
     struct VerifierConfig {
-        uint8 minHypercubeDim;      // Minimum dimension
-        uint8 maxHypercubeDim;      // Maximum dimension
-        uint8 securityLevel;        // Security bits (80, 128, 256)
-        uint256 proofTimeout;       // Proof validity window
-        bool allowRecursive;        // Allow recursive proofs
+        uint8 minHypercubeDim; // Minimum dimension
+        uint8 maxHypercubeDim; // Maximum dimension
+        uint8 securityLevel; // Security bits (80, 128, 256)
+        uint256 proofTimeout; // Proof validity window
+        bool allowRecursive; // Allow recursive proofs
     }
 
     // ============================================
@@ -229,10 +229,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         uint256 gasUsed
     );
 
-    event ProofRejected(
-        bytes32 indexed proofId,
-        string reason
-    );
+    event ProofRejected(bytes32 indexed proofId, string reason);
 
     event CommitmentRegistered(
         bytes32 indexed commitmentRoot,
@@ -240,11 +237,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         uint8 towerLevel
     );
 
-    event ConfigUpdated(
-        uint8 minDim,
-        uint8 maxDim,
-        uint8 securityLevel
-    );
+    event ConfigUpdated(uint8 minDim, uint8 maxDim, uint8 securityLevel);
 
     // ============================================
     // CONSTRUCTOR
@@ -321,7 +314,9 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
                 gasUsed
             );
         } else {
-            unchecked { totalFailed++; }
+            unchecked {
+                totalFailed++;
+            }
             emit ProofRejected(proof.proofId, "Verification failed");
         }
 
@@ -343,9 +338,11 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
         results = new bool[](length);
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             results[i] = _verifyProofInternal(proofs[i], publicInputs[i]);
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return results;
@@ -368,11 +365,13 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         }
 
         // 2. Verify Merkle proof for evaluations
-        if (!_verifyMerkleProof(
-            proof.commitment.root,
-            proof.merkleProof,
-            proof.evaluations
-        )) {
+        if (
+            !_verifyMerkleProof(
+                proof.commitment.root,
+                proof.merkleProof,
+                proof.evaluations
+            )
+        ) {
             return false;
         }
 
@@ -400,7 +399,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         uint256 numRounds = proof.friRounds.length;
         bytes32 currentCommitment = proof.commitment.root;
 
-        for (uint256 i = 0; i < numRounds;) {
+        for (uint256 i = 0; i < numRounds; ) {
             // Verify round commitment chain
             bytes32 expectedNext = _computeFRIRoundCommitment(
                 currentCommitment,
@@ -412,7 +411,9 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
                 currentCommitment = proof.friRounds[i];
             }
 
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         // 3. Verify final polynomial is low-degree
@@ -427,17 +428,19 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
     ) internal view returns (bool) {
         // Packed variant uses multiple small field elements in one
         // Verify unpacking is consistent
-        
+
         if (!_verifyHypercubeCommitment(proof.commitment)) {
             return false;
         }
 
         // Verify packed evaluations
-        for (uint256 i = 0; i < proof.evaluations.length;) {
+        for (uint256 i = 0; i < proof.evaluations.length; ) {
             if (!_verifyPackedElement(proof.evaluations[i])) {
                 return false;
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return _verifySumcheck(proof.sumcheckProof, proof.evaluations);
@@ -464,7 +467,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
         // 3. Extract and verify inner proof claims
         bytes32 innerClaimHash = bytes32(proof.sumcheckProof[:32]);
-        
+
         // 4. Verify outer proof aggregates inner correctly
         return _verifySumcheck(proof.sumcheckProof, proof.evaluations);
     }
@@ -500,7 +503,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
         // For F_2^128, implement Karatsuba-style multiplication
         // Split into low/high and combine using tower recursion
-        
+
         if (a.level <= 3) {
             // Small field - direct multiplication
             result = _smallFieldMul(a, b);
@@ -523,11 +526,13 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         uint128 bVal = b.low;
 
         // Binary polynomial multiplication (clmul emulation)
-        for (uint8 i = 0; i < 8;) {
+        for (uint8 i = 0; i < 8; ) {
             if ((bVal >> i) & 1 == 1) {
                 product ^= (aVal << i);
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         // Reduce by tower irreducible polynomial
@@ -547,7 +552,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         // (a0 + a1*x_k) * (b0 + b1*x_k)
         // = a0*b0 + (a0*b1 + a1*b0)*x_k + a1*b1*x_k^2
         // = a0*b0 + (a0*b1 + a1*b0)*x_k + a1*b1*(x_k*x_{k-1} + 1)
-        
+
         // For now, return placeholder - full implementation would
         // recursively decompose through tower levels
         result.low = a.low ^ b.low; // Simplified
@@ -598,9 +603,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Validate proof structure
      */
-    function _validateProofStructure(
-        BiniusProof calldata proof
-    ) internal view {
+    function _validateProofStructure(BiniusProof calldata proof) internal view {
         if (proof.proofId == bytes32(0)) revert InvalidProof();
         if (proof.commitment.dimension < config.minHypercubeDim) {
             revert InvalidHypercubeDimension(proof.commitment.dimension);
@@ -621,7 +624,10 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         HypercubeCommitment calldata commitment
     ) internal pure returns (bool) {
         if (commitment.root == bytes32(0)) return false;
-        if (commitment.dimension == 0 || commitment.dimension > MAX_HYPERCUBE_DIM) {
+        if (
+            commitment.dimension == 0 ||
+            commitment.dimension > MAX_HYPERCUBE_DIM
+        ) {
             return false;
         }
         return true;
@@ -642,14 +648,16 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
 
         // Verify Merkle path
         bytes32 computed = leaf;
-        for (uint256 i = 0; i < proof.length;) {
+        for (uint256 i = 0; i < proof.length; ) {
             bytes32 sibling = proof[i];
             if (computed < sibling) {
                 computed = keccak256(abi.encodePacked(computed, sibling));
             } else {
                 computed = keccak256(abi.encodePacked(sibling, computed));
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return computed == root;
@@ -662,14 +670,16 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         TowerElement[] calldata evaluations
     ) internal pure returns (bytes32) {
         bytes memory packed;
-        for (uint256 i = 0; i < evaluations.length;) {
+        for (uint256 i = 0; i < evaluations.length; ) {
             packed = abi.encodePacked(
                 packed,
                 evaluations[i].low,
                 evaluations[i].high,
                 evaluations[i].level
             );
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
         return keccak256(packed);
     }
@@ -690,7 +700,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         uint256 offset = 32;
         uint256 numRounds = (sumcheckProof.length - 32) / 64;
 
-        for (uint256 round = 0; round < numRounds;) {
+        for (uint256 round = 0; round < numRounds; ) {
             if (offset + 64 > sumcheckProof.length) break;
 
             // Each round provides univariate polynomial coefficients
@@ -708,7 +718,9 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
             }
 
             offset += 64;
-            unchecked { round++; }
+            unchecked {
+                round++;
+            }
         }
 
         return true;
@@ -734,11 +746,13 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         if (proof.evaluations.length == 0) return false;
 
         uint8 expectedLevel = proof.evaluations[0].level;
-        for (uint256 i = 1; i < proof.evaluations.length;) {
+        for (uint256 i = 1; i < proof.evaluations.length; ) {
             if (proof.evaluations[i].level != expectedLevel) {
                 return false;
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return expectedLevel == proof.commitment.towerLevel;
@@ -752,11 +766,8 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         bytes32 roundData,
         uint256 roundIndex
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(
-            prevCommitment,
-            roundData,
-            roundIndex
-        ));
+        return
+            keccak256(abi.encodePacked(prevCommitment, roundData, roundIndex));
     }
 
     /**
@@ -767,7 +778,8 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
     ) internal pure returns (bool) {
         // After FRI folding, final polynomial should be constant or low-degree
         // Verify by checking evaluation count matches expected degree
-        uint256 finalDegree = 1 << (proof.commitment.dimension - proof.friRounds.length);
+        uint256 finalDegree = 1 <<
+            (proof.commitment.dimension - proof.friRounds.length);
         return finalDegree <= 16; // Should fold to very low degree
     }
 
@@ -797,9 +809,13 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         }
 
         if (valid) {
-            unchecked { totalVerified++; }
+            unchecked {
+                totalVerified++;
+            }
         } else {
-            unchecked { totalFailed++; }
+            unchecked {
+                totalFailed++;
+            }
         }
 
         return valid;
@@ -824,7 +840,9 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         isProofVerified[proof.proofId] = true;
         commitments[proof.commitment.root] = proof.commitment;
 
-        unchecked { totalVerified++; }
+        unchecked {
+            totalVerified++;
+        }
     }
 
     // ============================================
@@ -855,9 +873,7 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Check if a commitment is registered
      */
-    function isCommitmentRegistered(
-        bytes32 root
-    ) external view returns (bool) {
+    function isCommitmentRegistered(bytes32 root) external view returns (bool) {
         return commitments[root].root != bytes32(0);
     }
 
@@ -876,7 +892,8 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
         bool allowRecursive
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (minDim > maxDim) revert InvalidHypercubeDimension(minDim);
-        if (maxDim > MAX_HYPERCUBE_DIM) revert InvalidHypercubeDimension(maxDim);
+        if (maxDim > MAX_HYPERCUBE_DIM)
+            revert InvalidHypercubeDimension(maxDim);
 
         config = VerifierConfig({
             minHypercubeDim: minDim,
@@ -923,11 +940,11 @@ contract BiniusVerifier is ReentrancyGuard, AccessControl, Pausable {
     /**
      * @notice Get verifier statistics
      */
-    function getStats() external view returns (
-        uint256 verified,
-        uint256 failed,
-        uint256 savedGas
-    ) {
+    function getStats()
+        external
+        view
+        returns (uint256 verified, uint256 failed, uint256 savedGas)
+    {
         return (totalVerified, totalFailed, totalGasSaved);
     }
 
