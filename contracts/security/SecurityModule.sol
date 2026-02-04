@@ -66,6 +66,20 @@ abstract contract SecurityModule {
                                STORAGE
     //////////////////////////////////////////////////////////////*/
 
+    // ============ Packed Security Flags (Gas Optimization) ============
+    // Pack 5 boolean flags into a single uint8 to save ~8,400 gas (4 storage slots)
+    
+    /// @dev Bit positions for packed security flags
+    uint8 private constant FLAG_RATE_LIMITING = 1 << 0;      // bit 0
+    uint8 private constant FLAG_CIRCUIT_BREAKER = 1 << 1;    // bit 1
+    uint8 private constant FLAG_CIRCUIT_TRIPPED = 1 << 2;    // bit 2
+    uint8 private constant FLAG_FLASH_LOAN_GUARD = 1 << 3;   // bit 3
+    uint8 private constant FLAG_WITHDRAWAL_LIMITS = 1 << 4;  // bit 4
+    
+    /// @notice Packed security flags - all enabled by default except circuit tripped
+    /// @dev Default: rate limiting | circuit breaker | flash loan guard | withdrawal limits = 0x1B
+    uint8 private _securityFlags = FLAG_RATE_LIMITING | FLAG_CIRCUIT_BREAKER | FLAG_FLASH_LOAN_GUARD | FLAG_WITHDRAWAL_LIMITS;
+
     // ============ Rate Limiting ============
 
     /// @notice Last action timestamp per account
@@ -80,9 +94,6 @@ abstract contract SecurityModule {
     /// @notice Maximum actions per window (default: 50)
     uint256 public maxActionsPerWindow = 50;
 
-    /// @notice Whether rate limiting is enabled
-    bool public rateLimitingEnabled = true;
-
     // ============ Circuit Breaker ============
 
     /// @notice Hourly volume tracker
@@ -93,12 +104,6 @@ abstract contract SecurityModule {
 
     /// @notice Volume threshold before circuit breaker trips (default: 10M tokens)
     uint256 public volumeThreshold = 10_000_000 * 1e18;
-
-    /// @notice Whether circuit breaker is enabled
-    bool public circuitBreakerEnabled = true;
-
-    /// @notice Whether circuit breaker is currently tripped
-    bool public circuitBreakerTripped;
 
     /// @notice Cooldown after circuit breaker trip
     uint256 public circuitBreakerCooldown = 1 hours;
@@ -118,9 +123,6 @@ abstract contract SecurityModule {
     /// @dev slither-disable-next-line constable-states
     uint256 public minBlocksForWithdrawal = 1;
 
-    /// @notice Whether flash loan guard is enabled
-    bool public flashLoanGuardEnabled = true;
-
     // ============ Withdrawal Limits ============
 
     /// @notice Maximum single withdrawal amount
@@ -135,9 +137,6 @@ abstract contract SecurityModule {
     /// @notice Last withdrawal day (days since epoch)
     uint256 public lastWithdrawalDay;
 
-    /// @notice Whether withdrawal limits are enabled
-    bool public withdrawalLimitsEnabled = true;
-
     // ============ Per-Account Tracking ============
 
     /// @notice Per-account daily withdrawal amounts
@@ -148,6 +147,44 @@ abstract contract SecurityModule {
 
     /// @notice Per-account maximum daily withdrawal
     uint256 public accountMaxDailyWithdrawal = 100_000 * 1e18;
+    
+    // ============ Backward-Compatible Public Getters for Packed Flags ============
+    
+    /// @notice Whether rate limiting is enabled
+    function rateLimitingEnabled() public view returns (bool) {
+        return (_securityFlags & FLAG_RATE_LIMITING) != 0;
+    }
+    
+    /// @notice Whether circuit breaker is enabled
+    function circuitBreakerEnabled() public view returns (bool) {
+        return (_securityFlags & FLAG_CIRCUIT_BREAKER) != 0;
+    }
+    
+    /// @notice Whether circuit breaker is currently tripped
+    function circuitBreakerTripped() public view returns (bool) {
+        return (_securityFlags & FLAG_CIRCUIT_TRIPPED) != 0;
+    }
+    
+    /// @notice Whether flash loan guard is enabled
+    function flashLoanGuardEnabled() public view returns (bool) {
+        return (_securityFlags & FLAG_FLASH_LOAN_GUARD) != 0;
+    }
+    
+    /// @notice Whether withdrawal limits are enabled
+    function withdrawalLimitsEnabled() public view returns (bool) {
+        return (_securityFlags & FLAG_WITHDRAWAL_LIMITS) != 0;
+    }
+    
+    // ============ Internal Flag Setters ============
+    
+    /// @dev Set a security flag
+    function _setFlag(uint8 flag, bool value) private {
+        if (value) {
+            _securityFlags |= flag;
+        } else {
+            _securityFlags &= ~flag;
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -173,7 +210,7 @@ abstract contract SecurityModule {
      * @dev Optimized with cached reads and unchecked arithmetic
      */
     modifier rateLimited() {
-        if (rateLimitingEnabled) {
+        if (rateLimitingEnabled()) {
             address sender = msg.sender;
             uint256 lastTime = lastActionTime[sender];
             uint256 currentCount = actionCount[sender];
@@ -203,9 +240,9 @@ abstract contract SecurityModule {
      * @param value The value being processed
      */
     modifier circuitBreaker(uint256 value) {
-        if (circuitBreakerEnabled) {
+        if (circuitBreakerEnabled()) {
             // Check if currently tripped
-            if (circuitBreakerTripped) {
+            if (circuitBreakerTripped()) {
                 if (
                     block.timestamp <
                     circuitBreakerTrippedAt + circuitBreakerCooldown
@@ -217,7 +254,7 @@ abstract contract SecurityModule {
                     );
                 }
                 // Reset after cooldown
-                circuitBreakerTripped = false;
+                _setFlag(FLAG_CIRCUIT_TRIPPED, false);
                 lastHourlyVolume = 0;
                 emit CircuitBreakerReset();
             }
@@ -233,7 +270,7 @@ abstract contract SecurityModule {
 
             // Check threshold
             if (lastHourlyVolume > volumeThreshold) {
-                circuitBreakerTripped = true;
+                _setFlag(FLAG_CIRCUIT_TRIPPED, true);
                 circuitBreakerTrippedAt = block.timestamp;
                 emit CircuitBreakerActivated(lastHourlyVolume, volumeThreshold);
                 revert CircuitBreakerTriggered(
@@ -250,7 +287,7 @@ abstract contract SecurityModule {
      * @dev Requires at least minBlocksForWithdrawal between deposit and withdrawal
      */
     modifier noFlashLoan() {
-        if (flashLoanGuardEnabled) {
+        if (flashLoanGuardEnabled()) {
             uint256 depositBlock = lastDepositBlock[msg.sender];
             if (
                 depositBlock > 0 &&
@@ -272,7 +309,7 @@ abstract contract SecurityModule {
      * @param amount The withdrawal amount
      */
     modifier withdrawalLimited(uint256 amount) {
-        if (withdrawalLimitsEnabled) {
+        if (withdrawalLimitsEnabled()) {
             // Check single withdrawal limit
             if (amount > maxSingleWithdrawal) {
                 revert SingleWithdrawalLimitExceeded(
@@ -308,7 +345,7 @@ abstract contract SecurityModule {
      * @param amount The withdrawal amount
      */
     modifier accountWithdrawalLimited(uint256 amount) {
-        if (withdrawalLimitsEnabled) {
+        if (withdrawalLimitsEnabled()) {
             // Reset account daily counter if new day
             uint256 currentDay = block.timestamp / 1 days;
             if (currentDay > accountLastWithdrawalDay[msg.sender]) {
@@ -462,10 +499,10 @@ abstract contract SecurityModule {
         bool flashLoanGuard,
         bool withdrawalLimits
     ) internal {
-        rateLimitingEnabled = rateLimiting;
-        circuitBreakerEnabled = circuitBreakers;
-        flashLoanGuardEnabled = flashLoanGuard;
-        withdrawalLimitsEnabled = withdrawalLimits;
+        _setFlag(FLAG_RATE_LIMITING, rateLimiting);
+        _setFlag(FLAG_CIRCUIT_BREAKER, circuitBreakers);
+        _setFlag(FLAG_FLASH_LOAN_GUARD, flashLoanGuard);
+        _setFlag(FLAG_WITHDRAWAL_LIMITS, withdrawalLimits);
     }
 
     /**
@@ -473,7 +510,7 @@ abstract contract SecurityModule {
      * @dev slither-disable-next-line dead-code
      */
     function _resetCircuitBreaker() internal {
-        circuitBreakerTripped = false;
+        _setFlag(FLAG_CIRCUIT_TRIPPED, false);
         lastHourlyVolume = 0;
         emit CircuitBreakerReset();
     }
@@ -546,7 +583,7 @@ abstract contract SecurityModule {
             uint256 currentVolume
         )
     {
-        isTripped = circuitBreakerTripped;
+        isTripped = circuitBreakerTripped();
 
         if (isTripped) {
             uint256 resetTime = circuitBreakerTrippedAt +
