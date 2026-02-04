@@ -620,6 +620,12 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
         address signer = ethSignedHash.recover(proof);
 
+        // SECURITY FIX: Validate destination chain ID to prevent cross-chain replay
+        // Without this check, a message signed for Chain A could be replayed on Chain B
+        if (message.targetChainId != block.chainid) {
+            return false;
+        }
+
         return signer == trustedRemotes[message.sourceChainId];
     }
 

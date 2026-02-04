@@ -661,6 +661,7 @@ contract CrossChainProofHubV3 is
     }
 
     /// @notice Resolves a challenge by verifying the proof
+    /// @dev SECURITY: Only the challenger can call this to prevent front-running
     /// @param proofId The challenged proof
     /// @param proof The original proof bytes
     /// @param publicInputs The original public inputs
@@ -675,6 +676,11 @@ contract CrossChainProofHubV3 is
         if (challenge.challenger == address(0))
             revert ChallengeNotFound(proofId);
         if (challenge.resolved) revert ChallengeNotFound(proofId);
+        
+        // SECURITY FIX: Only the original challenger can resolve to prevent front-running
+        // This prevents relayers from submitting correct proof data before the challenger
+        require(msg.sender == challenge.challenger || hasRole(OPERATOR_ROLE, msg.sender), 
+            "Only challenger or operator can resolve");
 
         ProofSubmission storage submission = proofs[proofId];
 
@@ -690,11 +696,9 @@ contract CrossChainProofHubV3 is
             // Try to verify the proof
             IProofVerifier verifier = verifiers[proofType];
 
-            // Fallback to registry if not locally set
-            if (
-                address(verifier) == address(0) &&
-                verifierRegistry != address(0)
-            ) {
+            // SECURITY FIX: If specific verifier not found, DO NOT fallback to default
+            // This prevents proof type bypass attacks where attacker uses weaker verifier
+            if (address(verifier) == address(0) && verifierRegistry != address(0)) {
                 (bool regSuccess, bytes memory regData) = verifierRegistry
                     .staticcall(
                         abi.encodeWithSignature(
@@ -707,9 +711,9 @@ contract CrossChainProofHubV3 is
                 }
             }
 
-            if (address(verifier) == address(0)) {
-                verifier = verifiers[DEFAULT_PROOF_TYPE];
-            }
+            // SECURITY FIX: Do NOT fallback to default verifier - this could allow
+            // attackers to bypass specific verifier requirements
+            // If no verifier is found, the proof is treated as invalid (proofValid = false)
 
             if (address(verifier) != address(0)) {
                 proofValid = verifier.verifyProof(proof, publicInputs);
@@ -774,7 +778,7 @@ contract CrossChainProofHubV3 is
 
     /// @notice Finalizes a proof after challenge period
     /// @param proofId The proof to finalize
-    function finalizeProof(bytes32 proofId) external nonReentrant {
+    function finalizeProof(bytes32 proofId) external nonReentrant whenNotPaused {
         ProofSubmission storage submission = proofs[proofId];
         if (submission.relayer == address(0)) revert ProofNotFound(proofId);
 
