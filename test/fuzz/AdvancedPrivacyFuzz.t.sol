@@ -100,7 +100,7 @@ contract AdvancedPrivacyFuzz is Test {
         // Proof size = (7 + 4*m) * 32 bytes
         uint256 expectedProofSize = (7 + 4 * m) * 32;
 
-        // Triptych (logarithmic) becomes more efficient than linear signatures 
+        // Triptych (logarithmic) becomes more efficient than linear signatures
         // only for larger ring sizes.
         // Size formula: (7 + 4m) elements vs (2^m) elements
         // m=2: 15 vs 4
@@ -108,13 +108,13 @@ contract AdvancedPrivacyFuzz is Test {
         // m=4: 23 vs 16
         // m=5: 27 vs 32  <- Triptych wins here
         // m=6: 31 vs 64  <- Triptych wins by > factor of 2 here
-        
+
         uint256 linearSize = ringSize * 32;
 
         if (exponent >= 5) {
             assert(expectedProofSize < linearSize);
         }
-        
+
         if (exponent >= 6) {
             assert(expectedProofSize < linearSize / 2);
         }
