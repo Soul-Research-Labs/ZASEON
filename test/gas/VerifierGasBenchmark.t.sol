@@ -11,7 +11,7 @@ import "../../contracts/verifiers/adapters/PedersenCommitmentAdapter.sol";
 import "../../contracts/verifiers/adapters/AggregatorAdapter.sol";
 import "../../contracts/verifiers/adapters/InvariantCheckerAdapter.sol";
 import "../../contracts/verifiers/adapters/PqcVerifierAdapter.sol";
-import "../../contracts/verifiers/VerifierRegistry.sol";
+import "../../contracts/verifiers/VerifierRegistryV2.sol";
 
 /**
  * @title VerifierGasBenchmark
@@ -42,7 +42,7 @@ contract VerifierGasBenchmark is Test {
     PqcVerifierAdapter public pqcAdapter;
 
     // Registry
-    VerifierRegistry public registry;
+    VerifierRegistryV2 public registry;
 
     // Gas tracking
     struct GasResult {
@@ -71,7 +71,7 @@ contract VerifierGasBenchmark is Test {
         pqcAdapter = new PqcVerifierAdapter();
 
         // Deploy registry
-        registry = new VerifierRegistry();
+        registry = new VerifierRegistryV2();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -262,25 +262,28 @@ contract VerifierGasBenchmark is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_gas_RegistryVerification() public {
-        // Register a verifier using VerifierRegistry interface
-        bytes32 proofType = keccak256("BALANCE_PROOF");
-        registry.registerVerifier(proofType, address(mockVerifier));
+        // Register a verifier
+        registry.registerVerifier(
+            VerifierRegistryV2.CircuitType.BALANCE_PROOF,
+            address(mockVerifier),
+            address(balanceAdapter),
+            keccak256("circuit_hash")
+        );
 
         bytes memory proof = _generateMockProof(93);
-
-        // Create uint256[] public inputs for registry interface
-        uint256[] memory publicInputs = new uint256[](3);
-        publicInputs[0] = 1000; // balance
-        publicInputs[1] = 500; // minRequired
-        publicInputs[2] = uint256(keccak256("commitment"));
+        bytes memory inputs = _generateBalanceInputs();
 
         uint256 gasBefore = gasleft();
-        bool result = registry.verifyProof(proofType, proof, publicInputs);
+        bool result = registry.verify(
+            VerifierRegistryV2.CircuitType.BALANCE_PROOF,
+            proof,
+            inputs
+        );
         uint256 gasUsed = gasBefore - gasleft();
 
         assertTrue(result, "Registry verification should succeed");
 
-        emit log_named_uint("Registry.verifyProof() gas", gasUsed);
+        emit log_named_uint("Registry.verify() gas", gasUsed);
 
         // Registry adds overhead, should still be < 70k
         assertLt(gasUsed, 70000, "Registry gas exceeds 70k threshold");
@@ -314,7 +317,7 @@ contract VerifierGasBenchmark is Test {
     function testFuzz_InvalidProofReverts(
         bytes calldata randomProof,
         bytes32 randomInput
-    ) public view {
+    ) public {
         vm.assume(randomProof.length > 0 && randomProof.length < 1000);
 
         // With a real verifier, random proofs should fail
@@ -325,8 +328,8 @@ contract VerifierGasBenchmark is Test {
 
         uint256 gasBefore = gasleft();
         // Call mock verifier directly (skips field validation in adapter)
-        uint256[] memory signals = new uint256[](1);
-        signals[0] = uint256(randomInput);
+        bytes32[] memory signals = new bytes32[](1);
+        signals[0] = randomInput;
         try mockVerifier.verify(randomProof, signals) {
             // Mock returns true
         } catch {
@@ -496,36 +499,14 @@ contract VerifierGasBenchmark is Test {
 
 /**
  * @title MockNoirVerifier
- * @notice Mock verifier that implements IProofVerifier (for gas measurement)
+ * @notice Mock verifier that always returns true (for gas measurement)
  * @dev In production tests, use actual generated verifiers with valid proofs
  */
 contract MockNoirVerifier {
     function verify(
         bytes calldata,
-        uint256[] calldata
+        bytes32[] calldata
     ) external pure returns (bool) {
-        return true;
-    }
-
-    function verifyProof(
-        bytes calldata,
-        bytes calldata
-    ) external pure returns (bool) {
-        return true;
-    }
-
-    function verifySingle(
-        bytes calldata,
-        uint256
-    ) external pure returns (bool) {
-        return true;
-    }
-
-    function getPublicInputCount() external pure returns (uint256) {
-        return 3;
-    }
-
-    function isReady() external pure returns (bool) {
         return true;
     }
 }

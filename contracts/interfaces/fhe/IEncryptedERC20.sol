@@ -6,7 +6,8 @@ import "../../fhe/FHETypes.sol";
 /**
  * @title IEncryptedERC20
  * @author Soul Protocol
- * @notice Interface for the Encrypted ERC20 token contract
+ * @notice Interface for the Encrypted ERC20 token contract with FHE-based privacy
+ * @dev Uses user-defined value types (euint256 is bytes32) for encrypted values
  */
 interface IEncryptedERC20 {
     // ============================================
@@ -72,9 +73,10 @@ interface IEncryptedERC20 {
     function decimals() external view returns (uint8);
 
     /**
-     * @notice Get total supply (if public)
+     * @notice Get encrypted total supply
+     * @return handle The encrypted total supply handle
      */
-    function totalSupply() external view returns (uint256);
+    function totalSupply() external view returns (euint256 handle);
 
     // ============================================
     // BALANCE QUERIES
@@ -83,20 +85,11 @@ interface IEncryptedERC20 {
     /**
      * @notice Get encrypted balance for an account
      * @param account The account address
-     * @return balance The encrypted balance struct
+     * @return handle The encrypted balance handle
      */
     function balanceOf(
         address account
-    ) external view returns (EncryptedBalance memory balance);
-
-    /**
-     * @notice Get the encrypted balance handle
-     * @param account The account address
-     * @return handle The balance handle ID
-     */
-    function balanceHandle(
-        address account
-    ) external view returns (bytes32 handle);
+    ) external view returns (euint256 handle);
 
     /**
      * @notice Request decryption of own balance
@@ -116,7 +109,7 @@ interface IEncryptedERC20 {
      */
     function transferEncrypted(
         address to,
-        euint256 memory encryptedAmount
+        euint256 encryptedAmount
     ) external returns (bool success);
 
     /**
@@ -129,7 +122,7 @@ interface IEncryptedERC20 {
     function transferFromEncrypted(
         address from,
         address to,
-        euint256 memory encryptedAmount
+        euint256 encryptedAmount
     ) external returns (bool success);
 
     // ============================================
@@ -144,19 +137,19 @@ interface IEncryptedERC20 {
      */
     function approveEncrypted(
         address spender,
-        euint256 memory encryptedAmount
+        euint256 encryptedAmount
     ) external returns (bool success);
 
     /**
      * @notice Get encrypted allowance
      * @param owner Token owner
      * @param spender Approved spender
-     * @return allowance The encrypted allowance
+     * @return handle The encrypted allowance handle
      */
-    function allowanceEncrypted(
+    function allowance(
         address owner,
         address spender
-    ) external view returns (EncryptedAllowance memory allowance);
+    ) external view returns (euint256 handle);
 
     // ============================================
     // MINTING AND BURNING
@@ -176,7 +169,7 @@ interface IEncryptedERC20 {
      */
     function burnEncrypted(
         address from,
-        euint256 memory encryptedAmount
+        euint256 encryptedAmount
     ) external;
 
     // ============================================

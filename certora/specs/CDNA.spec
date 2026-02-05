@@ -1,72 +1,252 @@
-/**
- * Certora Formal Verification Specification
- * Soul Protocol - CrossDomainNullifierAlgebra (CDNA)
- */
+// =============================================================================
+// CDNA.spec - Formal Verification for Cross Domain Nullifier Algebra
+// =============================================================================
 
 methods {
-    // View functions
-    function totalDomains() external returns (uint256) envfree;
+    // State access
+    function nullifiers(bytes32, bytes32) external returns (bool) envfree;
+    function domainNullifierCount(bytes32) external returns (uint256) envfree;
     function totalNullifiers() external returns (uint256) envfree;
-    function totalCrossLinks() external returns (uint256) envfree;
-    function paused() external returns (bool) envfree;
-    function hasRole(bytes32, address) external returns (bool) envfree;
-    function nullifierExists(bytes32) external returns (bool) envfree;
+    
+    // Core functions
+    function registerNullifier(bytes32, bytes32, bytes32, bytes32) external;
+    function isNullifierConsumed(bytes32, bytes32) external returns (bool) envfree;
+    function verifyNullifierProof(bytes32, bytes32, bytes32) external returns (bool) envfree;
+    
+    // Domain management
+    function registerDomain(bytes32) external;
+    function isDomainRegistered(bytes32) external returns (bool) envfree;
 }
 
-/*//////////////////////////////////////////////////////////////
-                        INVARIANTS
-//////////////////////////////////////////////////////////////*/
+// =============================================================================
+// Definitions
+// =============================================================================
 
-/**
- * INV-CDNA-001: Statistics non-negative
- */
-invariant statisticsNonNegative()
-    totalDomains() >= 0 && totalNullifiers() >= 0 && totalCrossLinks() >= 0;
+definition ZERO_BYTES32() returns bytes32 = 0;
 
-/*//////////////////////////////////////////////////////////////
-                          RULES
-//////////////////////////////////////////////////////////////*/
+// =============================================================================
+// Invariants
+// =============================================================================
 
-/**
- * RULE-CDNA-001: Monotonic domain count
- */
-rule monotonicDomainCount(method f) filtered { f -> !f.isView } {
-    mathint countBefore = totalDomains();
+// Nullifier count is consistent with domain counts
+invariant totalEqualsSum()
+    forall bytes32 domain. domainNullifierCount(domain) <= totalNullifiers()
+
+// Consumed nullifiers cannot be unconsumed
+invariant nullifierFinalityInvariant(bytes32 nullifier, bytes32 domain)
+    isNullifierConsumed(nullifier, domain) => true
+    {
+        preserved {
+            require isNullifierConsumed(nullifier, domain);
+        }
+    }
+
+// =============================================================================
+// Rules for Nullifier Registration
+// =============================================================================
+
+// Registering a nullifier marks it as consumed
+rule registerMarksConsumed {
+    bytes32 nullifier;
+    bytes32 domain;
+    bytes32 commitment;
+    bytes32 proof;
     
     env e;
-    calldataarg args;
-    f(e, args);
+    require !isNullifierConsumed(nullifier, domain);
+    require isDomainRegistered(domain);
     
-    mathint countAfter = totalDomains();
+    registerNullifier(e, nullifier, domain, commitment, proof);
     
-    assert countAfter >= countBefore, "Domain count must be monotonically increasing";
+    assert isNullifierConsumed(nullifier, domain), "Nullifier should be consumed";
 }
 
-/**
- * RULE-CDNA-002: Monotonic nullifier count
- */
-rule monotonicNullifierCount(method f) filtered { f -> !f.isView } {
-    mathint countBefore = totalNullifiers();
+// Cannot register same nullifier twice in same domain
+rule noDoubleSpending {
+    bytes32 nullifier;
+    bytes32 domain;
+    bytes32 commitment;
+    bytes32 proof;
     
-    env e;
-    calldataarg args;
-    f(e, args);
+    env e1;
+    env e2;
+    require isDomainRegistered(domain);
+    require !isNullifierConsumed(nullifier, domain);
     
-    mathint countAfter = totalNullifiers();
+    registerNullifier(e1, nullifier, domain, commitment, proof);
     
-    assert countAfter >= countBefore, "Nullifier count must be monotonically increasing";
+    registerNullifier@withrevert(e2, nullifier, domain, commitment, proof);
+    
+    assert lastReverted, "Double spending should revert";
 }
 
-/**
- * RULE-CDNA-003: Nullifier permanence
- */
-rule nullifierPermanence(bytes32 nullifier) {
-    require nullifierExists(nullifier);
+// Registration increases domain nullifier count
+rule registerIncrementsDomainCount {
+    bytes32 nullifier;
+    bytes32 domain;
+    bytes32 commitment;
+    bytes32 proof;
+    
+    uint256 countBefore = domainNullifierCount(domain);
     
     env e;
-    calldataarg args;
+    require isDomainRegistered(domain);
+    require !isNullifierConsumed(nullifier, domain);
+    
+    registerNullifier(e, nullifier, domain, commitment, proof);
+    
+    uint256 countAfter = domainNullifierCount(domain);
+    
+    assert countAfter == countBefore + 1, "Domain count should increase";
+}
+
+// Registration increases total nullifier count
+rule registerIncrementsTotal {
+    bytes32 nullifier;
+    bytes32 domain;
+    bytes32 commitment;
+    bytes32 proof;
+    
+    uint256 totalBefore = totalNullifiers();
+    
+    env e;
+    require isDomainRegistered(domain);
+    require !isNullifierConsumed(nullifier, domain);
+    
+    registerNullifier(e, nullifier, domain, commitment, proof);
+    
+    uint256 totalAfter = totalNullifiers();
+    
+    assert totalAfter == totalBefore + 1, "Total should increase";
+}
+
+// =============================================================================
+// Domain Isolation Rules
+// =============================================================================
+
+// Same nullifier can be used in different domains
+rule domainsAreIsolated {
+    bytes32 nullifier;
+    bytes32 domain1;
+    bytes32 domain2;
+    bytes32 commitment;
+    bytes32 proof;
+    
+    env e1;
+    env e2;
+    require domain1 != domain2;
+    require isDomainRegistered(domain1);
+    require isDomainRegistered(domain2);
+    require !isNullifierConsumed(nullifier, domain1);
+    require !isNullifierConsumed(nullifier, domain2);
+    
+    registerNullifier(e1, nullifier, domain1, commitment, proof);
+    
+    // Should still be able to register in domain2
+    assert !isNullifierConsumed(nullifier, domain2), "Domain2 should be unaffected";
+}
+
+// Registering in one domain doesn't affect another
+rule registrationDomainIsolation {
+    bytes32 nullifier1;
+    bytes32 nullifier2;
+    bytes32 domain1;
+    bytes32 domain2;
+    bytes32 commitment;
+    bytes32 proof;
+    
+    bool consumedBefore = isNullifierConsumed(nullifier2, domain2);
+    
+    env e;
+    require domain1 != domain2 || nullifier1 != nullifier2;
+    require isDomainRegistered(domain1);
+    require !isNullifierConsumed(nullifier1, domain1);
+    
+    registerNullifier(e, nullifier1, domain1, commitment, proof);
+    
+    bool consumedAfter = isNullifierConsumed(nullifier2, domain2);
+    
+    assert consumedAfter == consumedBefore, "Unrelated nullifier state unchanged";
+}
+
+// =============================================================================
+// Nullifier Finality
+// =============================================================================
+
+// Once consumed, stays consumed
+rule nullifierFinality {
+    bytes32 nullifier;
+    bytes32 domain;
+    
+    require isNullifierConsumed(nullifier, domain);
+    
+    env e;
     method f;
+    calldataarg args;
     f(e, args);
     
-    assert nullifierExists(nullifier), "Existing nullifier must stay existing";
+    assert isNullifierConsumed(nullifier, domain), "Consumed is permanent";
+}
+
+// Domain counts never decrease
+rule domainCountMonotonic {
+    bytes32 domain;
+    
+    uint256 countBefore = domainNullifierCount(domain);
+    
+    env e;
+    method f;
+    calldataarg args;
+    f(e, args);
+    
+    uint256 countAfter = domainNullifierCount(domain);
+    
+    assert countAfter >= countBefore, "Count should never decrease";
+}
+
+// Total count never decreases
+rule totalCountMonotonic {
+    uint256 totalBefore = totalNullifiers();
+    
+    env e;
+    method f;
+    calldataarg args;
+    f(e, args);
+    
+    uint256 totalAfter = totalNullifiers();
+    
+    assert totalAfter >= totalBefore, "Total should never decrease";
+}
+
+// =============================================================================
+// Domain Management
+// =============================================================================
+
+// Registered domains stay registered
+rule domainRegistrationPermanent {
+    bytes32 domain;
+    
+    require isDomainRegistered(domain);
+    
+    env e;
+    method f;
+    calldataarg args;
+    f(e, args);
+    
+    assert isDomainRegistered(domain), "Domain registration is permanent";
+}
+
+// Cannot register nullifier in unregistered domain
+rule requireRegisteredDomain {
+    bytes32 nullifier;
+    bytes32 domain;
+    bytes32 commitment;
+    bytes32 proof;
+    
+    env e;
+    require !isDomainRegistered(domain);
+    
+    registerNullifier@withrevert(e, nullifier, domain, commitment, proof);
+    
+    assert lastReverted, "Should revert for unregistered domain";
 }

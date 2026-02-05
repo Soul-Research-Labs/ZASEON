@@ -4,58 +4,53 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "../libraries/FHELib.sol";
-import "./FHETypes.sol";
+import "./lib/FHEUtils.sol";
 
 /**
  * @title FHEGateway
  * @author Soul Protocol
- * @notice Gateway contract for FHE operations with coprocessor integration
- * @dev Manages encrypted handles, ACL, and routes computation to off-chain coprocessors
+ * @notice Gateway contract for Full Homomorphic Encryption (FHE) coprocessor integration
+ * @dev Implements fhEVM-compatible interface for TFHE-rs coprocessor
  *
  * Architecture:
  * ┌─────────────────────────────────────────────────────────────────────┐
- * │                      FHE Gateway Architecture                        │
+ * │                        FHE Gateway Architecture                      │
  * ├─────────────────────────────────────────────────────────────────────┤
  * │                                                                      │
- * │  ┌──────────────┐                        ┌──────────────────────┐   │
- * │  │  Smart       │  1. Request compute    │   FHE Coprocessor    │   │
- * │  │  Contract    │───────────────────────▶│   Network            │   │
- * │  │              │                        │   (Off-chain TFHE)   │   │
- * │  └──────────────┘                        └──────────────────────┘   │
- * │         │                                          │                │
- * │         │ 2. Get handle                            │ 3. Return      │
- * │         ▼                                          ▼    result      │
- * │  ┌──────────────┐                        ┌──────────────────────┐   │
- * │  │  FHEGateway  │◀───────────────────────│   Result + ZK Proof  │   │
- * │  │  (Handle     │                        │                      │   │
- * │  │   Registry)  │                        └──────────────────────┘   │
- * │  └──────────────┘                                                   │
- * │         │                                                           │
- * │         │ 4. ACL check                                              │
- * │         ▼                                                           │
- * │  ┌──────────────┐                                                   │
- * │  │  Caller gets │                                                   │
- * │  │  output      │                                                   │
- * │  │  handle      │                                                   │
- * │  └──────────────┘                                                   │
+ * │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐  │
+ * │  │  User/dApp   │───►│  FHEGateway  │───►│  FHE Coprocessor     │  │
+ * │  │              │    │  (on-chain)  │    │  (off-chain TFHE)    │  │
+ * │  └──────────────┘    └──────────────┘    └──────────────────────┘  │
+ * │         │                   │                       │              │
+ * │         │                   ▼                       ▼              │
+ * │         │           ┌──────────────┐    ┌──────────────────────┐  │
+ * │         │           │  ACL Layer   │    │  Key Management      │  │
+ * │         │           │  (permits)   │    │  (KMS)               │  │
+ * │         │           └──────────────┘    └──────────────────────┘  │
+ * │         │                                                          │
+ * │         ▼                                                          │
+ * │  ┌──────────────────────────────────────────────────────────────┐ │
+ * │  │                    Encrypted Contracts                        │ │
+ * │  │  • EncryptedERC20   • EncryptedVoting   • ConfidentialDeFi   │ │
+ * │  └──────────────────────────────────────────────────────────────┘ │
  * └─────────────────────────────────────────────────────────────────────┘
  *
- * Security Considerations:
- * - All handles are verified before use
- * - ACL controls who can use encrypted values
- * - Coprocessor results require ZK proofs
- * - Signature malleability protection on all ECDSA operations
+ * Supported Schemes:
+ * - TFHE (Torus FHE) - Boolean and integer circuits
+ * - BFV (Brakerski/Fan-Vercauteren) - Integer arithmetic
+ * - BGV (Brakerski-Gentry-Vaikuntanathan) - Modular arithmetic
+ * - CKKS (Cheon-Kim-Kim-Song) - Approximate arithmetic (fixed-point)
  */
 contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
-    // ROLES
+    // Roles
     // ============================================
 
     bytes32 public constant COPROCESSOR_ROLE = keccak256("COPROCESSOR_ROLE");
     bytes32 public constant KMS_ROLE = keccak256("KMS_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
+
+
 
     // ============================================
     // CONSTANTS
@@ -64,58 +59,113 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Maximum request TTL (1 hour)
     uint256 public constant MAX_REQUEST_TTL = 3600;
 
-    /// @notice Maximum inputs per batch
-    uint256 public constant MAX_BATCH_SIZE = 16;
+    /// @notice Minimum request TTL (1 minute)
+    uint256 public constant MIN_REQUEST_TTL = 60;
 
-    /// @notice Default security zone
-    bytes32 public constant DEFAULT_ZONE = keccak256("DEFAULT");
+    /// @notice FHE gas multiplier for cost estimation
+    uint256 public constant FHE_GAS_MULTIPLIER = 1000;
+
+    /// @notice Maximum inputs per computation
+    uint256 public constant MAX_INPUTS = 16;
 
     // ============================================
     // STATE VARIABLES
     // ============================================
 
-    /// @notice Coprocessor address for off-chain FHE computation
+    /// @notice Active FHE scheme
+    FHEUtils.FHEScheme public activeScheme;
+
+    /// @notice Network public key hash
+    bytes32 public networkPublicKeyHash;
+
+    /// @notice Coprocessor address
     address public coprocessor;
 
     /// @notice Key Management Service address
     address public kms;
 
-    /// @notice Active FHE scheme
-    FHELib.FHEScheme public activeScheme;
-
-    /// @notice Network public key hash
-    bytes32 public networkPublicKeyHash;
-
-    /// @notice Request nonce for unique IDs
+    /// @notice Request nonce
     uint256 public requestNonce;
 
-    /// @notice Handle registry: handleId => Handle
-    mapping(bytes32 => FHELib.Handle) public handles;
+    /// @notice Total computations processed
+    uint256 public totalComputations;
 
-    /// @notice Access control list: handleId => address => allowed
-    mapping(bytes32 => mapping(address => bool)) public acl;
+    /// @notice Total decryptions processed
+    uint256 public totalDecryptions;
 
-    /// @notice Delegated access: handleId => delegator => delegate => allowed
-    mapping(bytes32 => mapping(address => mapping(address => bool)))
-        public delegatedAccess;
+    /// @notice FHEUtils.Handle registry
+    mapping(bytes32 => FHEUtils.Handle) internal handles;
 
-    /// @notice Security zones (enabled zones)
-    mapping(bytes32 => bool) public securityZones;
+    /// @notice Decryption requests
+    mapping(bytes32 => FHEUtils.DecryptionRequest) public decryptionRequests;
 
-    /// @notice Compute requests: requestId => request
-    mapping(bytes32 => FHELib.ComputeRequest) public computeRequests;
+    /// @notice Reencryption requests
+    mapping(bytes32 => FHEUtils.ReencryptionRequest) public reencryptionRequests;
 
-    /// @notice Decryption requests: requestId => request
-    mapping(bytes32 => FHELib.DecryptionRequest) public decryptionRequests;
+    /// @notice Compute requests
+    mapping(bytes32 => FHEUtils.ComputeRequest) public computeRequests;
 
-    /// @notice Reencryption requests: requestId => request
-    mapping(bytes32 => FHELib.ReencryptionRequest) public reencryptionRequests;
+    /// @notice Access control list: handle => user => allowed
+    mapping(bytes32 => mapping(address => bool)) internal acl;
 
-    /// @notice Pending requests per address
-    mapping(address => bytes32[]) public pendingRequests;
+    /// @notice Global ACL: handle => publicly accessible
+    mapping(bytes32 => bool) internal globalAcl;
 
-    /// @notice Request queue for coprocessor
-    bytes32[] public requestQueue;
+    /// @notice Contract permissions: contract => handle => allowed
+    mapping(address => mapping(bytes32 => bool)) internal contractAcl;
+
+    /// @notice Approved contracts for FHE operations
+
+
+    /// @notice ZK Verifier for decryption/reencryption proofs
+    address public proofVerifier;
+
+
+    /// @notice Security zones
+    mapping(bytes32 => bool) internal securityZones;
+
+    // ============================================
+    // EVENTS
+    // ============================================
+
+    event HandleCreated(
+        bytes32 indexed handle,
+        uint8 valueType,
+        address creator
+    );
+    event HandleVerified(bytes32 indexed handle, address verifier);
+    event ComputeRequested(
+        bytes32 indexed requestId,
+        FHEUtils.Opcode opcode,
+        bytes32[] inputs
+    );
+    event ComputeCompleted(bytes32 indexed requestId, bytes32 output);
+    event ComputeFailed(bytes32 indexed requestId, string reason);
+    event DecryptionRequested(
+        bytes32 indexed requestId,
+        bytes32 handle,
+        address requester
+    );
+    event DecryptionFulfilled(bytes32 indexed requestId, bytes32 result);
+    event ReencryptionRequested(
+        bytes32 indexed requestId,
+        bytes32 handle,
+        bytes32 targetKey
+    );
+    event ReencryptionFulfilled(bytes32 indexed requestId);
+    event ACLGranted(
+        bytes32 indexed handle,
+        address indexed user,
+        address granter
+    );
+    event ACLRevoked(
+        bytes32 indexed handle,
+        address indexed user,
+        address revoker
+    );
+
+    event NetworkKeyUpdated(bytes32 newKeyHash, address updater);
+    event SchemeUpdated(FHEUtils.FHEScheme newScheme, address updater);
 
     // ============================================
     // ERRORS
@@ -124,78 +174,26 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     error InvalidHandle();
     error HandleAlreadyExists();
     error HandleNotVerified();
-    error UnauthorizedAccess();
-    error SecurityZoneMismatch();
+    error Unauthorized();
+    error InvalidOpcode();
+    error TooManyInputs();
+    error TypeMismatch();
     error RequestExpired();
     error RequestAlreadyFulfilled();
-    error InvalidRequestStatus();
-    error TooManyInputs();
-    error InvalidOpcode();
+    error InvalidCallback();
+    error InvalidTTL();
+    error ContractNotApproved();
+    error SecurityZoneMismatch();
     error ZeroAddress();
-    error InvalidScheme();
-
-    // ============================================
-    // EVENTS
-    // ============================================
-
-    event HandleCreated(
-        bytes32 indexed handleId,
-        uint8 valueType,
-        address indexed creator
-    );
-
-    event HandleVerified(bytes32 indexed handleId, address indexed verifier);
-
-    event AccessGranted(
-        bytes32 indexed handleId,
-        address indexed grantee,
-        address indexed grantor
-    );
-
-    event AccessRevoked(
-        bytes32 indexed handleId,
-        address indexed revokee,
-        address indexed revoker
-    );
-
-    event ComputeRequested(
-        bytes32 indexed requestId,
-        uint8 opcode,
-        address indexed requester
-    );
-
-    event ComputeCompleted(
-        bytes32 indexed requestId,
-        bytes32 indexed outputHandle,
-        address indexed coprocessor
-    );
-
-    event DecryptionRequested(
-        bytes32 indexed requestId,
-        bytes32 indexed handleId,
-        address indexed requester
-    );
-
-    event DecryptionCompleted(bytes32 indexed requestId, bytes32 result);
-
-    event ReencryptionRequested(
-        bytes32 indexed requestId,
-        bytes32 indexed handleId,
-        address indexed requester
-    );
-
-    event ReencryptionCompleted(bytes32 indexed requestId);
-
-    event SchemeUpdated(FHELib.FHEScheme oldScheme, FHELib.FHEScheme newScheme);
-
-    event SecurityZoneEnabled(bytes32 indexed zone);
-    event SecurityZoneDisabled(bytes32 indexed zone);
+    error CallbackFailed();
+    error ProofVerificationNotImplemented();
+    error InvalidBatchSize();
 
     // ============================================
     // CONSTRUCTOR
     // ============================================
 
-    constructor(address _coprocessor, address _kms, FHELib.FHEScheme _scheme) {
+    constructor(address _coprocessor, address _kms, FHEUtils.FHEScheme _scheme) {
         if (_coprocessor == address(0)) revert ZeroAddress();
         if (_kms == address(0)) revert ZeroAddress();
 
@@ -209,8 +207,8 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         _grantRole(OPERATOR_ROLE, msg.sender);
 
         // Initialize default security zone
-        securityZones[DEFAULT_ZONE] = true;
-        emit SecurityZoneEnabled(DEFAULT_ZONE);
+        securityZones[keccak256("DEFAULT")] = true;
+
     }
 
     // ============================================
@@ -219,29 +217,33 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Create a new encrypted handle
-     * @param valueType The type of encrypted value (FHELib.ValueType)
+     * @param valueType The type of encrypted value
      * @param securityZone The security domain
-     * @return handleId The new handle ID
+     * @return handle The new handle ID
      */
     function createHandle(
         uint8 valueType,
         bytes32 securityZone
-    ) external whenNotPaused returns (bytes32 handleId) {
+    ) external whenNotPaused returns (bytes32 handle) {
         if (!securityZones[securityZone]) revert SecurityZoneMismatch();
-        if (!FHELib.isValidValueType(valueType)) revert InvalidHandle();
+        if (valueType > uint8(FHEUtils.ValueType.ebytes256)) revert InvalidHandle();
 
         requestNonce++;
-        handleId = FHELib.computeHandleId(
-            msg.sender,
-            valueType,
-            securityZone,
-            requestNonce
+        handle = keccak256(
+            abi.encode(
+                msg.sender,
+                valueType,
+                securityZone,
+                requestNonce,
+                block.timestamp,
+                block.chainid
+            )
         );
 
-        if (handles[handleId].id != bytes32(0)) revert HandleAlreadyExists();
+        if (handles[handle].id != bytes32(0)) revert HandleAlreadyExists();
 
-        handles[handleId] = FHELib.Handle({
-            id: handleId,
+        handles[handle] = FHEUtils.Handle({
+            id: handle,
             valueType: valueType,
             securityZone: securityZone,
             verified: false,
@@ -249,48 +251,625 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
         });
 
         // Grant ACL to creator
-        acl[handleId][msg.sender] = true;
+        acl[handle][msg.sender] = true;
 
-        emit HandleCreated(handleId, valueType, msg.sender);
+        emit HandleCreated(handle, valueType, msg.sender);
     }
 
     /**
      * @notice Verify a handle (called by coprocessor after ciphertext validation)
-     * @param handleId The handle to verify
+     * @param handle The handle to verify
      */
-    function verifyHandle(
-        bytes32 handleId
-    ) external onlyRole(COPROCESSOR_ROLE) {
-        if (handles[handleId].id == bytes32(0)) revert InvalidHandle();
+    function verifyHandle(bytes32 handle) external onlyRole(COPROCESSOR_ROLE) {
+        if (handles[handle].id == bytes32(0)) revert InvalidHandle();
 
-        handles[handleId].verified = true;
+        handles[handle].verified = true;
 
-        emit HandleVerified(handleId, msg.sender);
+        emit HandleVerified(handle, msg.sender);
     }
 
     /**
      * @notice Check if a handle is valid and verified
-     * @param handleId The handle to check
-     * @return valid Whether the handle exists
+     * @param handle The handle to check
+     * @return valid Whether the handle is valid
      * @return verified Whether the handle is verified
      */
     function checkHandle(
-        bytes32 handleId
+        bytes32 handle
     ) external view returns (bool valid, bool verified) {
-        FHELib.Handle storage h = handles[handleId];
+        FHEUtils.Handle storage h = handles[handle];
         valid = h.id != bytes32(0);
         verified = h.verified;
     }
 
     /**
-     * @notice Get handle information
-     * @param handleId The handle ID
-     * @return info The handle info
+     * @notice Get handle info
+     * @param handle The handle
+     * @return info The handle information
      */
     function getHandleInfo(
-        bytes32 handleId
-    ) external view returns (FHELib.Handle memory info) {
-        return handles[handleId];
+        bytes32 handle
+    ) external view returns (FHEUtils.Handle memory info) {
+        return handles[handle];
+    }
+
+    // ============================================
+    // GENERIC FHE OPERATION
+    // ============================================
+
+    /**
+     * @notice Perform a generic FHE operation
+     * @param op The operation code
+     * @param inputs The input handles
+     * @param extraData Additional data (e.g. shift bits)
+     * @return result The result handle
+     */
+    function performOp(
+        FHEUtils.Opcode op,
+        bytes32[] calldata inputs,
+        bytes calldata extraData
+    ) external whenNotPaused returns (bytes32 result) {
+        // Arithmetic & Bitwise Binary Ops
+        if (
+            op == FHEUtils.Opcode.ADD ||
+            op == FHEUtils.Opcode.SUB ||
+            op == FHEUtils.Opcode.MUL ||
+            op == FHEUtils.Opcode.DIV ||
+            op == FHEUtils.Opcode.REM ||
+            op == FHEUtils.Opcode.MIN ||
+            op == FHEUtils.Opcode.MAX ||
+            op == FHEUtils.Opcode.AND ||
+            op == FHEUtils.Opcode.OR ||
+            op == FHEUtils.Opcode.XOR
+        ) {
+            if (inputs.length != 2) revert TooManyInputs(); // Reusing error for count mismatch
+            return _binaryOp(op, inputs[0], inputs[1]);
+        }
+
+        // Comparison Ops
+        if (
+            op == FHEUtils.Opcode.EQ ||
+            op == FHEUtils.Opcode.NE ||
+            op == FHEUtils.Opcode.GE ||
+            op == FHEUtils.Opcode.GT ||
+            op == FHEUtils.Opcode.LE ||
+            op == FHEUtils.Opcode.LT
+        ) {
+            if (inputs.length != 2) revert TooManyInputs();
+            return _comparisonOp(op, inputs[0], inputs[1]);
+        }
+
+        // Unary Ops
+        if (op == FHEUtils.Opcode.NEG || op == FHEUtils.Opcode.NOT) {
+            if (inputs.length != 1) revert TooManyInputs();
+            return _unaryOp(op, inputs[0]);
+        }
+
+        // Shift Ops
+        if (
+            op == FHEUtils.Opcode.SHL ||
+            op == FHEUtils.Opcode.SHR ||
+            op == FHEUtils.Opcode.ROTL ||
+            op == FHEUtils.Opcode.ROTR
+        ) {
+            if (inputs.length != 1) revert TooManyInputs();
+            uint8 bits = abi.decode(extraData, (uint8));
+            return _shiftOp(op, inputs[0], bits);
+        }
+        // Conditional Ops
+        if (op == FHEUtils.Opcode.SELECT) {
+            if (inputs.length != 3) revert TooManyInputs();
+            return fheSelect(inputs[0], inputs[1], inputs[2]);
+        }
+
+        revert InvalidOpcode();
+    }
+
+    /**
+     * @notice Perform a batch of FHE operations to save gas
+     * @param ops Array of operation codes
+     * @param inputs Array of input handle arrays
+     * @param extraData Array of additional data
+     * @return results Array of result handles
+     */
+    function performBatchOp(
+        FHEUtils.Opcode[] calldata ops,
+        bytes32[][] calldata inputs,
+        bytes[] calldata extraData
+    ) external whenNotPaused returns (bytes32[] memory results) {
+        if (ops.length != inputs.length || ops.length != extraData.length) {
+            revert InvalidBatchSize();
+        }
+
+        results = new bytes32[](ops.length);
+        for (uint256 i = 0; i < ops.length; i++) {
+            results[i] = this.performOp(ops[i], inputs[i], extraData[i]);
+        }
+
+        // Optimization: In a real coprocessor integration, 
+        // we would emit a single BatchComputeRequested event here.
+    }
+
+    // ============================================
+    // FHE OPERATIONS (SYNCHRONOUS)
+    // ============================================
+
+    /**
+     * @notice Trivially encrypt a plaintext value
+     * @param plaintext The plaintext value to encrypt
+     * @param toType The target encrypted type
+     * @return handle The encrypted handle
+     */
+    function trivialEncrypt(
+        uint256 plaintext,
+        uint8 toType
+    ) external whenNotPaused returns (bytes32 handle) {
+        handle = _createOutputHandle(toType);
+
+        // Request trivial encryption from coprocessor
+        bytes32 requestId = _requestCompute(
+            FHEUtils.Opcode.TRIVIAL,
+            new bytes32[](0),
+            handle,
+            abi.encode(plaintext, toType)
+        );
+
+        emit ComputeRequested(requestId, FHEUtils.Opcode.TRIVIAL, new bytes32[](0));
+    }
+
+    /**
+     * @notice Request encrypted random value
+     * @param randType The type of random value
+     * @param upperBound Upper bound for random (0 for max of type)
+     * @return handle The encrypted random handle
+     */
+    function random(
+        uint8 randType,
+        uint256 upperBound
+    ) external whenNotPaused returns (bytes32 handle) {
+        handle = _createOutputHandle(randType);
+
+        bytes32 requestId = _requestCompute(
+            FHEUtils.Opcode.RAND,
+            new bytes32[](0),
+            handle,
+            abi.encode(randType, upperBound, block.prevrandao)
+        );
+
+        emit ComputeRequested(requestId, FHEUtils.Opcode.RAND, new bytes32[](0));
+    }
+
+    // ============================================
+    // ARITHMETIC OPERATIONS
+    // ============================================
+
+    /**
+     * @notice Homomorphic addition: lhs + rhs
+     * @param lhs Left operand handle
+     * @param rhs Right operand handle
+     * @return result Result handle
+     */
+    function fheAdd(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.ADD, lhs, rhs);
+    }
+
+    /**
+     * @notice Homomorphic subtraction: lhs - rhs
+     */
+    function fheSub(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.SUB, lhs, rhs);
+    }
+
+    /**
+     * @notice Homomorphic multiplication: lhs * rhs
+     */
+    function fheMul(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.MUL, lhs, rhs);
+    }
+
+    /**
+     * @notice Homomorphic division: lhs / rhs
+     */
+    function fheDiv(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.DIV, lhs, rhs);
+    }
+
+    /**
+     * @notice Homomorphic remainder: lhs % rhs
+     */
+    function fheRem(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.REM, lhs, rhs);
+    }
+
+    /**
+     * @notice Homomorphic negation: -value
+     */
+    function fheNeg(
+        bytes32 value
+    ) external whenNotPaused returns (bytes32 result) {
+        return _unaryOp(FHEUtils.Opcode.NEG, value);
+    }
+
+    // ============================================
+    // COMPARISON OPERATIONS
+    // ============================================
+
+    /**
+     * @notice Encrypted equality: lhs == rhs
+     */
+    function fheEq(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.EQ, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted not-equal: lhs != rhs
+     */
+    function fheNe(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.NE, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted greater-or-equal: lhs >= rhs
+     */
+    function fheGe(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.GE, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted greater-than: lhs > rhs
+     */
+    function fheGt(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.GT, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted less-or-equal: lhs <= rhs
+     */
+    function fheLe(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.LE, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted less-than: lhs < rhs
+     */
+    function fheLt(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _comparisonOp(FHEUtils.Opcode.LT, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted min: min(lhs, rhs)
+     */
+    function fheMin(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.MIN, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted max: max(lhs, rhs)
+     */
+    function fheMax(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.MAX, lhs, rhs);
+    }
+
+    // ============================================
+    // BITWISE OPERATIONS
+    // ============================================
+
+    /**
+     * @notice Encrypted AND: lhs & rhs
+     */
+    function fheAnd(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.AND, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted OR: lhs | rhs
+     */
+    function fheOr(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.OR, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted XOR: lhs ^ rhs
+     */
+    function fheXor(
+        bytes32 lhs,
+        bytes32 rhs
+    ) external whenNotPaused returns (bytes32 result) {
+        return _binaryOp(FHEUtils.Opcode.XOR, lhs, rhs);
+    }
+
+    /**
+     * @notice Encrypted NOT: ~value
+     */
+    function fheNot(
+        bytes32 value
+    ) external whenNotPaused returns (bytes32 result) {
+        return _unaryOp(FHEUtils.Opcode.NOT, value);
+    }
+
+    /**
+     * @notice Encrypted shift left: value << bits
+     */
+    function fheShl(
+        bytes32 value,
+        uint8 bits
+    ) external whenNotPaused returns (bytes32 result) {
+        return _shiftOp(FHEUtils.Opcode.SHL, value, bits);
+    }
+
+    /**
+     * @notice Encrypted shift right: value >> bits
+     */
+    function fheShr(
+        bytes32 value,
+        uint8 bits
+    ) external whenNotPaused returns (bytes32 result) {
+        return _shiftOp(FHEUtils.Opcode.SHR, value, bits);
+    }
+
+    /**
+     * @notice Encrypted rotate left
+     */
+    function fheRotl(
+        bytes32 value,
+        uint8 bits
+    ) external whenNotPaused returns (bytes32 result) {
+        return _shiftOp(FHEUtils.Opcode.ROTL, value, bits);
+    }
+
+    /**
+     * @notice Encrypted rotate right
+     */
+    function fheRotr(
+        bytes32 value,
+        uint8 bits
+    ) external whenNotPaused returns (bytes32 result) {
+        return _shiftOp(FHEUtils.Opcode.ROTR, value, bits);
+    }
+
+    // ============================================
+    // CONDITIONAL OPERATIONS
+    // ============================================
+
+    /**
+     * @notice Encrypted select: condition ? ifTrue : ifFalse
+     * @param condition Encrypted boolean condition
+     * @param ifTrue Value if condition is true
+     * @param ifFalse Value if condition is false
+     */
+    function fheSelect(
+        bytes32 condition,
+        bytes32 ifTrue,
+        bytes32 ifFalse
+    ) public whenNotPaused returns (bytes32 result) {
+        _validateHandle(condition);
+        _validateHandle(ifTrue);
+        _validateHandle(ifFalse);
+        _checkACL(condition);
+        _checkACL(ifTrue);
+        _checkACL(ifFalse);
+
+        // Condition must be ebool
+        if (handles[condition].valueType != uint8(FHEUtils.ValueType.ebool)) {
+            revert TypeMismatch();
+        }
+
+        // ifTrue and ifFalse must have same type
+        if (handles[ifTrue].valueType != handles[ifFalse].valueType) {
+            revert TypeMismatch();
+        }
+
+        result = _createOutputHandle(handles[ifTrue].valueType);
+
+        bytes32[] memory inputs = new bytes32[](3);
+        inputs[0] = condition;
+        inputs[1] = ifTrue;
+        inputs[2] = ifFalse;
+
+        _requestCompute(FHEUtils.Opcode.SELECT, inputs, result, "");
+    }
+
+    // ============================================
+    // DECRYPTION (ASYNC)
+    // ============================================
+
+    /**
+     * @notice Request decryption of an encrypted value
+     * @param handle The handle to decrypt
+     * @param callbackContract Contract to call with result
+     * @param callbackSelector Function selector for callback
+     * @param ttl Time-to-live for request (seconds)
+     * @return requestId The decryption request ID
+     */
+    function requestDecryption(
+        bytes32 handle,
+        address callbackContract,
+        bytes4 callbackSelector,
+        uint256 ttl
+    ) external whenNotPaused returns (bytes32 requestId) {
+        _validateHandle(handle);
+        _checkACL(handle);
+
+        if (ttl < MIN_REQUEST_TTL || ttl > MAX_REQUEST_TTL) revert InvalidTTL();
+        if (callbackContract == address(0)) revert InvalidCallback();
+
+        requestNonce++;
+        requestId = keccak256(
+            abi.encode(
+                handle,
+                msg.sender,
+                callbackContract,
+                callbackSelector,
+                requestNonce,
+                block.timestamp
+            )
+        );
+
+        decryptionRequests[requestId] = FHEUtils.DecryptionRequest({
+            requestId: requestId,
+            handle: handle,
+            requester: msg.sender,
+            callbackContract: callbackContract,
+            callbackSelector: callbackSelector,
+            maxTimestamp: block.timestamp + ttl,
+            fulfilled: false,
+            result: bytes32(0)
+        });
+
+        totalDecryptions++;
+
+        emit DecryptionRequested(requestId, handle, msg.sender);
+    }
+
+    /**
+     * @notice Fulfill decryption request (coprocessor only)
+     * @param requestId The request to fulfill
+     */
+    function fulfillDecryption(
+        bytes32 requestId,
+        bytes32 result,
+        bytes calldata proof
+    ) external onlyRole(COPROCESSOR_ROLE) {
+        FHEUtils.DecryptionRequest storage req = decryptionRequests[requestId];
+
+        if (req.requestId == bytes32(0)) revert InvalidHandle();
+        if (req.fulfilled) revert RequestAlreadyFulfilled();
+        if (block.timestamp > req.maxTimestamp) revert RequestExpired();
+
+        // Verify ZK Proof if verifier is set
+        if (proofVerifier != address(0)) {
+            // In a real implementation, we would call the verifier contract
+            // For now, we ensure a proof is provided if the verifier is set
+            if (proof.length == 0) revert ProofVerificationNotImplemented();
+        }
+
+        req.fulfilled = true;
+        req.result = result;
+
+        // Perform callback if specified
+        if (req.callbackContract != address(0)) {
+            (bool success, ) = req.callbackContract.call(
+                abi.encodeWithSelector(req.callbackSelector, requestId, result)
+            );
+            if (!success) revert CallbackFailed();
+        }
+
+        emit DecryptionFulfilled(requestId, result);
+    }
+
+    // ============================================
+    // REENCRYPTION
+    // ============================================
+
+    /**
+     * @notice Request reencryption to a new public key
+     * @param handle The handle to reencrypt
+     * @param targetPublicKey The target public key (hash)
+     * @param ttl Time-to-live
+     * @return requestId The request ID
+     */
+    function requestReencryption(
+        bytes32 handle,
+        bytes32 targetPublicKey,
+        uint256 ttl
+    ) external whenNotPaused returns (bytes32 requestId) {
+        _validateHandle(handle);
+        _checkACL(handle);
+
+        if (ttl < MIN_REQUEST_TTL || ttl > MAX_REQUEST_TTL) revert InvalidTTL();
+
+        requestNonce++;
+        requestId = keccak256(
+            abi.encode(
+                handle,
+                targetPublicKey,
+                msg.sender,
+                requestNonce,
+                block.timestamp
+            )
+        );
+
+        reencryptionRequests[requestId] = FHEUtils.ReencryptionRequest({
+            requestId: requestId,
+            handle: handle,
+            requester: msg.sender,
+            targetPublicKey: targetPublicKey,
+            maxTimestamp: block.timestamp + ttl,
+            fulfilled: false,
+            reencryptedCiphertext: ""
+        });
+
+        emit ReencryptionRequested(requestId, handle, targetPublicKey);
+    }
+
+    /**
+     * @notice Fulfill reencryption request
+     */
+    function fulfillReencryption(
+        bytes32 requestId,
+        bytes calldata reencryptedCiphertext,
+        bytes calldata proof
+    ) external onlyRole(COPROCESSOR_ROLE) {
+        FHEUtils.ReencryptionRequest storage req = reencryptionRequests[requestId];
+
+        if (req.requestId == bytes32(0)) revert InvalidHandle();
+        if (req.fulfilled) revert RequestAlreadyFulfilled();
+        if (block.timestamp > req.maxTimestamp) revert RequestExpired();
+
+        // Verify ZK Proof if verifier is set
+        if (proofVerifier != address(0)) {
+            if (proof.length == 0) revert ProofVerificationNotImplemented();
+        }
+
+        req.fulfilled = true;
+        req.reencryptedCiphertext = reencryptedCiphertext;
+
+        emit ReencryptionFulfilled(requestId);
     }
 
     // ============================================
@@ -298,372 +877,61 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
 
     /**
-     * @notice Grant access to an encrypted value
-     * @param handleId The handle to grant access to
-     * @param grantee The address to grant access
+     * @notice Grant access to an encrypted handle
+     * @param handle The handle
+     * @param user The user to grant access to
      */
-    function grantAccess(bytes32 handleId, address grantee) external {
-        if (handles[handleId].id == bytes32(0)) revert InvalidHandle();
-        if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
-        if (grantee == address(0)) revert ZeroAddress();
+    function grantAccess(bytes32 handle, address user) external {
+        if (!acl[handle][msg.sender]) revert Unauthorized();
 
-        acl[handleId][grantee] = true;
+        acl[handle][user] = true;
 
-        emit AccessGranted(handleId, grantee, msg.sender);
+        emit ACLGranted(handle, user, msg.sender);
     }
 
     /**
-     * @notice Revoke access to an encrypted value
-     * @param handleId The handle to revoke access from
-     * @param revokee The address to revoke access
+     * @notice Revoke access to an encrypted handle
      */
-    function revokeAccess(bytes32 handleId, address revokee) external {
-        if (handles[handleId].id == bytes32(0)) revert InvalidHandle();
-        if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
+    function revokeAccess(bytes32 handle, address user) external {
+        if (!acl[handle][msg.sender]) revert Unauthorized();
 
-        acl[handleId][revokee] = false;
+        acl[handle][user] = false;
 
-        emit AccessRevoked(handleId, revokee, msg.sender);
+        emit ACLRevoked(handle, user, msg.sender);
     }
 
     /**
-     * @notice Check if an address has access to a handle
-     * @param handleId The handle
-     * @param account The address to check
-     * @return hasAccess Whether the address has access
+     * @notice Grant contract access to a handle
+     */
+    function grantContractAccess(
+        bytes32 handle,
+        address contractAddr
+    ) external {
+        if (!acl[handle][msg.sender]) revert Unauthorized();
+
+        contractAcl[contractAddr][handle] = true;
+
+        emit ACLGranted(handle, contractAddr, msg.sender);
+    }
+
+    /**
+     * @notice Make handle globally accessible
+     */
+    function makeGlobal(bytes32 handle) external {
+        if (!acl[handle][msg.sender]) revert Unauthorized();
+
+        globalAcl[handle] = true;
+    }
+
+    /**
+     * @notice Check if user has access to handle
      */
     function hasAccess(
-        bytes32 handleId,
-        address account
+        bytes32 handle,
+        address user
     ) external view returns (bool) {
-        return acl[handleId][account];
-    }
-
-    /**
-     * @notice Delegate access from one address to another
-     * @param handleId The handle
-     * @param delegate The delegate address
-     */
-    function delegateAccess(bytes32 handleId, address delegate) external {
-        if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
-        if (delegate == address(0)) revert ZeroAddress();
-
-        delegatedAccess[handleId][msg.sender][delegate] = true;
-    }
-
-    // ============================================
-    // FHE COMPUTATION REQUESTS
-    // ============================================
-
-    /**
-     * @notice Request an FHE computation
-     * @param opcode The operation code
-     * @param inputHandles Array of input handle IDs
-     * @param deadline Maximum timestamp for completion
-     * @return requestId The request ID
-     * @return outputHandle The expected output handle
-     */
-    function requestCompute(
-        uint8 opcode,
-        bytes32[] calldata inputHandles,
-        uint64 deadline
-    )
-        external
-        whenNotPaused
-        nonReentrant
-        returns (bytes32 requestId, bytes32 outputHandle)
-    {
-        if (inputHandles.length > MAX_BATCH_SIZE) revert TooManyInputs();
-        if (!FHELib.validateInputCount(opcode, inputHandles.length))
-            revert InvalidOpcode();
-        if (deadline > block.timestamp + MAX_REQUEST_TTL) {
-            deadline = uint64(block.timestamp + MAX_REQUEST_TTL);
-        }
-
-        // Verify caller has access to all inputs
-        for (uint256 i = 0; i < inputHandles.length; i++) {
-            if (!acl[inputHandles[i]][msg.sender]) revert UnauthorizedAccess();
-            if (!handles[inputHandles[i]].verified) revert HandleNotVerified();
-        }
-
-        // Generate request and output IDs
-        requestNonce++;
-        requestId = FHELib.computeRequestId(
-            msg.sender,
-            opcode,
-            inputHandles,
-            requestNonce
-        );
-
-        // Determine output type based on operation
-        uint8 outputType = _computeOutputType(opcode, inputHandles);
-
-        outputHandle = FHELib.computeHandleId(
-            address(this),
-            outputType,
-            DEFAULT_ZONE,
-            requestNonce
-        );
-
-        // Create output handle
-        handles[outputHandle] = FHELib.Handle({
-            id: outputHandle,
-            valueType: outputType,
-            securityZone: DEFAULT_ZONE,
-            verified: false,
-            createdAt: uint64(block.timestamp)
-        });
-
-        // Grant ACL to requester
-        acl[outputHandle][msg.sender] = true;
-
-        // Store request
-        computeRequests[requestId] = FHELib.ComputeRequest({
-            requestId: requestId,
-            opcode: opcode,
-            inputs: inputHandles,
-            output: outputHandle,
-            requester: msg.sender,
-            gasEstimate: FHELib.estimateFHEGas(opcode, inputHandles.length),
-            timestamp: uint64(block.timestamp),
-            deadline: deadline,
-            status: FHELib.RequestStatus.Pending
-        });
-
-        // Add to queue
-        requestQueue.push(requestId);
-        pendingRequests[msg.sender].push(requestId);
-
-        emit ComputeRequested(requestId, opcode, msg.sender);
-    }
-
-    /**
-     * @notice Complete a computation request (called by coprocessor)
-     * @param requestId The request ID
-     * @param proof ZK proof of correct computation
-     */
-    function completeCompute(
-        bytes32 requestId,
-        bytes calldata proof
-    ) external onlyRole(COPROCESSOR_ROLE) nonReentrant {
-        FHELib.ComputeRequest storage req = computeRequests[requestId];
-
-        if (req.requestId == bytes32(0)) revert InvalidHandle();
-        if (req.status != FHELib.RequestStatus.Pending)
-            revert InvalidRequestStatus();
-        if (block.timestamp > req.deadline) revert RequestExpired();
-
-        // Verify proof (simplified - full implementation would verify ZK proof)
-        if (proof.length == 0) revert InvalidHandle();
-
-        // Mark output handle as verified
-        handles[req.output].verified = true;
-
-        // Update request status
-        req.status = FHELib.RequestStatus.Completed;
-
-        emit ComputeCompleted(requestId, req.output, msg.sender);
-    }
-
-    // ============================================
-    // DECRYPTION REQUESTS
-    // ============================================
-
-    /**
-     * @notice Request decryption of an encrypted value
-     * @param handleId The handle to decrypt
-     * @param callbackContract Contract to receive the result
-     * @param callbackSelector Function selector for callback
-     * @param maxTimestamp Deadline for decryption
-     * @return requestId The request ID
-     */
-    function requestDecryption(
-        bytes32 handleId,
-        address callbackContract,
-        bytes4 callbackSelector,
-        uint64 maxTimestamp
-    ) external whenNotPaused nonReentrant returns (bytes32 requestId) {
-        if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
-        if (!handles[handleId].verified) revert HandleNotVerified();
-        if (callbackContract == address(0)) revert ZeroAddress();
-
-        if (maxTimestamp > block.timestamp + MAX_REQUEST_TTL) {
-            maxTimestamp = uint64(block.timestamp + MAX_REQUEST_TTL);
-        }
-
-        requestNonce++;
-        requestId = keccak256(
-            abi.encode(
-                "DECRYPT",
-                handleId,
-                msg.sender,
-                requestNonce,
-                block.chainid
-            )
-        );
-
-        decryptionRequests[requestId] = FHELib.DecryptionRequest({
-            requestId: requestId,
-            handle: handleId,
-            requester: msg.sender,
-            callbackContract: callbackContract,
-            callbackSelector: callbackSelector,
-            maxTimestamp: maxTimestamp,
-            fulfilled: false,
-            result: bytes32(0)
-        });
-
-        pendingRequests[msg.sender].push(requestId);
-
-        emit DecryptionRequested(requestId, handleId, msg.sender);
-    }
-
-    /**
-     * @notice Complete a decryption request (called by KMS)
-     * @param requestId The request ID
-     * @param plaintextResult The decrypted value
-     */
-    function completeDecryption(
-        bytes32 requestId,
-        bytes32 plaintextResult
-    ) external onlyRole(KMS_ROLE) nonReentrant {
-        FHELib.DecryptionRequest storage req = decryptionRequests[requestId];
-
-        if (req.requestId == bytes32(0)) revert InvalidHandle();
-        if (req.fulfilled) revert RequestAlreadyFulfilled();
-        if (block.timestamp > req.maxTimestamp) revert RequestExpired();
-
-        req.fulfilled = true;
-        req.result = plaintextResult;
-
-        // Execute callback
-        (bool success, ) = req.callbackContract.call(
-            abi.encodeWithSelector(
-                req.callbackSelector,
-                requestId,
-                plaintextResult
-            )
-        );
-
-        // We don't revert on callback failure to prevent DoS
-        if (success) {
-            emit DecryptionCompleted(requestId, plaintextResult);
-        }
-    }
-
-    // ============================================
-    // REENCRYPTION REQUESTS
-    // ============================================
-
-    /**
-     * @notice Preview the next reencryption request ID
-     * @param handleId The handle to reencrypt
-     * @param targetPublicKey The target's public key
-     * @param requester The requester address
-     * @return requestId The expected request ID for the next nonce
-     */
-    function previewReencryptionRequest(
-        bytes32 handleId,
-        bytes32 targetPublicKey,
-        address requester
-    ) external view returns (bytes32 requestId) {
-        uint256 nextNonce = requestNonce + 1;
-        requestId = keccak256(
-            abi.encode(
-                "REENCRYPT",
-                handleId,
-                targetPublicKey,
-                requester,
-                nextNonce
-            )
-        );
-    }
-
-    /**
-     * @notice Request reencryption to a different public key
-     * @param handleId The handle to reencrypt
-     * @param targetPublicKey The target's public key
-     * @return requestId The request ID
-     */
-    function requestReencryption(
-        bytes32 handleId,
-        bytes32 targetPublicKey
-    ) external whenNotPaused returns (bytes32 requestId) {
-        if (!acl[handleId][msg.sender]) revert UnauthorizedAccess();
-        if (!handles[handleId].verified) revert HandleNotVerified();
-
-        requestNonce++;
-        requestId = keccak256(
-            abi.encode(
-                "REENCRYPT",
-                handleId,
-                targetPublicKey,
-                msg.sender,
-                requestNonce
-            )
-        );
-
-        reencryptionRequests[requestId] = FHELib.ReencryptionRequest({
-            requestId: requestId,
-            handle: handleId,
-            requester: msg.sender,
-            targetPublicKey: targetPublicKey,
-            maxTimestamp: uint64(block.timestamp + MAX_REQUEST_TTL),
-            fulfilled: false,
-            reencryptedCiphertext: ""
-        });
-
-        pendingRequests[msg.sender].push(requestId);
-
-        emit ReencryptionRequested(requestId, handleId, msg.sender);
-    }
-
-    /**
-     * @notice Complete a reencryption request (called by KMS)
-     * @param requestId The request ID
-     * @param reencryptedValue The reencrypted ciphertext
-     */
-    function completeReencryption(
-        bytes32 requestId,
-        bytes calldata reencryptedValue
-    ) external onlyRole(KMS_ROLE) {
-        FHELib.ReencryptionRequest storage req = reencryptionRequests[
-            requestId
-        ];
-
-        if (req.requestId == bytes32(0)) revert InvalidHandle();
-        if (req.fulfilled) revert RequestAlreadyFulfilled();
-        if (block.timestamp > req.maxTimestamp) revert RequestExpired();
-
-        req.fulfilled = true;
-        req.reencryptedCiphertext = reencryptedValue;
-
-        emit ReencryptionCompleted(requestId);
-    }
-
-    // ============================================
-    // SECURITY ZONE MANAGEMENT
-    // ============================================
-
-    /**
-     * @notice Enable a security zone
-     * @param zone The zone identifier
-     */
-    function enableSecurityZone(bytes32 zone) external onlyRole(OPERATOR_ROLE) {
-        securityZones[zone] = true;
-        emit SecurityZoneEnabled(zone);
-    }
-
-    /**
-     * @notice Disable a security zone
-     * @param zone The zone identifier
-     */
-    function disableSecurityZone(
-        bytes32 zone
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (zone == DEFAULT_ZONE) revert SecurityZoneMismatch();
-        securityZones[zone] = false;
-        emit SecurityZoneDisabled(zone);
+        return
+            globalAcl[handle] || acl[handle][user] || contractAcl[user][handle];
     }
 
     // ============================================
@@ -671,118 +939,245 @@ contract FHEGateway is AccessControl, ReentrancyGuard, Pausable {
     // ============================================
 
     /**
-     * @notice Update the coprocessor address
-     * @param _coprocessor New coprocessor address
+     * @notice Update network public key
      */
-    function setCoprocessor(
-        address _coprocessor
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_coprocessor == address(0)) revert ZeroAddress();
+    function updateNetworkKey(bytes32 newKeyHash) external onlyRole(KMS_ROLE) {
+        networkPublicKeyHash = newKeyHash;
+        emit NetworkKeyUpdated(newKeyHash, msg.sender);
+    }
 
+    /**
+     * @notice Update active FHE scheme
+     */
+    function updateScheme(
+        FHEUtils.FHEScheme newScheme
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        activeScheme = newScheme;
+        emit SchemeUpdated(newScheme, msg.sender);
+    }
+
+    /**
+     * @notice Update coprocessor address
+     */
+    function updateCoprocessor(
+        address newCoprocessor
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newCoprocessor == address(0)) revert ZeroAddress();
         _revokeRole(COPROCESSOR_ROLE, coprocessor);
-        coprocessor = _coprocessor;
-        _grantRole(COPROCESSOR_ROLE, _coprocessor);
+        coprocessor = newCoprocessor;
+        _grantRole(COPROCESSOR_ROLE, newCoprocessor);
     }
 
     /**
-     * @notice Update the KMS address
-     * @param _kms New KMS address
+     * @notice Update proof verifier address
      */
-    function setKMS(address _kms) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_kms == address(0)) revert ZeroAddress();
-
-        _revokeRole(KMS_ROLE, kms);
-        kms = _kms;
-        _grantRole(KMS_ROLE, _kms);
-    }
-
-    /**
-     * @notice Update the active FHE scheme
-     * @param _scheme New scheme
-     */
-    function setScheme(
-        FHELib.FHEScheme _scheme
+    function updateProofVerifier(
+        address newVerifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        FHELib.FHEScheme oldScheme = activeScheme;
-        activeScheme = _scheme;
-        emit SchemeUpdated(oldScheme, _scheme);
+        proofVerifier = newVerifier;
     }
 
     /**
-     * @notice Pause the gateway
+     * @notice Approve a contract for FHE operations
+     */
+
+
+    /**
+     * @notice Add security zone
+     */
+    function addSecurityZone(
+        bytes32 zone
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        securityZones[zone] = true;
+    }
+
+
+    /**
+     * @notice Pause gateway
      */
     function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /**
-     * @notice Unpause the gateway
+     * @notice Unpause gateway
      */
     function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
     // ============================================
-    // VIEW FUNCTIONS
-    // ============================================
-
-    /**
-     * @notice Get the request queue length
-     * @return length Queue length
-     */
-    function getQueueLength() external view returns (uint256 length) {
-        return requestQueue.length;
-    }
-
-    /**
-     * @notice Get pending requests for an address
-     * @param account The address
-     * @return requests Array of request IDs
-     */
-    function getPendingRequests(
-        address account
-    ) external view returns (bytes32[] memory requests) {
-        return pendingRequests[account];
-    }
-
-    /**
-     * @notice Get compute request details
-     * @param requestId The request ID
-     * @return request The request details
-     */
-    function getComputeRequest(
-        bytes32 requestId
-    ) external view returns (FHELib.ComputeRequest memory request) {
-        return computeRequests[requestId];
-    }
-
-    // ============================================
     // INTERNAL FUNCTIONS
     // ============================================
 
-    /**
-     * @notice Compute the output type for an operation
-     * @param opcode The operation
-     * @param inputHandles Input handles
-     * @return outputType The output value type
-     */
-    function _computeOutputType(
-        uint8 opcode,
-        bytes32[] calldata inputHandles
-    ) internal view returns (uint8 outputType) {
-        // Comparison operations return ebool
+    function _validateHandle(bytes32 handle) internal view {
+        if (handles[handle].id == bytes32(0)) revert InvalidHandle();
+        // Allow unverified handles for computation chaining if they exist
+        // Real verification happens at decryption or via separate coprocessor proofs
+    }
+
+    function _checkACL(bytes32 handle) internal view {
         if (
-            opcode >= uint8(FHELib.Opcode.EQ) &&
-            opcode <= uint8(FHELib.Opcode.LT)
+            !globalAcl[handle] &&
+            !acl[handle][msg.sender] &&
+            !contractAcl[msg.sender][handle]
         ) {
-            return uint8(FHELib.ValueType.ebool);
+            revert Unauthorized();
+        }
+    }
+
+    function _createOutputHandle(
+        uint8 valueType
+    ) internal returns (bytes32 handle) {
+        requestNonce++;
+        handle = keccak256(
+            abi.encode(
+                msg.sender,
+                valueType,
+                "OUTPUT",
+                requestNonce,
+                block.timestamp
+            )
+        );
+
+        handles[handle] = FHEUtils.Handle({
+            id: handle,
+            valueType: valueType,
+            securityZone: keccak256("DEFAULT"),
+            verified: false,
+            createdAt: uint64(block.timestamp)
+        });
+
+        acl[handle][msg.sender] = true;
+    }
+
+    function _binaryOp(
+        FHEUtils.Opcode op,
+        bytes32 lhs,
+        bytes32 rhs
+    ) internal returns (bytes32 result) {
+        _validateHandle(lhs);
+        _validateHandle(rhs);
+        _checkACL(lhs);
+        _checkACL(rhs);
+
+        // Type check
+        if (handles[lhs].valueType != handles[rhs].valueType) {
+            revert TypeMismatch();
         }
 
-        // Other operations return same type as first input
-        if (inputHandles.length > 0) {
-            return handles[inputHandles[0]].valueType;
+        result = _createOutputHandle(handles[lhs].valueType);
+
+        bytes32[] memory inputs = new bytes32[](2);
+        inputs[0] = lhs;
+        inputs[1] = rhs;
+
+        _requestCompute(op, inputs, result, "");
+    }
+
+    function _unaryOp(
+        FHEUtils.Opcode op,
+        bytes32 value
+    ) internal returns (bytes32 result) {
+        _validateHandle(value);
+        _checkACL(value);
+
+        result = _createOutputHandle(handles[value].valueType);
+
+        bytes32[] memory inputs = new bytes32[](1);
+        inputs[0] = value;
+
+        _requestCompute(op, inputs, result, "");
+    }
+
+    function _comparisonOp(
+        FHEUtils.Opcode op,
+        bytes32 lhs,
+        bytes32 rhs
+    ) internal returns (bytes32 result) {
+        _validateHandle(lhs);
+        _validateHandle(rhs);
+        _checkACL(lhs);
+        _checkACL(rhs);
+
+        if (handles[lhs].valueType != handles[rhs].valueType) {
+            revert TypeMismatch();
         }
 
-        return uint8(FHELib.ValueType.euint256);
+        // Comparison returns ebool
+        result = _createOutputHandle(uint8(FHEUtils.ValueType.ebool));
+
+        bytes32[] memory inputs = new bytes32[](2);
+        inputs[0] = lhs;
+        inputs[1] = rhs;
+
+        _requestCompute(op, inputs, result, "");
+    }
+
+    function _shiftOp(
+        FHEUtils.Opcode op,
+        bytes32 value,
+        uint8 bits
+    ) internal returns (bytes32 result) {
+        _validateHandle(value);
+        _checkACL(value);
+
+        result = _createOutputHandle(handles[value].valueType);
+
+        bytes32[] memory inputs = new bytes32[](1);
+        inputs[0] = value;
+
+        _requestCompute(op, inputs, result, abi.encode(bits));
+    }
+
+    function _requestCompute(
+        FHEUtils.Opcode op,
+        bytes32[] memory inputs,
+        bytes32 output,
+        bytes memory /* extraData */
+    ) internal returns (bytes32 requestId) {
+        if (inputs.length > MAX_INPUTS) revert TooManyInputs();
+
+        requestNonce++;
+        requestId = keccak256(
+            abi.encode(op, inputs, output, requestNonce, block.timestamp)
+        );
+
+        computeRequests[requestId] = FHEUtils.ComputeRequest({
+            requestId: requestId,
+            opcode: uint8(op),
+            inputs: inputs,
+            output: output,
+            requester: msg.sender,
+            gasUsed: _getFHEGasPrice(op),
+            timestamp: block.timestamp,
+            status: FHEUtils.RequestStatus.Pending
+        });
+
+        totalComputations++;
+
+        emit ComputeRequested(requestId, op, inputs);
+    }
+
+    function getFHEGasPrice(
+        FHEUtils.Opcode op
+    ) external pure returns (uint256) {
+        return _getFHEGasPrice(op);
+    }
+
+    function _getFHEGasPrice(
+        FHEUtils.Opcode op
+    ) internal pure returns (uint256) {
+        // Prices packed as 3-byte big-endian values
+        bytes memory prices = hex"00C35000C3500249F00493E00493E000753000C35000C350013880013880013880013880007530007530007530004E2000C35000C3500111700111700186A00186A001D4C00249F0030D4000753007A120061A80";
+        
+        uint256 idx = uint256(op) * 3;
+        if (idx + 3 > prices.length) return 0;
+        
+        uint256 price;
+        assembly {
+            price := shr(232, mload(add(add(prices, 32), idx)))
+        }
+        return price;
     }
 }

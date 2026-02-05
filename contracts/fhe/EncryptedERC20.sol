@@ -7,661 +7,712 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./FHEGateway.sol";
 import "./FHETypes.sol";
 import "./FHEOperations.sol";
-import "../libraries/FHELib.sol";
 
 /**
  * @title EncryptedERC20
  * @author Soul Protocol
- * @notice Confidential ERC20 token with encrypted balances and transfers
- * @dev Implements fully private token transfers using FHE
- *
- * Privacy Model:
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │                   Confidential Token Flow                            │
- * ├─────────────────────────────────────────────────────────────────────┤
- * │                                                                      │
- * │  ┌──────────────────────────────────────────────────────────────┐   │
- * │  │                    PUBLIC INFORMATION                         │   │
- * │  │  • Token name, symbol, decimals                               │   │
- * │  │  • Total supply (encrypted or public based on config)         │   │
- * │  │  • Transaction existence (not amounts)                        │   │
- * │  └──────────────────────────────────────────────────────────────┘   │
- * │                                                                      │
- * │  ┌──────────────────────────────────────────────────────────────┐   │
- * │  │                    PRIVATE INFORMATION                        │   │
- * │  │  • Individual balances (encrypted)                            │   │
- * │  │  • Transfer amounts (encrypted)                               │   │
- * │  │  • Allowances (encrypted)                                     │   │
- * │  └──────────────────────────────────────────────────────────────┘   │
- * │                                                                      │
- * │  Transfer Flow:                                                      │
- * │  ┌────────────┐                        ┌────────────┐               │
- * │  │  Alice     │  transferEncrypted()   │  Bob       │               │
- * │  │ enc(100)   │───────────────────────▶│ enc(50)    │               │
- * │  └────────────┘        enc(25)         └────────────┘               │
- * │        │                  │                   │                     │
- * │        ▼                  ▼                   ▼                     │
- * │  enc(100-25)       FHE Gateway          enc(50+25)                  │
- * │  = enc(75)         (validates)          = enc(75)                   │
- * └─────────────────────────────────────────────────────────────────────┘
+ * @notice Confidential ERC20 token with encrypted balances using FHE
+ * @dev Implements ERC20-like interface with fully homomorphic encryption
  *
  * Features:
  * - Encrypted balances (no one can see your balance)
- * - Encrypted transfers (amounts are hidden)
- * - Encrypted allowances (approval amounts hidden)
- * - Compliance-compatible (optional range proofs)
- * - Balance viewers (authorized decryption)
+ * - Encrypted transfers (amount is hidden)
+ * - Encrypted allowances (approval amounts are hidden)
+ * - Compliance integration (range proofs for regulatory requirements)
+ * - Decryption capability for authorized parties
+ *
+ * Architecture:
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │                    Encrypted ERC20 Architecture                      │
+ * ├─────────────────────────────────────────────────────────────────────┤
+ * │                                                                      │
+ * │  ┌─────────────────────┐    ┌─────────────────────┐                │
+ * │  │    User A           │    │    User B           │                │
+ * │  │ balance: enc(100)   │───►│ balance: enc(50)    │                │
+ * │  │                     │    │                     │                │
+ * │  └─────────────────────┘    └─────────────────────┘                │
+ * │            │                          │                            │
+ * │            │    encrypted transfer    │                            │
+ * │            └──────────────────────────┘                            │
+ * │                       │                                            │
+ * │              ┌────────▼────────┐                                   │
+ * │              │   FHE Gateway   │                                   │
+ * │              │ (homomorphic    │                                   │
+ * │              │  arithmetic)    │                                   │
+ * │              └─────────────────┘                                   │
+ * └─────────────────────────────────────────────────────────────────────┘
  */
 contract EncryptedERC20 is AccessControl, ReentrancyGuard, Pausable {
+    using FHEOperations for uint256;
     using FHEOperations for euint256;
 
     // ============================================
-    // ROLES
+    // Roles
     // ============================================
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant COMPLIANCE_ROLE = keccak256("COMPLIANCE_ROLE");
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     // ============================================
-    // TOKEN METADATA
+    // Token Metadata
     // ============================================
 
-    /// @notice Token name
     string public name;
-
-    /// @notice Token symbol
     string public symbol;
-
-    /// @notice Token decimals
-    uint8 public decimals;
+    uint8 public immutable decimals;
 
     // ============================================
-    // STATE VARIABLES
+    // State Variables
     // ============================================
 
     /// @notice FHE Gateway
     FHEGateway public immutable fheGateway;
 
-    /// @notice Total supply (can be public or encrypted based on config)
-    uint256 public totalSupply;
-
-    /// @notice Whether total supply is public
-    bool public publicTotalSupply;
-
-    /// @notice Encrypted total supply (if not public)
+    /// @notice Encrypted total supply handle
     euint256 public encryptedTotalSupply;
 
-    /// @notice Encrypted balances: address => encrypted balance
-    mapping(address => EncryptedBalance) public encryptedBalances;
+    /// @notice Encrypted balances: address => encrypted balance handle
+    mapping(address => euint256) public encryptedBalances;
 
-    /// @notice Encrypted allowances: owner => spender => encrypted allowance
-    mapping(address => mapping(address => EncryptedAllowance))
-        public encryptedAllowances;
+    /// @notice Encrypted allowances: owner => spender => encrypted allowance handle
+    mapping(address => mapping(address => euint256)) public encryptedAllowances;
 
-    /// @notice Balance viewers: address => viewer => allowed
+    /// @notice Decryption requests: requestId => bool
+    mapping(bytes32 => bool) public pendingDecryptions;
+
+    /// @notice Balance visibility grants: owner => viewer => allowed
     mapping(address => mapping(address => bool)) public balanceViewers;
 
-    /// @notice Transfer nonce per address (for replay protection)
+    /// @notice Compliance range proof requests
+    mapping(bytes32 => ComplianceRequest) public complianceRequests;
+
+    /// @notice Nonce for transfers (replay protection)
     mapping(address => uint256) public transferNonces;
 
-    /// @notice Pending decryption callbacks
-    mapping(bytes32 => address) public pendingDecryptions;
-
-    /// @notice Minimum transfer amount (for dust prevention)
-    uint256 public minTransferAmount;
-
-    /// @notice Maximum transfer amount per transaction
-    uint256 public maxTransferAmount;
-
-    /// @notice Whether compliance range proofs are required
-    bool public complianceRequired;
 
     // ============================================
-    // EVENTS
+    // Types
+    // ============================================
+
+    /// @notice Compliance range proof request
+    struct ComplianceRequest {
+        bytes32 requestId;
+        address account;
+        uint256 minAmount;
+        uint256 maxAmount;
+        address requester;
+        uint64 deadline;
+        bool completed;
+        bool inRange;
+    }
+
+    /// @notice Transfer receipt (for off-chain tracking)
+    struct TransferReceipt {
+        bytes32 receiptId;
+        address from;
+        address to;
+        euint256 encryptedAmount;
+        uint64 timestamp;
+        uint256 nonce;
+    }
+
+    // ============================================
+    // Events
     // ============================================
 
     event EncryptedTransfer(
         address indexed from,
         address indexed to,
-        bytes32 encryptedAmountHandle,
-        uint256 indexed nonce
+        euint256 encryptedAmount,
+        bytes32 receiptId
     );
 
     event EncryptedApproval(
         address indexed owner,
         address indexed spender,
-        bytes32 encryptedAmountHandle
+        euint256 encryptedAllowance
     );
 
-    event EncryptedMint(address indexed to, bytes32 encryptedAmountHandle);
+    event EncryptedMint(address indexed to, euint256 encryptedAmount);
 
-    event EncryptedBurn(address indexed from, bytes32 encryptedAmountHandle);
+    event EncryptedBurn(address indexed from, euint256 encryptedAmount);
 
-    event BalanceViewerAdded(address indexed account, address indexed viewer);
-
-    event BalanceViewerRemoved(address indexed account, address indexed viewer);
+    event BalanceDecryptionRequested(
+        bytes32 indexed requestId,
+        address indexed account,
+        address requester
+    );
 
     event BalanceDecrypted(
+        bytes32 indexed requestId,
         address indexed account,
-        uint256 balance,
-        address indexed viewer
+        uint256 balance
     );
 
-    event ComplianceProofSubmitted(
+    event ComplianceCheckRequested(
+        bytes32 indexed requestId,
         address indexed account,
-        bytes32 indexed proofId
+        uint256 minAmount,
+        uint256 maxAmount
     );
 
+    event ComplianceCheckCompleted(
+        bytes32 indexed requestId,
+        address indexed account,
+        bool inRange
+    );
+
+    event ViewerGranted(address indexed owner, address indexed viewer);
+
+    event ViewerRevoked(address indexed owner, address indexed viewer);
+
     // ============================================
-    // ERRORS
+    // Errors
     // ============================================
 
+    error InvalidGateway();
     error InsufficientBalance();
     error InsufficientAllowance();
+    error InvalidRecipient();
     error InvalidAmount();
-    error TransferBelowMinimum();
-    error TransferAboveMaximum();
+    error TransferFailed();
     error UnauthorizedViewer();
-    error ZeroAddress();
-    error ComplianceProofRequired();
-    error InvalidProof();
+    error RequestNotFound();
+    error RequestExpired();
+    error AlreadyCompleted();
 
     // ============================================
-    // CONSTRUCTOR
+    // Constructor
     // ============================================
 
     constructor(
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
-        address _fheGateway,
-        bool _publicTotalSupply
+        address _fheGateway
     ) {
-        if (_fheGateway == address(0)) revert ZeroAddress();
+        if (_fheGateway == address(0)) revert InvalidGateway();
 
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
         fheGateway = FHEGateway(_fheGateway);
-        publicTotalSupply = _publicTotalSupply;
-
-        // Set gateway for FHEOperations library
-        FHEOperations.setGateway(_fheGateway);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
-        _grantRole(OPERATOR_ROLE, msg.sender);
+        _grantRole(BURNER_ROLE, msg.sender);
+        _grantRole(COMPLIANCE_ROLE, msg.sender);
 
-        // Default limits
-        minTransferAmount = 0;
-        maxTransferAmount = type(uint256).max;
+        // Initialize encrypted total supply to 0
+        encryptedTotalSupply = FHEOperations.asEuint256(0);
     }
 
+
     // ============================================
-    // ENCRYPTED BALANCE QUERIES
+    // ERC20-like Interface (Encrypted)
     // ============================================
 
     /**
-     * @notice Get encrypted balance handle for an account
+     * @notice Get encrypted balance of account
      * @param account The account address
-     * @return balance The encrypted balance struct
+     * @return handle The encrypted balance handle
      */
-    function balanceOf(
-        address account
-    ) external view returns (EncryptedBalance memory balance) {
+    function balanceOf(address account) external view returns (euint256 handle) {
         return encryptedBalances[account];
-    }
-
-    /**
-     * @notice Get the encrypted balance handle
-     * @param account The account address
-     * @return handle The balance handle ID
-     */
-    function balanceHandle(
-        address account
-    ) external view returns (bytes32 handle) {
-        return encryptedBalances[account].balance.handle;
-    }
-
-    /**
-     * @notice Request decryption of own balance
-     * @return requestId The decryption request ID
-     */
-    function requestBalanceDecryption() external returns (bytes32 requestId) {
-        EncryptedBalance storage bal = encryptedBalances[msg.sender];
-        require(bal.balance.handle != bytes32(0), "No balance");
-
-        requestId = fheGateway.requestDecryption(
-            bal.balance.handle,
-            address(this),
-            this.onBalanceDecrypted.selector,
-            uint64(block.timestamp + FHELib.MAX_REQUEST_TTL)
-        );
-
-        pendingDecryptions[requestId] = msg.sender;
-    }
-
-    /**
-     * @notice Callback for balance decryption
-     * @param requestId The request ID
-     * @param decryptedValue The decrypted balance
-     */
-    function onBalanceDecrypted(
-        bytes32 requestId,
-        bytes32 decryptedValue
-    ) external {
-        require(msg.sender == address(fheGateway), "Unauthorized");
-
-        address account = pendingDecryptions[requestId];
-        require(account != address(0), "Invalid request");
-
-        delete pendingDecryptions[requestId];
-
-        emit BalanceDecrypted(account, uint256(decryptedValue), account);
-    }
-
-    // ============================================
-    // ENCRYPTED TRANSFERS
-    // ============================================
-
-    /**
-     * @notice Transfer encrypted amount to recipient
-     * @param to Recipient address
-     * @param encryptedAmount Encrypted transfer amount
-     * @return success Whether transfer was initiated
-     */
-    // slither-disable-start reentrancy-no-eth
-    function transferEncrypted(
-        address to,
-        euint256 memory encryptedAmount
-    ) external nonReentrant whenNotPaused returns (bool success) {
-        if (to == address(0)) revert ZeroAddress();
-        if (to == msg.sender) revert InvalidAmount();
-
-        // Verify caller has access to the encrypted amount handle
-        (bool valid, bool verified) = fheGateway.checkHandle(
-            encryptedAmount.handle
-        );
-        require(valid && verified, "Invalid amount handle");
-        require(
-            fheGateway.hasAccess(encryptedAmount.handle, msg.sender),
-            "No access to amount"
-        );
-
-        // Get current balances
-        EncryptedBalance storage senderBal = encryptedBalances[msg.sender];
-        EncryptedBalance storage recipientBal = encryptedBalances[to];
-
-        // Initialize recipient balance if needed
-        if (recipientBal.balance.handle == bytes32(0)) {
-            recipientBal.balance = FHEOperations.asEuint256(0);
-            recipientBal.lastUpdated = uint64(block.timestamp);
-        }
-
-        // Compute new balances using FHE
-        // sender: balance - amount
-        // recipient: balance + amount
-        euint256 memory newSenderBalance = senderBal.balance.sub(
-            encryptedAmount
-        );
-        euint256 memory newRecipientBalance = recipientBal.balance.add(
-            encryptedAmount
-        );
-
-        // Verify sufficient balance (encrypted comparison)
-        // This creates a proof that sender had enough balance
-        ebool memory hasSufficientBalance = senderBal.balance.ge(
-            encryptedAmount
-        );
-
-        // Update balances
-        senderBal.balance = newSenderBalance;
-        senderBal.lastUpdated = uint64(block.timestamp);
-        senderBal.updateCount++;
-
-        recipientBal.balance = newRecipientBalance;
-        recipientBal.lastUpdated = uint64(block.timestamp);
-        recipientBal.updateCount++;
-
-        // Grant access to new handles
-        fheGateway.grantAccess(newSenderBalance.handle, msg.sender);
-        fheGateway.grantAccess(newRecipientBalance.handle, to);
-
-        transferNonces[msg.sender]++;
-
-        emit EncryptedTransfer(
-            msg.sender,
-            to,
-            encryptedAmount.handle,
-            transferNonces[msg.sender]
-        );
-
-        return true;
-    }
-
-    // slither-disable-end reentrancy-no-eth
-
-    /**
-     * @notice Transfer from encrypted allowance
-     * @param from Sender address
-     * @param to Recipient address
-     * @param encryptedAmount Encrypted transfer amount
-     * @return success Whether transfer was initiated
-     */
-    // slither-disable-start reentrancy-no-eth
-    function transferFromEncrypted(
-        address from,
-        address to,
-        euint256 memory encryptedAmount
-    ) external nonReentrant whenNotPaused returns (bool success) {
-        if (to == address(0)) revert ZeroAddress();
-        if (from == to) revert InvalidAmount();
-
-        // Check allowance
-        EncryptedAllowance storage allowance = encryptedAllowances[from][
-            msg.sender
-        ];
-        require(allowance.amount.handle != bytes32(0), "No allowance");
-
-        // Verify allowance is sufficient (encrypted)
-        ebool memory hasAllowance = allowance.amount.ge(encryptedAmount);
-
-        // Deduct from allowance
-        euint256 memory newAllowance = allowance.amount.sub(encryptedAmount);
-        allowance.amount = newAllowance;
-
-        // Perform transfer
-        EncryptedBalance storage senderBal = encryptedBalances[from];
-        EncryptedBalance storage recipientBal = encryptedBalances[to];
-
-        if (recipientBal.balance.handle == bytes32(0)) {
-            recipientBal.balance = FHEOperations.asEuint256(0);
-            recipientBal.lastUpdated = uint64(block.timestamp);
-        }
-
-        euint256 memory newSenderBalance = senderBal.balance.sub(
-            encryptedAmount
-        );
-        euint256 memory newRecipientBalance = recipientBal.balance.add(
-            encryptedAmount
-        );
-
-        senderBal.balance = newSenderBalance;
-        senderBal.lastUpdated = uint64(block.timestamp);
-        senderBal.updateCount++;
-
-        recipientBal.balance = newRecipientBalance;
-        recipientBal.lastUpdated = uint64(block.timestamp);
-        recipientBal.updateCount++;
-
-        fheGateway.grantAccess(newSenderBalance.handle, from);
-        fheGateway.grantAccess(newRecipientBalance.handle, to);
-
-        transferNonces[from]++;
-
-        emit EncryptedTransfer(
-            from,
-            to,
-            encryptedAmount.handle,
-            transferNonces[from]
-        );
-
-        return true;
-    }
-
-    // slither-disable-end reentrancy-no-eth
-
-    // ============================================
-    // ENCRYPTED APPROVALS
-    // ============================================
-
-    /**
-     * @notice Approve encrypted spending allowance
-     * @param spender Spender address
-     * @param encryptedAmount Encrypted allowance amount
-     * @return success Whether approval was set
-     */
-    function approveEncrypted(
-        address spender,
-        euint256 memory encryptedAmount
-    ) external whenNotPaused returns (bool success) {
-        if (spender == address(0)) revert ZeroAddress();
-
-        encryptedAllowances[msg.sender][spender] = EncryptedAllowance({
-            amount: encryptedAmount,
-            owner: msg.sender,
-            spender: spender,
-            expiresAt: 0,
-            unlimited: false
-        });
-
-        // Grant access to spender
-        fheGateway.grantAccess(encryptedAmount.handle, spender);
-
-        emit EncryptedApproval(msg.sender, spender, encryptedAmount.handle);
-
-        return true;
     }
 
     /**
      * @notice Get encrypted allowance
      * @param owner Token owner
-     * @param spender Approved spender
-     * @return allowance The encrypted allowance
+     * @param spender Spender address
+     * @return handle The encrypted allowance handle
      */
-    function allowanceEncrypted(
+    function allowance(
         address owner,
         address spender
-    ) external view returns (EncryptedAllowance memory allowance) {
+    ) external view returns (euint256 handle) {
         return encryptedAllowances[owner][spender];
     }
 
+    /**
+     * @notice Get encrypted total supply
+     * @return handle The encrypted total supply handle
+     */
+    function totalSupply() external view returns (euint256 handle) {
+        return encryptedTotalSupply;
+    }
+
     // ============================================
-    // MINTING AND BURNING
+    // Encrypted Transfers
+    // ============================================
+
+    /**
+     * @notice Transfer encrypted amount to recipient
+     * @param to Recipient address
+     * @param encryptedAmount Encrypted amount handle
+     * @return success Whether transfer was initiated
+     */
+    function transfer(
+        address to,
+        euint256 encryptedAmount
+    ) external whenNotPaused nonReentrant returns (bool success) {
+        return _transfer(msg.sender, to, encryptedAmount);
+    }
+
+    /**
+     * @notice Transfer with plaintext amount (encrypts automatically)
+     * @param to Recipient address
+     * @param amount Plaintext amount (will be encrypted)
+     */
+    function transferPlain(
+        address to,
+        uint256 amount
+    ) external whenNotPaused nonReentrant returns (bool success) {
+        // Encrypt the amount
+        euint256 encAmount = amount.asEuint256();
+        return _transfer(msg.sender, to, encAmount);
+    }
+
+    /**
+     * @notice Transfer from (with allowance)
+     * @param from Sender address
+     * @param to Recipient address
+     * @param encryptedAmount Encrypted amount handle
+     */
+    function transferFrom(
+        address from,
+        address to,
+        euint256 encryptedAmount
+    ) external whenNotPaused nonReentrant returns (bool success) {
+        // Check and update allowance
+        euint256 currentAllowance = encryptedAllowances[from][msg.sender];
+        if (euint256.unwrap(currentAllowance) == bytes32(0)) revert InsufficientAllowance();
+
+        // Subtract from allowance (FHE subtraction)
+        euint256 newAllowance = currentAllowance.sub(encryptedAmount);
+        encryptedAllowances[from][msg.sender] = newAllowance;
+
+        return _transfer(from, to, encryptedAmount);
+    }
+
+    /**
+     * @notice Internal transfer logic
+     */
+    function _transfer(
+        address from,
+        address to,
+        euint256 encryptedAmount
+    ) internal returns (bool) {
+        if (to == address(0)) revert InvalidRecipient();
+        if (euint256.unwrap(encryptedAmount) == bytes32(0)) revert InvalidAmount();
+
+        euint256 fromBalance = encryptedBalances[from];
+        if (euint256.unwrap(fromBalance) == bytes32(0)) revert InsufficientBalance();
+
+        // 1. Check sufficiency (encrypted)
+        ebool isSufficient = fromBalance.ge(encryptedAmount);
+
+        // 2. Conditionally subtract from sender
+        euint256 newFromBalance = FHEOperations.select(
+            isSufficient,
+            fromBalance.sub(encryptedAmount),
+            fromBalance
+        );
+        encryptedBalances[from] = newFromBalance;
+
+        // 3. Conditionally add to recipient
+        euint256 toBalance = encryptedBalances[to];
+        euint256 newToBalance;
+        
+        if (euint256.unwrap(toBalance) == bytes32(0)) {
+            newToBalance = FHEOperations.select(
+                isSufficient,
+                encryptedAmount,
+                FHEOperations.asEuint256(0)
+            );
+        } else {
+            newToBalance = FHEOperations.select(
+                isSufficient,
+                toBalance.add(encryptedAmount),
+                toBalance
+            );
+        }
+        encryptedBalances[to] = newToBalance;
+
+        // Generate receipt
+        transferNonces[from]++;
+        bytes32 receiptId = keccak256(
+            abi.encode(
+                from,
+                to,
+                encryptedAmount,
+                transferNonces[from],
+                block.timestamp
+            )
+        );
+
+        emit EncryptedTransfer(from, to, encryptedAmount, receiptId);
+
+        return true;
+    }
+
+
+    /**
+     * @notice Get encrypted allowance
+     * @param owner Token owner
+     * @param spender Spender address
+     * @return handle The encrypted allowance handle
+     */
+
+
+    // ============================================
+    // Encrypted Approvals
+    // ============================================
+
+    /**
+     * @notice Approve spender for encrypted amount
+     * @param spender Spender address
+     * @param encryptedAmount Encrypted allowance
+     */
+    function approve(
+        address spender,
+        euint256 encryptedAmount
+    ) external whenNotPaused returns (bool) {
+        encryptedAllowances[msg.sender][spender] = encryptedAmount;
+
+        emit EncryptedApproval(msg.sender, spender, encryptedAmount);
+
+        return true;
+    }
+
+    /**
+     * @notice Approve with plaintext amount
+     * @param spender Spender address
+     * @param amount Plaintext amount (will be encrypted)
+     */
+    function approvePlain(
+        address spender,
+        uint256 amount
+    ) external whenNotPaused returns (bool) {
+        euint256 encAmount = amount.asEuint256();
+        encryptedAllowances[msg.sender][spender] = encAmount;
+
+        emit EncryptedApproval(msg.sender, spender, encAmount);
+
+        return true;
+    }
+
+    /**
+     * @notice Increase allowance
+     * @param spender Spender address
+     * @param addedValue Encrypted additional allowance
+     */
+    function increaseAllowance(
+        address spender,
+        euint256 addedValue
+    ) external whenNotPaused returns (bool) {
+        euint256 current = encryptedAllowances[msg.sender][spender];
+        euint256 newAllowance;
+
+        if (euint256.unwrap(current) == bytes32(0)) {
+            newAllowance = addedValue;
+        } else {
+            newAllowance = current.add(addedValue);
+        }
+
+        encryptedAllowances[msg.sender][spender] = newAllowance;
+
+        emit EncryptedApproval(msg.sender, spender, newAllowance);
+
+        return true;
+    }
+
+    /**
+     * @notice Decrease allowance
+     * @param spender Spender address
+     * @param subtractedValue Encrypted value to subtract
+     */
+    function decreaseAllowance(
+        address spender,
+        euint256 subtractedValue
+    ) external whenNotPaused returns (bool) {
+        euint256 current = encryptedAllowances[msg.sender][spender];
+        if (euint256.unwrap(current) == bytes32(0)) revert InsufficientAllowance();
+
+        euint256 newAllowance = current.sub(subtractedValue);
+        encryptedAllowances[msg.sender][spender] = newAllowance;
+
+        emit EncryptedApproval(msg.sender, spender, newAllowance);
+
+        return true;
+    }
+
+    // ============================================
+    // Minting & Burning
     // ============================================
 
     /**
      * @notice Mint encrypted tokens
      * @param to Recipient address
-     * @param amount Plaintext amount to mint (gets encrypted)
+     * @param encryptedAmount Encrypted amount to mint
      */
-    // slither-disable-start reentrancy-no-eth
     function mint(
         address to,
-        uint256 amount
-    ) external onlyRole(MINTER_ROLE) nonReentrant whenNotPaused {
-        if (to == address(0)) revert ZeroAddress();
-        if (amount == 0) revert InvalidAmount();
-
-        // Encrypt the amount
-        euint256 memory encryptedAmount = FHEOperations.asEuint256(amount);
-
-        // Update recipient balance
-        EncryptedBalance storage bal = encryptedBalances[to];
-        if (bal.balance.handle == bytes32(0)) {
-            bal.balance = encryptedAmount;
-        } else {
-            bal.balance = bal.balance.add(encryptedAmount);
-        }
-        bal.lastUpdated = uint64(block.timestamp);
-        bal.updateCount++;
-
-        // Grant access
-        fheGateway.grantAccess(bal.balance.handle, to);
+        euint256 encryptedAmount
+    ) external onlyRole(MINTER_ROLE) whenNotPaused {
+        if (to == address(0)) revert InvalidRecipient();
 
         // Update total supply
-        if (publicTotalSupply) {
-            totalSupply += amount;
+        bool supplyExists = euint256.unwrap(encryptedTotalSupply) != bytes32(0);
+        if (!supplyExists) {
+             encryptedTotalSupply = encryptedAmount;
         } else {
-            encryptedTotalSupply = encryptedTotalSupply.add(encryptedAmount);
+             encryptedTotalSupply = encryptedTotalSupply.add(encryptedAmount);
         }
 
-        emit EncryptedMint(to, encryptedAmount.handle);
+        // Update balance
+        euint256 currentBalance = encryptedBalances[to];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) {
+            encryptedBalances[to] = encryptedAmount;
+        } else {
+            encryptedBalances[to] = currentBalance.add(encryptedAmount);
+        }
+
+        emit EncryptedMint(to, encryptedAmount);
     }
 
-    // slither-disable-end reentrancy-no-eth
+    /**
+     * @notice Mint with plaintext amount
+     * @param to Recipient address
+     * @param amount Plaintext amount to mint
+     */
+    function mintPlain(
+        address to,
+        uint256 amount
+    ) external onlyRole(MINTER_ROLE) whenNotPaused {
+        if (to == address(0)) revert InvalidRecipient();
+
+        euint256 encAmount = amount.asEuint256();
+
+        // Update total supply
+        bool supplyExists = euint256.unwrap(encryptedTotalSupply) != bytes32(0);
+        if (!supplyExists) {
+             encryptedTotalSupply = encAmount;
+        } else {
+             encryptedTotalSupply = encryptedTotalSupply.add(encAmount);
+        }
+
+        euint256 currentBalance = encryptedBalances[to];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) {
+            encryptedBalances[to] = encAmount;
+        } else {
+            encryptedBalances[to] = currentBalance.add(encAmount);
+        }
+
+        emit EncryptedMint(to, encAmount);
+    }
 
     /**
      * @notice Burn encrypted tokens
      * @param from Address to burn from
      * @param encryptedAmount Encrypted amount to burn
      */
-    // slither-disable-start reentrancy-no-eth
-    function burnEncrypted(
+    function burn(
         address from,
-        euint256 memory encryptedAmount
-    ) external onlyRole(BURNER_ROLE) nonReentrant whenNotPaused {
-        if (from == address(0)) revert ZeroAddress();
+        euint256 encryptedAmount
+    ) external onlyRole(BURNER_ROLE) whenNotPaused {
+        if (euint256.unwrap(encryptedAmount) == bytes32(0)) revert InvalidAmount();
 
-        EncryptedBalance storage bal = encryptedBalances[from];
-        require(bal.balance.handle != bytes32(0), "No balance");
+        euint256 currentBalance = encryptedBalances[from];
+        if (euint256.unwrap(currentBalance) == bytes32(0)) revert InsufficientBalance();
 
-        // Deduct from balance
-        bal.balance = bal.balance.sub(encryptedAmount);
-        bal.lastUpdated = uint64(block.timestamp);
-        bal.updateCount++;
+        // Check sufficiency (encrypted)
+        ebool isSufficient = currentBalance.ge(encryptedAmount);
 
-        fheGateway.grantAccess(bal.balance.handle, from);
+        // Update balance conditionally
+        encryptedBalances[from] = FHEOperations.select(
+            isSufficient,
+            currentBalance.sub(encryptedAmount),
+            currentBalance
+        );
 
-        emit EncryptedBurn(from, encryptedAmount.handle);
+        // Update total supply conditionally
+        encryptedTotalSupply = FHEOperations.select(
+            isSufficient,
+            encryptedTotalSupply.sub(encryptedAmount),
+            encryptedTotalSupply
+        );
+
+        emit EncryptedBurn(from, encryptedAmount);
     }
 
-    // slither-disable-end reentrancy-no-eth
-
     // ============================================
-    // BALANCE VIEWING
+    // Balance Viewing (Authorized Decryption)
     // ============================================
 
     /**
-     * @notice Add a balance viewer (can request decryption)
-     * @param viewer The viewer address
+     * @notice Grant balance viewing permission
+     * @param viewer Address to grant viewing access
      */
-    function addBalanceViewer(address viewer) external {
-        if (viewer == address(0)) revert ZeroAddress();
+    function grantViewer(address viewer) external {
         balanceViewers[msg.sender][viewer] = true;
-        emit BalanceViewerAdded(msg.sender, viewer);
+        emit ViewerGranted(msg.sender, viewer);
     }
 
     /**
-     * @notice Remove a balance viewer
-     * @param viewer The viewer address
+     * @notice Revoke balance viewing permission
+     * @param viewer Address to revoke viewing access
      */
-    function removeBalanceViewer(address viewer) external {
+    function revokeViewer(address viewer) external {
         balanceViewers[msg.sender][viewer] = false;
-        emit BalanceViewerRemoved(msg.sender, viewer);
+        emit ViewerRevoked(msg.sender, viewer);
     }
 
     /**
-     * @notice Request decryption of someone's balance (if authorized)
-     * @param account The account to view
-     * @return requestId The decryption request ID
+     * @notice Request balance decryption
+     * @param account Account to decrypt balance for
+     * @param callbackContract Contract to call with result
+     * @param callbackSelector Function selector for callback
      */
-    function requestBalanceView(
-        address account
-    ) external returns (bytes32 requestId) {
-        if (!balanceViewers[account][msg.sender]) revert UnauthorizedViewer();
-
-        EncryptedBalance storage bal = encryptedBalances[account];
-        require(bal.balance.handle != bytes32(0), "No balance");
-
-        requestId = fheGateway.requestDecryption(
-            bal.balance.handle,
-            address(this),
-            this.onBalanceViewed.selector,
-            uint64(block.timestamp + FHELib.MAX_REQUEST_TTL)
-        );
-
-        pendingDecryptions[requestId] = account;
-    }
-
-    /**
-     * @notice Callback for balance view decryption
-     * @param requestId The request ID
-     * @param decryptedValue The decrypted balance
-     */
-    function onBalanceViewed(
-        bytes32 requestId,
-        bytes32 decryptedValue
-    ) external {
-        require(msg.sender == address(fheGateway), "Unauthorized");
-
-        address account = pendingDecryptions[requestId];
-        require(account != address(0), "Invalid request");
-
-        delete pendingDecryptions[requestId];
-
-        // Note: In production, you'd want to emit to the viewer, not publicly
-        emit BalanceDecrypted(account, uint256(decryptedValue), msg.sender);
-    }
-
-    // ============================================
-    // COMPLIANCE
-    // ============================================
-
-    /**
-     * @notice Submit compliance range proof
-     * @dev Proves balance is within acceptable range without revealing exact amount
-     * @param account The account
-     * @param proof ZK range proof
-     * @param minBound Minimum bound (public)
-     * @param maxBound Maximum bound (public)
-     */
-    function submitComplianceProof(
+    function requestBalanceDecryption(
         address account,
-        bytes calldata proof,
-        uint256 minBound,
-        uint256 maxBound
-    ) external onlyRole(COMPLIANCE_ROLE) {
-        require(proof.length > 0, "Invalid proof");
+        address callbackContract,
+        bytes4 callbackSelector
+    ) external returns (bytes32 requestId) {
+        // Must be owner or authorized viewer
+        if (msg.sender != account && !balanceViewers[account][msg.sender]) {
+            revert UnauthorizedViewer();
+        }
 
-        bytes32 proofId = keccak256(
-            abi.encode(account, minBound, maxBound, block.timestamp)
+        euint256 balance = encryptedBalances[account];
+        if (euint256.unwrap(balance) == bytes32(0)) revert InsufficientBalance();
+
+        // Request decryption through gateway
+        requestId = fheGateway.requestDecryption(
+            euint256.unwrap(balance),
+            callbackContract,
+            callbackSelector,
+            3600 // 1 hour TTL
         );
 
-        emit ComplianceProofSubmitted(account, proofId);
+        pendingDecryptions[requestId] = true;
+
+        emit BalanceDecryptionRequested(requestId, account, msg.sender);
     }
 
     // ============================================
-    // ADMIN FUNCTIONS
+    // Compliance Functions
     // ============================================
 
     /**
-     * @notice Set transfer limits
-     * @param _min Minimum transfer amount
-     * @param _max Maximum transfer amount
+     * @notice Request compliance range check
+     * @dev Checks if balance is within [minAmount, maxAmount] without revealing actual balance
+     * @param account Account to check
+     * @param minAmount Minimum required balance
+     * @param maxAmount Maximum allowed balance
      */
-    function setTransferLimits(
-        uint256 _min,
-        uint256 _max
-    ) external onlyRole(OPERATOR_ROLE) {
-        require(_min <= _max, "Invalid limits");
-        minTransferAmount = _min;
-        maxTransferAmount = _max;
+    function requestComplianceCheck(
+        address account,
+        uint256 minAmount,
+        uint256 maxAmount
+    ) external onlyRole(COMPLIANCE_ROLE) returns (bytes32 requestId) {
+        euint256 balance = encryptedBalances[account];
+        if (euint256.unwrap(balance) == bytes32(0)) revert InsufficientBalance();
+
+        requestId = keccak256(
+            abi.encode(
+                account,
+                minAmount,
+                maxAmount,
+                block.timestamp,
+                msg.sender
+            )
+        );
+
+        complianceRequests[requestId] = ComplianceRequest({
+            requestId: requestId,
+            account: account,
+            minAmount: minAmount,
+            maxAmount: maxAmount,
+            requester: msg.sender,
+            deadline: uint64(block.timestamp + 3600),
+            completed: false,
+            inRange: false
+        });
+
+        // Optimisation: Removed unused FHE operations comparison that were ignored.
+        // The compliance check is completed by the off-chain oracle.
+
+        emit ComplianceCheckRequested(requestId, account, minAmount, maxAmount);
     }
 
     /**
-     * @notice Set compliance requirement
-     * @param required Whether compliance proofs are required
+     * @notice Complete compliance check (called by oracle callback)
      */
-    function setComplianceRequired(
-        bool required
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        complianceRequired = required;
+    function completeComplianceCheck(
+        bytes32 requestId,
+        bool inRange
+    ) external onlyRole(COMPLIANCE_ROLE) {
+        ComplianceRequest storage req = complianceRequests[requestId];
+
+        if (req.requestId == bytes32(0)) revert RequestNotFound();
+        if (block.timestamp > req.deadline) revert RequestExpired();
+        if (req.completed) revert AlreadyCompleted();
+
+        req.completed = true;
+        req.inRange = inRange;
+
+        emit ComplianceCheckCompleted(requestId, req.account, inRange);
     }
 
+    // ============================================
+    // Admin Functions
+    // ============================================
+
     /**
-     * @notice Pause the token
+     * @notice Pause token transfers
      */
-    function pause() external onlyRole(OPERATOR_ROLE) {
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /**
-     * @notice Unpause the token
+     * @notice Unpause token transfers
      */
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
+
+    // ============================================
+    // View Functions
+    // ============================================
+
+    /**
+     * @notice Check if address has balance
+     */
+    function hasBalance(address account) external view returns (bool) {
+        return euint256.unwrap(encryptedBalances[account]) != bytes32(0);
+    }
+
+    /**
+     * @notice Check if viewer is authorized
+     */
+    function isAuthorizedViewer(
+        address owner,
+        address viewer
+    ) external view returns (bool) {
+        return owner == viewer || balanceViewers[owner][viewer];
+    }
+
+    /**
+     * @notice Get compliance request info
+     */
+    function getComplianceRequest(
+        bytes32 requestId
+    ) external view returns (ComplianceRequest memory) {
+        return complianceRequests[requestId];
+    }
 }
+
+

@@ -1,72 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title RelayerStaking
- * @author Soul Protocol
  * @notice Staking and slashing mechanism for Soul relayers
  * @dev Relayers must stake tokens to participate in the network
- *
- * Architecture:
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │                         Relayer Staking System                               │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │                                                                              │
- * │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐  │
- * │  │   Stake     │───▶│   Active    │───▶│   Relay     │───▶│   Rewards   │  │
- * │  │   Tokens    │    │   Relayer   │    │   Messages  │    │   Earned    │  │
- * │  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘  │
- * │                           │                  │                              │
- * │                           ▼                  ▼                              │
- * │                    ┌─────────────┐    ┌─────────────┐                      │
- * │                    │  Slashing   │◀───│ Misbehavior │                      │
- * │                    │  Mechanism  │    │  Detection  │                      │
- * │                    └─────────────┘    └─────────────┘                      │
- * │                                                                              │
- * │  Security Features:                                                          │
- * │  • 7-day unbonding period                                                   │
- * │  • 1-day minimum stake duration (flash loan protection)                     │
- * │  • Configurable slashing (max 50%)                                          │
- * │  • VRF-based relayer selection (future)                                     │
- * │                                                                              │
- * └─────────────────────────────────────────────────────────────────────────────┘
  */
-contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
+contract RelayerStaking is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
-    // ============================================
-    // ROLES
-    // ============================================
 
     bytes32 public constant SLASHER_ROLE = keccak256("SLASHER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-
-    // ============================================
-    // CONSTANTS
-    // ============================================
-
-    /// @notice Unbonding period (7 days)
-    uint256 public constant UNBONDING_PERIOD = 7 days;
-
-    /// @notice Flash loan protection: minimum stake duration before rewards accrue
-    uint256 public constant MIN_STAKE_DURATION = 1 days;
-
-    /// @notice Maximum slashing percentage (50%)
-    uint256 public constant MAX_SLASHING_PERCENTAGE = 5000;
-
-    /// @notice Precision for reward calculations
-    uint256 public constant PRECISION = 1e18;
-
-    // ============================================
-    // ERRORS
-    // ============================================
 
     error InvalidAmount();
     error InsufficientStake();
@@ -76,14 +25,52 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     error NoStakeFound();
     error NoStakers();
     error InvalidSlashingPercentage();
-    error ZeroAddress();
-    error RelayerNotActive(address relayer);
-    error AlreadyRegistered(address relayer);
 
-    // ============================================
-    // EVENTS
-    // ============================================
 
+    // Staking token (Soul token)
+    IERC20 public immutable stakingToken;
+
+    // Minimum stake required to be an active relayer
+    uint256 public minStake;
+
+    // Unbonding period (7 days)
+    uint256 public constant UNBONDING_PERIOD = 7 days;
+
+    // Slashing percentage (in basis points, 1000 = 10%)
+    uint256 public slashingPercentage = 1000;
+
+    // Relayer information
+    struct Relayer {
+        uint256 stakedAmount;
+        uint256 pendingUnstake;
+        uint256 unstakeRequestTime;
+        uint256 rewardDebt;
+        uint256 successfulRelays;
+        uint256 failedRelays;
+        bool isActive;
+        string metadata; // IPFS hash or URL for relayer info
+    }
+
+    // Relayer address => Relayer info
+    mapping(address => Relayer) public relayers;
+
+    // List of active relayers
+    address[] public activeRelayers;
+    mapping(address => uint256) public relayerIndex;
+
+    // Total staked across all relayers
+    uint256 public totalStaked;
+
+    // Reward pool
+    uint256 public rewardPool;
+    uint256 public rewardPerShare;
+    uint256 public constant PRECISION = 1e18;
+
+    // Flash loan protection: minimum stake duration before rewards accrue
+    uint256 public constant MIN_STAKE_DURATION = 1 days;
+    mapping(address => uint256) public stakingTimestamp;
+
+    // Events
     event Staked(address indexed relayer, uint256 amount);
     event UnstakeRequested(address indexed relayer, uint256 amount);
     event Unstaked(address indexed relayer, uint256 amount);
@@ -92,114 +79,21 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     event RelayerDeactivated(address indexed relayer);
     event RewardClaimed(address indexed relayer, uint256 amount);
     event RewardAdded(uint256 amount);
-    event MinStakeUpdated(uint256 oldMinStake, uint256 newMinStake);
-    event SlashingPercentageUpdated(
-        uint256 oldPercentage,
-        uint256 newPercentage
-    );
-    event RelayRecorded(address indexed relayer, bool success);
-    event MetadataUpdated(address indexed relayer, string metadata);
 
-    // ============================================
-    // STRUCTS
-    // ============================================
-
-    /**
-     * @notice Relayer information
-     */
-    struct Relayer {
-        uint256 stakedAmount;
-        uint256 pendingUnstake;
-        uint256 unstakeRequestTime;
-        uint256 rewardDebt;
-        uint256 successfulRelays;
-        uint256 failedRelays;
-        uint256 lastRelayTimestamp;
-        bool isActive;
-        string metadata; // IPFS hash or URL for relayer info
-    }
-
-    /**
-     * @notice Relayer stats (view struct)
-     */
-    struct RelayerStats {
-        address relayerAddress;
-        uint256 stakedAmount;
-        uint256 pendingUnstake;
-        uint256 successfulRelays;
-        uint256 failedRelays;
-        uint256 pendingRewards;
-        bool isActive;
-    }
-
-    // ============================================
-    // STATE VARIABLES
-    // ============================================
-
-    /// @notice Staking token (Soul token)
-    IERC20 public immutable stakingToken;
-
-    /// @notice Minimum stake required to be an active relayer
-    uint256 public minStake;
-
-    /// @notice Slashing percentage (in basis points, 1000 = 10%)
-    uint256 public slashingPercentage;
-
-    /// @notice Total staked across all relayers
-    uint256 public totalStaked;
-
-    /// @notice Reward pool
-    uint256 public rewardPool;
-
-    /// @notice Accumulated rewards per share
-    uint256 public rewardPerShare;
-
-    /// @notice Relayer address => Relayer info
-    mapping(address => Relayer) public relayers;
-
-    /// @notice List of active relayers
-    address[] public activeRelayers;
-
-    /// @notice Relayer address => index in activeRelayers
-    mapping(address => uint256) public relayerIndex;
-
-    /// @notice Staking timestamp for flash loan protection
-    mapping(address => uint256) public stakingTimestamp;
-
-    // ============================================
-    // CONSTRUCTOR
-    // ============================================
-
-    /**
-     * @notice Initialize the RelayerStaking contract
-     * @param _stakingToken Address of the staking token
-     * @param _minStake Minimum stake required
-     * @param admin Admin address
-     */
     constructor(address _stakingToken, uint256 _minStake, address admin) {
-        if (_stakingToken == address(0) || admin == address(0)) {
-            revert ZeroAddress();
-        }
-
         stakingToken = IERC20(_stakingToken);
         minStake = _minStake;
-        slashingPercentage = 1000; // 10% default
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(SLASHER_ROLE, admin);
-        _grantRole(OPERATOR_ROLE, admin);
     }
-
-    // ============================================
-    // STAKING FUNCTIONS
-    // ============================================
 
     /**
      * @notice Stake tokens to become a relayer
      * @param amount Amount to stake
      */
-    function stake(uint256 amount) external nonReentrant whenNotPaused {
+    function stake(uint256 amount) external nonReentrant {
         if (amount == 0) revert InvalidAmount();
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -237,9 +131,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
      * @notice Request to unstake tokens (starts unbonding period)
      * @param amount Amount to unstake
      */
-    function requestUnstake(
-        uint256 amount
-    ) external nonReentrant whenNotPaused {
+    function requestUnstake(uint256 amount) external nonReentrant {
         Relayer storage relayer = relayers[msg.sender];
         if (relayer.stakedAmount < amount) revert InsufficientStake();
         if (relayer.pendingUnstake != 0) revert PendingUnstakeExists();
@@ -269,9 +161,8 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     function completeUnstake() external nonReentrant {
         Relayer storage relayer = relayers[msg.sender];
         if (relayer.pendingUnstake == 0) revert NoPendingUnstake();
-        if (block.timestamp < relayer.unstakeRequestTime + UNBONDING_PERIOD) {
+        if (block.timestamp < relayer.unstakeRequestTime + UNBONDING_PERIOD)
             revert UnbondingPeriodNotComplete();
-        }
 
         uint256 amount = relayer.pendingUnstake;
         relayer.pendingUnstake = 0;
@@ -281,29 +172,6 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
 
         emit Unstaked(msg.sender, amount);
     }
-
-    /**
-     * @notice Cancel pending unstake request
-     */
-    function cancelUnstake() external nonReentrant whenNotPaused {
-        Relayer storage relayer = relayers[msg.sender];
-        if (relayer.pendingUnstake == 0) revert NoPendingUnstake();
-
-        uint256 amount = relayer.pendingUnstake;
-        relayer.pendingUnstake = 0;
-        relayer.unstakeRequestTime = 0;
-        relayer.stakedAmount += amount;
-        totalStaked += amount;
-
-        // Reactivate if meets minimum
-        if (!relayer.isActive && relayer.stakedAmount >= minStake) {
-            _activateRelayer(msg.sender);
-        }
-    }
-
-    // ============================================
-    // SLASHING FUNCTIONS
-    // ============================================
 
     /**
      * @notice Slash a relayer for misbehavior
@@ -338,50 +206,19 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Slash with custom percentage (for severe violations)
-     * @param relayerAddress Address of the relayer to slash
-     * @param customPercentage Custom slashing percentage in basis points
-     * @param reason Reason for slashing
+     * @notice Record a successful relay
+     * @param relayerAddress Address of the relayer
      */
-    function slashCustom(
-        address relayerAddress,
-        uint256 customPercentage,
-        string calldata reason
-    ) external onlyRole(SLASHER_ROLE) nonReentrant {
-        if (customPercentage > MAX_SLASHING_PERCENTAGE) {
-            revert InvalidSlashingPercentage();
-        }
-
-        Relayer storage relayer = relayers[relayerAddress];
-        if (relayer.stakedAmount == 0) revert NoStakeFound();
-
-        uint256 slashAmount = (relayer.stakedAmount * customPercentage) / 10000;
-        relayer.stakedAmount -= slashAmount;
-        relayer.failedRelays++;
-        totalStaked -= slashAmount;
-
-        // Add slashed tokens to reward pool
-        rewardPool += slashAmount;
-        if (totalStaked > 0) {
-            rewardPerShare += (slashAmount * PRECISION) / totalStaked;
-        }
-
-        emit Slashed(relayerAddress, slashAmount, reason);
-
-        // Deactivate if below minimum
-        if (relayer.isActive && relayer.stakedAmount < minStake) {
-            _deactivateRelayer(relayerAddress);
-        }
+    function recordSuccessfulRelay(
+        address relayerAddress
+    ) external onlyRole(ADMIN_ROLE) {
+        relayers[relayerAddress].successfulRelays++;
     }
-
-    // ============================================
-    // REWARD FUNCTIONS
-    // ============================================
 
     /**
      * @notice Claim accumulated rewards
      */
-    function claimRewards() external nonReentrant whenNotPaused {
+    function claimRewards() external nonReentrant {
         _claimRewards(msg.sender);
     }
 
@@ -389,7 +226,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
      * @notice Add rewards to the pool
      * @param amount Amount of tokens to add
      */
-    function addRewards(uint256 amount) external nonReentrant whenNotPaused {
+    function addRewards(uint256 amount) external nonReentrant {
         if (amount == 0) revert InvalidAmount();
         if (totalStaked == 0) revert NoStakers();
 
@@ -428,40 +265,6 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
         }
     }
 
-    // ============================================
-    // RELAY RECORDING
-    // ============================================
-
-    /**
-     * @notice Record a successful relay
-     * @param relayerAddress Address of the relayer
-     */
-    function recordSuccessfulRelay(
-        address relayerAddress
-    ) external onlyRole(OPERATOR_ROLE) {
-        Relayer storage relayer = relayers[relayerAddress];
-        relayer.successfulRelays++;
-        relayer.lastRelayTimestamp = block.timestamp;
-        emit RelayRecorded(relayerAddress, true);
-    }
-
-    /**
-     * @notice Record a failed relay
-     * @param relayerAddress Address of the relayer
-     */
-    function recordFailedRelay(
-        address relayerAddress
-    ) external onlyRole(OPERATOR_ROLE) {
-        Relayer storage relayer = relayers[relayerAddress];
-        relayer.failedRelays++;
-        relayer.lastRelayTimestamp = block.timestamp;
-        emit RelayRecorded(relayerAddress, false);
-    }
-
-    // ============================================
-    // INTERNAL FUNCTIONS
-    // ============================================
-
     /**
      * @dev Activate a relayer
      */
@@ -480,7 +283,7 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
         Relayer storage relayer = relayers[relayerAddress];
         relayer.isActive = false;
 
-        // Remove from active list using swap-and-pop
+        // Remove from active list
         uint256 index = relayerIndex[relayerAddress];
         uint256 lastIndex = activeRelayers.length - 1;
 
@@ -495,10 +298,6 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
 
         emit RelayerDeactivated(relayerAddress);
     }
-
-    // ============================================
-    // VIEW FUNCTIONS
-    // ============================================
 
     /**
      * @notice Get pending rewards for a relayer
@@ -536,49 +335,10 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Get relayer stats
-     */
-    function getRelayerStats(
-        address relayerAddress
-    ) external view returns (RelayerStats memory stats) {
-        Relayer storage relayer = relayers[relayerAddress];
-        stats = RelayerStats({
-            relayerAddress: relayerAddress,
-            stakedAmount: relayer.stakedAmount,
-            pendingUnstake: relayer.pendingUnstake,
-            successfulRelays: relayer.successfulRelays,
-            failedRelays: relayer.failedRelays,
-            pendingRewards: ((relayer.stakedAmount * rewardPerShare) /
-                PRECISION) - relayer.rewardDebt,
-            isActive: relayer.isActive
-        });
-    }
-
-    /**
-     * @notice Get time remaining until unstake completes
-     */
-    function getUnstakeTimeRemaining(
-        address relayerAddress
-    ) external view returns (uint256) {
-        Relayer storage relayer = relayers[relayerAddress];
-        if (relayer.pendingUnstake == 0) return 0;
-
-        uint256 unlockTime = relayer.unstakeRequestTime + UNBONDING_PERIOD;
-        if (block.timestamp >= unlockTime) return 0;
-        return unlockTime - block.timestamp;
-    }
-
-    // ============================================
-    // ADMIN FUNCTIONS
-    // ============================================
-
-    /**
      * @notice Update minimum stake requirement
      */
     function setMinStake(uint256 _minStake) external onlyRole(ADMIN_ROLE) {
-        uint256 oldMinStake = minStake;
         minStake = _minStake;
-        emit MinStakeUpdated(oldMinStake, _minStake);
     }
 
     /**
@@ -587,12 +347,8 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
     function setSlashingPercentage(
         uint256 _slashingPercentage
     ) external onlyRole(ADMIN_ROLE) {
-        if (_slashingPercentage > MAX_SLASHING_PERCENTAGE) {
-            revert InvalidSlashingPercentage();
-        }
-        uint256 oldPercentage = slashingPercentage;
+        if (_slashingPercentage > 5000) revert InvalidSlashingPercentage();
         slashingPercentage = _slashingPercentage;
-        emit SlashingPercentageUpdated(oldPercentage, _slashingPercentage);
     }
 
     /**
@@ -600,35 +356,5 @@ contract RelayerStaking is AccessControl, ReentrancyGuard, Pausable {
      */
     function updateMetadata(string calldata metadata) external {
         relayers[msg.sender].metadata = metadata;
-        emit MetadataUpdated(msg.sender, metadata);
-    }
-
-    /**
-     * @notice Pause the contract
-     */
-    function pause() external onlyRole(ADMIN_ROLE) {
-        _pause();
-    }
-
-    /**
-     * @notice Unpause the contract
-     */
-    function unpause() external onlyRole(ADMIN_ROLE) {
-        _unpause();
-    }
-
-    /**
-     * @notice Emergency withdraw for admin (only when paused)
-     * @param token Token to withdraw
-     * @param amount Amount to withdraw
-     * @param recipient Recipient address
-     */
-    function emergencyWithdraw(
-        address token,
-        uint256 amount,
-        address recipient
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused {
-        if (recipient == address(0)) revert ZeroAddress();
-        IERC20(token).safeTransfer(recipient, amount);
     }
 }

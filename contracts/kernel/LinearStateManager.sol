@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -7,7 +7,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title LinearStateManager
- * @author Soul Protocol
+ * @author Soul Protocol - Soul Protocol
  * @notice Enforces Aztec-Style Linear State Semantics for Cross-Chain State
  * @dev STATE IS CREATED, CONSUMED, NEVER MUTATED IN PLACE
  *
@@ -48,7 +48,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * 3. CHAIN ORDERING: State consumption creates total ordering across chains
  * 4. TRANSITION VALIDITY: Every consumption must reference valid transition predicate
  *
- * @custom:security-contact security@soulprotocol.io
+ * ══════════════════════════════════════════════════════════════════════════════════════════════════════
  */
 contract LinearStateManager is AccessControl, ReentrancyGuard, Pausable {
     /*//////////////////////////////////////////////////////////////
@@ -58,11 +58,9 @@ contract LinearStateManager is AccessControl, ReentrancyGuard, Pausable {
     /// @dev Pre-computed keccak256("STATE_ADMIN_ROLE") for gas savings
     bytes32 public constant STATE_ADMIN_ROLE =
         0xf7054b28837a3e0f0fcdf0631d7a1f2c54f272601d37d24ed1fa836bd1c2ae94;
-
     /// @dev Pre-computed keccak256("KERNEL_ROLE") for gas savings
     bytes32 public constant KERNEL_ROLE =
         0x6461d7edb0de6153faa1dbe72f8286821dd20b9e202b6351eb86ef5e04eaec51;
-
     /// @dev Pre-computed keccak256("BRIDGE_ROLE") for gas savings
     bytes32 public constant BRIDGE_ROLE =
         0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;

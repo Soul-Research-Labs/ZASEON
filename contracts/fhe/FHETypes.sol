@@ -1,351 +1,623 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../libraries/FHELib.sol";
-
 /**
  * @title FHETypes
  * @author Soul Protocol
- * @notice Type definitions for FHE operations across Soul Protocol
- * @dev Provides encrypted value types compatible with fhEVM and TFHE
+ * @notice Type definitions and utilities for FHE encrypted values
+ * @dev Provides type-safe wrappers for encrypted handles compatible with fhEVM
  *
- * Type Hierarchy:
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │                    Encrypted Type System                            │
- * ├─────────────────────────────────────────────────────────────────────┤
- * │                                                                      │
- * │  Primitive Types:                                                    │
- * │  ┌────────┬────────┬────────┬────────┬────────┬─────────┐          │
- * │  │ ebool  │ euint8 │euint16 │euint32 │euint64 │euint128 │          │
- * │  └────────┴────────┴────────┴────────┴────────┴─────────┘          │
- * │                      └──────────┬──────────┘                        │
- * │                                 ▼                                   │
- * │  Composite Types:  ┌────────────────────────────┐                  │
- * │                    │ euint256 | eaddress | ebytesN                 │
- * │                    └────────────────────────────┘                  │
- * │                                 │                                   │
- * │                                 ▼                                   │
- * │  Container Types:  ┌────────────────────────────┐                  │
- * │                    │ EncryptedBalance | EncryptedTransfer          │
- * │                    └────────────────────────────┘                  │
- * └─────────────────────────────────────────────────────────────────────┘
+ * Type System:
+ * - ebool:    Encrypted boolean (1 bit)
+ * - euint4:   Encrypted 4-bit unsigned integer
+ * - euint8:   Encrypted 8-bit unsigned integer
+ * - euint16:  Encrypted 16-bit unsigned integer
+ * - euint32:  Encrypted 32-bit unsigned integer
+ * - euint64:  Encrypted 64-bit unsigned integer
+ * - euint128: Encrypted 128-bit unsigned integer
+ * - euint256: Encrypted 256-bit unsigned integer
+ * - eaddress: Encrypted address (160 bits)
+ * - ebytes64: Encrypted 64-byte value
+ * - ebytes128: Encrypted 128-byte value
+ * - ebytes256: Encrypted 256-byte value
+ */
+library FHETypes {
+    // ============================================
+    // TYPE CODES
+    // ============================================
+
+    uint8 internal constant TYPE_EBOOL = 0;
+    uint8 internal constant TYPE_EUINT4 = 1;
+    uint8 internal constant TYPE_EUINT8 = 2;
+    uint8 internal constant TYPE_EUINT16 = 3;
+    uint8 internal constant TYPE_EUINT32 = 4;
+    uint8 internal constant TYPE_EUINT64 = 5;
+    uint8 internal constant TYPE_EUINT128 = 6;
+    uint8 internal constant TYPE_EUINT256 = 7;
+    uint8 internal constant TYPE_EADDRESS = 8;
+    uint8 internal constant TYPE_EBYTES64 = 9;
+    uint8 internal constant TYPE_EBYTES128 = 10;
+    uint8 internal constant TYPE_EBYTES256 = 11;
+    uint8 internal constant TYPE_EPACKED64X4 = 12; // 4x 64-bit values for SIMD
+
+    // ============================================
+    // TYPE BOUNDS
+    // ============================================
+
+    uint256 internal constant MAX_EUINT4 = 15;
+    uint256 internal constant MAX_EUINT8 = 255;
+    uint256 internal constant MAX_EUINT16 = 65535;
+    uint256 internal constant MAX_EUINT32 = 4294967295;
+    uint256 internal constant MAX_EUINT64 = 18446744073709551615;
+    uint256 internal constant MAX_EUINT128 = (2 ** 128) - 1;
+    uint256 internal constant MAX_EUINT256 = type(uint256).max;
+
+    // ============================================
+    // ERRORS
+    // ============================================
+
+    error InvalidTypeCode(uint8 code);
+    error TypeOverflow(uint8 typeCode, uint256 value);
+    error TypeMismatch(uint8 expected, uint8 actual);
+    error InvalidHandle();
+    error NullHandle();
+    error DataIntegrityCheckFailed();
+
+    // ============================================
+    // TYPE VALIDATION
+    // ============================================
+
+    /**
+     * @notice Check if type code is valid
+     * @param typeCode The type code to check
+     * @return valid Whether the type code is valid
+     */
+    function isValidType(uint8 typeCode) internal pure returns (bool valid) {
+        return typeCode <= TYPE_EPACKED64X4;
+    }
+
+    /**
+     * @notice Get the bit width for a type
+     * @param typeCode The type code
+     * @return bits The bit width
+     */
+    function getBitWidth(uint8 typeCode) internal pure returns (uint16 bits) {
+        if (typeCode == TYPE_EBOOL) return 1;
+        if (typeCode == TYPE_EUINT4) return 4;
+        if (typeCode == TYPE_EUINT8) return 8;
+        if (typeCode == TYPE_EUINT16) return 16;
+        if (typeCode == TYPE_EUINT32) return 32;
+        if (typeCode == TYPE_EUINT64) return 64;
+        if (typeCode == TYPE_EUINT128) return 128;
+        if (typeCode == TYPE_EUINT256) return 256;
+        if (typeCode == TYPE_EADDRESS) return 160;
+        if (typeCode == TYPE_EBYTES64) return 512;
+        if (typeCode == TYPE_EBYTES128) return 1024;
+        if (typeCode == TYPE_EBYTES256) return 2048;
+        if (typeCode == TYPE_EPACKED64X4) return 256;
+        revert InvalidTypeCode(typeCode);
+    }
+
+    /**
+     * @notice Get maximum value for a type
+     * @param typeCode The type code
+     * @return maxValue The maximum value
+     */
+    function getMaxValue(
+        uint8 typeCode
+    ) internal pure returns (uint256 maxValue) {
+        if (typeCode == TYPE_EBOOL) return 1;
+        if (typeCode == TYPE_EUINT4) return MAX_EUINT4;
+        if (typeCode == TYPE_EUINT8) return MAX_EUINT8;
+        if (typeCode == TYPE_EUINT16) return MAX_EUINT16;
+        if (typeCode == TYPE_EUINT32) return MAX_EUINT32;
+        if (typeCode == TYPE_EUINT64) return MAX_EUINT64;
+        if (typeCode == TYPE_EUINT128) return MAX_EUINT128;
+        if (typeCode == TYPE_EUINT256) return MAX_EUINT256;
+        if (typeCode == TYPE_EADDRESS) return type(uint160).max;
+        // For bytes types, max value is the full range
+        if (typeCode >= TYPE_EBYTES64) return MAX_EUINT256;
+        revert InvalidTypeCode(typeCode);
+    }
+
+    /**
+     * @notice Validate that a value fits within a type
+     * @param value The value to check
+     * @param typeCode The target type
+     */
+    function validateValue(uint256 value, uint8 typeCode) internal pure {
+        uint256 maxVal = getMaxValue(typeCode);
+        if (value > maxVal) {
+            revert TypeOverflow(typeCode, value);
+        }
+    }
+
+    /**
+     * @notice Get type name as string
+     * @param typeCode The type code
+     * @return name The type name
+     */
+    function getTypeName(
+        uint8 typeCode
+    ) internal pure returns (string memory name) {
+        if (typeCode == TYPE_EBOOL) return "ebool";
+        if (typeCode == TYPE_EUINT4) return "euint4";
+        if (typeCode == TYPE_EUINT8) return "euint8";
+        if (typeCode == TYPE_EUINT16) return "euint16";
+        if (typeCode == TYPE_EUINT32) return "euint32";
+        if (typeCode == TYPE_EUINT64) return "euint64";
+        if (typeCode == TYPE_EUINT128) return "euint128";
+        if (typeCode == TYPE_EUINT256) return "euint256";
+        if (typeCode == TYPE_EADDRESS) return "eaddress";
+        if (typeCode == TYPE_EBYTES64) return "ebytes64";
+        if (typeCode == TYPE_EBYTES128) return "ebytes128";
+        if (typeCode == TYPE_EBYTES256) return "ebytes256";
+        if (typeCode == TYPE_EPACKED64X4) return "epacked64x4";
+        revert InvalidTypeCode(typeCode);
+    }
+
+    /**
+     * @notice Check if type is a numeric type (can do arithmetic)
+     */
+    function isNumericType(uint8 typeCode) internal pure returns (bool) {
+        return typeCode >= TYPE_EUINT4 && typeCode <= TYPE_EUINT256;
+    }
+
+    /**
+     * @notice Check if type is a bytes type
+     */
+    function isBytesType(uint8 typeCode) internal pure returns (bool) {
+        return typeCode >= TYPE_EBYTES64;
+    }
+
+    /**
+     * @notice Get the common type for two types (for binary operations)
+     * @dev Returns the larger type, or reverts if incompatible
+     */
+    function commonType(
+        uint8 typeA,
+        uint8 typeB
+    ) internal pure returns (uint8) {
+        if (typeA == typeB) return typeA;
+
+        // Both must be numeric for promotion
+        if (!isNumericType(typeA) || !isNumericType(typeB)) {
+            revert TypeMismatch(typeA, typeB);
+        }
+
+        // Return the larger type
+        return typeA > typeB ? typeA : typeB;
+    }
+
+    // ============================================
+    // HANDLE UTILITIES
+    // ============================================
+
+    /**
+     * @notice Check if handle is null
+     */
+    function isNull(bytes32 handle) internal pure returns (bool) {
+        return handle == bytes32(0);
+    }
+
+    /**
+     * @notice Require handle is not null
+     */
+    function requireNonNull(bytes32 handle) internal pure {
+        if (handle == bytes32(0)) {
+            revert NullHandle();
+        }
+    }
+
+    /**
+     * @notice Extract type code from handle (embedded in last byte)
+     * @dev Handle format: [254 bits data][8 bits type]
+     */
+    function extractType(bytes32 handle) internal pure returns (uint8) {
+        return uint8(uint256(handle) & 0xFF);
+    }
+
+    /**
+     * @notice Create handle with embedded type
+     */
+    function embedType(
+        bytes32 baseHandle,
+        uint8 typeCode
+    ) internal pure returns (bytes32) {
+        // Clear last byte and set type
+        return
+            bytes32((uint256(baseHandle) & ~uint256(0xFF)) | uint256(typeCode));
+    }
+
+    // ============================================
+    // CIPHERTEXT METADATA
+    // ============================================
+
+    /**
+     * @notice Ciphertext metadata structure
+     */
+    struct CiphertextMeta {
+        bytes32 handle; // Handle reference
+        uint8 typeCode; // Type of encrypted value
+        uint64 createdAt; // Creation timestamp
+        bytes32 ownerHash; // Hash of owner identity
+        bytes32 securityZone; // Security domain
+        bool isCompact; // Compact ciphertext format
+        uint32 version; // Schema version
+    }
+
+    /**
+     * @notice Encode ciphertext metadata
+     */
+    function encodeMeta(
+        CiphertextMeta memory meta
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                meta.handle,
+                meta.typeCode,
+                meta.createdAt,
+                meta.ownerHash,
+                meta.securityZone,
+                meta.isCompact,
+                meta.version
+            );
+    }
+
+    /**
+     * @notice Decode ciphertext metadata
+     */
+    function decodeMeta(
+        bytes memory data
+    ) internal pure returns (CiphertextMeta memory meta) {
+        (
+            meta.handle,
+            meta.typeCode,
+            meta.createdAt,
+            meta.ownerHash,
+            meta.securityZone,
+            meta.isCompact,
+            meta.version
+        ) = abi.decode(
+            data,
+            (bytes32, uint8, uint64, bytes32, bytes32, bool, uint32)
+        );
+    }
+
+    // ============================================
+    // SERIALIZATION
+    // ============================================
+
+    /**
+     * @notice Serialize encrypted value for cross-chain transfer
+     */
+    function serializeForTransfer(
+        bytes32 handle,
+        uint8 typeCode,
+        bytes memory ciphertextData,
+        bytes32 sourceChain,
+        bytes32 destChain
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                handle,
+                typeCode,
+                ciphertextData,
+                sourceChain,
+                destChain,
+                keccak256(abi.encode(handle, typeCode, ciphertextData))
+            );
+    }
+
+    /**
+     * @notice Deserialize encrypted value from cross-chain transfer
+     */
+    function deserializeFromTransfer(
+        bytes memory data
+    )
+        internal
+        pure
+        returns (
+            bytes32 handle,
+            uint8 typeCode,
+            bytes memory ciphertextData,
+            bytes32 sourceChain,
+            bytes32 destChain,
+            bytes32 dataHash
+        )
+    {
+        (
+            handle,
+            typeCode,
+            ciphertextData,
+            sourceChain,
+            destChain,
+            dataHash
+        ) = abi.decode(
+            data,
+            (bytes32, uint8, bytes, bytes32, bytes32, bytes32)
+        );
+
+        // Verify data integrity
+        if (dataHash != keccak256(abi.encode(handle, typeCode, ciphertextData))) {
+            revert DataIntegrityCheckFailed();
+        }
+    }
+}
+
+/**
+ * @title Encrypted type wrappers
+ * @notice User-defined types for encrypted values
  */
 
-/// @notice FHE type constants (legacy compatibility)
-library FHETypeConstants {
-    uint8 public constant TYPE_EBOOL = 0;
-    uint8 public constant TYPE_EUINT4 = 1;
-    uint8 public constant TYPE_EUINT8 = 2;
-    uint8 public constant TYPE_EUINT16 = 3;
-    uint8 public constant TYPE_EUINT32 = 4;
-    uint8 public constant TYPE_EUINT64 = 5;
-    uint8 public constant TYPE_EUINT128 = 6;
-    uint8 public constant TYPE_EUINT256 = 7;
-    uint8 public constant TYPE_EADDRESS = 8;
-    uint8 public constant TYPE_EBYTES64 = 9;
-    uint8 public constant TYPE_EBYTES128 = 10;
-    uint8 public constant TYPE_EBYTES256 = 11;
+// Encrypted boolean
+type ebool is bytes32;
+
+// Encrypted unsigned integers
+type euint4 is bytes32;
+type euint8 is bytes32;
+type euint16 is bytes32;
+type euint32 is bytes32;
+type euint64 is bytes32;
+type euint128 is bytes32;
+type euint256 is bytes32;
+
+// Encrypted address
+type eaddress is bytes32;
+
+// Encrypted bytes
+type ebytes64 is bytes32;
+type ebytes128 is bytes32;
+type ebytes256 is bytes32;
+type epacked64x4 is bytes32;
+
+/**
+ * @title FHETypeCast
+ * @notice Type casting utilities for encrypted values
+ */
+library FHETypeCast {
+    using FHETypes for uint8;
+    using FHETypes for bytes32;
+
+    // ============================================
+    // WRAP/UNWRAP
+    // ============================================
+
+    function asEbool(bytes32 handle) internal pure returns (ebool) {
+        return ebool.wrap(handle);
+    }
+
+    function asEuint4(bytes32 handle) internal pure returns (euint4) {
+        return euint4.wrap(handle);
+    }
+
+    function asEuint8(bytes32 handle) internal pure returns (euint8) {
+        return euint8.wrap(handle);
+    }
+
+    function asEuint16(bytes32 handle) internal pure returns (euint16) {
+        return euint16.wrap(handle);
+    }
+
+    function asEuint32(bytes32 handle) internal pure returns (euint32) {
+        return euint32.wrap(handle);
+    }
+
+    function asEuint64(bytes32 handle) internal pure returns (euint64) {
+        return euint64.wrap(handle);
+    }
+
+    function asEuint128(bytes32 handle) internal pure returns (euint128) {
+        return euint128.wrap(handle);
+    }
+
+    function asEuint256(bytes32 handle) internal pure returns (euint256) {
+        return euint256.wrap(handle);
+    }
+
+    function asEaddress(bytes32 handle) internal pure returns (eaddress) {
+        return eaddress.wrap(handle);
+    }
+
+    function asEbytes64(bytes32 handle) internal pure returns (ebytes64) {
+        return ebytes64.wrap(handle);
+    }
+
+    function asEbytes128(bytes32 handle) internal pure returns (ebytes128) {
+        return ebytes128.wrap(handle);
+    }
+
+    function asEbytes256(bytes32 handle) internal pure returns (ebytes256) {
+        return ebytes256.wrap(handle);
+    }
+
+    // Unwrap functions
+    function unwrap(ebool v) internal pure returns (bytes32) {
+        return ebool.unwrap(v);
+    }
+
+    function unwrap(euint4 v) internal pure returns (bytes32) {
+        return euint4.unwrap(v);
+    }
+
+    function unwrap(euint8 v) internal pure returns (bytes32) {
+        return euint8.unwrap(v);
+    }
+
+    function unwrap(euint16 v) internal pure returns (bytes32) {
+        return euint16.unwrap(v);
+    }
+
+    function unwrap(euint32 v) internal pure returns (bytes32) {
+        return euint32.unwrap(v);
+    }
+
+    function unwrap(euint64 v) internal pure returns (bytes32) {
+        return euint64.unwrap(v);
+    }
+
+    function unwrap(euint128 v) internal pure returns (bytes32) {
+        return euint128.unwrap(v);
+    }
+
+    function unwrap(euint256 v) internal pure returns (bytes32) {
+        return euint256.unwrap(v);
+    }
+
+    function unwrap(eaddress v) internal pure returns (bytes32) {
+        return eaddress.unwrap(v);
+    }
+
+    function unwrap(ebytes64 v) internal pure returns (bytes32) {
+        return ebytes64.unwrap(v);
+    }
+
+    function unwrap(ebytes128 v) internal pure returns (bytes32) {
+        return ebytes128.unwrap(v);
+    }
+
+    function unwrap(ebytes256 v) internal pure returns (bytes32) {
+        return ebytes256.unwrap(v);
+    }
+
+    // ============================================
+    // NULL CHECKS
+    // ============================================
+
+    function isNull(ebool v) internal pure returns (bool) {
+        return ebool.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint4 v) internal pure returns (bool) {
+        return euint4.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint8 v) internal pure returns (bool) {
+        return euint8.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint16 v) internal pure returns (bool) {
+        return euint16.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint32 v) internal pure returns (bool) {
+        return euint32.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint64 v) internal pure returns (bool) {
+        return euint64.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint128 v) internal pure returns (bool) {
+        return euint128.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(euint256 v) internal pure returns (bool) {
+        return euint256.unwrap(v) == bytes32(0);
+    }
+
+    function isNull(eaddress v) internal pure returns (bool) {
+        return eaddress.unwrap(v) == bytes32(0);
+    }
 }
 
-// ============================================
-// PRIMITIVE ENCRYPTED TYPES
-// ============================================
+/**
+ * @title FHEInputValidator
+ * @notice Validates encrypted inputs before operations
+ */
+library FHEInputValidator {
+    using FHETypes for uint8;
+    using FHETypeCast for bytes32;
 
-/// @notice Encrypted boolean type
-/// @dev 1-bit encrypted value, result of comparisons
-struct ebool {
-    bytes32 handle; // Reference to ciphertext
-    bytes32 ctHash; // Hash of ciphertext for verification
-}
+    error NullHandle();
+    error InputCountMismatch(uint256 expected, uint256 actual);
+    error InputTypeMismatch(uint8 expected, uint8 actual);
 
-/// @notice Encrypted 4-bit unsigned integer
-struct euint4 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+    /**
+     * @notice Validate input list for computation
+     */
+    function validateInputs(
+        bytes32[] memory inputs,
+        uint8[] memory expectedTypes
+    ) internal pure {
+        if (inputs.length != expectedTypes.length) {
+            revert InputCountMismatch(expectedTypes.length, inputs.length);
+        }
 
-/// @notice Encrypted 8-bit unsigned integer
-struct euint8 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        for (uint256 i = 0; i < inputs.length; i++) {
+            if (inputs[i] == bytes32(0)) {
+                revert NullHandle();
+            }
 
-/// @notice Encrypted 16-bit unsigned integer
-struct euint16 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+            uint8 actualType = FHETypes.extractType(inputs[i]);
+            if (actualType != expectedTypes[i]) {
+                revert InputTypeMismatch(expectedTypes[i], actualType);
+            }
+        }
+    }
 
-/// @notice Encrypted 32-bit unsigned integer
-struct euint32 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+    /**
+     * @notice Validate binary operation inputs
+     */
+    function validateBinaryOp(
+        bytes32 lhs,
+        bytes32 rhs
+    ) internal pure returns (uint8 resultType) {
+        FHETypes.requireNonNull(lhs);
+        FHETypes.requireNonNull(rhs);
 
-/// @notice Encrypted 64-bit unsigned integer
-struct euint64 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        uint8 typeA = FHETypes.extractType(lhs);
+        uint8 typeB = FHETypes.extractType(rhs);
 
-/// @notice Encrypted 128-bit unsigned integer
-struct euint128 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        return FHETypes.commonType(typeA, typeB);
+    }
 
-/// @notice Encrypted 256-bit unsigned integer
-struct euint256 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+    /**
+     * @notice Validate comparison operation inputs
+     */
+    function validateComparisonOp(bytes32 lhs, bytes32 rhs) internal pure {
+        FHETypes.requireNonNull(lhs);
+        FHETypes.requireNonNull(rhs);
 
-/// @notice Encrypted Ethereum address (160-bit)
-struct eaddress {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        uint8 typeA = FHETypes.extractType(lhs);
+        uint8 typeB = FHETypes.extractType(rhs);
 
-/// @notice Encrypted 64-byte value
-struct ebytes64 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        // Must be same type or both numeric
+        if (typeA != typeB) {
+            if (
+                !FHETypes.isNumericType(typeA) || !FHETypes.isNumericType(typeB)
+            ) {
+                revert InputTypeMismatch(typeA, typeB);
+            }
+        }
+    }
 
-/// @notice Encrypted 128-byte value
-struct ebytes128 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+    /**
+     * @notice Validate select operation inputs
+     */
+    function validateSelectOp(
+        bytes32 condition,
+        bytes32 ifTrue,
+        bytes32 ifFalse
+    ) internal pure returns (uint8 resultType) {
+        FHETypes.requireNonNull(condition);
+        FHETypes.requireNonNull(ifTrue);
+        FHETypes.requireNonNull(ifFalse);
 
-/// @notice Encrypted 256-byte value
-struct ebytes256 {
-    bytes32 handle;
-    bytes32 ctHash;
-}
+        // Condition must be ebool
+        uint8 condType = FHETypes.extractType(condition);
+        if (condType != FHETypes.TYPE_EBOOL) {
+            revert InputTypeMismatch(FHETypes.TYPE_EBOOL, condType);
+        }
 
-// ============================================
-// KEY MANAGEMENT TYPES
-// ============================================
+        // True and false branches must match
+        uint8 trueType = FHETypes.extractType(ifTrue);
+        uint8 falseType = FHETypes.extractType(ifFalse);
 
-/// @notice FHE public key for encryption
-struct FHEPublicKey {
-    bytes32 keyId; // Unique key identifier
-    bytes32 keyHash; // Hash of full public key
-    bytes publicKeyData; // Serialized public key (for off-chain use)
-    FHELib.FHEScheme scheme; // TFHE, BFV, BGV, or CKKS
-    uint64 createdAt;
-    uint64 expiresAt; // 0 = no expiration
-    bool revoked;
-}
+        if (trueType != falseType) {
+            revert InputTypeMismatch(trueType, falseType);
+        }
 
-/// @notice Key share for threshold FHE
-struct KeyShare {
-    bytes32 shareId;
-    bytes32 publicKeyId; // Associated public key
-    address holder; // Share holder address
-    uint8 threshold; // t-of-n threshold
-    uint8 totalShares; // Total shares (n)
-    bytes32 shareCommitment; // Commitment to share
-    bool verified;
-}
-
-// ============================================
-// REQUEST TYPES
-// ============================================
-
-/// @notice Re-encryption request for sharing encrypted data
-struct ReencryptionRequest {
-    bytes32 requestId;
-    bytes32 sourceHandle; // Handle to reencrypt
-    bytes32 targetPublicKey; // Target's public key
-    address requester;
-    address target; // Who can use reencrypted value
-    uint64 timestamp;
-    uint64 expiresAt;
-    bool completed;
-    bytes reencryptedCiphertext; // Result (filled by coprocessor)
-}
-
-/// @notice Decryption request for revealing encrypted values
-struct DecryptionRequest {
-    bytes32 requestId;
-    bytes32 handle;
-    address requester;
-    address callbackContract; // Contract to receive result
-    bytes4 callbackSelector; // Function selector for callback
-    bytes callbackData; // Additional callback data
-    uint64 timestamp;
-    uint64 maxTimestamp; // Deadline
-    bool fulfilled;
-    bytes32 plaintextResult; // Decrypted value (when fulfilled)
-}
-
-/// @notice Batch decryption for gas efficiency
-struct BatchDecryptionRequest {
-    bytes32 requestId;
-    bytes32[] handles; // Multiple handles to decrypt
-    address requester;
-    address callbackContract;
-    bytes4 callbackSelector;
-    uint64 timestamp;
-    uint64 maxTimestamp;
-    bool fulfilled;
-    bytes32[] plaintextResults; // Results array
-}
-
-// ============================================
-// CROSS-CHAIN TYPES
-// ============================================
-
-/// @notice Cross-chain FHE transfer
-struct FHETransfer {
-    bytes32 transferId;
-    bytes32 encryptedAmount; // Encrypted transfer amount
-    bytes32 senderCommitment; // Commitment to sender's new balance
-    bytes32 recipientHandle; // Recipient's encrypted balance handle
-    bytes32 recipientPublicKey; // For reencryption on destination
-    address sender;
-    address recipient;
-    uint256 sourceChainId;
-    uint256 destChainId;
-    uint64 nonce;
-    uint64 timestamp;
-    FHETransferStatus status;
-}
-
-/// @notice Transfer status
-enum FHETransferStatus {
-    Pending,
-    Locked, // Funds locked on source chain
-    InTransit, // Cross-chain message sent
-    Reencrypting, // Being reencrypted for destination
-    Completed,
-    Failed,
-    Refunded
-}
-
-// ============================================
-// BALANCE & STATE TYPES
-// ============================================
-
-/// @notice Encrypted balance for confidential tokens
-struct EncryptedBalance {
-    euint256 balance; // Encrypted token balance
-    bytes32 lastUpdateCommitment; // Commitment to last update
-    uint64 lastUpdated;
-    uint32 updateCount; // Number of updates (for ordering)
-}
-
-/// @notice Encrypted allowance for token approvals
-struct EncryptedAllowance {
-    euint256 amount; // Encrypted allowance amount
-    address owner;
-    address spender;
-    uint64 expiresAt; // 0 = no expiration
-    bool unlimited; // If true, ignore amount
-}
-
-/// @notice Encrypted state slot for general storage
-struct EncryptedSlot {
-    bytes32 handle;
-    uint8 valueType; // FHELib.ValueType
-    bytes32 securityZone;
-    bytes32 accessPolicyHash; // Hash of access control policy
-    uint64 createdAt;
-    uint64 lastAccessed;
-}
-
-// ============================================
-// COMPUTATION TYPES
-// ============================================
-
-/// @notice FHE computation request
-struct ComputeRequest {
-    bytes32 requestId;
-    FHELib.Opcode opcode; // Operation type
-    bytes32[] inputHandles; // Input encrypted values
-    bytes32 outputHandle; // Expected output handle
-    bytes additionalData; // Plaintext inputs if needed
-    address requester;
-    uint256 gasReward; // Payment for computation
-    uint64 timestamp;
-    uint64 deadline;
-    ComputeStatus status;
-}
-
-/// @notice Computation status
-enum ComputeStatus {
-    Pending,
-    Assigned, // Assigned to coprocessor
-    Computing, // In progress
-    Verifying, // Result being verified
-    Completed,
-    Failed,
-    Timeout
-}
-
-/// @notice Proof of correct FHE computation
-struct ComputeProof {
-    bytes32 requestId;
-    bytes32 outputHandle;
-    bytes zkProof; // ZK proof of correct computation
-    bytes32 proofHash; // Hash for quick verification
-    address prover;
-    uint64 timestamp;
-    bool verified;
-}
-
-// ============================================
-// ORACLE / COPROCESSOR TYPES
-// ============================================
-
-/// @notice FHE Coprocessor node information
-struct CoprocessorNode {
-    address nodeAddress;
-    bytes32 publicKeyHash; // Hash of node's FHE key share
-    uint256 stake; // Staked collateral
-    uint256 reputation; // Performance score (basis points)
-    uint64 registeredAt;
-    uint64 lastActiveAt;
-    uint256 successfulOps;
-    uint256 failedOps;
-    bool isActive;
-    bool isSlashed;
-}
-
-/// @notice Coprocessor response to computation request
-struct CoprocessorResponse {
-    bytes32 requestId;
-    bytes32 outputHandle;
-    bytes proof; // ZK proof of computation
-    address responder;
-    uint64 timestamp;
-    bool accepted;
-}
-
-// ============================================
-// COMPLIANCE TYPES
-// ============================================
-
-/// @notice Encrypted compliance proof
-struct EncryptedComplianceProof {
-    bytes32 proofId;
-    bytes32 subjectHandle; // Handle to value being proven
-    bytes32 policyHash; // Policy being satisfied
-    bytes zkProof; // ZK proof of compliance
-    uint64 timestamp;
-    uint64 validUntil;
-    bool verified;
-}
-
-/// @notice Range proof for encrypted values
-struct EncryptedRangeProof {
-    bytes32 proofId;
-    bytes32 handle; // Handle to value
-    uint256 minBound; // Plaintext min (public)
-    uint256 maxBound; // Plaintext max (public)
-    bytes zkProof; // ZK proof that min <= value <= max
-    uint64 timestamp;
-    bool verified;
+        return trueType;
+    }
 }
