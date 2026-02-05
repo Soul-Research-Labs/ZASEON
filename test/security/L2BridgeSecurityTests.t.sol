@@ -66,6 +66,7 @@ contract L2BridgeSecurityTests is Test {
     ///      1. Only DEFAULT_ADMIN_ROLE can call emergencyWithdraw
     ///      2. Admin accounts should be EOAs, not contracts
     ///      3. Emergency function is for stuck fund recovery only
+    ///      4. ReentrancyGuard blocks reentrant calls
     function test_ReentrancyProtection_EmergencyWithdraw() public {
         // Deploy attacker contract
         ReentrancyAttacker attackContract = new ReentrancyAttacker(
@@ -87,21 +88,22 @@ contract L2BridgeSecurityTests is Test {
         uint256 attackerBalanceBefore = address(attackContract).balance;
         uint256 adapterBalanceBefore = address(baseL1).balance;
 
-        // Attack succeeds - demonstrates need for reentrancy guard
-        // In production, admin should NEVER be a contract
+        // Attack should FAIL due to reentrancy guard
+        // The contract properly blocks reentrant calls
+        vm.expectRevert(); // Expect TransferFailed (which wraps ReentrancyGuardReentrantCall)
         attackContract.attack();
 
-        // Verify attacker drained multiple withdrawals
-        uint256 attackerGain = address(attackContract).balance -
-            attackerBalanceBefore;
-        uint256 adapterLoss = adapterBalanceBefore -
-            address(baseL1).balance;
-
-        // Reentrancy allowed attacker to withdraw more than single call
-        // This is acceptable since DEFAULT_ADMIN_ROLE is trusted
-        // Mitigation: Always use EOA for admin role
-        assertGt(attackerGain, 0, "Attacker should have gained ETH");
-        assertEq(attackerGain, adapterLoss, "Loss should equal gain");
+        // Verify no funds were stolen due to reentrancy protection
+        assertEq(
+            address(attackContract).balance,
+            attackerBalanceBefore,
+            "Attacker balance should be unchanged"
+        );
+        assertEq(
+            address(baseL1).balance,
+            adapterBalanceBefore,
+            "Adapter balance should be unchanged"
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

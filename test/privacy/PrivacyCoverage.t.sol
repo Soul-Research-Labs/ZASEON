@@ -190,10 +190,32 @@ contract PrivacyCoverageTest is Test {
 
 /// @notice Mock proof verifier that always returns true for testing
 contract TestProofVerifier {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external pure returns (bool) {
+        return true;
+    }
+
     function verifyProof(
         bytes calldata,
         bytes calldata
     ) external pure returns (bool) {
+        return true;
+    }
+
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external pure returns (bool) {
+        return true;
+    }
+
+    function getPublicInputCount() external pure returns (uint256) {
+        return 3;
+    }
+
+    function isReady() external pure returns (bool) {
         return true;
     }
 }

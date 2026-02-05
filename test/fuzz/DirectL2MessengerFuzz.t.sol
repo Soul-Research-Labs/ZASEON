@@ -76,7 +76,7 @@ contract DirectL2MessengerFuzz is Test {
         chains[0] = OPTIMISM_CHAIN_ID;
         address[] memory validators = new address[](1);
         validators[0] = admin;
-        
+
         vm.prank(admin);
         sequencerIntegration.registerSequencer(
             mockSequencer,
@@ -138,7 +138,7 @@ contract DirectL2MessengerFuzz is Test {
     /// @notice Fuzz test: Relayer bond requirements
     function testFuzz_RelayerBondRequirements(uint256 bondAmount) public {
         bondAmount = bound(bondAmount, 0, type(uint128).max);
-        
+
         address newRelayer = address(
             uint160(uint256(keccak256(abi.encode(bondAmount, block.timestamp))))
         );
@@ -359,13 +359,15 @@ contract DirectL2MessengerFuzz is Test {
         // Note: This may fail if batch not ready, which is expected behavior
         for (uint256 i = 0; i < cacheEntries; i++) {
             vm.prank(user);
-            try proofRouter.submitProof(
-                L2ProofRouter.ProofType.GROTH16,
-                OPTIMISM_CHAIN_ID,
-                abi.encodePacked("proof", i),
-                abi.encodePacked("input", i),
-                bytes32(0)
-            ) {} catch {
+            try
+                proofRouter.submitProof(
+                    L2ProofRouter.ProofType.GROTH16,
+                    OPTIMISM_CHAIN_ID,
+                    abi.encodePacked("proof", i),
+                    abi.encodePacked("input", i),
+                    bytes32(0)
+                )
+            {} catch {
                 // BatchNotReady or other errors are acceptable in this fuzz context
                 // The test verifies cache management doesn't break
             }
@@ -471,7 +473,9 @@ contract DirectL2MessengerFuzz is Test {
 
         // Register sequencer for this specific chain
         // Ensure seq address is non-zero
-        address seq = address(uint160(uint256(keccak256(abi.encode(destChainId)))));
+        address seq = address(
+            uint160(uint256(keccak256(abi.encode(destChainId))))
+        );
         if (seq == address(0)) seq = address(0x1);
         uint256[] memory chains = new uint256[](1);
         chains[0] = destChainId;

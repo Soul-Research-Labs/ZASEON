@@ -141,7 +141,7 @@ contract PrivacyFuzz is Test {
     ) public pure {
         key1 = bound(key1, 1, ED25519_L - 1);
         key2 = bound(key2, 1, ED25519_L - 1);
-        
+
         // Check uniqueness AFTER bounding
         vm.assume(key1 != key2);
 
@@ -300,7 +300,7 @@ contract PrivacyFuzz is Test {
 
         eph1 = bound(eph1, 1, SECP256K1_N - 1);
         eph2 = bound(eph2, 1, SECP256K1_N - 1);
-        
+
         // Check uniqueness AFTER bounding
         vm.assume(eph1 != eph2);
 
@@ -406,7 +406,7 @@ contract PrivacyFuzz is Test {
     function testFuzz_RangeProofStructure(uint256 numBits) public pure {
         // Bound to valid range to check structure properties
         numBits = bound(numBits, 1, RANGE_BITS);
-        
+
         // Bulletproof+ requires power of 2 bits
         bool validBits = numBits > 0 &&
             numBits <= RANGE_BITS &&
