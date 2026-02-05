@@ -29,5 +29,13 @@ members = [
     "hybrid_pqc_proof",         # ZK proof of hybrid ECDSA+PQC verification
     # Multi-Party Computation (MPC)
     "mpc_proof",                # ZK proof of correct MPC participation
-    "threshold_signature_proof" # ZK proof of threshold signature validity
+    "threshold_signature_proof", # ZK proof of threshold signature validity
+    # GKR Recursion & Binary Tower Fields
+    "hekate_hash",              # Hekate-Groestl hash for GKR recursion
+    "hekate_benchmark",         # Benchmark: Hekate vs Poseidon vs Keccak
+    "balance_proof",            # Balance verification proofs
+    "private_order",            # Private order matching proofs
+    "private_transfer",         # Private transfer proofs
+    "ring_signature",           # Ring signature verification
+    "swap_proof"                # Atomic swap proofs
 ]

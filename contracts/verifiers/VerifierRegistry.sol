@@ -33,6 +33,12 @@ contract VerifierRegistry is AccessControl, IVerifierRegistry {
     bytes32 public constant RANGE_PROOF = keccak256("RANGE_PROOF");
     bytes32 public constant MEMBERSHIP_PROOF = keccak256("MEMBERSHIP_PROOF");
 
+    /// @notice GKR/Binary field proof types (Hekate-Groestl)
+    bytes32 public constant HEKATE_GROESTL_PROOF = keccak256("HEKATE_GROESTL");
+    bytes32 public constant GKR_RECURSION_PROOF =
+        keccak256("GKR_RECURSION_PROOF");
+    bytes32 public constant BINIUS_PROOF = keccak256("BINIUS_PROOF");
+
     /*//////////////////////////////////////////////////////////////
                                STATE
     //////////////////////////////////////////////////////////////*/
