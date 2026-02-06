@@ -46,7 +46,9 @@ contract MockAztecRollup {
         return noteCommitments[commitment];
     }
 
-    function isNullifierConsumed(bytes32 nullifier) external view returns (bool) {
+    function isNullifierConsumed(
+        bytes32 nullifier
+    ) external view returns (bool) {
         return nullifiers[nullifier];
     }
 }

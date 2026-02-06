@@ -38,10 +38,10 @@ contract MockBTCSPVVerifier {
     }
 
     function verifyMerkleProof(
-        bytes32,      // txHash
-        bytes32,      // merkleRoot
+        bytes32, // txHash
+        bytes32, // merkleRoot
         bytes32[] calldata, // proof
-        uint256       // index
+        uint256 // index
     ) external pure returns (bool) {
         return true;
     }
@@ -80,7 +80,11 @@ contract MockWrappedBTC {
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         allowance[from][msg.sender] -= amount;
         balanceOf[from] -= amount;
         balanceOf[to] += amount;

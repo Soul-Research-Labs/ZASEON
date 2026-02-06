@@ -40,7 +40,10 @@ contract ArbitrumBridgeFuzz is Test {
     }
 
     // --- Deposit Limits ---
-    function testFuzz_setDepositLimitsValid(uint256 minAmt, uint256 maxAmt) public {
+    function testFuzz_setDepositLimitsValid(
+        uint256 minAmt,
+        uint256 maxAmt
+    ) public {
         vm.assume(minAmt > 0 && maxAmt > minAmt);
         vm.prank(operator);
         bridge.setDepositLimits(minAmt, maxAmt);
@@ -54,7 +57,14 @@ contract ArbitrumBridgeFuzz is Test {
         vm.deal(user1, amount + 1 ether);
         vm.prank(user1);
         vm.expectRevert(ArbitrumBridgeAdapter.RollupNotConfigured.selector);
-        bridge.deposit{value: amount}(42161, user1, address(0), amount, 1000000, 100000000);
+        bridge.deposit{value: amount}(
+            42161,
+            user1,
+            address(0),
+            amount,
+            1000000,
+            100000000
+        );
     }
 
     // --- Rollup Configuration ---
@@ -62,11 +72,23 @@ contract ArbitrumBridgeFuzz is Test {
         vm.assume(caller != admin && caller != operator);
         vm.prank(caller);
         vm.expectRevert();
-        bridge.configureRollup(42161, address(1), address(2), address(3), address(4), ArbitrumBridgeAdapter.RollupType(0));
+        bridge.configureRollup(
+            42161,
+            address(1),
+            address(2),
+            address(3),
+            address(4),
+            ArbitrumBridgeAdapter.RollupType(0)
+        );
     }
 
     // --- Token Mapping ---
-    function testFuzz_mapToken(address l1Token, address l2Token, uint256 chainId, uint8 decimals) public {
+    function testFuzz_mapToken(
+        address l1Token,
+        address l2Token,
+        uint256 chainId,
+        uint8 decimals
+    ) public {
         vm.assume(l1Token != address(0) && l2Token != address(0));
         vm.prank(operator);
         bridge.mapToken(l1Token, l2Token, chainId, decimals);
@@ -132,7 +154,14 @@ contract ArbitrumBridgeFuzz is Test {
 
     // --- Statistics ---
     function test_initialStats() public view {
-        (uint256 dc, uint256 wc, uint256 vd, uint256 vw, uint256 fe, uint256 fees) = bridge.getBridgeStats();
+        (
+            uint256 dc,
+            uint256 wc,
+            uint256 vd,
+            uint256 vw,
+            uint256 fe,
+            uint256 fees
+        ) = bridge.getBridgeStats();
         assertEq(dc, 0);
         assertEq(wc, 0);
         assertEq(vd, 0);
@@ -161,7 +190,7 @@ contract ArbitrumBridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

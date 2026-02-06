@@ -28,7 +28,11 @@ contract BitcoinBridgeFuzz is Test {
         timelock = bound(timelock, 1 hours, 7 days);
         vm.deal(user1, 1 ether);
         vm.prank(user1);
-        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(hashlock, timelock, admin);
+        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(
+            hashlock,
+            timelock,
+            admin
+        );
         assertTrue(htlcId != bytes32(0));
     }
 
@@ -37,7 +41,11 @@ contract BitcoinBridgeFuzz is Test {
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         vm.expectRevert();
-        bridge.createHTLC{value: 0.5 ether}(bytes32(uint256(1)), timelock, admin);
+        bridge.createHTLC{value: 0.5 ether}(
+            bytes32(uint256(1)),
+            timelock,
+            admin
+        );
     }
 
     function testFuzz_createHTLCTimelockTooLong(uint256 timelock) public {
@@ -45,30 +53,47 @@ contract BitcoinBridgeFuzz is Test {
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         vm.expectRevert();
-        bridge.createHTLC{value: 0.5 ether}(bytes32(uint256(1)), timelock, admin);
+        bridge.createHTLC{value: 0.5 ether}(
+            bytes32(uint256(1)),
+            timelock,
+            admin
+        );
     }
 
     // --- HTLC Redeem ---
-    function testFuzz_redeemHTLCRequiresCorrectPreimage(bytes32 preimage) public {
+    function testFuzz_redeemHTLCRequiresCorrectPreimage(
+        bytes32 preimage
+    ) public {
         bytes32 hashlock = keccak256(abi.encodePacked(preimage));
         vm.deal(user1, 1 ether);
         address payable recipient = payable(address(0xBEEF));
 
         vm.prank(user1);
-        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(hashlock, 24 hours, recipient);
+        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(
+            hashlock,
+            24 hours,
+            recipient
+        );
 
         vm.prank(recipient);
         bridge.redeemHTLC(htlcId, preimage);
         assertEq(recipient.balance, 0.5 ether);
     }
 
-    function testFuzz_redeemHTLCWrongPreimage(bytes32 preimage, bytes32 wrongPreimage) public {
+    function testFuzz_redeemHTLCWrongPreimage(
+        bytes32 preimage,
+        bytes32 wrongPreimage
+    ) public {
         vm.assume(preimage != wrongPreimage);
         bytes32 hashlock = keccak256(abi.encodePacked(preimage));
         vm.deal(user1, 1 ether);
 
         vm.prank(user1);
-        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(hashlock, 24 hours, admin);
+        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(
+            hashlock,
+            24 hours,
+            admin
+        );
 
         vm.prank(admin);
         vm.expectRevert();
@@ -81,7 +106,11 @@ contract BitcoinBridgeFuzz is Test {
         vm.deal(user1, 1 ether);
 
         vm.prank(user1);
-        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(hashlock, 24 hours, admin);
+        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(
+            hashlock,
+            24 hours,
+            admin
+        );
 
         vm.prank(user1);
         vm.expectRevert();
@@ -93,7 +122,11 @@ contract BitcoinBridgeFuzz is Test {
         vm.deal(user1, 1 ether);
 
         vm.prank(user1);
-        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(hashlock, 1 hours, admin);
+        bytes32 htlcId = bridge.createHTLC{value: 0.5 ether}(
+            hashlock,
+            1 hours,
+            admin
+        );
 
         vm.warp(block.timestamp + 2 hours);
         vm.prank(user1);
@@ -101,15 +134,20 @@ contract BitcoinBridgeFuzz is Test {
     }
 
     // --- Withdrawal ---
-    function testFuzz_initiateWithdrawalAmountValidation(uint256 satoshis) public {
+    function testFuzz_initiateWithdrawalAmountValidation(
+        uint256 satoshis
+    ) public {
         satoshis = bound(satoshis, 1, 99999); // below min
         bytes32 hashlock = keccak256(abi.encodePacked(bytes32(satoshis)));
         vm.deal(user1, 1 ether);
         vm.prank(user1);
-        (bool success,) = address(bridge).call{value: 0.5 ether}(
+        (bool success, ) = address(bridge).call{value: 0.5 ether}(
             abi.encodeWithSelector(
                 bridge.initiateWithdrawal.selector,
-                bytes20(uint160(admin)), satoshis, hashlock, 24 hours
+                bytes20(uint160(admin)),
+                satoshis,
+                hashlock,
+                24 hours
             )
         );
         assertFalse(success);
@@ -140,12 +178,25 @@ contract BitcoinBridgeFuzz is Test {
         vm.assume(caller != admin && caller != relayer);
         vm.prank(caller);
         vm.expectRevert();
-        bridge.initiateBTCDeposit(bytes32(uint256(1)), hex"01", new bytes32[](0), hex"02", user1);
+        bridge.initiateBTCDeposit(
+            bytes32(uint256(1)),
+            hex"01",
+            new bytes32[](0),
+            hex"02",
+            user1
+        );
     }
 
     // --- Stats ---
     function test_initialStats() public view {
-        (uint256 d, uint256 w, uint256 ht, uint256 hr, uint256 hrf, uint256 f) = bridge.getBridgeStats();
+        (
+            uint256 d,
+            uint256 w,
+            uint256 ht,
+            uint256 hr,
+            uint256 hrf,
+            uint256 f
+        ) = bridge.getBridgeStats();
         assertEq(d, 0);
         assertEq(w, 0);
         assertEq(ht, 0);
@@ -165,7 +216,7 @@ contract BitcoinBridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

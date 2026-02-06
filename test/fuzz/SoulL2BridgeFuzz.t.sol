@@ -86,7 +86,9 @@ contract SoulL2BridgeFuzz is Test {
 
         // Grant roles
         bytes32 CCTP_ROLE = keccak256("CCTP_ROLE");
+        bytes32 RELAYER_ROLE = keccak256("RELAYER_ROLE");
         baseL1Adapter.grantRole(CCTP_ROLE, admin);
+        baseL2Adapter.grantRole(RELAYER_ROLE, admin);
 
         vm.stopPrank();
 

@@ -27,7 +27,11 @@ contract BitVMBridgeFuzz is Test {
         amount = bound(amount, 0.01 ether, 100 ether);
         vm.deal(user1, amount + 1 ether);
         vm.prank(user1);
-        bytes32 depositId = bridge.initiateDeposit{value: amount}(amount, bytes32(uint256(1)), prover);
+        bytes32 depositId = bridge.initiateDeposit{value: amount}(
+            amount,
+            bytes32(uint256(1)),
+            prover
+        );
         assertTrue(depositId != bytes32(0));
     }
 
@@ -44,20 +48,30 @@ contract BitVMBridgeFuzz is Test {
         // First create a deposit
         vm.deal(user1, 10 ether);
         vm.prank(user1);
-        bytes32 depositId = bridge.initiateDeposit{value: 2 ether}(2 ether, bytes32(uint256(1)), prover);
+        bytes32 depositId = bridge.initiateDeposit{value: 2 ether}(
+            2 ether,
+            bytes32(uint256(1)),
+            prover
+        );
 
         // Commit as prover
         vm.deal(prover, 2 ether);
         vm.prank(prover);
-        bridge.commitDeposit{value: 1 ether}(depositId, bytes32(uint256(2)), bytes32(uint256(3)));
+        bridge.commitDeposit{value: 1 ether}(
+            depositId,
+            bytes32(uint256(2)),
+            bytes32(uint256(3))
+        );
 
         // Challenge with insufficient stake
         vm.deal(user1, stake);
         vm.prank(user1);
-        (bool success,) = address(bridge).call{value: stake}(
+        (bool success, ) = address(bridge).call{value: stake}(
             abi.encodeWithSelector(
                 bridge.openChallenge.selector,
-                depositId, bytes32(uint256(5)), bytes32(uint256(6))
+                depositId,
+                bytes32(uint256(5)),
+                bytes32(uint256(6))
             )
         );
         assertFalse(success);
@@ -81,24 +95,42 @@ contract BitVMBridgeFuzz is Test {
     }
 
     // --- Circuit Registration ---
-    function testFuzz_registerCircuit(bytes32 circuitId, uint256 numGates, uint256 numInputs, uint256 numOutputs) public {
+    function testFuzz_registerCircuit(
+        bytes32 circuitId,
+        uint256 numGates,
+        uint256 numInputs,
+        uint256 numOutputs
+    ) public {
         vm.assume(circuitId != bytes32(0));
         numGates = bound(numGates, 1, 1000);
         numInputs = bound(numInputs, 1, 100);
         numOutputs = bound(numOutputs, 1, 100);
         vm.prank(operator);
-        bridge.registerCircuit(circuitId, numGates, numInputs, numOutputs, bytes32(uint256(1)));
+        bridge.registerCircuit(
+            circuitId,
+            numGates,
+            numInputs,
+            numOutputs,
+            bytes32(uint256(1))
+        );
     }
 
     // --- Gate Commitment ---
     function testFuzz_commitGate(bytes32 gateId) public {
         vm.prank(prover);
-        bridge.commitGate(gateId, IBitVMBridge.GateType.NAND, bytes32(uint256(1)), bytes32(uint256(2)), bytes32(uint256(3)));
+        bridge.commitGate(
+            gateId,
+            IBitVMBridge.GateType.NAND,
+            bytes32(uint256(1)),
+            bytes32(uint256(2)),
+            bytes32(uint256(3))
+        );
     }
 
     // --- Stats ---
     function test_initialStats() public view {
-        (uint256 dc, uint256 cc, uint256 sc, uint256 fc) = bridge.getBridgeStats();
+        (uint256 dc, uint256 cc, uint256 sc, uint256 fc) = bridge
+            .getBridgeStats();
         assertEq(dc, 0);
         assertEq(cc, 0);
         assertEq(sc, 0);
@@ -124,7 +156,7 @@ contract BitVMBridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

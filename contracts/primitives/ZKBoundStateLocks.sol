@@ -66,29 +66,53 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
                               CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when attempting to create a lock with an ID that already exists
     error LockAlreadyExists(bytes32 lockId);
+    /// @notice Thrown when referencing a lock ID not present in the registry
     error LockDoesNotExist(bytes32 lockId);
+    /// @notice Thrown when attempting to unlock or recover a lock that is already unlocked
     error LockAlreadyUnlocked(bytes32 lockId);
+    /// @notice Thrown when a lock's deadline has passed
     error LockExpired(bytes32 lockId, uint256 deadline);
+    /// @notice Thrown when a nullifier has already been consumed (double-spend prevention)
     error NullifierAlreadyUsed(bytes32 nullifier);
+    /// @notice Thrown when referencing a verifier key hash not in the registry
     error VerifierNotRegistered(bytes32 verifierKeyHash);
+    /// @notice Thrown when a ZK proof fails verification
     error InvalidProof(bytes32 lockId);
+    /// @notice Thrown when the dispute window configuration is invalid
     error InvalidDisputeWindow();
+    /// @notice Thrown when the bond amount for optimistic unlock is below MIN_BOND_AMOUNT
     error InsufficientBond(uint256 required, uint256 provided);
+    /// @notice Thrown when the challenger's stake is below MIN_CHALLENGER_STAKE
     error InsufficientChallengerStake(uint256 required, uint256 provided);
+    /// @notice Thrown when referencing a domain separator not registered or inactive
     error InvalidDomainSeparator(bytes32 domain);
+    /// @notice Thrown when the transition predicate hash doesn't match the lock's constraint
     error TransitionPredicateMismatch(bytes32 expected, bytes32 provided);
+    /// @notice Thrown when the state commitment doesn't match the expected value
     error StateCommitmentMismatch(bytes32 expected, bytes32 provided);
+    /// @notice Thrown when attempting to challenge after the dispute window has closed
     error ChallengeWindowClosed(bytes32 lockId);
+    /// @notice Thrown when attempting to finalize while the dispute window is still open
     error DisputeWindowStillOpen(bytes32 lockId, uint64 finalizeAfter);
+    /// @notice Thrown when referencing a non-existent optimistic unlock
     error NoOptimisticUnlock(bytes32 lockId);
+    /// @notice Thrown when an optimistic unlock has already been disputed
     error AlreadyDisputed(bytes32 lockId);
+    /// @notice Thrown when the conflict proof evidence doesn't reference the correct lock
     error InvalidConflictProof(bytes32 lockId);
+    /// @notice Thrown when an ETH transfer via call() fails
     error ETHTransferFailed();
+    /// @notice Thrown when registering a verifier key hash that already has a verifier mapped
     error VerifierAlreadyRegistered(bytes32 verifierKeyHash);
+    /// @notice Thrown when a zero-address is provided as the verifier contract
     error InvalidVerifierAddress();
+    /// @notice Thrown when registering a domain separator that is already registered
     error DomainAlreadyExists(bytes32 domainSeparator);
+    /// @notice Thrown when the lock ID resolves to an empty/uninitialized lock struct
     error InvalidLock(bytes32 lockId);
+    /// @notice Thrown when active lock count reaches MAX_ACTIVE_LOCKS
     error TooManyActiveLocks();
 
     /*//////////////////////////////////////////////////////////////
@@ -262,6 +286,14 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new ZK-bound state lock is created
+    /// @param lockId Unique identifier for the lock
+    /// @param oldStateCommitment Commitment to the state being locked
+    /// @param transitionPredicateHash Hash of the allowed state transition predicate
+    /// @param policyHash Hash of the privacy policy governing this lock
+    /// @param domainSeparator Cross-chain domain separator for replay protection
+    /// @param lockedBy Address that created the lock
+    /// @param unlockDeadline Unix timestamp after which the lock expires
     event LockCreated(
         bytes32 indexed lockId,
         bytes32 indexed oldStateCommitment,
@@ -272,6 +304,12 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         uint64 unlockDeadline
     );
 
+    /// @notice Emitted when a lock is unlocked via ZK proof verification
+    /// @param lockId The lock being unlocked
+    /// @param newStateCommitment Commitment to the new post-transition state
+    /// @param nullifier The nullifier consumed to prevent double-spend
+    /// @param domainSeparator Domain separator used for verification
+    /// @param unlockedBy Address that submitted the unlock proof
     event LockUnlocked(
         bytes32 indexed lockId,
         bytes32 indexed newStateCommitment,
@@ -280,6 +318,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         address unlockedBy
     );
 
+    /// @notice Emitted when an optimistic unlock is initiated with a bond
+    /// @param lockId The lock being optimistically unlocked
+    /// @param unlocker Address initiating the optimistic unlock
+    /// @param bondAmount ETH bond posted as collateral
+    /// @param finalizeAfter Unix timestamp after which the unlock can be finalized
     event OptimisticUnlockInitiated(
         bytes32 indexed lockId,
         address indexed unlocker,
@@ -287,6 +330,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         uint64 finalizeAfter
     );
 
+    /// @notice Emitted when a successful challenge disputes an optimistic unlock
+    /// @param lockId The lock whose optimistic unlock was disputed
+    /// @param disputer Address that successfully challenged the unlock
+    /// @param conflictProofHash Hash of the evidence proving the dispute
+    /// @param bondForfeited Amount of bond forfeited by the unlocker
     event LockDisputed(
         bytes32 indexed lockId,
         address indexed disputer,
@@ -294,17 +342,30 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         uint256 bondForfeited
     );
 
+    /// @notice Emitted when a challenge fails and the challenger's stake is forfeited
+    /// @param lockId The lock whose challenge was rejected
+    /// @param challenger Address that submitted the failed challenge
+    /// @param stakeLost Amount of stake forfeited by the challenger
     event ChallengeRejected(
         bytes32 indexed lockId,
         address indexed challenger,
         uint256 stakeLost
     );
 
+    /// @notice Emitted when a new verifier contract is registered for a given key hash
+    /// @param verifierKeyHash The key hash identifying the verifier circuit
+    /// @param verifierContract Address of the deployed verifier contract
     event VerifierRegistered(
         bytes32 indexed verifierKeyHash,
         address indexed verifierContract
     );
 
+    /// @notice Emitted when a new cross-chain domain is registered
+    /// @param domainSeparator The computed domain separator
+    /// @param chainId The chain ID for this domain
+    /// @param appId The application-specific identifier
+    /// @param epoch The epoch number for domain versioning
+    /// @param name Human-readable domain name
     event DomainRegistered(
         bytes32 indexed domainSeparator,
         uint64 chainId,
@@ -313,6 +374,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         string name
     );
 
+    /// @notice Emitted when an optimistic unlock is finalized after the dispute window
+    /// @param lockId The lock whose optimistic unlock was finalized
+    /// @param unlocker Address that initiated and finalized the unlock
     event OptimisticUnlockFinalized(
         bytes32 indexed lockId,
         address indexed unlocker
@@ -322,6 +386,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Initializes ZKBoundStateLocks with the proof verifier and default domains
+    /// @param _proofVerifier Address of the IProofVerifier contract for ZK proof verification
     constructor(address _proofVerifier) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(LOCK_ADMIN_ROLE, msg.sender);

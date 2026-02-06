@@ -18,7 +18,10 @@ contract MockBitVMVerifier {
         shouldVerify = _should;
     }
 
-    function verifyCircuit(bytes32 circuitId, bytes calldata) external returns (bool) {
+    function verifyCircuit(
+        bytes32 circuitId,
+        bytes calldata
+    ) external returns (bool) {
         if (shouldVerify) {
             verifiedCircuits[circuitId] = true;
             emit CircuitVerified(circuitId);
@@ -32,7 +35,7 @@ contract MockBitVMVerifier {
         bytes32, // inputA
         bytes32, // inputB
         bytes32, // output
-        uint8    // gateType
+        uint8 // gateType
     ) external returns (bool) {
         if (shouldVerify) {
             gateCommitments[depositId][gateId] = true;
@@ -45,7 +48,10 @@ contract MockBitVMVerifier {
         return verifiedCircuits[circuitId];
     }
 
-    function isGateCommitted(bytes32 depositId, bytes32 gateId) external view returns (bool) {
+    function isGateCommitted(
+        bytes32 depositId,
+        bytes32 gateId
+    ) external view returns (bool) {
         return gateCommitments[depositId][gateId];
     }
 }
@@ -66,7 +72,7 @@ contract MockTaprootSignatureVerifier {
     function verifyTaprootSpend(
         bytes32, // taprootOutput
         bytes calldata, // controlBlock
-        bytes calldata  // scriptLeaf
+        bytes calldata // scriptLeaf
     ) external pure returns (bool) {
         return true;
     }

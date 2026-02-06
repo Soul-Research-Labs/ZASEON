@@ -28,11 +28,16 @@ contract AztecBridgeFuzz is Test {
         uint256 fee = (amount * 10) / 10000;
         vm.deal(user1, amount + fee);
         vm.prank(user1);
-        (bool success,) = address(bridge).call{value: amount + fee}(
+        (bool success, ) = address(bridge).call{value: amount + fee}(
             abi.encodeWithSelector(
                 bridge.bridgeSoulToAztec.selector,
-                bytes32(uint256(1)), bytes32(uint256(2)), bytes32(uint256(3)),
-                amount, uint8(0), bytes32(0), hex"0000"
+                bytes32(uint256(1)),
+                bytes32(uint256(2)),
+                bytes32(uint256(3)),
+                amount,
+                uint8(0),
+                bytes32(0),
+                hex"0000"
             )
         );
         assertFalse(success);
@@ -43,11 +48,16 @@ contract AztecBridgeFuzz is Test {
         uint256 fee = (amount * 10) / 10000;
         vm.deal(user1, amount + fee);
         vm.prank(user1);
-        (bool success,) = address(bridge).call{value: amount + fee}(
+        (bool success, ) = address(bridge).call{value: amount + fee}(
             abi.encodeWithSelector(
                 bridge.bridgeSoulToAztec.selector,
-                bytes32(uint256(1)), bytes32(uint256(2)), bytes32(uint256(3)),
-                amount, uint8(0), bytes32(0), hex"0000"
+                bytes32(uint256(1)),
+                bytes32(uint256(2)),
+                bytes32(uint256(3)),
+                amount,
+                uint8(0),
+                bytes32(0),
+                hex"0000"
             )
         );
         assertFalse(success);
@@ -92,7 +102,13 @@ contract AztecBridgeFuzz is Test {
 
     // --- Stats ---
     function test_initialStats() public view {
-        (uint256 pending, uint256 toAztec, uint256 fromAztec, uint256 fees, uint256 rollup) = bridge.getBridgeStats();
+        (
+            uint256 pending,
+            uint256 toAztec,
+            uint256 fromAztec,
+            uint256 fees,
+            uint256 rollup
+        ) = bridge.getBridgeStats();
         assertEq(pending, 0);
         assertEq(toAztec, 0);
         assertEq(fromAztec, 0);
@@ -102,12 +118,14 @@ contract AztecBridgeFuzz is Test {
 
     // --- Request Not Found ---
     function testFuzz_getSoulToAztecRequestNotFound(bytes32 id) public view {
-        IAztecBridgeAdapter.SoulToAztecRequest memory req = bridge.getSoulToAztecRequest(id);
+        IAztecBridgeAdapter.SoulToAztecRequest memory req = bridge
+            .getSoulToAztecRequest(id);
         assertEq(req.amount, 0);
     }
 
     function testFuzz_getAztecToSoulRequestNotFound(bytes32 id) public view {
-        IAztecBridgeAdapter.AztecToSoulRequest memory req = bridge.getAztecToSoulRequest(id);
+        IAztecBridgeAdapter.AztecToSoulRequest memory req = bridge
+            .getAztecToSoulRequest(id);
         assertEq(req.amount, 0);
     }
 
@@ -116,7 +134,7 @@ contract AztecBridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

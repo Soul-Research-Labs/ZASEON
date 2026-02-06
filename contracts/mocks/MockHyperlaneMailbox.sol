@@ -30,7 +30,11 @@ contract MockHyperlaneMailbox {
         bytes message
     );
 
-    event Process(bytes32 indexed messageId, uint32 indexed origin, bytes32 indexed sender);
+    event Process(
+        bytes32 indexed messageId,
+        uint32 indexed origin,
+        bytes32 indexed sender
+    );
 
     constructor(uint32 _localDomain) {
         localDomain = _localDomain;
@@ -43,7 +47,14 @@ contract MockHyperlaneMailbox {
     ) external payable returns (bytes32) {
         messageCount++;
         bytes32 messageId = keccak256(
-            abi.encodePacked(localDomain, msg.sender, _destination, _recipient, messageCount, _body)
+            abi.encodePacked(
+                localDomain,
+                msg.sender,
+                _destination,
+                _recipient,
+                messageCount,
+                _body
+            )
         );
 
         Message memory m = Message({
@@ -69,12 +80,19 @@ contract MockHyperlaneMailbox {
     ) external {
         messageCount++;
         bytes32 messageId = keccak256(
-            abi.encodePacked(_origin, _sender, localDomain, _recipient, messageCount, _body)
+            abi.encodePacked(
+                _origin,
+                _sender,
+                localDomain,
+                _recipient,
+                messageCount,
+                _body
+            )
         );
         delivered[messageId] = true;
 
         // Call handle on the recipient
-        (bool success,) = _recipient.call(
+        (bool success, ) = _recipient.call(
             abi.encodeWithSignature(
                 "handle(uint32,bytes32,bytes)",
                 _origin,

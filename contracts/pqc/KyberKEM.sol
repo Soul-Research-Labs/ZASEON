@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {PQCLib} from "../libraries/PQCLib.sol";
+import {PQCPrecompileDetector} from "./PQCPrecompileDetector.sol";
 
 /**
  * @title KyberKEM
@@ -394,6 +395,15 @@ contract KyberKEM is Ownable, Pausable, ReentrancyGuard {
             return publicKey.length > 0 && ciphertext.length > 0;
         }
 
+        // Runtime precompile detection — auto-fallback if not available
+        if (!PQCPrecompileDetector.isKyberAvailable()) {
+            // Precompile not deployed: validate format only on testnets
+            if (block.chainid != 1) {
+                return publicKey.length > 0 && ciphertext.length > 0;
+            }
+            return false;
+        }
+
         // Call precompile for verification
         bytes memory input = abi.encode(
             uint8(algorithm),
@@ -406,9 +416,6 @@ contract KyberKEM is Ownable, Pausable, ReentrancyGuard {
         );
 
         if (!success || result.length == 0) {
-            if (useMockMode) {
-                return true; // Fallback to mock
-            }
             return false;
         }
 

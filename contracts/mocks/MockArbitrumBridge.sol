@@ -24,7 +24,16 @@ contract MockArbitrumInbox {
         messageCount++;
         emit InboxMessageDelivered(
             messageCount,
-            abi.encode(to, l2CallValue, maxSubmissionCost, excessFeeRefundAddress, callValueRefundAddress, gasLimit, maxFeePerGas, data)
+            abi.encode(
+                to,
+                l2CallValue,
+                maxSubmissionCost,
+                excessFeeRefundAddress,
+                callValueRefundAddress,
+                gasLimit,
+                maxFeePerGas,
+                data
+            )
         );
         return messageCount;
     }
@@ -42,12 +51,24 @@ contract MockArbitrumInbox {
         messageCount++;
         emit InboxMessageDelivered(
             messageCount,
-            abi.encode(to, l2CallValue, maxSubmissionCost, excessFeeRefundAddress, callValueRefundAddress, gasLimit, maxFeePerGas, data)
+            abi.encode(
+                to,
+                l2CallValue,
+                maxSubmissionCost,
+                excessFeeRefundAddress,
+                callValueRefundAddress,
+                gasLimit,
+                maxFeePerGas,
+                data
+            )
         );
         return messageCount;
     }
 
-    function calculateRetryableSubmissionFee(uint256 dataLength, uint256) external pure returns (uint256) {
+    function calculateRetryableSubmissionFee(
+        uint256 dataLength,
+        uint256
+    ) external pure returns (uint256) {
         return dataLength * 10 gwei + 0.001 ether;
     }
 }

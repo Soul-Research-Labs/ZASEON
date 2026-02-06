@@ -59,7 +59,12 @@ contract HyperlaneBridgeFuzz is Test {
         });
         vm.prank(operator);
         bridge.setISMConfig(domain, config);
-        (address ism, HyperlaneAdapter.ISMType ismType, bool enabled, uint8 threshold) = bridge.ismConfigs(domain);
+        (
+            address ism,
+            HyperlaneAdapter.ISMType ismType,
+            bool enabled,
+            uint8 threshold
+        ) = bridge.ismConfigs(domain);
         assertEq(ism, address(0x999));
         assertEq(uint8(ismType), uint8(HyperlaneAdapter.ISMType.MULTISIG));
         assertTrue(enabled);
@@ -76,7 +81,10 @@ contract HyperlaneBridgeFuzz is Test {
     }
 
     // --- Dispatch ---
-    function testFuzz_dispatchRequiresTrustedSender(uint32 dest, bytes32 recipient) public {
+    function testFuzz_dispatchRequiresTrustedSender(
+        uint32 dest,
+        bytes32 recipient
+    ) public {
         vm.assume(dest != 0 && recipient != bytes32(0));
         // No trusted sender set for this domain
         vm.deal(user1, 1 ether);
@@ -85,7 +93,10 @@ contract HyperlaneBridgeFuzz is Test {
         bridge.dispatch{value: 0.01 ether}(dest, recipient, "hello");
     }
 
-    function testFuzz_dispatchWithTrustedSender(uint32 dest, bytes32 recipient) public {
+    function testFuzz_dispatchWithTrustedSender(
+        uint32 dest,
+        bytes32 recipient
+    ) public {
         vm.assume(dest != 0 && dest != localDomain && recipient != bytes32(0));
         vm.prank(operator);
         bridge.setTrustedSender(dest, bytes32(uint256(1)));
@@ -100,7 +111,11 @@ contract HyperlaneBridgeFuzz is Test {
         vm.assume(caller != mockMailbox);
         vm.prank(caller);
         vm.expectRevert(HyperlaneAdapter.InvalidMailbox.selector);
-        bridge.handle(1, bytes32(uint256(1)), abi.encodePacked(uint256(1), "hello"));
+        bridge.handle(
+            1,
+            bytes32(uint256(1)),
+            abi.encodePacked(uint256(1), "hello")
+        );
     }
 
     function testFuzz_handleFromMailbox(uint32 origin, bytes32 sender) public {
@@ -112,13 +127,26 @@ contract HyperlaneBridgeFuzz is Test {
         bridge.handle(origin, sender, message);
     }
 
-    function testFuzz_handleUntrustedSender(uint32 origin, bytes32 sender, bytes32 wrongSender) public {
-        vm.assume(origin != 0 && sender != bytes32(0) && wrongSender != bytes32(0) && sender != wrongSender);
+    function testFuzz_handleUntrustedSender(
+        uint32 origin,
+        bytes32 sender,
+        bytes32 wrongSender
+    ) public {
+        vm.assume(
+            origin != 0 &&
+                sender != bytes32(0) &&
+                wrongSender != bytes32(0) &&
+                sender != wrongSender
+        );
         vm.prank(operator);
         bridge.setTrustedSender(origin, sender);
         vm.prank(mockMailbox);
         vm.expectRevert(HyperlaneAdapter.UntrustedSender.selector);
-        bridge.handle(origin, wrongSender, abi.encodePacked(uint256(1), "test"));
+        bridge.handle(
+            origin,
+            wrongSender,
+            abi.encodePacked(uint256(1), "test")
+        );
     }
 
     // --- Pause ---
@@ -147,7 +175,10 @@ contract HyperlaneBridgeFuzz is Test {
     }
 
     // --- Quote ---
-    function testFuzz_quoteDispatch(uint32 dest, bytes calldata message) public view {
+    function testFuzz_quoteDispatch(
+        uint32 dest,
+        bytes calldata message
+    ) public view {
         uint256 fee = bridge.quoteDispatch(dest, message);
         assertTrue(fee > 0);
     }

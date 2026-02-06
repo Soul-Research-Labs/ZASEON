@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {PQCLib} from "../libraries/PQCLib.sol";
+import {PQCPrecompileDetector} from "./PQCPrecompileDetector.sol";
 
 /**
  * @title DilithiumVerifier
@@ -376,6 +377,24 @@ contract DilithiumVerifier is Ownable, Pausable {
         bytes calldata publicKey,
         PQCLib.SignatureAlgorithm algorithm
     ) internal view returns (bool) {
+        // Runtime precompile detection — auto-fallback if not available
+        if (!PQCPrecompileDetector.isDilithiumAvailable()) {
+            // Precompile not deployed: fallback to ZK or Solidity verification
+            if (address(zkVerifier) != address(0)) {
+                // Prefer ZK verification as fallback
+                return zkVerifier.verifyDilithiumProof(
+                    abi.encode(signature),
+                    message,
+                    PQCLib.hashPublicKey(publicKey, algorithm)
+                );
+            }
+            // Last resort: pure Solidity on testnets, revert on mainnet
+            if (block.chainid != 1) {
+                return _solidityVerify(message, signature, publicKey, algorithm);
+            }
+            revert PrecompileCallFailed();
+        }
+
         bytes memory input = abi.encode(
             uint8(algorithm),
             message,
@@ -388,10 +407,6 @@ contract DilithiumVerifier is Ownable, Pausable {
         );
 
         if (!success || result.length == 0) {
-            // Fallback to mock on testnet if precompile not available
-            if (block.chainid != 1) {
-                return _mockVerify(message, publicKey, keccak256(publicKey));
-            }
             revert PrecompileCallFailed();
         }
 

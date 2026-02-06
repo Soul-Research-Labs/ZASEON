@@ -31,8 +31,16 @@ contract EthereumL1BridgeFuzz is Test {
 
     function testFuzz_isChainSupported(uint256 chainId) public view {
         // Most random chain IDs are not supported
-        if (chainId != 42161 && chainId != 10 && chainId != 8453 && chainId != 324 &&
-            chainId != 534352 && chainId != 59144 && chainId != 1101 && chainId != 42170) {
+        if (
+            chainId != 42161 &&
+            chainId != 10 &&
+            chainId != 8453 &&
+            chainId != 324 &&
+            chainId != 534352 &&
+            chainId != 59144 &&
+            chainId != 1101 &&
+            chainId != 42170
+        ) {
             assertFalse(bridge.isChainSupported(chainId));
         }
     }
@@ -62,11 +70,20 @@ contract EthereumL1BridgeFuzz is Test {
     }
 
     // --- State Commitments ---
-    function testFuzz_submitStateCommitmentRequiresSupported(bytes32 root, bytes32 proofRoot, uint256 blockNum) public {
+    function testFuzz_submitStateCommitmentRequiresSupported(
+        bytes32 root,
+        bytes32 proofRoot,
+        uint256 blockNum
+    ) public {
         vm.deal(relayer, 1 ether);
         vm.prank(relayer);
         vm.expectRevert();
-        bridge.submitStateCommitment{value: 0.01 ether}(99999, root, proofRoot, blockNum);
+        bridge.submitStateCommitment{value: 0.01 ether}(
+            99999,
+            root,
+            proofRoot,
+            blockNum
+        );
     }
 
     // --- Pause ---
@@ -120,7 +137,7 @@ contract EthereumL1BridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

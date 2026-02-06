@@ -141,6 +141,11 @@ contract ConfidentialStateContainerV3 is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new confidential state is registered
+    /// @param commitment The unique commitment hash identifying this state
+    /// @param owner The address that owns this state
+    /// @param nullifier The nullifier associated with this state for spend tracking
+    /// @param timestamp Block timestamp when the state was registered
     event StateRegistered(
         bytes32 indexed commitment,
         address indexed owner,
@@ -148,6 +153,11 @@ contract ConfidentialStateContainerV3 is
         uint256 timestamp
     );
 
+    /// @notice Emitted when a state is transferred to a new owner
+    /// @param fromCommitment The old state commitment being consumed
+    /// @param toCommitment The new state commitment being created
+    /// @param newOwner The address of the new state owner
+    /// @param version The version number of the new state
     event StateTransferred(
         bytes32 indexed fromCommitment,
         bytes32 indexed toCommitment,
@@ -155,37 +165,64 @@ contract ConfidentialStateContainerV3 is
         uint256 version
     );
 
+    /// @notice Emitted when a state's status is updated (Active, Locked, Frozen, Retired)
+    /// @param commitment The state commitment whose status changed
+    /// @param oldStatus The previous status
+    /// @param newStatus The new status
     event StateStatusChanged(
         bytes32 indexed commitment,
         StateStatus oldStatus,
         StateStatus newStatus
     );
 
+    /// @notice Emitted when multiple states are registered in a single batch
+    /// @param commitments Array of commitment hashes for the registered states
+    /// @param owner The address that owns all states in this batch
+    /// @param count Number of states registered
     event StateBatchRegistered(
         bytes32[] commitments,
         address indexed owner,
         uint256 count
     );
 
+    /// @notice Emitted when the proof validity window configuration is changed
+    /// @param oldWindow The previous validity window in seconds
+    /// @param newWindow The new validity window in seconds
     event ProofValidityWindowUpdated(uint256 oldWindow, uint256 newWindow);
+    /// @notice Emitted when the maximum encrypted state size configuration is changed
+    /// @param oldSize The previous maximum size in bytes
+    /// @param newSize The new maximum size in bytes
     event MaxStateSizeUpdated(uint256 oldSize, uint256 newSize);
 
     /*//////////////////////////////////////////////////////////////
                               CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Thrown when a nullifier has already been consumed
     error NullifierAlreadyUsed(bytes32 nullifier);
+    /// @notice Thrown when a ZK proof fails verification
     error InvalidProof();
+    /// @notice Thrown when the caller does not own the referenced state
     error NotStateOwner(address caller, address owner);
+    /// @notice Thrown when a zero address is provided for a required parameter
     error ZeroAddress();
+    /// @notice Thrown when encrypted state data has zero length
     error EmptyEncryptedState();
+    /// @notice Thrown when a commitment hash is already registered
     error CommitmentAlreadyExists(bytes32 commitment);
+    /// @notice Thrown when a commitment hash is not present in the registry
     error CommitmentNotFound(bytes32 commitment);
+    /// @notice Thrown when encrypted state data exceeds the configured maxStateSize
     error StateSizeTooLarge(uint256 size, uint256 maxSize);
+    /// @notice Thrown when a state is not in Active status
     error StateNotActive(bytes32 commitment, StateStatus status);
+    /// @notice Thrown when EIP-712 signature verification fails or chain ID mismatches
     error InvalidSignature();
+    /// @notice Thrown when the signature deadline has passed
     error SignatureExpired();
+    /// @notice Thrown when the provided nonce does not match the expected value
     error InvalidNonce();
+    /// @notice Thrown when batch size exceeds MAX_BATCH_SIZE
     error BatchTooLarge(uint256 size, uint256 maxSize);
 
     /*//////////////////////////////////////////////////////////////

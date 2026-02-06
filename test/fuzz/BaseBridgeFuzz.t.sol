@@ -19,7 +19,13 @@ contract BaseBridgeFuzz is Test {
 
     function setUp() public {
         operator = admin;
-        bridge = new BaseBridgeAdapter(admin, l1Messenger, l2Messenger, portal, true);
+        bridge = new BaseBridgeAdapter(
+            admin,
+            l1Messenger,
+            l2Messenger,
+            portal,
+            true
+        );
         vm.startPrank(admin);
         bridge.grantRole(bridge.GUARDIAN_ROLE(), guardian);
         bridge.grantRole(bridge.RELAYER_ROLE(), relayer);
@@ -59,7 +65,10 @@ contract BaseBridgeFuzz is Test {
     }
 
     // --- State Sync ---
-    function testFuzz_stateRootSync(bytes32 stateRoot, uint256 blockNum) public {
+    function testFuzz_stateRootSync(
+        bytes32 stateRoot,
+        uint256 blockNum
+    ) public {
         vm.prank(relayer);
         bridge.receiveStateFromL1(stateRoot, blockNum);
         assertEq(bridge.confirmedStateRoots(stateRoot), blockNum);
@@ -100,7 +109,13 @@ contract BaseBridgeFuzz is Test {
 
     // --- Stats ---
     function test_initialStats() public view {
-        (uint256 sent, uint256 recv, uint256 val, uint256 usdc, uint256 nonce) = bridge.getStats();
+        (
+            uint256 sent,
+            uint256 recv,
+            uint256 val,
+            uint256 usdc,
+            uint256 nonce
+        ) = bridge.getStats();
         assertEq(sent, 0);
         assertEq(recv, 0);
         assertEq(val, 0);
@@ -131,7 +146,7 @@ contract BaseBridgeFuzz is Test {
         amount = bound(amount, 1, 10 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        (bool ok,) = address(bridge).call{value: amount}("");
+        (bool ok, ) = address(bridge).call{value: amount}("");
         assertTrue(ok);
     }
 }

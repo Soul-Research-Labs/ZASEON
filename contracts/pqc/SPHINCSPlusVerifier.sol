@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {PQCLib} from "../libraries/PQCLib.sol";
+import {PQCPrecompileDetector} from "./PQCPrecompileDetector.sol";
 
 /**
  * @title SPHINCSPlusVerifier
@@ -327,6 +328,15 @@ contract SPHINCSPlusVerifier is Ownable, Pausable {
         bytes calldata publicKey,
         PQCLib.SignatureAlgorithm variant
     ) internal view returns (bool) {
+        // Runtime precompile detection — auto-fallback if not available
+        if (!PQCPrecompileDetector.isSPHINCSAvailable()) {
+            // Precompile not deployed: fallback gracefully
+            if (block.chainid != 1) {
+                return _solidityVerify(message, signature, publicKey, variant);
+            }
+            revert PrecompileCallFailed();
+        }
+
         bytes memory input = abi.encode(
             uint8(variant),
             message,
@@ -339,9 +349,6 @@ contract SPHINCSPlusVerifier is Ownable, Pausable {
         );
 
         if (!success || result.length == 0) {
-            if (block.chainid != 1) {
-                return _mockVerify(message, publicKey, keccak256(publicKey));
-            }
             revert PrecompileCallFailed();
         }
 

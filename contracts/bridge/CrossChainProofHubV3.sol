@@ -912,6 +912,8 @@ contract CrossChainProofHubV3 is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Enforces hourly proof submission rate limits, resetting the counter each hour
+    /// @param count Number of proofs being submitted in this call
     function _checkRateLimit(uint256 count) internal {
         if (block.timestamp >= lastRateLimitReset + 1 hours) {
             hourlyProofCount = 0;
@@ -927,6 +929,14 @@ contract CrossChainProofHubV3 is
         }
     }
 
+    /// @dev Shared proof submission logic for both standard and instant submission
+    /// @param proof The serialized ZK proof bytes
+    /// @param publicInputs The serialized public inputs for the proof
+    /// @param commitment The state commitment associated with this proof
+    /// @param sourceChainId The chain ID where the proof originated
+    /// @param destChainId The chain ID where the proof will be verified
+    /// @param instant Whether to use instant (3x fee) or standard verification
+    /// @return proofId The unique identifier for the submitted proof
     function _submitProof(
         bytes calldata proof,
         bytes calldata publicInputs,
@@ -1090,6 +1100,9 @@ contract CrossChainProofHubV3 is
         emit ChainRemoved(chainId);
     }
 
+    /// @notice Sets the trusted remote contract address for a given chain
+    /// @param chainId The chain ID to set the trusted remote for
+    /// @param remote The trusted remote contract address on the target chain
     function setTrustedRemote(
         uint256 chainId,
         address remote

@@ -65,7 +65,11 @@ contract LayerZeroBridgeFuzz is Test {
     }
 
     // --- Peer Management ---
-    function testFuzz_setPeer(uint32 eid, bytes32 peerAddr, uint256 minGas) public {
+    function testFuzz_setPeer(
+        uint32 eid,
+        bytes32 peerAddr,
+        uint256 minGas
+    ) public {
         vm.assume(eid != 0 && peerAddr != bytes32(0));
         minGas = bound(minGas, 0, 10_000_000);
         vm.prank(configAdmin);
@@ -76,28 +80,50 @@ contract LayerZeroBridgeFuzz is Test {
             minGas,
             LayerZeroBridgeAdapter.SecurityLevel.STANDARD
         );
-        (uint32 storedEid, bytes32 storedPeer,,bool active,,,) = bridge.peers(eid);
+        (uint32 storedEid, bytes32 storedPeer, , bool active, , , ) = bridge
+            .peers(eid);
         assertEq(storedEid, eid);
         assertEq(storedPeer, peerAddr);
         assertTrue(active);
     }
 
-    function testFuzz_setPeerDuplicateReverts(uint32 eid, bytes32 peerAddr) public {
+    function testFuzz_setPeerDuplicateReverts(
+        uint32 eid,
+        bytes32 peerAddr
+    ) public {
         vm.assume(eid != 0 && peerAddr != bytes32(0));
         vm.startPrank(configAdmin);
-        bridge.setPeer(eid, peerAddr, LayerZeroBridgeAdapter.ChainType.EVM, 0, LayerZeroBridgeAdapter.SecurityLevel.STANDARD);
+        bridge.setPeer(
+            eid,
+            peerAddr,
+            LayerZeroBridgeAdapter.ChainType.EVM,
+            0,
+            LayerZeroBridgeAdapter.SecurityLevel.STANDARD
+        );
         vm.expectRevert(LayerZeroBridgeAdapter.PeerAlreadySet.selector);
-        bridge.setPeer(eid, peerAddr, LayerZeroBridgeAdapter.ChainType.EVM, 0, LayerZeroBridgeAdapter.SecurityLevel.STANDARD);
+        bridge.setPeer(
+            eid,
+            peerAddr,
+            LayerZeroBridgeAdapter.ChainType.EVM,
+            0,
+            LayerZeroBridgeAdapter.SecurityLevel.STANDARD
+        );
         vm.stopPrank();
     }
 
     function testFuzz_deactivatePeer(uint32 eid, bytes32 peerAddr) public {
         vm.assume(eid != 0 && peerAddr != bytes32(0));
         vm.prank(configAdmin);
-        bridge.setPeer(eid, peerAddr, LayerZeroBridgeAdapter.ChainType.EVM, 0, LayerZeroBridgeAdapter.SecurityLevel.STANDARD);
+        bridge.setPeer(
+            eid,
+            peerAddr,
+            LayerZeroBridgeAdapter.ChainType.EVM,
+            0,
+            LayerZeroBridgeAdapter.SecurityLevel.STANDARD
+        );
         vm.prank(guardian);
         bridge.deactivatePeer(eid);
-        (,,, bool active,,,) = bridge.peers(eid);
+        (, , , bool active, , , ) = bridge.peers(eid);
         assertFalse(active);
     }
 
@@ -105,11 +131,25 @@ contract LayerZeroBridgeFuzz is Test {
     function testFuzz_updatePeerSecurity(uint32 eid, bytes32 peerAddr) public {
         vm.assume(eid != 0 && peerAddr != bytes32(0));
         vm.prank(configAdmin);
-        bridge.setPeer(eid, peerAddr, LayerZeroBridgeAdapter.ChainType.EVM, 0, LayerZeroBridgeAdapter.SecurityLevel.STANDARD);
+        bridge.setPeer(
+            eid,
+            peerAddr,
+            LayerZeroBridgeAdapter.ChainType.EVM,
+            0,
+            LayerZeroBridgeAdapter.SecurityLevel.STANDARD
+        );
         vm.prank(guardian);
-        bridge.updatePeerSecurity(eid, LayerZeroBridgeAdapter.SecurityLevel.MAXIMUM);
-        (,,,,, LayerZeroBridgeAdapter.SecurityLevel level,) = bridge.peers(eid);
-        assertEq(uint8(level), uint8(LayerZeroBridgeAdapter.SecurityLevel.MAXIMUM));
+        bridge.updatePeerSecurity(
+            eid,
+            LayerZeroBridgeAdapter.SecurityLevel.MAXIMUM
+        );
+        (, , , , , LayerZeroBridgeAdapter.SecurityLevel level, ) = bridge.peers(
+            eid
+        );
+        assertEq(
+            uint8(level),
+            uint8(LayerZeroBridgeAdapter.SecurityLevel.MAXIMUM)
+        );
     }
 
     // --- Pause ---
@@ -141,7 +181,13 @@ contract LayerZeroBridgeFuzz is Test {
         vm.assume(caller != admin && caller != configAdmin);
         vm.prank(caller);
         vm.expectRevert();
-        bridge.setPeer(1, bytes32(uint256(1)), LayerZeroBridgeAdapter.ChainType.EVM, 0, LayerZeroBridgeAdapter.SecurityLevel.STANDARD);
+        bridge.setPeer(
+            1,
+            bytes32(uint256(1)),
+            LayerZeroBridgeAdapter.ChainType.EVM,
+            0,
+            LayerZeroBridgeAdapter.SecurityLevel.STANDARD
+        );
     }
 
     // --- Stats ---

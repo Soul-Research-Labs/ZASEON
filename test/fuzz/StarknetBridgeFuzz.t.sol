@@ -44,7 +44,11 @@ contract MockERC20ForStarknet {
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         allowance[from][msg.sender] -= amount;
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
@@ -78,7 +82,11 @@ contract StarknetBridgeFuzz is Test {
 
         // Configure bridge
         vm.prank(operator);
-        bridge.configure(address(mockMessaging), address(mockMessaging), L2_BRIDGE);
+        bridge.configure(
+            address(mockMessaging),
+            address(mockMessaging),
+            L2_BRIDGE
+        );
 
         // Map token
         vm.prank(operator);
@@ -93,7 +101,10 @@ contract StarknetBridgeFuzz is Test {
         bridge.configure(core, address(0), L2_BRIDGE);
     }
 
-    function testFuzz_configureZeroL2Reverts(address core, address messaging) public {
+    function testFuzz_configureZeroL2Reverts(
+        address core,
+        address messaging
+    ) public {
         vm.assume(core != address(0) && messaging != address(0));
         vm.prank(operator);
         vm.expectRevert(IStarknetBridgeAdapter.InvalidL2Address.selector);
@@ -101,7 +112,11 @@ contract StarknetBridgeFuzz is Test {
     }
 
     // --- Token Mapping ---
-    function testFuzz_mapToken(address l1Token, uint256 l2Token, uint8 dec) public {
+    function testFuzz_mapToken(
+        address l1Token,
+        uint256 l2Token,
+        uint8 dec
+    ) public {
         vm.assume(l1Token != address(0) && l2Token != 0);
         vm.prank(operator);
         bridge.mapToken(l1Token, l2Token, dec);
