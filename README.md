@@ -306,6 +306,7 @@ Soul provides adapters for major cross-chain messaging:
 | `HyperlaneAdapter` | Modular security with ISM |
 | `DirectL2Messenger` | Direct L2-to-L2 messaging |
 | `CrossChainMessageRelay` | General message relay |
+| `XRPLBridgeAdapter` | XRP Ledger bridge with SHAMap proofs, escrow, UNL validator attestations |
 
 > **Archived adapters:** Optimism, zkSync, Scroll, Linea, Polygon zkEVM, Starknet, Aztec, Bitcoin/BitVM adapters are in `_archive/` for reference.
 
@@ -461,7 +462,7 @@ npx hardhat run scripts/deploy-l2.js --network base-sepolia
 
 ## Documentation
 
-[Architecture](docs/architecture.md) • [API Reference](docs/API_REFERENCE.md) • [Integration Guide](docs/INTEGRATION_GUIDE.md) • [L2 Bridges](docs/L2_INTEROPERABILITY.md) • [Security](docs/THREAT_MODEL.md)
+[Architecture](docs/architecture.md) • [API Reference](docs/API_REFERENCE.md) • [Integration Guide](docs/INTEGRATION_GUIDE.md) • [L2 Bridges](docs/L2_INTEROPERABILITY.md) • [XRPL Bridge](docs/XRPL_INTEGRATION.md) • [Security](docs/THREAT_MODEL.md)
 
 ---
 

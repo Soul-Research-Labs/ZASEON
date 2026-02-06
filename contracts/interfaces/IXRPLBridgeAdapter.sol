@@ -40,26 +40,26 @@ interface IXRPLBridgeAdapter {
 
     /// @notice Status of an XRP deposit (XRPL → EVM)
     enum DepositStatus {
-        PENDING,        // Awaiting proof submission
-        VERIFIED,       // Proof verified, awaiting minting
-        COMPLETED,      // wXRP minted to recipient
-        FAILED          // Verification failed
+        PENDING, // Awaiting proof submission
+        VERIFIED, // Proof verified, awaiting minting
+        COMPLETED, // wXRP minted to recipient
+        FAILED // Verification failed
     }
 
     /// @notice Status of an XRP withdrawal (EVM → XRPL)
     enum WithdrawalStatus {
-        PENDING,        // wXRP burned, awaiting XRPL release
-        PROCESSING,     // Multisig signing in progress
-        COMPLETED,      // XRP released on XRPL
-        REFUNDED,       // Refunded on EVM side
-        FAILED          // Release failed
+        PENDING, // wXRP burned, awaiting XRPL release
+        PROCESSING, // Multisig signing in progress
+        COMPLETED, // XRP released on XRPL
+        REFUNDED, // Refunded on EVM side
+        FAILED // Release failed
     }
 
     /// @notice Status of an escrow
     enum EscrowStatus {
-        ACTIVE,         // Escrow created, awaiting finish/cancel
-        FINISHED,       // Escrow successfully finished
-        CANCELLED       // Escrow cancelled (after cancel-after time)
+        ACTIVE, // Escrow created, awaiting finish/cancel
+        FINISHED, // Escrow successfully finished
+        CANCELLED // Escrow cancelled (after cancel-after time)
     }
 
     /// @notice XRPL transaction types relevant to the bridge
@@ -78,10 +78,10 @@ interface IXRPLBridgeAdapter {
 
     /// @notice Bridge configuration
     struct BridgeConfig {
-        bytes20 xrplMultisigAccount;   // XRPL multisig bridge account (r-address decoded)
-        address wrappedXRP;             // ERC-20 wrapped XRP token
-        address validatorOracle;        // Oracle contract for XRPL validator signatures
-        uint256 minSignatures;          // Min validator signatures for proof
+        bytes20 xrplMultisigAccount; // XRPL multisig bridge account (r-address decoded)
+        address wrappedXRP; // ERC-20 wrapped XRP token
+        address validatorOracle; // Oracle contract for XRPL validator signatures
+        uint256 minSignatures; // Min validator signatures for proof
         uint256 requiredLedgerConfirmations; // Ledger confirmations before proof acceptance
         bool active;
     }
@@ -89,15 +89,15 @@ interface IXRPLBridgeAdapter {
     /// @notice XRP deposit record (XRPL → EVM)
     struct XRPDeposit {
         bytes32 depositId;
-        bytes32 xrplTxHash;             // XRPL transaction hash
-        bytes20 xrplSender;             // XRPL sender account
-        address evmRecipient;           // EVM recipient
-        uint256 amountDrops;            // Amount in drops (1 XRP = 1,000,000 drops)
-        uint256 netAmountDrops;         // After bridge fee
-        uint256 fee;                    // Bridge fee in drops
-        bytes32 destinationTag;         // XRPL destination tag for routing
+        bytes32 xrplTxHash; // XRPL transaction hash
+        bytes20 xrplSender; // XRPL sender account
+        address evmRecipient; // EVM recipient
+        uint256 amountDrops; // Amount in drops (1 XRP = 1,000,000 drops)
+        uint256 netAmountDrops; // After bridge fee
+        uint256 fee; // Bridge fee in drops
+        bytes32 destinationTag; // XRPL destination tag for routing
         DepositStatus status;
-        uint256 ledgerIndex;            // XRPL ledger index of the tx
+        uint256 ledgerIndex; // XRPL ledger index of the tx
         uint256 initiatedAt;
         uint256 completedAt;
     }
@@ -105,10 +105,10 @@ interface IXRPLBridgeAdapter {
     /// @notice XRP withdrawal record (EVM → XRPL)
     struct XRPWithdrawal {
         bytes32 withdrawalId;
-        address evmSender;              // EVM sender
-        bytes20 xrplRecipient;          // XRPL recipient account
-        uint256 amountDrops;            // Amount in drops
-        bytes32 xrplTxHash;             // XRPL release tx hash (set on completion)
+        address evmSender; // EVM sender
+        bytes20 xrplRecipient; // XRPL recipient account
+        uint256 amountDrops; // Amount in drops
+        bytes32 xrplTxHash; // XRPL release tx hash (set on completion)
         WithdrawalStatus status;
         uint256 initiatedAt;
         uint256 completedAt;
@@ -117,14 +117,14 @@ interface IXRPLBridgeAdapter {
     /// @notice XRPL escrow (for atomic swaps)
     struct XRPLEscrow {
         bytes32 escrowId;
-        address evmParty;               // EVM-side party
-        bytes20 xrplParty;              // XRPL-side party
-        uint256 amountDrops;            // Amount in drops
-        bytes32 condition;              // Crypto-condition (PREIMAGE-SHA-256)
-        bytes32 fulfillment;            // Fulfillment (set on finish)
-        uint256 finishAfter;            // Earliest finish time (UNIX)
-        uint256 cancelAfter;            // Earliest cancel time (UNIX)
-        bytes32 xrplEscrowTxHash;       // XRPL EscrowCreate tx hash
+        address evmParty; // EVM-side party
+        bytes20 xrplParty; // XRPL-side party
+        uint256 amountDrops; // Amount in drops
+        bytes32 condition; // Crypto-condition (PREIMAGE-SHA-256)
+        bytes32 fulfillment; // Fulfillment (set on finish)
+        uint256 finishAfter; // Earliest finish time (UNIX)
+        uint256 cancelAfter; // Earliest cancel time (UNIX)
+        bytes32 xrplEscrowTxHash; // XRPL EscrowCreate tx hash
         EscrowStatus status;
         uint256 createdAt;
     }
@@ -134,24 +134,24 @@ interface IXRPLBridgeAdapter {
         uint256 ledgerIndex;
         bytes32 ledgerHash;
         bytes32 parentHash;
-        bytes32 transactionHash;        // Root of tx SHAMap tree
-        bytes32 accountStateHash;       // Root of account state SHAMap tree
-        uint256 closeTime;              // Close time in Ripple epoch
+        bytes32 transactionHash; // Root of tx SHAMap tree
+        bytes32 accountStateHash; // Root of account state SHAMap tree
+        uint256 closeTime; // Close time in Ripple epoch
         bool validated;
     }
 
     /// @notice XRPL validator attestation
     struct ValidatorAttestation {
-        bytes32 validatorPubKey;         // Ed25519 public key of validator
-        bytes signature;                 // Ed25519 signature over ledger hash
+        bytes32 validatorPubKey; // Ed25519 public key of validator
+        bytes signature; // Ed25519 signature over ledger hash
     }
 
     /// @notice XRPL SHAMap inclusion proof
     struct SHAMapProof {
-        bytes32 leafHash;                // Transaction hash (leaf in SHAMap)
-        bytes32[] innerNodes;            // SHAMap inner node hashes
-        uint8[] nodeTypes;               // 0 = inner, 1 = leaf, 2 = empty branch
-        bytes32[] branchKeys;            // Branch key bytes at each level
+        bytes32 leafHash; // Transaction hash (leaf in SHAMap)
+        bytes32[] innerNodes; // SHAMap inner node hashes
+        uint8[] nodeTypes; // 0 = inner, 1 = leaf, 2 = empty branch
+        bytes32[] branchKeys; // Branch key bytes at each level
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -204,10 +204,7 @@ interface IXRPLBridgeAdapter {
         bytes32 condition
     );
 
-    event EscrowFinished(
-        bytes32 indexed escrowId,
-        bytes32 fulfillment
-    );
+    event EscrowFinished(bytes32 indexed escrowId, bytes32 fulfillment);
 
     event EscrowCancelled(bytes32 indexed escrowId);
 
@@ -236,7 +233,10 @@ interface IXRPLBridgeAdapter {
     error DepositNotFound(bytes32 depositId);
     error InvalidDepositStatus(bytes32 depositId, DepositStatus current);
     error WithdrawalNotFound(bytes32 withdrawalId);
-    error InvalidWithdrawalStatus(bytes32 withdrawalId, WithdrawalStatus current);
+    error InvalidWithdrawalStatus(
+        bytes32 withdrawalId,
+        WithdrawalStatus current
+    );
     error EscrowNotFound(bytes32 escrowId);
     error EscrowNotActive(bytes32 escrowId);
     error FinishAfterNotReached(bytes32 escrowId, uint256 finishAfter);
@@ -310,10 +310,7 @@ interface IXRPLBridgeAdapter {
     ) external payable returns (bytes32 escrowId);
 
     /// @notice Finish an escrow by providing the fulfillment
-    function finishEscrow(
-        bytes32 escrowId,
-        bytes32 fulfillment
-    ) external;
+    function finishEscrow(bytes32 escrowId, bytes32 fulfillment) external;
 
     /// @notice Cancel an expired escrow
     function cancelEscrow(bytes32 escrowId) external;
@@ -338,8 +335,19 @@ interface IXRPLBridgeAdapter {
     ) external;
 
     // View functions
-    function getDeposit(bytes32 depositId) external view returns (XRPDeposit memory);
-    function getWithdrawal(bytes32 withdrawalId) external view returns (XRPWithdrawal memory);
-    function getEscrow(bytes32 escrowId) external view returns (XRPLEscrow memory);
-    function getLedgerHeader(uint256 ledgerIndex) external view returns (LedgerHeader memory);
+    function getDeposit(
+        bytes32 depositId
+    ) external view returns (XRPDeposit memory);
+
+    function getWithdrawal(
+        bytes32 withdrawalId
+    ) external view returns (XRPWithdrawal memory);
+
+    function getEscrow(
+        bytes32 escrowId
+    ) external view returns (XRPLEscrow memory);
+
+    function getLedgerHeader(
+        uint256 ledgerIndex
+    ) external view returns (LedgerHeader memory);
 }

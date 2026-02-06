@@ -4,6 +4,8 @@
  * Provides TypeScript interfaces and implementations for all supported bridge adapters
  */
 
+export * from './xrpl';
+
 import { 
     keccak256, 
     encodeAbiParameters, 

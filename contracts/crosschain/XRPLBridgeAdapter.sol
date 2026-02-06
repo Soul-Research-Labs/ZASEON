@@ -237,7 +237,9 @@ contract XRPLBridgeAdapter is
     }
 
     /// @notice Set the treasury address
-    function setTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTreasury(
+        address _treasury
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_treasury == address(0)) revert ZeroAddress();
         treasury = _treasury;
     }
@@ -256,7 +258,13 @@ contract XRPLBridgeAdapter is
         uint256 ledgerIndex,
         SHAMapProof calldata txProof,
         ValidatorAttestation[] calldata attestations
-    ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) returns (bytes32 depositId) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(RELAYER_ROLE)
+        returns (bytes32 depositId)
+    {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
         if (evmRecipient == address(0)) revert ZeroAddress();
         if (amountDrops < MIN_DEPOSIT_DROPS) revert AmountTooSmall(amountDrops);
@@ -429,9 +437,12 @@ contract XRPLBridgeAdapter is
         ValidatorAttestation[] calldata attestations
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
         XRPWithdrawal storage withdrawal = withdrawals[withdrawalId];
-        if (withdrawal.withdrawalId == bytes32(0)) revert WithdrawalNotFound(withdrawalId);
-        if (withdrawal.status != WithdrawalStatus.PENDING &&
-            withdrawal.status != WithdrawalStatus.PROCESSING) {
+        if (withdrawal.withdrawalId == bytes32(0))
+            revert WithdrawalNotFound(withdrawalId);
+        if (
+            withdrawal.status != WithdrawalStatus.PENDING &&
+            withdrawal.status != WithdrawalStatus.PROCESSING
+        ) {
             revert InvalidWithdrawalStatus(withdrawalId, withdrawal.status);
         }
         if (usedXRPLTxHashes[xrplTxHash]) revert XRPLTxAlreadyUsed(xrplTxHash);
@@ -439,10 +450,22 @@ contract XRPLBridgeAdapter is
         // Verify the XRPL release transaction exists in a validated ledger
         // Find the ledger containing this tx by checking recent ledgers
         bool verified = false;
-        for (uint256 i = latestLedgerIndex; i > 0 && i > latestLedgerIndex - 100; i--) {
+        for (
+            uint256 i = latestLedgerIndex;
+            i > 0 && i > latestLedgerIndex - 100;
+            i--
+        ) {
             LedgerHeader storage header = ledgerHeaders[i];
-            if (header.validated && _verifySHAMapProof(txProof, header.transactionHash, xrplTxHash)) {
-                if (_verifyValidatorAttestations(header.ledgerHash, attestations)) {
+            if (
+                header.validated &&
+                _verifySHAMapProof(txProof, header.transactionHash, xrplTxHash)
+            ) {
+                if (
+                    _verifyValidatorAttestations(
+                        header.ledgerHash,
+                        attestations
+                    )
+                ) {
                     verified = true;
                     break;
                 }
@@ -464,11 +487,14 @@ contract XRPLBridgeAdapter is
         bytes32 withdrawalId
     ) external nonReentrant whenNotPaused {
         XRPWithdrawal storage withdrawal = withdrawals[withdrawalId];
-        if (withdrawal.withdrawalId == bytes32(0)) revert WithdrawalNotFound(withdrawalId);
+        if (withdrawal.withdrawalId == bytes32(0))
+            revert WithdrawalNotFound(withdrawalId);
         if (withdrawal.status != WithdrawalStatus.PENDING) {
             revert InvalidWithdrawalStatus(withdrawalId, withdrawal.status);
         }
-        if (block.timestamp < withdrawal.initiatedAt + WITHDRAWAL_REFUND_DELAY) {
+        if (
+            block.timestamp < withdrawal.initiatedAt + WITHDRAWAL_REFUND_DELAY
+        ) {
             revert WithdrawalTimelockNotExpired(withdrawalId);
         }
 
@@ -516,8 +542,10 @@ contract XRPLBridgeAdapter is
 
         // Validate timelocks
         uint256 duration = cancelAfter - finishAfter;
-        if (duration < MIN_ESCROW_TIMELOCK) revert TimelockTooShort(duration, MIN_ESCROW_TIMELOCK);
-        if (duration > MAX_ESCROW_TIMELOCK) revert TimelockTooLong(duration, MAX_ESCROW_TIMELOCK);
+        if (duration < MIN_ESCROW_TIMELOCK)
+            revert TimelockTooShort(duration, MIN_ESCROW_TIMELOCK);
+        if (duration > MAX_ESCROW_TIMELOCK)
+            revert TimelockTooLong(duration, MAX_ESCROW_TIMELOCK);
         if (finishAfter < block.timestamp) revert InvalidAmount();
 
         // Convert ETH value to drops equivalent for recording purposes
@@ -568,7 +596,8 @@ contract XRPLBridgeAdapter is
     ) external nonReentrant whenNotPaused {
         XRPLEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
-        if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
+        if (escrow.status != EscrowStatus.ACTIVE)
+            revert EscrowNotActive(escrowId);
         if (block.timestamp < escrow.finishAfter) {
             revert FinishAfterNotReached(escrowId, escrow.finishAfter);
         }
@@ -587,7 +616,9 @@ contract XRPLBridgeAdapter is
         // Release funds to the XRPL party's EVM representative
         // In practice, the XRPL party would provide an EVM address for receiving
         // For now, the fulfillment provider (msg.sender) receives the funds
-        (bool success, ) = payable(msg.sender).call{value: escrow.amountDrops}("");
+        (bool success, ) = payable(msg.sender).call{value: escrow.amountDrops}(
+            ""
+        );
         if (!success) revert InvalidAmount();
 
         emit EscrowFinished(escrowId, fulfillment);
@@ -599,7 +630,8 @@ contract XRPLBridgeAdapter is
     ) external nonReentrant whenNotPaused {
         XRPLEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
-        if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
+        if (escrow.status != EscrowStatus.ACTIVE)
+            revert EscrowNotActive(escrowId);
         if (block.timestamp < escrow.cancelAfter) {
             revert CancelAfterNotReached(escrowId, escrow.cancelAfter);
         }
@@ -608,7 +640,9 @@ contract XRPLBridgeAdapter is
         totalEscrowsCancelled++;
 
         // Return funds to the creator
-        (bool success, ) = payable(escrow.evmParty).call{value: escrow.amountDrops}("");
+        (bool success, ) = payable(escrow.evmParty).call{
+            value: escrow.amountDrops
+        }("");
         if (!success) revert InvalidAmount();
 
         emit EscrowCancelled(escrowId);
@@ -711,11 +745,16 @@ contract XRPLBridgeAdapter is
         accumulatedFees = 0;
 
         // Transfer fee-equivalent wXRP to treasury
-        uint256 balance = IERC20(bridgeConfig.wrappedXRP).balanceOf(address(this));
+        uint256 balance = IERC20(bridgeConfig.wrappedXRP).balanceOf(
+            address(this)
+        );
         uint256 transferAmount = amount > balance ? balance : amount;
 
         if (transferAmount > 0) {
-            IERC20(bridgeConfig.wrappedXRP).safeTransfer(treasury, transferAmount);
+            IERC20(bridgeConfig.wrappedXRP).safeTransfer(
+                treasury,
+                transferAmount
+            );
         }
 
         emit FeesWithdrawn(treasury, transferAmount);
@@ -726,37 +765,51 @@ contract XRPLBridgeAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IXRPLBridgeAdapter
-    function getDeposit(bytes32 depositId) external view returns (XRPDeposit memory) {
+    function getDeposit(
+        bytes32 depositId
+    ) external view returns (XRPDeposit memory) {
         return deposits[depositId];
     }
 
     /// @inheritdoc IXRPLBridgeAdapter
-    function getWithdrawal(bytes32 withdrawalId) external view returns (XRPWithdrawal memory) {
+    function getWithdrawal(
+        bytes32 withdrawalId
+    ) external view returns (XRPWithdrawal memory) {
         return withdrawals[withdrawalId];
     }
 
     /// @inheritdoc IXRPLBridgeAdapter
-    function getEscrow(bytes32 escrowId) external view returns (XRPLEscrow memory) {
+    function getEscrow(
+        bytes32 escrowId
+    ) external view returns (XRPLEscrow memory) {
         return escrows[escrowId];
     }
 
     /// @inheritdoc IXRPLBridgeAdapter
-    function getLedgerHeader(uint256 ledgerIndex) external view returns (LedgerHeader memory) {
+    function getLedgerHeader(
+        uint256 ledgerIndex
+    ) external view returns (LedgerHeader memory) {
         return ledgerHeaders[ledgerIndex];
     }
 
     /// @notice Get user deposit history
-    function getUserDeposits(address user) external view returns (bytes32[] memory) {
+    function getUserDeposits(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userDeposits[user];
     }
 
     /// @notice Get user withdrawal history
-    function getUserWithdrawals(address user) external view returns (bytes32[] memory) {
+    function getUserWithdrawals(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userWithdrawals[user];
     }
 
     /// @notice Get user escrow history
-    function getUserEscrows(address user) external view returns (bytes32[] memory) {
+    function getUserEscrows(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userEscrows[user];
     }
 
@@ -819,7 +872,10 @@ contract XRPLBridgeAdapter is
             if (proof.nodeTypes[i] == 0) {
                 // Inner node: hash(child_left, child_right)
                 // The branchKey determines which side our hash goes
-                if (i < proof.branchKeys.length && proof.branchKeys[i] != bytes32(0)) {
+                if (
+                    i < proof.branchKeys.length &&
+                    proof.branchKeys[i] != bytes32(0)
+                ) {
                     // Our hash is on the right branch
                     computedHash = sha256(
                         abi.encodePacked(proof.innerNodes[i], computedHash)
@@ -833,7 +889,11 @@ contract XRPLBridgeAdapter is
             } else if (proof.nodeTypes[i] == 1) {
                 // Leaf node boundary — hash with leaf prefix
                 computedHash = sha256(
-                    abi.encodePacked(bytes1(0x4D), computedHash, proof.innerNodes[i])
+                    abi.encodePacked(
+                        bytes1(0x4D),
+                        computedHash,
+                        proof.innerNodes[i]
+                    )
                 );
             }
             // nodeType 2 = empty branch, skip
@@ -864,14 +924,16 @@ contract XRPLBridgeAdapter is
         for (uint256 i = 0; i < attestations.length; i++) {
             // Delegate Ed25519 signature verification to the oracle contract
             // The oracle maintains the UNL and verifies each validator's signature
-            (bool success, bytes memory result) = bridgeConfig.validatorOracle.staticcall(
-                abi.encodeWithSignature(
-                    "verifyAttestation(bytes32,bytes32,bytes)",
-                    ledgerHash,
-                    attestations[i].validatorPubKey,
-                    attestations[i].signature
-                )
-            );
+            (bool success, bytes memory result) = bridgeConfig
+                .validatorOracle
+                .staticcall(
+                    abi.encodeWithSignature(
+                        "verifyAttestation(bytes32,bytes32,bytes)",
+                        ledgerHash,
+                        attestations[i].validatorPubKey,
+                        attestations[i].signature
+                    )
+                );
 
             if (success && result.length >= 32) {
                 bool isValid = abi.decode(result, (bool));
