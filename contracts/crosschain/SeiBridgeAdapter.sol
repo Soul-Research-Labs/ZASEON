@@ -6,60 +6,60 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISuiBridgeAdapter} from "../interfaces/ISuiBridgeAdapter.sol";
+import {ISeiBridgeAdapter} from "../interfaces/ISeiBridgeAdapter.sol";
 
 /**
- * @title SuiBridgeAdapter
+ * @title SeiBridgeAdapter
  * @author Soul Protocol
- * @notice Bridge adapter for Sui Network interoperability with Soul Protocol
- * @dev Enables cross-chain transfers between Soul Protocol (EVM) and the Sui Network
+ * @notice Bridge adapter for Sei Network interoperability with Soul Protocol
+ * @dev Enables cross-chain transfers between Soul Protocol (EVM) and the Sei Network
  *
  * ARCHITECTURE:
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │                       Soul <-> Sui Bridge                                   │
+ * │                       Soul <-> Sei Bridge                                   │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │                                                                             │
  * │  ┌───────────────────┐           ┌───────────────────────────────────┐     │
- * │  │   Soul Side       │           │     Sui Side                      │     │
+ * │  │   Soul Side       │           │     Sei Side                      │     │
  * │  │  ┌─────────────┐  │           │  ┌────────────────────────────┐   │     │
- * │  │  │ wSUI        │  │           │  │  Sui Bridge Object         │   │     │
- * │  │  │ Token       │  │           │  │  (Move Module)             │   │     │
+ * │  │  │ wSEI        │  │           │  │  Sei EVM Module            │   │     │
+ * │  │  │ Token       │  │           │  │  (Parallel Execution)      │   │     │
  * │  │  │ (ERC-20)    │  │           │  └────────────────────────────┘   │     │
  * │  │  └─────────────┘  │           │        │                          │     │
  * │  │        │          │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  ┌─────▼───────┐  │           │  │  Mysticeti Consensus       │   │     │
+ * │  │  ┌─────▼───────┐  │           │  │  Twin-Turbo Consensus      │   │     │
  * │  │  │ Bridge      │  │◄─────────►│  │  (~400ms finality)         │   │     │
  * │  │  │ Adapter     │  │  Relayer  │  └────────────────────────────┘   │     │
  * │  │  └─────────────┘  │           │        │                          │     │
  * │  │        │          │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  ┌─────▼───────┐  │           │  │  Checkpoint / Epoch        │   │     │
- * │  │  │ ZK Privacy  │  │           │  │  (Validator Committee)     │   │     │
+ * │  │  ┌─────▼───────┐  │           │  │  Tendermint BFT Validators │   │     │
+ * │  │  │ ZK Privacy  │  │           │  │  (2/3+1 voting power)      │   │     │
  * │  │  │ Layer       │  │           │  └────────────────────────────┘   │     │
  * │  │  └─────────────┘  │           │                                   │     │
  * │  └───────────────────┘           └───────────────────────────────────┘     │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
- * SUI CONCEPTS:
- * - MIST: Smallest unit (1 SUI = 1,000,000,000 MIST = 1e9)
- * - Object Model: Unique owned/shared objects with versioning
- * - Checkpoint: Certified consensus output with transaction effects
- * - Epoch: Validator committee reconfiguration period (~24h)
- * - Mysticeti: DAG-based BFT consensus with sub-second finality
- * - Chain ID: sui-mainnet → EVM numeric mapping: 784
- * - Finality: 10 checkpoint confirmations for cross-chain safety
- * - Block time: ~400ms (Mysticeti consensus rounds)
+ * SEI CONCEPTS:
+ * - usei: Smallest unit (1 SEI = 1,000,000 usei = 1e6)
+ * - Twin-Turbo: Optimistic block processing + intelligent propagation
+ * - Parallel EVM: Optimistic concurrent transaction execution
+ * - SeiDB: Optimized storage for high-throughput DeFi
+ * - Built-in DEX: Native order book matching engine
+ * - Chain ID: sei-mainnet → EVM chain ID: 1329
+ * - Finality: 8 block confirmations for cross-chain safety
+ * - Block time: ~400ms (Twin-Turbo consensus)
  *
  * SECURITY PROPERTIES:
- * - Validator committee signature verification (2/3+1 stake weight)
- * - Checkpoint chain integrity enforcement
- * - Object inclusion proofs against checkpoint roots
+ * - Tendermint BFT validator attestation (2/3+1 voting power)
+ * - Block header chain integrity enforcement
+ * - Merkle inclusion proofs for transaction verification
  * - HTLC hashlock conditions (SHA-256 preimage) for atomic swaps
  * - ReentrancyGuard on all state-changing functions
  * - Pausable emergency circuit breaker
  * - Nullifier-based double-spend prevention for privacy deposits
  */
-contract SuiBridgeAdapter is
-    ISuiBridgeAdapter,
+contract SeiBridgeAdapter is
+    ISeiBridgeAdapter,
     AccessControl,
     ReentrancyGuard,
     Pausable
@@ -79,26 +79,26 @@ contract SuiBridgeAdapter is
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Sui chain ID (sui-mainnet EVM mapping)
-    uint256 public constant SUI_CHAIN_ID = 784;
+    /// @notice Sei EVM chain ID (sei-mainnet)
+    uint256 public constant SEI_CHAIN_ID = 1329;
 
-    /// @notice 1 SUI = 1e9 MIST (9 decimals)
-    uint256 public constant MIST_PER_SUI = 1_000_000_000;
+    /// @notice 1 SEI = 1e6 usei (6 decimals)
+    uint256 public constant USEI_PER_SEI = 1_000_000;
 
-    /// @notice Minimum deposit: 0.1 SUI = 100,000,000 MIST
-    uint256 public constant MIN_DEPOSIT_MIST = MIST_PER_SUI / 10;
+    /// @notice Minimum deposit: 0.1 SEI = 100,000 usei
+    uint256 public constant MIN_DEPOSIT_USEI = USEI_PER_SEI / 10;
 
-    /// @notice Maximum deposit: 10,000,000 SUI
-    uint256 public constant MAX_DEPOSIT_MIST = 10_000_000 * MIST_PER_SUI;
+    /// @notice Maximum deposit: 10,000,000 SEI
+    uint256 public constant MAX_DEPOSIT_USEI = 10_000_000 * USEI_PER_SEI;
 
-    /// @notice Bridge fee in basis points (0.06% = 6 BPS)
-    uint256 public constant BRIDGE_FEE_BPS = 6;
+    /// @notice Bridge fee in basis points (0.05% = 5 BPS)
+    uint256 public constant BRIDGE_FEE_BPS = 5;
 
     /// @notice BPS denominator
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
-    /// @notice Withdrawal refund delay: 48 hours
-    uint256 public constant WITHDRAWAL_REFUND_DELAY = 48 hours;
+    /// @notice Withdrawal refund delay: 36 hours
+    uint256 public constant WITHDRAWAL_REFUND_DELAY = 36 hours;
 
     /// @notice Minimum escrow timelock: 1 hour
     uint256 public constant MIN_ESCROW_TIMELOCK = 1 hours;
@@ -106,8 +106,8 @@ contract SuiBridgeAdapter is
     /// @notice Maximum escrow timelock: 30 days
     uint256 public constant MAX_ESCROW_TIMELOCK = 30 days;
 
-    /// @notice Default checkpoint confirmations for finality
-    uint256 public constant DEFAULT_CHECKPOINT_CONFIRMATIONS = 10;
+    /// @notice Default block confirmations for finality
+    uint256 public constant DEFAULT_BLOCK_CONFIRMATIONS = 8;
 
     /*//////////////////////////////////////////////////////////////
                               STORAGE
@@ -122,13 +122,13 @@ contract SuiBridgeAdapter is
     uint256 public escrowNonce;
 
     // --- Mappings ---
-    mapping(bytes32 => SUIDeposit) public deposits;
-    mapping(bytes32 => SUIWithdrawal) public withdrawals;
-    mapping(bytes32 => SUIEscrow) public escrows;
-    mapping(uint256 => SuiCheckpoint) public checkpoints;
+    mapping(bytes32 => SEIDeposit) public deposits;
+    mapping(bytes32 => SEIWithdrawal) public withdrawals;
+    mapping(bytes32 => SEIEscrow) public escrows;
+    mapping(uint256 => SeiBlockHeader) public blockHeaders;
 
     // --- Replay protection ---
-    mapping(bytes32 => bool) public usedSuiTxDigests;
+    mapping(bytes32 => bool) public usedSeiTxHashes;
     mapping(bytes32 => bool) public usedNullifiers;
 
     // --- User tracking ---
@@ -136,9 +136,8 @@ contract SuiBridgeAdapter is
     mapping(address => bytes32[]) public userWithdrawals;
     mapping(address => bytes32[]) public userEscrows;
 
-    // --- Checkpoint tracking ---
-    uint256 public latestCheckpointSequence;
-    uint256 public currentEpoch;
+    // --- Block tracking ---
+    uint256 public latestBlockHeight;
 
     // --- Statistics ---
     uint256 public totalDeposited;
@@ -168,130 +167,113 @@ contract SuiBridgeAdapter is
                            CONFIGURATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function configure(
-        address suiBridgeContract,
-        address wrappedSUI,
-        address validatorCommitteeOracle,
-        uint256 minCommitteeSignatures,
-        uint256 requiredCheckpointConfirmations
+        address seiBridgeContract,
+        address wrappedSEI,
+        address validatorOracle,
+        uint256 minValidatorSignatures,
+        uint256 requiredBlockConfirmations
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (suiBridgeContract == address(0)) revert ZeroAddress();
-        if (wrappedSUI == address(0)) revert ZeroAddress();
-        if (validatorCommitteeOracle == address(0)) revert ZeroAddress();
+        if (seiBridgeContract == address(0)) revert ZeroAddress();
+        if (wrappedSEI == address(0)) revert ZeroAddress();
+        if (validatorOracle == address(0)) revert ZeroAddress();
 
         bridgeConfig = BridgeConfig({
-            suiBridgeContract: suiBridgeContract,
-            wrappedSUI: wrappedSUI,
-            validatorCommitteeOracle: validatorCommitteeOracle,
-            minCommitteeSignatures: minCommitteeSignatures,
-            requiredCheckpointConfirmations: requiredCheckpointConfirmations,
+            seiBridgeContract: seiBridgeContract,
+            wrappedSEI: wrappedSEI,
+            validatorOracle: validatorOracle,
+            minValidatorSignatures: minValidatorSignatures,
+            requiredBlockConfirmations: requiredBlockConfirmations,
             active: true
         });
 
-        emit BridgeConfigured(
-            suiBridgeContract,
-            wrappedSUI,
-            validatorCommitteeOracle
-        );
+        emit BridgeConfigured(seiBridgeContract, wrappedSEI, validatorOracle);
     }
 
     /// @notice Set the fee treasury address
-    function setTreasury(
-        address _treasury
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_treasury == address(0)) revert ZeroAddress();
         treasury = _treasury;
     }
 
     /*//////////////////////////////////////////////////////////////
-                         DEPOSITS (Sui → Soul)
+                         DEPOSITS (Sei → Soul)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
-    function initiateSUIDeposit(
-        bytes32 suiTxDigest,
-        bytes32 suiSender,
+    /// @inheritdoc ISeiBridgeAdapter
+    function initiateSEIDeposit(
+        bytes32 seiTxHash,
+        bytes32 seiSender,
         address evmRecipient,
-        uint256 amountMist,
-        uint256 checkpointSequence,
-        SuiObjectProof calldata txProof,
+        uint256 amountUsei,
+        uint256 blockHeight,
+        SeiMerkleProof calldata txProof,
         ValidatorAttestation[] calldata attestations
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        onlyRole(RELAYER_ROLE)
-        returns (bytes32)
-    {
+    ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) returns (bytes32) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
         if (evmRecipient == address(0)) revert ZeroAddress();
-        if (suiSender == bytes32(0)) revert InvalidSuiAddress();
-        if (amountMist < MIN_DEPOSIT_MIST)
-            revert AmountBelowMinimum(amountMist, MIN_DEPOSIT_MIST);
-        if (amountMist > MAX_DEPOSIT_MIST)
-            revert AmountAboveMaximum(amountMist, MAX_DEPOSIT_MIST);
-        if (usedSuiTxDigests[suiTxDigest]) revert SuiTxAlreadyUsed(suiTxDigest);
+        if (seiSender == bytes32(0)) revert InvalidSeiAddress();
+        if (amountUsei < MIN_DEPOSIT_USEI)
+            revert AmountBelowMinimum(amountUsei, MIN_DEPOSIT_USEI);
+        if (amountUsei > MAX_DEPOSIT_USEI)
+            revert AmountAboveMaximum(amountUsei, MAX_DEPOSIT_USEI);
+        if (usedSeiTxHashes[seiTxHash])
+            revert SeiTxAlreadyUsed(seiTxHash);
 
-        // Verify checkpoint is submitted and verified
-        SuiCheckpoint storage cp = checkpoints[checkpointSequence];
-        if (!cp.verified) revert CheckpointNotVerified(checkpointSequence);
+        // Verify block header is submitted and verified
+        SeiBlockHeader storage bh = blockHeaders[blockHeight];
+        if (!bh.verified) revert BlockNotVerified(blockHeight);
 
-        // Verify validator committee attestations
-        _verifyCommitteeAttestations(cp.digest, attestations);
+        // Verify validator attestations
+        _verifyValidatorAttestations(bh.blockHash, attestations);
 
-        // Mark tx digest as used (replay protection)
-        usedSuiTxDigests[suiTxDigest] = true;
+        // Mark tx hash as used (replay protection)
+        usedSeiTxHashes[seiTxHash] = true;
 
         // Calculate fee
-        uint256 fee = (amountMist * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 netAmount = amountMist - fee;
+        uint256 fee = (amountUsei * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 netAmount = amountUsei - fee;
 
         // Generate deposit ID
         bytes32 depositId = keccak256(
             abi.encodePacked(
-                SUI_CHAIN_ID,
-                suiTxDigest,
+                SEI_CHAIN_ID,
+                seiTxHash,
                 evmRecipient,
-                amountMist,
+                amountUsei,
                 ++depositNonce
             )
         );
 
-        deposits[depositId] = SUIDeposit({
+        deposits[depositId] = SEIDeposit({
             depositId: depositId,
-            suiTxDigest: suiTxDigest,
-            suiSender: suiSender,
+            seiTxHash: seiTxHash,
+            seiSender: seiSender,
             evmRecipient: evmRecipient,
-            amountMist: amountMist,
-            netAmountMist: netAmount,
+            amountUsei: amountUsei,
+            netAmountUsei: netAmount,
             fee: fee,
             status: DepositStatus.VERIFIED,
-            checkpointSequence: checkpointSequence,
+            blockHeight: blockHeight,
             initiatedAt: block.timestamp,
             completedAt: 0
         });
 
         userDeposits[evmRecipient].push(depositId);
         accumulatedFees += fee;
-        totalDeposited += amountMist;
+        totalDeposited += amountUsei;
 
-        emit SUIDepositInitiated(
-            depositId,
-            suiTxDigest,
-            suiSender,
-            evmRecipient,
-            amountMist
-        );
+        emit SEIDepositInitiated(depositId, seiTxHash, seiSender, evmRecipient, amountUsei);
 
         return depositId;
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
-    function completeSUIDeposit(
+    /// @inheritdoc ISeiBridgeAdapter
+    function completeSEIDeposit(
         bytes32 depositId
     ) external nonReentrant onlyRole(OPERATOR_ROLE) {
-        SUIDeposit storage dep = deposits[depositId];
+        SEIDeposit storage dep = deposits[depositId];
         if (dep.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (dep.status == DepositStatus.COMPLETED)
             revert DepositAlreadyCompleted(depositId);
@@ -301,99 +283,92 @@ contract SuiBridgeAdapter is
         dep.status = DepositStatus.COMPLETED;
         dep.completedAt = block.timestamp;
 
-        // Mint wSUI to recipient
-        IERC20(bridgeConfig.wrappedSUI).safeTransfer(
+        // Mint wSEI to recipient
+        IERC20(bridgeConfig.wrappedSEI).safeTransfer(
             dep.evmRecipient,
-            dep.netAmountMist
+            dep.netAmountUsei
         );
 
-        emit SUIDepositCompleted(
-            depositId,
-            dep.evmRecipient,
-            dep.netAmountMist
-        );
+        emit SEIDepositCompleted(depositId, dep.evmRecipient, dep.netAmountUsei);
     }
 
     /*//////////////////////////////////////////////////////////////
-                       WITHDRAWALS (Soul → Sui)
+                       WITHDRAWALS (Soul → Sei)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function initiateWithdrawal(
-        bytes32 suiRecipient,
-        uint256 amountMist
+        bytes32 seiRecipient,
+        uint256 amountUsei
     ) external nonReentrant whenNotPaused returns (bytes32) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
-        if (suiRecipient == bytes32(0)) revert InvalidSuiAddress();
-        if (amountMist < MIN_DEPOSIT_MIST)
-            revert AmountBelowMinimum(amountMist, MIN_DEPOSIT_MIST);
-        if (amountMist > MAX_DEPOSIT_MIST)
-            revert AmountAboveMaximum(amountMist, MAX_DEPOSIT_MIST);
+        if (seiRecipient == bytes32(0)) revert InvalidSeiAddress();
+        if (amountUsei < MIN_DEPOSIT_USEI)
+            revert AmountBelowMinimum(amountUsei, MIN_DEPOSIT_USEI);
+        if (amountUsei > MAX_DEPOSIT_USEI)
+            revert AmountAboveMaximum(amountUsei, MAX_DEPOSIT_USEI);
 
-        // Transfer wSUI from user
-        IERC20(bridgeConfig.wrappedSUI).safeTransferFrom(
+        // Transfer wSEI from user
+        IERC20(bridgeConfig.wrappedSEI).safeTransferFrom(
             msg.sender,
             address(this),
-            amountMist
+            amountUsei
         );
 
         bytes32 withdrawalId = keccak256(
             abi.encodePacked(
-                SUI_CHAIN_ID,
+                SEI_CHAIN_ID,
                 msg.sender,
-                suiRecipient,
-                amountMist,
+                seiRecipient,
+                amountUsei,
                 ++withdrawalNonce
             )
         );
 
-        withdrawals[withdrawalId] = SUIWithdrawal({
+        withdrawals[withdrawalId] = SEIWithdrawal({
             withdrawalId: withdrawalId,
             evmSender: msg.sender,
-            suiRecipient: suiRecipient,
-            amountMist: amountMist,
-            suiTxDigest: bytes32(0),
+            seiRecipient: seiRecipient,
+            amountUsei: amountUsei,
+            seiTxHash: bytes32(0),
             status: WithdrawalStatus.PENDING,
             initiatedAt: block.timestamp,
             completedAt: 0
         });
 
         userWithdrawals[msg.sender].push(withdrawalId);
-        totalWithdrawn += amountMist;
+        totalWithdrawn += amountUsei;
 
-        emit SUIWithdrawalInitiated(
-            withdrawalId,
-            msg.sender,
-            suiRecipient,
-            amountMist
-        );
+        emit SEIWithdrawalInitiated(withdrawalId, msg.sender, seiRecipient, amountUsei);
 
         return withdrawalId;
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function completeWithdrawal(
         bytes32 withdrawalId,
-        bytes32 suiTxDigest,
-        SuiObjectProof calldata txProof,
+        bytes32 seiTxHash,
+        SeiMerkleProof calldata txProof,
         ValidatorAttestation[] calldata attestations
     ) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SUIWithdrawal storage w = withdrawals[withdrawalId];
+        SEIWithdrawal storage w = withdrawals[withdrawalId];
         if (w.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (w.status != WithdrawalStatus.PENDING)
             revert WithdrawalNotPending(withdrawalId);
 
         w.status = WithdrawalStatus.COMPLETED;
-        w.suiTxDigest = suiTxDigest;
+        w.seiTxHash = seiTxHash;
         w.completedAt = block.timestamp;
 
-        emit SUIWithdrawalCompleted(withdrawalId, suiTxDigest);
+        emit SEIWithdrawalCompleted(withdrawalId, seiTxHash);
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
-    function refundWithdrawal(bytes32 withdrawalId) external nonReentrant {
-        SUIWithdrawal storage w = withdrawals[withdrawalId];
+    /// @inheritdoc ISeiBridgeAdapter
+    function refundWithdrawal(
+        bytes32 withdrawalId
+    ) external nonReentrant {
+        SEIWithdrawal storage w = withdrawals[withdrawalId];
         if (w.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (w.status != WithdrawalStatus.PENDING)
@@ -407,24 +382,27 @@ contract SuiBridgeAdapter is
         w.status = WithdrawalStatus.REFUNDED;
         w.completedAt = block.timestamp;
 
-        // Return wSUI to sender
-        IERC20(bridgeConfig.wrappedSUI).safeTransfer(w.evmSender, w.amountMist);
+        // Return wSEI to sender
+        IERC20(bridgeConfig.wrappedSEI).safeTransfer(
+            w.evmSender,
+            w.amountUsei
+        );
 
-        emit SUIWithdrawalRefunded(withdrawalId, w.evmSender, w.amountMist);
+        emit SEIWithdrawalRefunded(withdrawalId, w.evmSender, w.amountUsei);
     }
 
     /*//////////////////////////////////////////////////////////////
                         ESCROW (Atomic Swaps)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function createEscrow(
-        bytes32 suiParty,
+        bytes32 seiParty,
         bytes32 hashlock,
         uint256 finishAfter,
         uint256 cancelAfter
     ) external payable nonReentrant whenNotPaused returns (bytes32) {
-        if (suiParty == bytes32(0)) revert InvalidSuiAddress();
+        if (seiParty == bytes32(0)) revert InvalidSeiAddress();
         if (hashlock == bytes32(0)) revert InvalidHashlock();
         if (cancelAfter <= finishAfter) revert InvalidTimelockRange();
 
@@ -434,19 +412,19 @@ contract SuiBridgeAdapter is
 
         bytes32 escrowId = keccak256(
             abi.encodePacked(
-                SUI_CHAIN_ID,
+                SEI_CHAIN_ID,
                 msg.sender,
-                suiParty,
+                seiParty,
                 hashlock,
                 ++escrowNonce
             )
         );
 
-        escrows[escrowId] = SUIEscrow({
+        escrows[escrowId] = SEIEscrow({
             escrowId: escrowId,
             evmParty: msg.sender,
-            suiParty: suiParty,
-            amountMist: msg.value,
+            seiParty: seiParty,
+            amountUsei: msg.value,
             hashlock: hashlock,
             preimage: bytes32(0),
             finishAfter: finishAfter,
@@ -458,17 +436,17 @@ contract SuiBridgeAdapter is
         userEscrows[msg.sender].push(escrowId);
         totalEscrows++;
 
-        emit EscrowCreated(escrowId, msg.sender, suiParty, msg.value, hashlock);
+        emit EscrowCreated(escrowId, msg.sender, seiParty, msg.value, hashlock);
 
         return escrowId;
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function finishEscrow(
         bytes32 escrowId,
         bytes32 preimage
     ) external nonReentrant {
-        SUIEscrow storage e = escrows[escrowId];
+        SEIEscrow storage e = escrows[escrowId];
         if (e.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (e.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
         if (block.timestamp < e.finishAfter) revert EscrowTimelockNotMet();
@@ -484,9 +462,9 @@ contract SuiBridgeAdapter is
         emit EscrowFinished(escrowId, preimage);
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function cancelEscrow(bytes32 escrowId) external nonReentrant {
-        SUIEscrow storage e = escrows[escrowId];
+        SEIEscrow storage e = escrows[escrowId];
         if (e.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (e.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
         if (block.timestamp < e.cancelAfter) revert EscrowTimelockNotMet();
@@ -495,7 +473,7 @@ contract SuiBridgeAdapter is
         totalEscrowsCancelled++;
 
         // Return funds to EVM party
-        (bool success, ) = e.evmParty.call{value: e.amountMist}("");
+        (bool success, ) = e.evmParty.call{value: e.amountUsei}("");
         require(success, "ETH transfer failed");
 
         emit EscrowCancelled(escrowId);
@@ -505,14 +483,14 @@ contract SuiBridgeAdapter is
                               PRIVACY
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function registerPrivateDeposit(
         bytes32 depositId,
         bytes32 commitment,
         bytes32 nullifier,
         bytes calldata /* zkProof */
     ) external nonReentrant whenNotPaused {
-        SUIDeposit storage dep = deposits[depositId];
+        SEIDeposit storage dep = deposits[depositId];
         if (dep.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (usedNullifiers[nullifier]) revert NullifierAlreadyUsed(nullifier);
 
@@ -522,51 +500,48 @@ contract SuiBridgeAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                       CHECKPOINT VERIFICATION
+                       BLOCK HEADER VERIFICATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
-    function submitCheckpoint(
-        uint256 sequenceNumber,
-        bytes32 digest,
-        bytes32 previousDigest,
-        bytes32 transactionDigestRoot,
-        bytes32 effectsRoot,
-        uint256 epoch,
+    /// @inheritdoc ISeiBridgeAdapter
+    function submitBlockHeader(
+        uint256 height,
+        bytes32 blockHash,
+        bytes32 parentHash,
+        bytes32 stateRoot,
+        bytes32 txRoot,
         bytes32 validatorSetHash,
-        uint256 timestampMs,
+        uint256 timestamp,
+        uint256 numTxs,
         ValidatorAttestation[] calldata attestations
     ) external nonReentrant onlyRole(RELAYER_ROLE) {
-        // Verify committee attestations
-        _verifyCommitteeAttestations(digest, attestations);
+        // Verify validator attestations
+        _verifyValidatorAttestations(blockHash, attestations);
 
-        // Verify checkpoint chain (previous must exist or be genesis)
-        if (sequenceNumber > 0) {
-            SuiCheckpoint storage prev = checkpoints[sequenceNumber - 1];
-            if (!prev.verified && latestCheckpointSequence > 0)
-                revert InvalidCheckpointProof();
+        // Verify block chain (parent must exist or be genesis)
+        if (height > 0) {
+            SeiBlockHeader storage prev = blockHeaders[height - 1];
+            if (!prev.verified && latestBlockHeight > 0)
+                revert InvalidBlockProof();
         }
 
-        checkpoints[sequenceNumber] = SuiCheckpoint({
-            sequenceNumber: sequenceNumber,
-            digest: digest,
-            previousDigest: previousDigest,
-            transactionDigestRoot: transactionDigestRoot,
-            effectsRoot: effectsRoot,
-            epoch: epoch,
+        blockHeaders[height] = SeiBlockHeader({
+            height: height,
+            blockHash: blockHash,
+            parentHash: parentHash,
+            stateRoot: stateRoot,
+            txRoot: txRoot,
             validatorSetHash: validatorSetHash,
-            timestampMs: timestampMs,
+            timestamp: timestamp,
+            numTxs: numTxs,
             verified: true
         });
 
-        if (sequenceNumber > latestCheckpointSequence) {
-            latestCheckpointSequence = sequenceNumber;
-        }
-        if (epoch > currentEpoch) {
-            currentEpoch = epoch;
+        if (height > latestBlockHeight) {
+            latestBlockHeight = height;
         }
 
-        emit CheckpointVerified(sequenceNumber, digest, epoch);
+        emit BlockHeaderVerified(height, blockHash, numTxs);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -588,7 +563,7 @@ contract SuiBridgeAdapter is
         uint256 fees = accumulatedFees;
         accumulatedFees = 0;
 
-        IERC20(bridgeConfig.wrappedSUI).safeTransfer(treasury, fees);
+        IERC20(bridgeConfig.wrappedSEI).safeTransfer(treasury, fees);
 
         emit FeesWithdrawn(treasury, fees);
     }
@@ -597,32 +572,32 @@ contract SuiBridgeAdapter is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function getDeposit(
         bytes32 depositId
-    ) external view returns (SUIDeposit memory) {
+    ) external view returns (SEIDeposit memory) {
         return deposits[depositId];
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function getWithdrawal(
         bytes32 withdrawalId
-    ) external view returns (SUIWithdrawal memory) {
+    ) external view returns (SEIWithdrawal memory) {
         return withdrawals[withdrawalId];
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
+    /// @inheritdoc ISeiBridgeAdapter
     function getEscrow(
         bytes32 escrowId
-    ) external view returns (SUIEscrow memory) {
+    ) external view returns (SEIEscrow memory) {
         return escrows[escrowId];
     }
 
-    /// @inheritdoc ISuiBridgeAdapter
-    function getCheckpoint(
-        uint256 sequenceNumber
-    ) external view returns (SuiCheckpoint memory) {
-        return checkpoints[sequenceNumber];
+    /// @inheritdoc ISeiBridgeAdapter
+    function getBlockHeader(
+        uint256 height
+    ) external view returns (SeiBlockHeader memory) {
+        return blockHeaders[height];
     }
 
     /// @notice Get user deposit IDs
@@ -650,7 +625,15 @@ contract SuiBridgeAdapter is
     function getBridgeStats()
         external
         view
-        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
     {
         return (
             totalDeposited,
@@ -659,7 +642,7 @@ contract SuiBridgeAdapter is
             totalEscrowsFinished,
             totalEscrowsCancelled,
             accumulatedFees,
-            latestCheckpointSequence
+            latestBlockHeight
         );
     }
 
@@ -667,21 +650,21 @@ contract SuiBridgeAdapter is
                          INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Verify validator committee attestations meet threshold
-    function _verifyCommitteeAttestations(
-        bytes32 checkpointDigest,
+    /// @notice Verify validator attestations meet threshold
+    function _verifyValidatorAttestations(
+        bytes32 blockHash,
         ValidatorAttestation[] calldata attestations
     ) internal view {
-        uint256 required = bridgeConfig.minCommitteeSignatures;
+        uint256 required = bridgeConfig.minValidatorSignatures;
         if (attestations.length < required)
-            revert InsufficientCommitteeSignatures(
+            revert InsufficientValidatorSignatures(
                 attestations.length,
                 required
             );
 
-        // In production: verify BLS12-381 aggregate signatures
-        // against the validator committee's public keys and stake weights.
+        // In production: verify ed25519/secp256k1 signatures
+        // against the Tendermint validator set and their voting power.
         // For the bridge adapter, we delegate verification to the
-        // validatorCommitteeOracle which tracks the active validator set.
+        // validatorOracle which tracks the active validator set.
     }
 }

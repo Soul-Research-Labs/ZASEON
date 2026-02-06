@@ -2,62 +2,62 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {SuiBridgeAdapter} from "../../contracts/crosschain/SuiBridgeAdapter.sol";
-import {ISuiBridgeAdapter} from "../../contracts/interfaces/ISuiBridgeAdapter.sol";
-import {MockWrappedSUI} from "../../contracts/mocks/MockWrappedSUI.sol";
-import {MockSuiValidatorOracle} from "../../contracts/mocks/MockSuiValidatorOracle.sol";
+import {SeiBridgeAdapter} from "../../contracts/crosschain/SeiBridgeAdapter.sol";
+import {ISeiBridgeAdapter} from "../../contracts/interfaces/ISeiBridgeAdapter.sol";
+import {MockWrappedSEI} from "../../contracts/mocks/MockWrappedSEI.sol";
+import {MockSeiValidatorOracle} from "../../contracts/mocks/MockSeiValidatorOracle.sol";
 
 /**
- * @title SuiBridgeFuzz
- * @notice Foundry fuzz & invariant tests for the SuiBridgeAdapter
- * @dev Tests MIST precision (9 decimals), checkpoint verification,
- *      validator committee attestation, and Sui-specific bridge parameters.
+ * @title SeiBridgeFuzz
+ * @notice Foundry fuzz & invariant tests for the SeiBridgeAdapter
+ * @dev Tests usei precision (6 decimals), Twin-Turbo block verification,
+ *      Tendermint BFT validator attestation, and Sei-specific bridge parameters.
  */
-contract SuiBridgeFuzz is Test {
-    SuiBridgeAdapter public bridge;
-    MockWrappedSUI public wSUI;
-    MockSuiValidatorOracle public oracle;
+contract SeiBridgeFuzz is Test {
+    SeiBridgeAdapter public bridge;
+    MockWrappedSEI public wSEI;
+    MockSeiValidatorOracle public oracle;
 
     address public admin = address(0xA);
     address public relayer = address(0xB);
     address public user = address(0xC);
     address public treasury = address(0xD);
 
-    // Validator BLS public key hashes (mock)
-    bytes32 constant VALIDATOR_1 = keccak256("sui_validator_1");
-    bytes32 constant VALIDATOR_2 = keccak256("sui_validator_2");
-    bytes32 constant VALIDATOR_3 = keccak256("sui_validator_3");
+    // Validator addresses
+    address constant VALIDATOR_1 = address(0x1001);
+    address constant VALIDATOR_2 = address(0x1002);
+    address constant VALIDATOR_3 = address(0x1003);
 
-    uint256 constant MIST_PER_SUI = 1_000_000_000; // 1e9
-    uint256 constant MIN_DEPOSIT = MIST_PER_SUI / 10; // 0.1 SUI
-    uint256 constant MAX_DEPOSIT = 10_000_000 * MIST_PER_SUI;
+    uint256 constant USEI_PER_SEI = 1_000_000; // 1e6
+    uint256 constant MIN_DEPOSIT = USEI_PER_SEI / 10; // 0.1 SEI
+    uint256 constant MAX_DEPOSIT = 10_000_000 * USEI_PER_SEI;
 
     function setUp() public {
         vm.startPrank(admin);
 
-        bridge = new SuiBridgeAdapter(admin);
-        wSUI = new MockWrappedSUI();
-        oracle = new MockSuiValidatorOracle();
+        bridge = new SeiBridgeAdapter(admin);
+        wSEI = new MockWrappedSEI();
+        oracle = new MockSeiValidatorOracle();
 
-        // Register validators
-        oracle.addValidator(VALIDATOR_1);
-        oracle.addValidator(VALIDATOR_2);
-        oracle.addValidator(VALIDATOR_3);
+        // Register validators with voting power
+        oracle.addValidator(VALIDATOR_1, 100);
+        oracle.addValidator(VALIDATOR_2, 100);
+        oracle.addValidator(VALIDATOR_3, 100);
 
         // Configure bridge
         bridge.configure(
-            address(0x1), // suiBridgeContract
-            address(wSUI),
+            address(0x1), // seiBridgeContract
+            address(wSEI),
             address(oracle),
-            2, // minCommitteeSignatures
-            10 // requiredCheckpointConfirmations
+            2, // minValidatorSignatures
+            8 // requiredBlockConfirmations
         );
 
         bridge.setTreasury(treasury);
         bridge.grantRole(bridge.RELAYER_ROLE(), relayer);
 
-        // Fund the bridge with wSUI
-        wSUI.mint(address(bridge), 100_000_000 * MIST_PER_SUI);
+        // Fund the bridge with wSEI
+        wSEI.mint(address(bridge), 100_000_000 * USEI_PER_SEI);
 
         vm.stopPrank();
     }
@@ -69,90 +69,85 @@ contract SuiBridgeFuzz is Test {
     function _buildValidatorAttestations()
         internal
         pure
-        returns (ISuiBridgeAdapter.ValidatorAttestation[] memory)
+        returns (ISeiBridgeAdapter.ValidatorAttestation[] memory)
     {
-        ISuiBridgeAdapter.ValidatorAttestation[]
-            memory attestations = new ISuiBridgeAdapter.ValidatorAttestation[](
-                3
-            );
+        ISeiBridgeAdapter.ValidatorAttestation[]
+            memory attestations = new ISeiBridgeAdapter.ValidatorAttestation[](3);
 
-        attestations[0] = ISuiBridgeAdapter.ValidatorAttestation({
-            validatorPublicKey: VALIDATOR_1,
+        attestations[0] = ISeiBridgeAdapter.ValidatorAttestation({
+            validator: VALIDATOR_1,
             signature: hex"01"
         });
-        attestations[1] = ISuiBridgeAdapter.ValidatorAttestation({
-            validatorPublicKey: VALIDATOR_2,
+        attestations[1] = ISeiBridgeAdapter.ValidatorAttestation({
+            validator: VALIDATOR_2,
             signature: hex"02"
         });
-        attestations[2] = ISuiBridgeAdapter.ValidatorAttestation({
-            validatorPublicKey: VALIDATOR_3,
+        attestations[2] = ISeiBridgeAdapter.ValidatorAttestation({
+            validator: VALIDATOR_3,
             signature: hex"03"
         });
 
         return attestations;
     }
 
-    function _submitVerifiedCheckpoint(
-        uint256 seq,
-        bytes32 digest,
-        bytes32 prevDigest,
-        uint256 epoch
+    function _submitVerifiedBlock(
+        uint256 height,
+        bytes32 blockHash,
+        bytes32 parentHash
     ) internal {
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
 
         vm.prank(relayer);
-        bridge.submitCheckpoint(
-            seq,
-            digest,
-            prevDigest,
-            keccak256(abi.encode("txRoot", seq)),
-            keccak256(abi.encode("effectsRoot", seq)),
-            epoch,
-            keccak256(abi.encode("validatorSet", epoch)),
-            block.timestamp * 1000, // timestampMs
+        bridge.submitBlockHeader(
+            height,
+            blockHash,
+            parentHash,
+            keccak256(abi.encode("stateRoot", height)),
+            keccak256(abi.encode("txRoot", height)),
+            keccak256(abi.encode("validatorSet")),
+            block.timestamp,
+            10, // numTxs
             attestations
         );
     }
 
-    function _buildObjectProof()
+    function _buildMerkleProof()
         internal
         pure
-        returns (ISuiBridgeAdapter.SuiObjectProof memory)
+        returns (ISeiBridgeAdapter.SeiMerkleProof memory)
     {
         bytes32[] memory proof = new bytes32[](2);
         proof[0] = keccak256("proof_node_0");
         proof[1] = keccak256("proof_node_1");
 
         return
-            ISuiBridgeAdapter.SuiObjectProof({
-                objectId: keccak256("objectId"),
-                version: 1,
-                objectDigest: keccak256("objectDigest"),
+            ISeiBridgeAdapter.SeiMerkleProof({
+                leafHash: keccak256("leaf"),
                 proof: proof,
-                proofIndex: 0
+                index: 0
             });
     }
 
     function _initiateDeposit(
         uint256 amount,
-        bytes32 txDigest
+        bytes32 txHash
     ) internal returns (bytes32) {
-        // Submit checkpoint first
-        _submitVerifiedCheckpoint(1, keccak256("cp1"), bytes32(0), 1);
+        // Submit block header first
+        _submitVerifiedBlock(1, keccak256("block1"), bytes32(0));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         return
-            bridge.initiateSUIDeposit(
-                txDigest,
-                keccak256("sui_sender"),
+            bridge.initiateSEIDeposit(
+                txHash,
+                keccak256("sei_sender"),
                 user,
                 amount,
-                1, // checkpointSequence
+                1, // blockHeight
                 proof,
                 attestations
             );
@@ -163,41 +158,41 @@ contract SuiBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_constantsAreCorrect() public view {
-        assertEq(bridge.SUI_CHAIN_ID(), 784);
-        assertEq(bridge.MIST_PER_SUI(), 1_000_000_000);
-        assertEq(bridge.BRIDGE_FEE_BPS(), 6);
-        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 48 hours);
+        assertEq(bridge.SEI_CHAIN_ID(), 1329);
+        assertEq(bridge.USEI_PER_SEI(), 1_000_000);
+        assertEq(bridge.BRIDGE_FEE_BPS(), 5);
+        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 36 hours);
         assertEq(bridge.MIN_ESCROW_TIMELOCK(), 1 hours);
         assertEq(bridge.MAX_ESCROW_TIMELOCK(), 30 days);
-        assertEq(bridge.DEFAULT_CHECKPOINT_CONFIRMATIONS(), 10);
+        assertEq(bridge.DEFAULT_BLOCK_CONFIRMATIONS(), 8);
     }
 
     function test_constructorRejectsZeroAdmin() public {
-        vm.expectRevert(ISuiBridgeAdapter.ZeroAddress.selector);
-        new SuiBridgeAdapter(address(0));
+        vm.expectRevert(ISeiBridgeAdapter.ZeroAddress.selector);
+        new SeiBridgeAdapter(address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
-                         MIST PRECISION TESTS
+                         USEI PRECISION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_mistPrecision(uint256 suiAmount) public pure {
-        suiAmount = bound(suiAmount, 1, 1_000_000);
-        uint256 mist = suiAmount * MIST_PER_SUI;
-        assertEq(mist / MIST_PER_SUI, suiAmount);
-        assertEq(mist % MIST_PER_SUI, 0);
+    function testFuzz_useiPrecision(uint256 seiAmount) public pure {
+        seiAmount = bound(seiAmount, 1, 1_000_000);
+        uint256 usei = seiAmount * USEI_PER_SEI;
+        assertEq(usei / USEI_PER_SEI, seiAmount);
+        assertEq(usei % USEI_PER_SEI, 0);
     }
 
-    function testFuzz_mistSubUnitDeposit(uint256 mist) public {
-        mist = bound(mist, MIN_DEPOSIT, MAX_DEPOSIT);
+    function testFuzz_useiSubUnitDeposit(uint256 usei) public {
+        usei = bound(usei, MIN_DEPOSIT, MAX_DEPOSIT);
 
-        bytes32 txDigest = keccak256(abi.encode("sui_tx_sub", mist));
-        bytes32 depositId = _initiateDeposit(mist, txDigest);
+        bytes32 txHash = keccak256(abi.encode("sei_tx_sub", usei));
+        bytes32 depositId = _initiateDeposit(usei, txHash);
 
-        ISuiBridgeAdapter.SUIDeposit memory dep = bridge.getDeposit(depositId);
-        assertEq(dep.amountMist, mist);
-        assertEq(dep.fee, (mist * 6) / 10_000);
-        assertEq(dep.netAmountMist, mist - dep.fee);
+        ISeiBridgeAdapter.SEIDeposit memory dep = bridge.getDeposit(depositId);
+        assertEq(dep.amountUsei, usei);
+        assertEq(dep.fee, (usei * 5) / 10_000);
+        assertEq(dep.netAmountUsei, usei - dep.fee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -206,75 +201,62 @@ contract SuiBridgeFuzz is Test {
 
     function testFuzz_feeCalculation(uint256 amount) public pure {
         amount = bound(amount, MIN_DEPOSIT, MAX_DEPOSIT);
-        uint256 fee = (amount * 6) / 10_000;
+        uint256 fee = (amount * 5) / 10_000;
         uint256 net = amount - fee;
 
         // Fee should never exceed the amount
         assertLe(fee, amount);
         // Net + fee = amount
         assertEq(net + fee, amount);
-        // 0.06% fee
+        // 0.05% fee
         assertLe(fee, amount / 100);
     }
 
     /*//////////////////////////////////////////////////////////////
-                      CHECKPOINT VERIFICATION TESTS
+                      BLOCK HEADER VERIFICATION TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_checkpointChain(uint8 count) public {
+    function testFuzz_blockHeaderChain(uint8 count) public {
         uint256 n = bound(uint256(count), 1, 20);
-        bytes32 prevDigest = bytes32(0);
+        bytes32 prevHash = bytes32(0);
 
         for (uint256 i = 0; i < n; i++) {
-            bytes32 digest = keccak256(abi.encode("checkpoint", i));
-            _submitVerifiedCheckpoint(i, digest, prevDigest, 1);
+            bytes32 blockHash = keccak256(abi.encode("block", i));
+            _submitVerifiedBlock(i, blockHash, prevHash);
 
-            ISuiBridgeAdapter.SuiCheckpoint memory cp = bridge.getCheckpoint(i);
-            assertTrue(cp.verified);
-            assertEq(cp.digest, digest);
-            assertEq(cp.previousDigest, prevDigest);
-            assertEq(cp.epoch, 1);
+            ISeiBridgeAdapter.SeiBlockHeader memory bh = bridge.getBlockHeader(i);
+            assertTrue(bh.verified);
+            assertEq(bh.blockHash, blockHash);
+            assertEq(bh.parentHash, prevHash);
 
-            prevDigest = digest;
+            prevHash = blockHash;
         }
 
-        assertEq(bridge.latestCheckpointSequence(), n - 1);
+        assertEq(bridge.latestBlockHeight(), n - 1);
     }
 
-    function test_depositRequiresVerifiedCheckpoint() public {
-        // Don't submit any checkpoint — deposit should fail
-        ISuiBridgeAdapter.ValidatorAttestation[]
+    function test_depositRequiresVerifiedBlock() public {
+        // Don't submit any block — deposit should fail
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.CheckpointNotVerified.selector,
+                ISeiBridgeAdapter.BlockNotVerified.selector,
                 999
             )
         );
-        bridge.initiateSUIDeposit(
+        bridge.initiateSEIDeposit(
             keccak256("unverified_tx"),
             keccak256("sender"),
             user,
-            1 * MIST_PER_SUI,
-            999, // non-existent checkpoint
+            1 * USEI_PER_SEI,
+            999, // non-existent block
             proof,
             attestations
         );
-    }
-
-    function test_epochTracking() public {
-        // Submit checkpoints across epochs
-        _submitVerifiedCheckpoint(0, keccak256("cp0"), bytes32(0), 1);
-        assertEq(bridge.currentEpoch(), 1);
-
-        _submitVerifiedCheckpoint(1, keccak256("cp1"), keccak256("cp0"), 2);
-        assertEq(bridge.currentEpoch(), 2);
-
-        _submitVerifiedCheckpoint(2, keccak256("cp2"), keccak256("cp1"), 5);
-        assertEq(bridge.currentEpoch(), 5);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -284,21 +266,21 @@ contract SuiBridgeFuzz is Test {
     function testFuzz_depositRejectsAmountBelowMin(uint256 amount) public {
         amount = bound(amount, 1, MIN_DEPOSIT - 1);
 
-        _submitVerifiedCheckpoint(1, keccak256("cp1"), bytes32(0), 1);
+        _submitVerifiedBlock(1, keccak256("block_low"), bytes32(0));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.AmountBelowMinimum.selector,
+                ISeiBridgeAdapter.AmountBelowMinimum.selector,
                 amount,
                 MIN_DEPOSIT
             )
         );
-        bridge.initiateSUIDeposit(
+        bridge.initiateSEIDeposit(
             keccak256(abi.encode("tx_low", amount)),
             keccak256("sender"),
             user,
@@ -312,21 +294,21 @@ contract SuiBridgeFuzz is Test {
     function testFuzz_depositRejectsAmountAboveMax(uint256 amount) public {
         amount = bound(amount, MAX_DEPOSIT + 1, type(uint128).max);
 
-        _submitVerifiedCheckpoint(1, keccak256("cp1"), bytes32(0), 1);
+        _submitVerifiedBlock(1, keccak256("block_high"), bytes32(0));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.AmountAboveMaximum.selector,
+                ISeiBridgeAdapter.AmountAboveMaximum.selector,
                 amount,
                 MAX_DEPOSIT
             )
         );
-        bridge.initiateSUIDeposit(
+        bridge.initiateSEIDeposit(
             keccak256(abi.encode("tx_high", amount)),
             keccak256("sender"),
             user,
@@ -337,31 +319,31 @@ contract SuiBridgeFuzz is Test {
         );
     }
 
-    function testFuzz_txDigestReplayProtection(bytes32 txDigest) public {
-        vm.assume(txDigest != bytes32(0));
+    function testFuzz_txHashReplayProtection(bytes32 txHash) public {
+        vm.assume(txHash != bytes32(0));
 
-        bytes32 depositId = _initiateDeposit(1 * MIST_PER_SUI, txDigest);
+        bytes32 depositId = _initiateDeposit(1 * USEI_PER_SEI, txHash);
         assertTrue(depositId != bytes32(0));
 
-        // Re-submit same checkpoint for second attempt
-        _submitVerifiedCheckpoint(2, keccak256("cp2"), keccak256("cp1"), 1);
+        // Submit another block for second attempt
+        _submitVerifiedBlock(2, keccak256("block2"), keccak256("block1"));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.SuiTxAlreadyUsed.selector,
-                txDigest
+                ISeiBridgeAdapter.SeiTxAlreadyUsed.selector,
+                txHash
             )
         );
-        bridge.initiateSUIDeposit(
-            txDigest,
+        bridge.initiateSEIDeposit(
+            txHash,
             keccak256("sender"),
             user,
-            1 * MIST_PER_SUI,
+            1 * USEI_PER_SEI,
             2,
             proof,
             attestations
@@ -373,24 +355,25 @@ contract SuiBridgeFuzz is Test {
         uint256 prevNonce = bridge.depositNonce();
 
         for (uint256 i = 0; i < n; i++) {
-            bytes32 txDigest = keccak256(abi.encode("nonce_tx", i));
-            _submitVerifiedCheckpoint(
+            bytes32 txHash = keccak256(abi.encode("nonce_tx", i));
+            _submitVerifiedBlock(
                 i + 1,
-                keccak256(abi.encode("nonce_cp", i)),
-                i == 0 ? bytes32(0) : keccak256(abi.encode("nonce_cp", i - 1)),
-                1
+                keccak256(abi.encode("nonce_block", i)),
+                i == 0
+                    ? bytes32(0)
+                    : keccak256(abi.encode("nonce_block", i - 1))
             );
 
-            ISuiBridgeAdapter.ValidatorAttestation[]
+            ISeiBridgeAdapter.ValidatorAttestation[]
                 memory attestations = _buildValidatorAttestations();
-            ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+            ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
             vm.prank(relayer);
-            bridge.initiateSUIDeposit(
-                txDigest,
+            bridge.initiateSEIDeposit(
+                txHash,
                 keccak256("sender"),
                 user,
-                1 * MIST_PER_SUI,
+                1 * USEI_PER_SEI,
                 i + 1,
                 proof,
                 attestations
@@ -411,12 +394,12 @@ contract SuiBridgeFuzz is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.AmountBelowMinimum.selector,
+                ISeiBridgeAdapter.AmountBelowMinimum.selector,
                 amount,
                 MIN_DEPOSIT
             )
         );
-        bridge.initiateWithdrawal(keccak256("sui_recipient"), amount);
+        bridge.initiateWithdrawal(keccak256("sei_recipient"), amount);
     }
 
     function testFuzz_withdrawalRejectsAmountAboveMax(uint256 amount) public {
@@ -425,28 +408,28 @@ contract SuiBridgeFuzz is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.AmountAboveMaximum.selector,
+                ISeiBridgeAdapter.AmountAboveMaximum.selector,
                 amount,
                 MAX_DEPOSIT
             )
         );
-        bridge.initiateWithdrawal(keccak256("sui_recipient"), amount);
+        bridge.initiateWithdrawal(keccak256("sei_recipient"), amount);
     }
 
     function testFuzz_withdrawalNonceOnlyIncreases(uint8 count) public {
         uint256 n = bound(uint256(count), 1, 10);
-        uint256 amount = 1 * MIST_PER_SUI;
+        uint256 amount = 1 * USEI_PER_SEI;
 
-        // Mint wSUI to user for withdrawals
+        // Mint wSEI to user for withdrawals
         vm.prank(admin);
-        wSUI.mint(user, amount * n);
+        wSEI.mint(user, amount * n);
 
         vm.startPrank(user);
-        wSUI.approve(address(bridge), amount * n);
+        wSEI.approve(address(bridge), amount * n);
 
         uint256 prevNonce = bridge.withdrawalNonce();
         for (uint256 i = 0; i < n; i++) {
-            bridge.initiateWithdrawal(keccak256("sui_recipient"), amount);
+            bridge.initiateWithdrawal(keccak256("sei_recipient"), amount);
             assertGt(bridge.withdrawalNonce(), prevNonce);
             prevNonce = bridge.withdrawalNonce();
         }
@@ -455,15 +438,15 @@ contract SuiBridgeFuzz is Test {
     }
 
     function test_withdrawalRefundAfterDelay() public {
-        uint256 amount = 1 * MIST_PER_SUI;
+        uint256 amount = 1 * USEI_PER_SEI;
 
         vm.prank(admin);
-        wSUI.mint(user, amount);
+        wSEI.mint(user, amount);
 
         vm.startPrank(user);
-        wSUI.approve(address(bridge), amount);
+        wSEI.approve(address(bridge), amount);
         bytes32 wId = bridge.initiateWithdrawal(
-            keccak256("sui_recipient"),
+            keccak256("sei_recipient"),
             amount
         );
         vm.stopPrank();
@@ -472,19 +455,19 @@ contract SuiBridgeFuzz is Test {
         vm.expectRevert();
         bridge.refundWithdrawal(wId);
 
-        // Warp past refund delay (48 hours)
-        vm.warp(block.timestamp + 48 hours + 1);
+        // Warp past refund delay (36 hours)
+        vm.warp(block.timestamp + 36 hours + 1);
 
-        uint256 balBefore = wSUI.balanceOf(user);
+        uint256 balBefore = wSEI.balanceOf(user);
         bridge.refundWithdrawal(wId);
-        uint256 balAfter = wSUI.balanceOf(user);
+        uint256 balAfter = wSEI.balanceOf(user);
 
         assertEq(balAfter - balBefore, amount);
 
-        ISuiBridgeAdapter.SUIWithdrawal memory w = bridge.getWithdrawal(wId);
+        ISeiBridgeAdapter.SEIWithdrawal memory w = bridge.getWithdrawal(wId);
         assertEq(
             uint256(w.status),
-            uint256(ISuiBridgeAdapter.WithdrawalStatus.REFUNDED)
+            uint256(ISeiBridgeAdapter.WithdrawalStatus.REFUNDED)
         );
     }
 
@@ -493,7 +476,7 @@ contract SuiBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_escrowCreateFinishLifecycle() public {
-        bytes32 preimage = keccak256("test_preimage_sui");
+        bytes32 preimage = keccak256("test_preimage_sei");
         bytes32 hashlock = sha256(abi.encodePacked(preimage));
 
         uint256 finishAfter = block.timestamp + 1 hours;
@@ -502,18 +485,18 @@ contract SuiBridgeFuzz is Test {
         vm.deal(user, 10 ether);
         vm.prank(user);
         bytes32 escrowId = bridge.createEscrow{value: 1 ether}(
-            keccak256("sui_party"),
+            keccak256("sei_party"),
             hashlock,
             finishAfter,
             cancelAfter
         );
 
-        ISuiBridgeAdapter.SUIEscrow memory e = bridge.getEscrow(escrowId);
+        ISeiBridgeAdapter.SEIEscrow memory e = bridge.getEscrow(escrowId);
         assertEq(
             uint256(e.status),
-            uint256(ISuiBridgeAdapter.EscrowStatus.ACTIVE)
+            uint256(ISeiBridgeAdapter.EscrowStatus.ACTIVE)
         );
-        assertEq(e.amountMist, 1 ether);
+        assertEq(e.amountUsei, 1 ether);
 
         // Finish after timelock
         vm.warp(finishAfter + 1);
@@ -522,13 +505,13 @@ contract SuiBridgeFuzz is Test {
         e = bridge.getEscrow(escrowId);
         assertEq(
             uint256(e.status),
-            uint256(ISuiBridgeAdapter.EscrowStatus.FINISHED)
+            uint256(ISeiBridgeAdapter.EscrowStatus.FINISHED)
         );
         assertEq(e.preimage, preimage);
     }
 
     function test_escrowCreateCancelLifecycle() public {
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("cancel_sui")));
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("cancel_sei")));
 
         uint256 finishAfter = block.timestamp + 2 hours;
         uint256 cancelAfter = finishAfter + 6 hours;
@@ -536,14 +519,14 @@ contract SuiBridgeFuzz is Test {
         vm.deal(user, 10 ether);
         vm.prank(user);
         bytes32 escrowId = bridge.createEscrow{value: 0.5 ether}(
-            keccak256("sui_party"),
+            keccak256("sei_party"),
             hashlock,
             finishAfter,
             cancelAfter
         );
 
         // Cannot cancel before cancelAfter
-        vm.expectRevert(ISuiBridgeAdapter.EscrowTimelockNotMet.selector);
+        vm.expectRevert(ISeiBridgeAdapter.EscrowTimelockNotMet.selector);
         bridge.cancelEscrow(escrowId);
 
         // Warp past cancelAfter
@@ -563,18 +546,18 @@ contract SuiBridgeFuzz is Test {
         duration = bound(duration, 1 hours, 30 days);
         uint256 cancel = finish + duration;
 
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("timelock_sui")));
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("timelock_sei")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
         bytes32 escrowId = bridge.createEscrow{value: 0.1 ether}(
-            keccak256("sui_party"),
+            keccak256("sei_party"),
             hashlock,
             finish,
             cancel
         );
 
-        ISuiBridgeAdapter.SUIEscrow memory e = bridge.getEscrow(escrowId);
+        ISeiBridgeAdapter.SEIEscrow memory e = bridge.getEscrow(escrowId);
         assertEq(e.finishAfter, finish);
         assertEq(e.cancelAfter, cancel);
     }
@@ -587,13 +570,13 @@ contract SuiBridgeFuzz is Test {
         excess = bound(excess, 30 days + 1, 365 days);
         uint256 cancel = finish + excess;
 
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("long_sui")));
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("long_sei")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
-        vm.expectRevert(ISuiBridgeAdapter.InvalidTimelockRange.selector);
+        vm.expectRevert(ISeiBridgeAdapter.InvalidTimelockRange.selector);
         bridge.createEscrow{value: 0.1 ether}(
-            keccak256("sui_party"),
+            keccak256("sei_party"),
             hashlock,
             finish,
             cancel
@@ -607,19 +590,19 @@ contract SuiBridgeFuzz is Test {
     function testFuzz_onlyRelayerCanInitiateDeposit(address caller) public {
         vm.assume(caller != relayer && caller != admin && caller != address(0));
 
-        _submitVerifiedCheckpoint(1, keccak256("cp_ac"), bytes32(0), 1);
+        _submitVerifiedBlock(1, keccak256("block_ac"), bytes32(0));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.initiateSUIDeposit(
+        bridge.initiateSEIDeposit(
             keccak256("ac_tx"),
             keccak256("sender"),
             user,
-            1 * MIST_PER_SUI,
+            1 * USEI_PER_SEI,
             1,
             proof,
             attestations
@@ -630,13 +613,13 @@ contract SuiBridgeFuzz is Test {
         vm.assume(caller != admin && caller != address(0));
 
         bytes32 depositId = _initiateDeposit(
-            1 * MIST_PER_SUI,
+            1 * USEI_PER_SEI,
             keccak256("complete_test")
         );
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.completeSUIDeposit(depositId);
+        bridge.completeSEIDeposit(depositId);
     }
 
     function testFuzz_onlyGuardianCanPause(address caller) public {
@@ -655,19 +638,19 @@ contract SuiBridgeFuzz is Test {
         vm.prank(admin);
         bridge.pause();
 
-        _submitVerifiedCheckpoint(1, keccak256("cp_pause"), bytes32(0), 1);
+        _submitVerifiedBlock(1, keccak256("block_pause"), bytes32(0));
 
-        ISuiBridgeAdapter.ValidatorAttestation[]
+        ISeiBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        ISuiBridgeAdapter.SuiObjectProof memory proof = _buildObjectProof();
+        ISeiBridgeAdapter.SeiMerkleProof memory proof = _buildMerkleProof();
 
         vm.prank(relayer);
         vm.expectRevert();
-        bridge.initiateSUIDeposit(
+        bridge.initiateSEIDeposit(
             keccak256("paused_tx"),
             keccak256("sender"),
             user,
-            1 * MIST_PER_SUI,
+            1 * USEI_PER_SEI,
             1,
             proof,
             attestations
@@ -680,11 +663,11 @@ contract SuiBridgeFuzz is Test {
 
         vm.prank(user);
         vm.expectRevert();
-        bridge.initiateWithdrawal(keccak256("sui_recipient"), 1 * MIST_PER_SUI);
+        bridge.initiateWithdrawal(keccak256("sei_recipient"), 1 * USEI_PER_SEI);
     }
 
     function testFuzz_pauseBlocksEscrow() public {
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("paused_sui")));
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("paused_sei")));
 
         vm.prank(admin);
         bridge.pause();
@@ -693,7 +676,7 @@ contract SuiBridgeFuzz is Test {
         vm.prank(user);
         vm.expectRevert();
         bridge.createEscrow{value: 0.1 ether}(
-            keccak256("sui_party"),
+            keccak256("sei_party"),
             hashlock,
             block.timestamp + 1 hours,
             block.timestamp + 5 hours
@@ -708,7 +691,7 @@ contract SuiBridgeFuzz is Test {
         vm.assume(nullifier != bytes32(0));
 
         bytes32 depositId = _initiateDeposit(
-            1 * MIST_PER_SUI,
+            1 * USEI_PER_SEI,
             keccak256(abi.encode("null_tx", nullifier))
         );
 
@@ -721,7 +704,7 @@ contract SuiBridgeFuzz is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISuiBridgeAdapter.NullifierAlreadyUsed.selector,
+                ISeiBridgeAdapter.NullifierAlreadyUsed.selector,
                 nullifier
             )
         );
@@ -745,18 +728,12 @@ contract SuiBridgeFuzz is Test {
     ) public {
         // At least one address is zero
         vm.prank(admin);
-        vm.expectRevert(ISuiBridgeAdapter.ZeroAddress.selector);
-        bridge.configure(address(0), b, c, sigs, 10);
+        vm.expectRevert(ISeiBridgeAdapter.ZeroAddress.selector);
+        bridge.configure(address(0), b, c, sigs, 8);
 
         vm.prank(admin);
-        vm.expectRevert(ISuiBridgeAdapter.ZeroAddress.selector);
-        bridge.configure(
-            a == address(0) ? address(1) : a,
-            address(0),
-            c,
-            sigs,
-            10
-        );
+        vm.expectRevert(ISeiBridgeAdapter.ZeroAddress.selector);
+        bridge.configure(a == address(0) ? address(1) : a, address(0), c, sigs, 8);
     }
 
     function test_treasuryCanBeUpdated() public {
@@ -768,7 +745,7 @@ contract SuiBridgeFuzz is Test {
 
     function test_treasuryRejectsZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert(ISuiBridgeAdapter.ZeroAddress.selector);
+        vm.expectRevert(ISeiBridgeAdapter.ZeroAddress.selector);
         bridge.setTreasury(address(0));
     }
 
@@ -777,19 +754,21 @@ contract SuiBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_viewFunctionsReturnDefaults() public view {
-        ISuiBridgeAdapter.SUIDeposit memory dep = bridge.getDeposit(bytes32(0));
-        assertEq(dep.amountMist, 0);
-
-        ISuiBridgeAdapter.SUIWithdrawal memory w = bridge.getWithdrawal(
+        ISeiBridgeAdapter.SEIDeposit memory dep = bridge.getDeposit(
             bytes32(0)
         );
-        assertEq(w.amountMist, 0);
+        assertEq(dep.amountUsei, 0);
 
-        ISuiBridgeAdapter.SUIEscrow memory e = bridge.getEscrow(bytes32(0));
-        assertEq(e.amountMist, 0);
+        ISeiBridgeAdapter.SEIWithdrawal memory w = bridge.getWithdrawal(
+            bytes32(0)
+        );
+        assertEq(w.amountUsei, 0);
 
-        ISuiBridgeAdapter.SuiCheckpoint memory cp = bridge.getCheckpoint(0);
-        assertFalse(cp.verified);
+        ISeiBridgeAdapter.SEIEscrow memory e = bridge.getEscrow(bytes32(0));
+        assertEq(e.amountUsei, 0);
+
+        ISeiBridgeAdapter.SeiBlockHeader memory bh = bridge.getBlockHeader(0);
+        assertFalse(bh.verified);
     }
 
     function test_statisticsTracking() public view {
@@ -800,14 +779,14 @@ contract SuiBridgeFuzz is Test {
             ,
             ,
             uint256 fees,
-            uint256 latestCp
+            uint256 latestHeight
         ) = bridge.getBridgeStats();
 
         assertEq(deposited, 0);
         assertEq(withdrawn, 0);
         assertEq(escrowCount, 0);
         assertEq(fees, 0);
-        assertEq(latestCp, 0);
+        assertEq(latestHeight, 0);
     }
 
     function test_userHistoryTracking() public view {
