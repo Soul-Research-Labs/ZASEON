@@ -192,7 +192,9 @@ contract SeiBridgeAdapter is
     }
 
     /// @notice Set the fee treasury address
-    function setTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTreasury(
+        address _treasury
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_treasury == address(0)) revert ZeroAddress();
         treasury = _treasury;
     }
@@ -210,7 +212,13 @@ contract SeiBridgeAdapter is
         uint256 blockHeight,
         SeiMerkleProof calldata txProof,
         ValidatorAttestation[] calldata attestations
-    ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) returns (bytes32) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(RELAYER_ROLE)
+        returns (bytes32)
+    {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
         if (evmRecipient == address(0)) revert ZeroAddress();
         if (seiSender == bytes32(0)) revert InvalidSeiAddress();
@@ -218,8 +226,7 @@ contract SeiBridgeAdapter is
             revert AmountBelowMinimum(amountUsei, MIN_DEPOSIT_USEI);
         if (amountUsei > MAX_DEPOSIT_USEI)
             revert AmountAboveMaximum(amountUsei, MAX_DEPOSIT_USEI);
-        if (usedSeiTxHashes[seiTxHash])
-            revert SeiTxAlreadyUsed(seiTxHash);
+        if (usedSeiTxHashes[seiTxHash]) revert SeiTxAlreadyUsed(seiTxHash);
 
         // Verify block header is submitted and verified
         SeiBlockHeader storage bh = blockHeaders[blockHeight];
@@ -264,7 +271,13 @@ contract SeiBridgeAdapter is
         accumulatedFees += fee;
         totalDeposited += amountUsei;
 
-        emit SEIDepositInitiated(depositId, seiTxHash, seiSender, evmRecipient, amountUsei);
+        emit SEIDepositInitiated(
+            depositId,
+            seiTxHash,
+            seiSender,
+            evmRecipient,
+            amountUsei
+        );
 
         return depositId;
     }
@@ -289,7 +302,11 @@ contract SeiBridgeAdapter is
             dep.netAmountUsei
         );
 
-        emit SEIDepositCompleted(depositId, dep.evmRecipient, dep.netAmountUsei);
+        emit SEIDepositCompleted(
+            depositId,
+            dep.evmRecipient,
+            dep.netAmountUsei
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -339,7 +356,12 @@ contract SeiBridgeAdapter is
         userWithdrawals[msg.sender].push(withdrawalId);
         totalWithdrawn += amountUsei;
 
-        emit SEIWithdrawalInitiated(withdrawalId, msg.sender, seiRecipient, amountUsei);
+        emit SEIWithdrawalInitiated(
+            withdrawalId,
+            msg.sender,
+            seiRecipient,
+            amountUsei
+        );
 
         return withdrawalId;
     }
@@ -365,9 +387,7 @@ contract SeiBridgeAdapter is
     }
 
     /// @inheritdoc ISeiBridgeAdapter
-    function refundWithdrawal(
-        bytes32 withdrawalId
-    ) external nonReentrant {
+    function refundWithdrawal(bytes32 withdrawalId) external nonReentrant {
         SEIWithdrawal storage w = withdrawals[withdrawalId];
         if (w.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
@@ -383,10 +403,7 @@ contract SeiBridgeAdapter is
         w.completedAt = block.timestamp;
 
         // Return wSEI to sender
-        IERC20(bridgeConfig.wrappedSEI).safeTransfer(
-            w.evmSender,
-            w.amountUsei
-        );
+        IERC20(bridgeConfig.wrappedSEI).safeTransfer(w.evmSender, w.amountUsei);
 
         emit SEIWithdrawalRefunded(withdrawalId, w.evmSender, w.amountUsei);
     }
@@ -625,15 +642,7 @@ contract SeiBridgeAdapter is
     function getBridgeStats()
         external
         view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
     {
         return (
             totalDeposited,
