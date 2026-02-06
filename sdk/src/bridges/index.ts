@@ -19,6 +19,7 @@ export * from './hyperliquid';
 export * from './provenance';
 export * from './canton';
 export * from './plasma';
+export * from './sui';
 
 import { 
     keccak256, 
@@ -1065,13 +1066,77 @@ export class PlasmaBridgeAdapterSDK extends BaseBridgeAdapter {
   }
 }
 
+export class SuiBridgeAdapterSDK extends BaseBridgeAdapter {
+  private suiBridgeAddress: string;
+
+  constructor(
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    suiBridgeAddress: string
+  ) {
+    super({
+      name: 'Sui',
+      chainId: 784,
+      nativeToken: 'SUI',
+      finality: 10, // 10 checkpoint confirmations (~4s with Mysticeti)
+      maxAmount: 10_000_000n * 1_000_000_000n, // 10M SUI in MIST
+      minAmount: 1_000_000_000n / 10n // 0.1 SUI in MIST
+    }, publicClient, walletClient);
+
+    this.suiBridgeAddress = suiBridgeAddress;
+  }
+
+  async bridgeTransfer(params: BridgeTransferParams): Promise<BridgeTransferResult> {
+    this.validateAmount(params.amount);
+
+    const transferId = keccak256(encodeAbiParameters(
+      [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'uint256' }],
+      [params.recipient as Hex, this.suiBridgeAddress as Hex, params.amount, BigInt(Date.now())]
+    ));
+
+    return {
+      transferId,
+      txHash: '0x...',
+      estimatedArrival: Date.now() + 4_000, // ~4 seconds (10 checkpoints × 400ms)
+      fees: await this.estimateFees(params.amount, params.targetChainId)
+    };
+  }
+
+  async completeBridge(transferId: string, proof: Uint8Array): Promise<string> {
+    return '0x...';
+  }
+
+  async getStatus(transferId: string): Promise<BridgeStatus> {
+    return {
+      state: 'pending',
+      sourceChainId: 1,
+      targetChainId: this.config.chainId,
+      confirmations: 0,
+      requiredConfirmations: 10
+    };
+  }
+
+  async estimateFees(amount: bigint, targetChainId: number): Promise<BridgeFees> {
+    const protocolFee = amount * 6n / 10000n; // 0.06% bridge fee
+    const relayerFee = 100_000_000n; // 0.1 SUI in MIST
+    const gasFee = 10_000_000n; // 0.01 SUI (Sui gas)
+
+    return {
+      protocolFee,
+      relayerFee,
+      gasFee,
+      total: protocolFee + relayerFee + gasFee
+    };
+  }
+}
+
 // ============================================
 // Bridge Factory
 // ============================================
 
 export type SupportedChain = 
   | 'cardano' | 'midnight' | 'polkadot' | 'cosmos' | 'near'
-  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance' | 'canton' | 'plasma';
+  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance' | 'canton' | 'plasma' | 'sui';
 
 export class BridgeFactory {
   static createAdapter(
@@ -1155,6 +1220,11 @@ export class BridgeFactory {
         return new PlasmaBridgeAdapterSDK(
           publicClient, walletClient,
           config.plasmaBridgeAddress
+        );
+      case 'sui':
+        return new SuiBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.suiBridgeAddress
         );
       default:
         throw new Error(`Unsupported chain: ${chain}`);

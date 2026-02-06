@@ -79,10 +79,10 @@ interface IPlasmaBridgeAdapter {
 
     /// @notice Types of Plasma transactions
     enum PlasmaTxType {
-        DEPOSIT,      // Deposit from L1 into Plasma chain
-        TRANSFER,     // Transfer within Plasma child chain
-        EXIT,         // Exit from Plasma to L1
-        CROSS_CHAIN   // Cross-chain via Soul bridge
+        DEPOSIT, // Deposit from L1 into Plasma chain
+        TRANSFER, // Transfer within Plasma child chain
+        EXIT, // Exit from Plasma to L1
+        CROSS_CHAIN // Cross-chain via Soul bridge
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -342,22 +342,31 @@ interface IPlasmaBridgeAdapter {
     ) external;
 
     /// @notice Get deposit details
-    function getDeposit(bytes32 depositId) external view returns (PLASMADeposit memory);
+    function getDeposit(
+        bytes32 depositId
+    ) external view returns (PLASMADeposit memory);
 
     /// @notice Get withdrawal details
-    function getWithdrawal(bytes32 withdrawalId) external view returns (PLASMAWithdrawal memory);
+    function getWithdrawal(
+        bytes32 withdrawalId
+    ) external view returns (PLASMAWithdrawal memory);
 
     /// @notice Get escrow details
-    function getEscrow(bytes32 escrowId) external view returns (PLASMAEscrow memory);
+    function getEscrow(
+        bytes32 escrowId
+    ) external view returns (PLASMAEscrow memory);
 
     /// @notice Get bridge statistics
-    function getBridgeStats() external view returns (
-        uint256 totalDeposited,
-        uint256 totalWithdrawn,
-        uint256 totalEscrows,
-        uint256 totalEscrowsFinished,
-        uint256 totalEscrowsCancelled,
-        uint256 accumulatedFees,
-        uint256 latestBlockNumber
-    );
+    function getBridgeStats()
+        external
+        view
+        returns (
+            uint256 totalDeposited,
+            uint256 totalWithdrawn,
+            uint256 totalEscrows,
+            uint256 totalEscrowsFinished,
+            uint256 totalEscrowsCancelled,
+            uint256 accumulatedFees,
+            uint256 latestBlockNumber
+        );
 }

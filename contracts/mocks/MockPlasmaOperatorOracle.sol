@@ -30,7 +30,11 @@ contract MockPlasmaOperatorOracle is Ownable {
 
     event OperatorAdded(address indexed operator);
     event OperatorRemoved(address indexed operator);
-    event BlockCommitted(uint256 indexed blockNumber, bytes32 blockHash, bytes32 l1TxHash);
+    event BlockCommitted(
+        uint256 indexed blockNumber,
+        bytes32 blockHash,
+        bytes32 l1TxHash
+    );
 
     constructor() Ownable(msg.sender) {}
 
@@ -97,7 +101,9 @@ contract MockPlasmaOperatorOracle is Ownable {
     }
 
     /// @notice Check if a block has been committed to L1
-    function isBlockCommitted(uint256 blockNumber) external view returns (bool) {
+    function isBlockCommitted(
+        uint256 blockNumber
+    ) external view returns (bool) {
         return committedBlocks[blockNumber];
     }
 

@@ -351,7 +351,13 @@ contract PlasmaBridgeFuzz is Test {
         ) {
             vm.prank(admin);
             vm.expectRevert(IPlasmaBridgeAdapter.ZeroAddress.selector);
-            bridge.configure(plasmaBridge, wrappedPLASMAAddr, oracleAddr, minConfirmations, 12);
+            bridge.configure(
+                plasmaBridge,
+                wrappedPLASMAAddr,
+                oracleAddr,
+                minConfirmations,
+                12
+            );
         }
     }
 
@@ -507,8 +513,13 @@ contract PlasmaBridgeFuzz is Test {
 
         assertEq(user2.balance - balBefore, 1 ether);
 
-        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(escrowId);
-        assertEq(uint8(esc.status), uint8(IPlasmaBridgeAdapter.EscrowStatus.FINISHED));
+        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(
+            escrowId
+        );
+        assertEq(
+            uint8(esc.status),
+            uint8(IPlasmaBridgeAdapter.EscrowStatus.FINISHED)
+        );
         assertEq(esc.preimage, preimage);
     }
 
@@ -542,8 +553,13 @@ contract PlasmaBridgeFuzz is Test {
 
         assertEq(user1.balance - balBefore, 1 ether);
 
-        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(escrowId);
-        assertEq(uint8(esc.status), uint8(IPlasmaBridgeAdapter.EscrowStatus.CANCELLED));
+        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(
+            escrowId
+        );
+        assertEq(
+            uint8(esc.status),
+            uint8(IPlasmaBridgeAdapter.EscrowStatus.CANCELLED)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -567,8 +583,13 @@ contract PlasmaBridgeFuzz is Test {
         vm.prank(user1);
         bridge.refundWithdrawal(withdrawalId);
 
-        IPlasmaBridgeAdapter.PLASMAWithdrawal memory w = bridge.getWithdrawal(withdrawalId);
-        assertEq(uint8(w.status), uint8(IPlasmaBridgeAdapter.WithdrawalStatus.REFUNDED));
+        IPlasmaBridgeAdapter.PLASMAWithdrawal memory w = bridge.getWithdrawal(
+            withdrawalId
+        );
+        assertEq(
+            uint8(w.status),
+            uint8(IPlasmaBridgeAdapter.WithdrawalStatus.REFUNDED)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -620,13 +641,19 @@ contract PlasmaBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_viewFunctionsReturnDefaults() public view {
-        IPlasmaBridgeAdapter.PLASMADeposit memory dep = bridge.getDeposit(bytes32(0));
+        IPlasmaBridgeAdapter.PLASMADeposit memory dep = bridge.getDeposit(
+            bytes32(0)
+        );
         assertEq(dep.depositId, bytes32(0));
 
-        IPlasmaBridgeAdapter.PLASMAWithdrawal memory w = bridge.getWithdrawal(bytes32(0));
+        IPlasmaBridgeAdapter.PLASMAWithdrawal memory w = bridge.getWithdrawal(
+            bytes32(0)
+        );
         assertEq(w.withdrawalId, bytes32(0));
 
-        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(bytes32(0));
+        IPlasmaBridgeAdapter.PLASMAEscrow memory esc = bridge.getEscrow(
+            bytes32(0)
+        );
         assertEq(esc.escrowId, bytes32(0));
     }
 
@@ -668,7 +695,10 @@ contract PlasmaBridgeFuzz is Test {
         assertEq(bridge.PLASMA_CHAIN_ID(), 515);
         assertEq(bridge.SATOPLASMA_PER_PLASMA(), 100_000_000); // 1e8
         assertEq(bridge.MIN_DEPOSIT_SATOPLASMA(), SATOPLASMA_PER_PLASMA / 10); // 0.1 PLASMA
-        assertEq(bridge.MAX_DEPOSIT_SATOPLASMA(), 5_000_000 * SATOPLASMA_PER_PLASMA); // 5M PLASMA
+        assertEq(
+            bridge.MAX_DEPOSIT_SATOPLASMA(),
+            5_000_000 * SATOPLASMA_PER_PLASMA
+        ); // 5M PLASMA
         assertEq(bridge.BRIDGE_FEE_BPS(), 8); // 0.08%
         assertEq(bridge.BPS_DENOMINATOR(), 10_000);
         assertEq(bridge.MIN_ESCROW_TIMELOCK(), 1 hours);
@@ -688,12 +718,26 @@ contract PlasmaBridgeFuzz is Test {
         uint256 satoplasma = plasmaAmount * SATOPLASMA_PER_PLASMA;
         uint256 backToPlasma = satoplasma / SATOPLASMA_PER_PLASMA;
 
-        assertEq(backToPlasma, plasmaAmount, "Satoplasma conversion not reversible");
-        assertEq(satoplasma % SATOPLASMA_PER_PLASMA, 0, "Satoplasma should be exact multiple");
+        assertEq(
+            backToPlasma,
+            plasmaAmount,
+            "Satoplasma conversion not reversible"
+        );
+        assertEq(
+            satoplasma % SATOPLASMA_PER_PLASMA,
+            0,
+            "Satoplasma should be exact multiple"
+        );
     }
 
-    function testFuzz_satoplasmaSubUnitDeposit(uint256 subUnitSatoplasma) public {
-        subUnitSatoplasma = bound(subUnitSatoplasma, MIN_DEPOSIT, SATOPLASMA_PER_PLASMA - 1);
+    function testFuzz_satoplasmaSubUnitDeposit(
+        uint256 subUnitSatoplasma
+    ) public {
+        subUnitSatoplasma = bound(
+            subUnitSatoplasma,
+            MIN_DEPOSIT,
+            SATOPLASMA_PER_PLASMA - 1
+        );
 
         bytes32 txHash = keccak256(
             abi.encodePacked("sub_unit_tx", subUnitSatoplasma)
@@ -719,12 +763,11 @@ contract PlasmaBridgeFuzz is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = sibling;
         IPlasmaBridgeAdapter.PlasmaInclusionProof
-            memory inclusionProof = IPlasmaBridgeAdapter
-                .PlasmaInclusionProof({
-                    leafHash: txHash,
-                    proof: proof,
-                    index: 0
-                });
+            memory inclusionProof = IPlasmaBridgeAdapter.PlasmaInclusionProof({
+                leafHash: txHash,
+                proof: proof,
+                index: 0
+            });
 
         // Should succeed — fractional PLASMA deposits above min are valid
         vm.prank(relayer);
@@ -738,7 +781,9 @@ contract PlasmaBridgeFuzz is Test {
             _buildOperatorConfirmations()
         );
 
-        IPlasmaBridgeAdapter.PLASMADeposit memory dep = bridge.getDeposit(depositId);
+        IPlasmaBridgeAdapter.PLASMADeposit memory dep = bridge.getDeposit(
+            depositId
+        );
         assertEq(dep.amountSatoplasma, subUnitSatoplasma);
     }
 

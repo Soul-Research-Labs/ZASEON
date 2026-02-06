@@ -90,7 +90,8 @@ contract PlasmaBridgeAdapter is
     uint256 public constant MIN_DEPOSIT_SATOPLASMA = SATOPLASMA_PER_PLASMA / 10;
 
     /// @notice Maximum deposit: 5,000,000 PLASMA
-    uint256 public constant MAX_DEPOSIT_SATOPLASMA = 5_000_000 * SATOPLASMA_PER_PLASMA;
+    uint256 public constant MAX_DEPOSIT_SATOPLASMA =
+        5_000_000 * SATOPLASMA_PER_PLASMA;
 
     /// @notice Bridge fee in basis points (0.08% = 8 BPS)
     uint256 public constant BRIDGE_FEE_BPS = 8;
@@ -182,11 +183,17 @@ contract PlasmaBridgeAdapter is
             active: true
         });
 
-        emit BridgeConfigured(plasmaBridgeContract, wrappedPLASMA, operatorOracle);
+        emit BridgeConfigured(
+            plasmaBridgeContract,
+            wrappedPLASMA,
+            operatorOracle
+        );
     }
 
     /// @notice Set the treasury address for fee collection
-    function setTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTreasury(
+        address _treasury
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_treasury == address(0)) revert ZeroAddress();
         treasury = _treasury;
     }
@@ -204,15 +211,26 @@ contract PlasmaBridgeAdapter is
         uint256 blockNumber,
         PlasmaInclusionProof calldata txProof,
         OperatorConfirmation[] calldata confirmations
-    ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) returns (bytes32 depositId) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(RELAYER_ROLE)
+        returns (bytes32 depositId)
+    {
         if (!bridgeConfig.active) revert BridgeNotActive();
-        if (amountSatoplasma < MIN_DEPOSIT_SATOPLASMA) revert AmountTooSmall(amountSatoplasma);
-        if (amountSatoplasma > MAX_DEPOSIT_SATOPLASMA) revert AmountTooLarge(amountSatoplasma);
+        if (amountSatoplasma < MIN_DEPOSIT_SATOPLASMA)
+            revert AmountTooSmall(amountSatoplasma);
+        if (amountSatoplasma > MAX_DEPOSIT_SATOPLASMA)
+            revert AmountTooLarge(amountSatoplasma);
         if (evmRecipient == address(0)) revert ZeroAddress();
-        if (usedPlasmaTxHashes[plasmaTxHash]) revert PlasmaTxAlreadyUsed(plasmaTxHash);
+        if (usedPlasmaTxHashes[plasmaTxHash])
+            revert PlasmaTxAlreadyUsed(plasmaTxHash);
 
         // Verify block commitment exists and is committed to L1
-        PlasmaBlockCommitment storage commitment = blockCommitments[blockNumber];
+        PlasmaBlockCommitment storage commitment = blockCommitments[
+            blockNumber
+        ];
         if (!commitment.committed) revert BlockNotCommitted(blockNumber);
 
         // Verify Merkle inclusion proof against committed block root
@@ -256,23 +274,39 @@ contract PlasmaBridgeAdapter is
         totalDeposited += amountSatoplasma;
         accumulatedFees += fee;
 
-        emit PLASMADepositInitiated(depositId, plasmaTxHash, plasmaSender, evmRecipient, amountSatoplasma);
+        emit PLASMADepositInitiated(
+            depositId,
+            plasmaTxHash,
+            plasmaSender,
+            evmRecipient,
+            amountSatoplasma
+        );
 
         return depositId;
     }
 
     /// @inheritdoc IPlasmaBridgeAdapter
-    function completePLASMADeposit(bytes32 depositId) external nonReentrant onlyRole(OPERATOR_ROLE) {
+    function completePLASMADeposit(
+        bytes32 depositId
+    ) external nonReentrant onlyRole(OPERATOR_ROLE) {
         PLASMADeposit storage deposit = deposits[depositId];
         if (deposit.depositId == bytes32(0)) revert DepositNotFound(depositId);
-        if (deposit.status != DepositStatus.VERIFIED) revert DepositNotPending(depositId);
+        if (deposit.status != DepositStatus.VERIFIED)
+            revert DepositNotPending(depositId);
 
         deposit.status = DepositStatus.COMPLETED;
         deposit.completedAt = block.timestamp;
 
-        IERC20(bridgeConfig.wrappedPLASMA).safeTransfer(deposit.evmRecipient, deposit.netAmountSatoplasma);
+        IERC20(bridgeConfig.wrappedPLASMA).safeTransfer(
+            deposit.evmRecipient,
+            deposit.netAmountSatoplasma
+        );
 
-        emit PLASMADepositCompleted(depositId, deposit.evmRecipient, deposit.netAmountSatoplasma);
+        emit PLASMADepositCompleted(
+            depositId,
+            deposit.evmRecipient,
+            deposit.netAmountSatoplasma
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -285,11 +319,17 @@ contract PlasmaBridgeAdapter is
         uint256 amountSatoplasma
     ) external nonReentrant whenNotPaused returns (bytes32 withdrawalId) {
         if (!bridgeConfig.active) revert BridgeNotActive();
-        if (amountSatoplasma < MIN_DEPOSIT_SATOPLASMA) revert AmountTooSmall(amountSatoplasma);
-        if (amountSatoplasma > MAX_DEPOSIT_SATOPLASMA) revert AmountTooLarge(amountSatoplasma);
+        if (amountSatoplasma < MIN_DEPOSIT_SATOPLASMA)
+            revert AmountTooSmall(amountSatoplasma);
+        if (amountSatoplasma > MAX_DEPOSIT_SATOPLASMA)
+            revert AmountTooLarge(amountSatoplasma);
         if (plasmaRecipient == address(0)) revert ZeroAddress();
 
-        IERC20(bridgeConfig.wrappedPLASMA).safeTransferFrom(msg.sender, address(this), amountSatoplasma);
+        IERC20(bridgeConfig.wrappedPLASMA).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amountSatoplasma
+        );
 
         withdrawalNonce++;
         withdrawalId = keccak256(
@@ -317,7 +357,12 @@ contract PlasmaBridgeAdapter is
         userWithdrawals[msg.sender].push(withdrawalId);
         totalWithdrawn += amountSatoplasma;
 
-        emit PLASMAWithdrawalInitiated(withdrawalId, msg.sender, plasmaRecipient, amountSatoplasma);
+        emit PLASMAWithdrawalInitiated(
+            withdrawalId,
+            msg.sender,
+            plasmaRecipient,
+            amountSatoplasma
+        );
 
         return withdrawalId;
     }
@@ -330,8 +375,10 @@ contract PlasmaBridgeAdapter is
         OperatorConfirmation[] calldata confirmations
     ) external nonReentrant onlyRole(RELAYER_ROLE) {
         PLASMAWithdrawal storage withdrawal = withdrawals[withdrawalId];
-        if (withdrawal.withdrawalId == bytes32(0)) revert WithdrawalNotFound(withdrawalId);
-        if (withdrawal.status != WithdrawalStatus.PENDING) revert WithdrawalNotPending(withdrawalId);
+        if (withdrawal.withdrawalId == bytes32(0))
+            revert WithdrawalNotFound(withdrawalId);
+        if (withdrawal.status != WithdrawalStatus.PENDING)
+            revert WithdrawalNotPending(withdrawalId);
 
         withdrawal.status = WithdrawalStatus.COMPLETED;
         withdrawal.plasmaTxHash = plasmaTxHash;
@@ -343,8 +390,10 @@ contract PlasmaBridgeAdapter is
     /// @inheritdoc IPlasmaBridgeAdapter
     function refundWithdrawal(bytes32 withdrawalId) external nonReentrant {
         PLASMAWithdrawal storage withdrawal = withdrawals[withdrawalId];
-        if (withdrawal.withdrawalId == bytes32(0)) revert WithdrawalNotFound(withdrawalId);
-        if (withdrawal.status != WithdrawalStatus.PENDING) revert WithdrawalNotPending(withdrawalId);
+        if (withdrawal.withdrawalId == bytes32(0))
+            revert WithdrawalNotFound(withdrawalId);
+        if (withdrawal.status != WithdrawalStatus.PENDING)
+            revert WithdrawalNotPending(withdrawalId);
 
         uint256 refundableAt = withdrawal.initiatedAt + WITHDRAWAL_REFUND_DELAY;
         if (block.timestamp < refundableAt) {
@@ -354,9 +403,16 @@ contract PlasmaBridgeAdapter is
         withdrawal.status = WithdrawalStatus.REFUNDED;
         withdrawal.completedAt = block.timestamp;
 
-        IERC20(bridgeConfig.wrappedPLASMA).safeTransfer(withdrawal.evmSender, withdrawal.amountSatoplasma);
+        IERC20(bridgeConfig.wrappedPLASMA).safeTransfer(
+            withdrawal.evmSender,
+            withdrawal.amountSatoplasma
+        );
 
-        emit PLASMAWithdrawalRefunded(withdrawalId, withdrawal.evmSender, withdrawal.amountSatoplasma);
+        emit PLASMAWithdrawalRefunded(
+            withdrawalId,
+            withdrawal.evmSender,
+            withdrawal.amountSatoplasma
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -374,8 +430,10 @@ contract PlasmaBridgeAdapter is
         if (msg.value == 0) revert ZeroAmount();
 
         uint256 duration = cancelAfter - finishAfter;
-        if (duration < MIN_ESCROW_TIMELOCK) revert EscrowTimelockTooShort(duration);
-        if (duration > MAX_ESCROW_TIMELOCK) revert EscrowTimelockTooLong(duration);
+        if (duration < MIN_ESCROW_TIMELOCK)
+            revert EscrowTimelockTooShort(duration);
+        if (duration > MAX_ESCROW_TIMELOCK)
+            revert EscrowTimelockTooLong(duration);
 
         escrowNonce++;
         escrowId = keccak256(
@@ -406,16 +464,26 @@ contract PlasmaBridgeAdapter is
         userEscrows[msg.sender].push(escrowId);
         totalEscrows++;
 
-        emit EscrowCreated(escrowId, msg.sender, plasmaParty, msg.value, hashlock);
+        emit EscrowCreated(
+            escrowId,
+            msg.sender,
+            plasmaParty,
+            msg.value,
+            hashlock
+        );
 
         return escrowId;
     }
 
     /// @inheritdoc IPlasmaBridgeAdapter
-    function finishEscrow(bytes32 escrowId, bytes32 preimage) external nonReentrant {
+    function finishEscrow(
+        bytes32 escrowId,
+        bytes32 preimage
+    ) external nonReentrant {
         PLASMAEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
-        if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
+        if (escrow.status != EscrowStatus.ACTIVE)
+            revert EscrowNotActive(escrowId);
         if (block.timestamp < escrow.finishAfter) {
             revert EscrowNotYetFinishable(escrowId, escrow.finishAfter);
         }
@@ -429,7 +497,9 @@ contract PlasmaBridgeAdapter is
         escrow.preimage = preimage;
         totalEscrowsFinished++;
 
-        (bool sent, ) = payable(msg.sender).call{value: escrow.amountSatoplasma}("");
+        (bool sent, ) = payable(msg.sender).call{
+            value: escrow.amountSatoplasma
+        }("");
         require(sent, "ETH transfer failed");
 
         emit EscrowFinished(escrowId, preimage);
@@ -439,7 +509,8 @@ contract PlasmaBridgeAdapter is
     function cancelEscrow(bytes32 escrowId) external nonReentrant {
         PLASMAEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
-        if (escrow.status != EscrowStatus.ACTIVE) revert EscrowNotActive(escrowId);
+        if (escrow.status != EscrowStatus.ACTIVE)
+            revert EscrowNotActive(escrowId);
         if (block.timestamp < escrow.cancelAfter) {
             revert EscrowNotYetCancellable(escrowId, escrow.cancelAfter);
         }
@@ -447,7 +518,9 @@ contract PlasmaBridgeAdapter is
         escrow.status = EscrowStatus.CANCELLED;
         totalEscrowsCancelled++;
 
-        (bool sent, ) = payable(escrow.evmParty).call{value: escrow.amountSatoplasma}("");
+        (bool sent, ) = payable(escrow.evmParty).call{
+            value: escrow.amountSatoplasma
+        }("");
         require(sent, "ETH transfer failed");
 
         emit EscrowCancelled(escrowId);
@@ -536,37 +609,51 @@ contract PlasmaBridgeAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IPlasmaBridgeAdapter
-    function getDeposit(bytes32 depositId) external view returns (PLASMADeposit memory) {
+    function getDeposit(
+        bytes32 depositId
+    ) external view returns (PLASMADeposit memory) {
         return deposits[depositId];
     }
 
     /// @inheritdoc IPlasmaBridgeAdapter
-    function getWithdrawal(bytes32 withdrawalId) external view returns (PLASMAWithdrawal memory) {
+    function getWithdrawal(
+        bytes32 withdrawalId
+    ) external view returns (PLASMAWithdrawal memory) {
         return withdrawals[withdrawalId];
     }
 
     /// @inheritdoc IPlasmaBridgeAdapter
-    function getEscrow(bytes32 escrowId) external view returns (PLASMAEscrow memory) {
+    function getEscrow(
+        bytes32 escrowId
+    ) external view returns (PLASMAEscrow memory) {
         return escrows[escrowId];
     }
 
     /// @notice Get block commitment details
-    function getBlockCommitment(uint256 blockNumber) external view returns (PlasmaBlockCommitment memory) {
+    function getBlockCommitment(
+        uint256 blockNumber
+    ) external view returns (PlasmaBlockCommitment memory) {
         return blockCommitments[blockNumber];
     }
 
     /// @notice Get all deposit IDs for a user
-    function getUserDeposits(address user) external view returns (bytes32[] memory) {
+    function getUserDeposits(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userDeposits[user];
     }
 
     /// @notice Get all withdrawal IDs for a user
-    function getUserWithdrawals(address user) external view returns (bytes32[] memory) {
+    function getUserWithdrawals(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userWithdrawals[user];
     }
 
     /// @notice Get all escrow IDs for a user
-    function getUserEscrows(address user) external view returns (bytes32[] memory) {
+    function getUserEscrows(
+        address user
+    ) external view returns (bytes32[] memory) {
         return userEscrows[user];
     }
 
@@ -574,15 +661,7 @@ contract PlasmaBridgeAdapter is
     function getBridgeStats()
         external
         view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
     {
         return (
             totalDeposited,
@@ -609,9 +688,13 @@ contract PlasmaBridgeAdapter is
 
         for (uint256 i = 0; i < proof.proof.length; i++) {
             if (index % 2 == 0) {
-                computedHash = keccak256(abi.encodePacked(computedHash, proof.proof[i]));
+                computedHash = keccak256(
+                    abi.encodePacked(computedHash, proof.proof[i])
+                );
             } else {
-                computedHash = keccak256(abi.encodePacked(proof.proof[i], computedHash));
+                computedHash = keccak256(
+                    abi.encodePacked(proof.proof[i], computedHash)
+                );
             }
             index /= 2;
         }
