@@ -6,60 +6,64 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IProvenanceBridgeAdapter} from "../interfaces/IProvenanceBridgeAdapter.sol";
+import {ICantonBridgeAdapter} from "../interfaces/ICantonBridgeAdapter.sol";
 
 /**
- * @title ProvenanceBridgeAdapter
+ * @title CantonBridgeAdapter
  * @author Soul Protocol
- * @notice Bridge adapter for Provenance Blockchain interoperability with Soul Protocol
- * @dev Enables cross-chain transfers between Soul Protocol (EVM) and Provenance (Cosmos)
+ * @notice Bridge adapter for Canton Network interoperability with Soul Protocol
+ * @dev Enables cross-chain transfers between Soul Protocol (EVM) and Canton Network (Daml)
  *
  * ARCHITECTURE:
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │                  Soul <-> Provenance Bridge                                 │
+ * │                     Soul <-> Canton Bridge                                  │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │                                                                             │
  * │  ┌───────────────────┐           ┌───────────────────────────────────┐     │
- * │  │   Soul Side       │           │     Provenance Side               │     │
+ * │  │   Soul Side       │           │     Canton Side                   │     │
  * │  │  ┌─────────────┐  │           │  ┌────────────────────────────┐   │     │
- * │  │  │ wHASH Token │  │           │  │  IBC Bridge Module         │   │     │
- * │  │  │ (ERC-20)    │  │           │  │  (Cosmos SDK / x/marker)   │   │     │
- * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
- * │  │        │          │           │        │                          │     │
- * │  │  ┌─────▼───────┐  │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  │ Bridge      │  │◄─────────►│  │  Tendermint Validator Set  │   │     │
- * │  │  │ Adapter     │  │  Relayer  │  │  (~100 active validators)  │   │     │
- * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
- * │  │        │          │           │        │                          │     │
- * │  │  ┌─────▼───────┐  │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  │ ZK Privacy  │  │           │  │  Tendermint BFT Consensus  │   │     │
- * │  │  │ Layer       │  │           │  │  (instant BFT finality)    │   │     │
- * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
+ * │  │  │ wCANTON     │  │           │  │  Global Synchronizer       │   │     │
+ * │  │  │ Token       │  │           │  │  (Canton Protocol)         │   │     │
+ * │  │  │ (ERC-20)    │  │           │  └────────────────────────────┘   │     │
+ * │  │  └─────────────┘  │           │        │                          │     │
+ * │  │        │          │           │  ┌─────▼──────────────────────┐   │     │
+ * │  │  ┌─────▼───────┐  │           │  │  Mediator + Sequencer     │   │     │
+ * │  │  │ Bridge      │  │◄─────────►│  │  Nodes                    │   │     │
+ * │  │  │ Adapter     │  │  Relayer  │  └────────────────────────────┘   │     │
+ * │  │  └─────────────┘  │           │        │                          │     │
+ * │  │        │          │           │  ┌─────▼──────────────────────┐   │     │
+ * │  │  ┌─────▼───────┐  │           │  │  Daml Smart Contracts     │   │     │
+ * │  │  │ ZK Privacy  │  │           │  │  (Sub-tx privacy)         │   │     │
+ * │  │  │ Layer       │  │           │  └────────────────────────────┘   │     │
+ * │  │  └─────────────┘  │           │                                   │     │
  * │  └───────────────────┘           └───────────────────────────────────┘     │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
- * PROVENANCE CONCEPTS:
- * - nhash: Smallest unit of HASH (1 HASH = 1,000,000,000 nhash = 1e9 nhash)
- * - Block: ~6 second block time (Tendermint BFT)
- * - Tendermint BFT: Byzantine fault tolerant consensus engine
- * - Marker Module: Native Provenance asset management & tokenization
- * - IBC: Inter-Blockchain Communication for cross-chain transfers
- * - Chain ID: pio-mainnet-1 → EVM numeric mapping: 505
- * - Finality: ~10 blocks (~60s) for practical cross-chain finality
- * - ~100 active validators, 2/3+1 supermajority
- * - Bech32 addresses: pb1... prefix
+ * CANTON CONCEPTS:
+ * - microcanton: Smallest unit (1 CANTON = 1,000,000 microcanton = 1e6)
+ * - Sequencing Round: ~2 second ordering intervals
+ * - Canton Protocol: Privacy-preserving synchronization
+ * - Daml: Digital Asset Modeling Language
+ * - Global Synchronizer: Cross-domain coordination
+ * - Mediator: Confirms transaction results
+ * - Sequencer: Orders messages within a domain
+ * - Chain ID: canton-global-1 → EVM numeric mapping: 510
+ * - Finality: 5 rounds (~10s) for cross-chain safety
+ * - ~20 mediators, 2/3+1 supermajority
+ * - Party IDs: party::domain format
  *
  * SECURITY PROPERTIES:
- * - Tendermint validator attestation threshold (configurable, default 67/100)
- * - Block finality confirmation depth (configurable, default 10 blocks)
- * - IAVL+ Merkle proofs for Provenance transaction verification
+ * - Mediator attestation threshold (configurable, default 14/20)
+ * - Round finality confirmation depth (configurable, default 5 rounds)
+ * - Merkle commitment proofs for Canton transaction verification
  * - HTLC hashlock conditions (SHA-256 preimage) for atomic swaps
  * - ReentrancyGuard on all state-changing functions
  * - Pausable emergency circuit breaker
  * - Nullifier-based double-spend prevention for privacy deposits
+ * - Sub-transaction privacy alignment with Canton's privacy model
  */
-contract ProvenanceBridgeAdapter is
-    IProvenanceBridgeAdapter,
+contract CantonBridgeAdapter is
+    ICantonBridgeAdapter,
     AccessControl,
     ReentrancyGuard,
     Pausable
@@ -79,17 +83,17 @@ contract ProvenanceBridgeAdapter is
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant PROVENANCE_CHAIN_ID = 505;
-    uint256 public constant NHASH_PER_HASH = 1_000_000_000; // 1e9
-    uint256 public constant MIN_DEPOSIT_NHASH = NHASH_PER_HASH / 10; // 0.1 HASH
-    uint256 public constant MAX_DEPOSIT_NHASH = 1_000_000 * NHASH_PER_HASH; // 1M HASH
-    uint256 public constant BRIDGE_FEE_BPS = 10; // 0.10% — lowest fee for institutional chain
+    uint256 public constant CANTON_CHAIN_ID = 510;
+    uint256 public constant MICROCANTON_PER_CANTON = 1_000_000; // 1e6
+    uint256 public constant MIN_DEPOSIT_MICROCANTON = MICROCANTON_PER_CANTON / 10; // 0.1 CANTON
+    uint256 public constant MAX_DEPOSIT_MICROCANTON = 10_000_000 * MICROCANTON_PER_CANTON; // 10M CANTON
+    uint256 public constant BRIDGE_FEE_BPS = 5; // 0.05% — institutional-grade lowest fee
     uint256 public constant BPS_DENOMINATOR = 10_000;
-    uint256 public constant DEFAULT_ESCROW_TIMELOCK = 12 hours;
-    uint256 public constant MIN_ESCROW_TIMELOCK = 1 hours;
-    uint256 public constant MAX_ESCROW_TIMELOCK = 30 days;
-    uint256 public constant WITHDRAWAL_REFUND_DELAY = 48 hours;
-    uint256 public constant DEFAULT_BLOCK_CONFIRMATIONS = 10;
+    uint256 public constant DEFAULT_ESCROW_TIMELOCK = 6 hours;
+    uint256 public constant MIN_ESCROW_TIMELOCK = 2 hours;
+    uint256 public constant MAX_ESCROW_TIMELOCK = 60 days;
+    uint256 public constant WITHDRAWAL_REFUND_DELAY = 72 hours;
+    uint256 public constant DEFAULT_ROUND_CONFIRMATIONS = 5;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -105,17 +109,17 @@ contract ProvenanceBridgeAdapter is
                               MAPPINGS
     //////////////////////////////////////////////////////////////*/
 
-    mapping(bytes32 => HASHDeposit) public deposits;
-    mapping(bytes32 => HASHWithdrawal) public withdrawals;
-    mapping(bytes32 => HASHEscrow) public escrows;
-    mapping(uint256 => TendermintBlockHeader) public blockHeaders;
-    mapping(bytes32 => bool) public usedProvTxHashes;
+    mapping(bytes32 => CANTONDeposit) public deposits;
+    mapping(bytes32 => CANTONWithdrawal) public withdrawals;
+    mapping(bytes32 => CANTONEscrow) public escrows;
+    mapping(uint256 => SynchronizerRoundHeader) public roundHeaders;
+    mapping(bytes32 => bool) public usedCantonTxHashes;
     mapping(bytes32 => bool) public usedNullifiers;
     mapping(address => bytes32[]) public userDeposits;
     mapping(address => bytes32[]) public userWithdrawals;
     mapping(address => bytes32[]) public userEscrows;
-    uint256 public latestBlockNumber;
-    bytes32 public latestBlockHash;
+    uint256 public latestRoundNumber;
+    bytes32 public latestRoundHash;
 
     /*//////////////////////////////////////////////////////////////
                              STATISTICS
@@ -149,32 +153,32 @@ contract ProvenanceBridgeAdapter is
     //////////////////////////////////////////////////////////////*/
 
     function configure(
-        address provenanceBridgeContract,
-        address wrappedHASH,
-        address validatorOracle,
-        uint256 minValidatorSignatures,
-        uint256 requiredBlockConfirmations
+        address cantonBridgeContract,
+        address wrappedCANTON,
+        address mediatorOracle,
+        uint256 minMediatorSignatures,
+        uint256 requiredRoundConfirmations
     ) external onlyRole(OPERATOR_ROLE) {
-        if (provenanceBridgeContract == address(0)) revert ZeroAddress();
-        if (wrappedHASH == address(0)) revert ZeroAddress();
-        if (validatorOracle == address(0)) revert ZeroAddress();
-        if (minValidatorSignatures == 0) revert InvalidAmount();
+        if (cantonBridgeContract == address(0)) revert ZeroAddress();
+        if (wrappedCANTON == address(0)) revert ZeroAddress();
+        if (mediatorOracle == address(0)) revert ZeroAddress();
+        if (minMediatorSignatures == 0) revert InvalidAmount();
 
         bridgeConfig = BridgeConfig({
-            provenanceBridgeContract: provenanceBridgeContract,
-            wrappedHASH: wrappedHASH,
-            validatorOracle: validatorOracle,
-            minValidatorSignatures: minValidatorSignatures,
-            requiredBlockConfirmations: requiredBlockConfirmations > 0
-                ? requiredBlockConfirmations
-                : DEFAULT_BLOCK_CONFIRMATIONS,
+            cantonBridgeContract: cantonBridgeContract,
+            wrappedCANTON: wrappedCANTON,
+            mediatorOracle: mediatorOracle,
+            minMediatorSignatures: minMediatorSignatures,
+            requiredRoundConfirmations: requiredRoundConfirmations > 0
+                ? requiredRoundConfirmations
+                : DEFAULT_ROUND_CONFIRMATIONS,
             active: true
         });
 
         emit BridgeConfigured(
-            provenanceBridgeContract,
-            wrappedHASH,
-            validatorOracle
+            cantonBridgeContract,
+            wrappedCANTON,
+            mediatorOracle
         );
     }
 
@@ -186,17 +190,17 @@ contract ProvenanceBridgeAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                      DEPOSITS (Provenance → Soul)
+                      DEPOSITS (Canton → Soul)
     //////////////////////////////////////////////////////////////*/
 
-    function initiateHASHDeposit(
-        bytes32 provTxHash,
-        address provSender,
+    function initiateCANTONDeposit(
+        bytes32 cantonTxHash,
+        address cantonSender,
         address evmRecipient,
-        uint256 amountNhash,
-        uint256 blockNumber,
-        ProvenanceMerkleProof calldata txProof,
-        ValidatorAttestation[] calldata attestations
+        uint256 amountMicrocanton,
+        uint256 roundNumber,
+        CantonMerkleProof calldata txProof,
+        MediatorAttestation[] calldata attestations
     )
         external
         nonReentrant
@@ -206,71 +210,80 @@ contract ProvenanceBridgeAdapter is
     {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
         if (evmRecipient == address(0)) revert ZeroAddress();
-        if (amountNhash < MIN_DEPOSIT_NHASH) revert AmountTooSmall(amountNhash);
-        if (amountNhash > MAX_DEPOSIT_NHASH) revert AmountTooLarge(amountNhash);
-        if (usedProvTxHashes[provTxHash]) revert ProvTxAlreadyUsed(provTxHash);
+        if (amountMicrocanton < MIN_DEPOSIT_MICROCANTON)
+            revert AmountTooSmall(amountMicrocanton);
+        if (amountMicrocanton > MAX_DEPOSIT_MICROCANTON)
+            revert AmountTooLarge(amountMicrocanton);
+        if (usedCantonTxHashes[cantonTxHash])
+            revert CantonTxAlreadyUsed(cantonTxHash);
 
-        TendermintBlockHeader storage header = blockHeaders[blockNumber];
-        if (!header.finalized) revert BlockNotFinalized(blockNumber);
+        SynchronizerRoundHeader storage header = roundHeaders[roundNumber];
+        if (!header.finalized) revert RoundNotFinalized(roundNumber);
 
-        if (!_verifyMerkleProof(txProof, header.transactionsRoot, provTxHash)) {
-            revert InvalidBlockProof();
+        if (
+            !_verifyMerkleProof(
+                txProof,
+                header.transactionsRoot,
+                cantonTxHash
+            )
+        ) {
+            revert InvalidRoundProof();
         }
 
-        if (!_verifyValidatorAttestations(header.blockHash, attestations)) {
-            revert InsufficientValidatorSignatures(
+        if (!_verifyMediatorAttestations(header.roundHash, attestations)) {
+            revert InsufficientMediatorSignatures(
                 attestations.length,
-                bridgeConfig.minValidatorSignatures
+                bridgeConfig.minMediatorSignatures
             );
         }
 
-        usedProvTxHashes[provTxHash] = true;
+        usedCantonTxHashes[cantonTxHash] = true;
 
-        uint256 fee = (amountNhash * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 netAmount = amountNhash - fee;
+        uint256 fee = (amountMicrocanton * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 netAmount = amountMicrocanton - fee;
 
         depositId = keccak256(
             abi.encodePacked(
-                PROVENANCE_CHAIN_ID,
-                provTxHash,
-                provSender,
+                CANTON_CHAIN_ID,
+                cantonTxHash,
+                cantonSender,
                 evmRecipient,
-                amountNhash,
+                amountMicrocanton,
                 depositNonce++
             )
         );
 
-        deposits[depositId] = HASHDeposit({
+        deposits[depositId] = CANTONDeposit({
             depositId: depositId,
-            provTxHash: provTxHash,
-            provSender: provSender,
+            cantonTxHash: cantonTxHash,
+            cantonSender: cantonSender,
             evmRecipient: evmRecipient,
-            amountNhash: amountNhash,
-            netAmountNhash: netAmount,
+            amountMicrocanton: amountMicrocanton,
+            netAmountMicrocanton: netAmount,
             fee: fee,
             status: DepositStatus.VERIFIED,
-            blockNumber: blockNumber,
+            roundNumber: roundNumber,
             initiatedAt: block.timestamp,
             completedAt: 0
         });
 
         userDeposits[evmRecipient].push(depositId);
         accumulatedFees += fee;
-        totalDeposited += amountNhash;
+        totalDeposited += amountMicrocanton;
 
-        emit HASHDepositInitiated(
+        emit CANTONDepositInitiated(
             depositId,
-            provTxHash,
-            provSender,
+            cantonTxHash,
+            cantonSender,
             evmRecipient,
-            amountNhash
+            amountMicrocanton
         );
     }
 
-    function completeHASHDeposit(
+    function completeCANTONDeposit(
         bytes32 depositId
     ) external nonReentrant whenNotPaused onlyRole(OPERATOR_ROLE) {
-        HASHDeposit storage deposit = deposits[depositId];
+        CANTONDeposit storage deposit = deposits[depositId];
         if (deposit.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (deposit.status != DepositStatus.VERIFIED) {
             revert InvalidDepositStatus(depositId, deposit.status);
@@ -279,85 +292,87 @@ contract ProvenanceBridgeAdapter is
         deposit.status = DepositStatus.COMPLETED;
         deposit.completedAt = block.timestamp;
 
-        (bool success, ) = bridgeConfig.wrappedHASH.call(
+        (bool success, ) = bridgeConfig.wrappedCANTON.call(
             abi.encodeWithSignature(
                 "mint(address,uint256)",
                 deposit.evmRecipient,
-                deposit.netAmountNhash
+                deposit.netAmountMicrocanton
             )
         );
         if (!success) revert InvalidAmount();
 
-        emit HASHDepositCompleted(
+        emit CANTONDepositCompleted(
             depositId,
             deposit.evmRecipient,
-            deposit.netAmountNhash
+            deposit.netAmountMicrocanton
         );
     }
 
     /*//////////////////////////////////////////////////////////////
-                    WITHDRAWALS (Soul → Provenance)
+                    WITHDRAWALS (Soul → Canton)
     //////////////////////////////////////////////////////////////*/
 
     function initiateWithdrawal(
-        address provRecipient,
-        uint256 amountNhash
+        address cantonRecipient,
+        uint256 amountMicrocanton
     ) external nonReentrant whenNotPaused returns (bytes32 withdrawalId) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
-        if (provRecipient == address(0)) revert ZeroAddress();
-        if (amountNhash < MIN_DEPOSIT_NHASH) revert AmountTooSmall(amountNhash);
-        if (amountNhash > MAX_DEPOSIT_NHASH) revert AmountTooLarge(amountNhash);
+        if (cantonRecipient == address(0)) revert ZeroAddress();
+        if (amountMicrocanton < MIN_DEPOSIT_MICROCANTON)
+            revert AmountTooSmall(amountMicrocanton);
+        if (amountMicrocanton > MAX_DEPOSIT_MICROCANTON)
+            revert AmountTooLarge(amountMicrocanton);
 
-        IERC20(bridgeConfig.wrappedHASH).safeTransferFrom(
+        IERC20(bridgeConfig.wrappedCANTON).safeTransferFrom(
             msg.sender,
             address(this),
-            amountNhash
+            amountMicrocanton
         );
 
-        (bool burnSuccess, ) = bridgeConfig.wrappedHASH.call(
-            abi.encodeWithSignature("burn(uint256)", amountNhash)
+        (bool burnSuccess, ) = bridgeConfig.wrappedCANTON.call(
+            abi.encodeWithSignature("burn(uint256)", amountMicrocanton)
         );
 
         withdrawalId = keccak256(
             abi.encodePacked(
-                PROVENANCE_CHAIN_ID,
+                CANTON_CHAIN_ID,
                 msg.sender,
-                provRecipient,
-                amountNhash,
+                cantonRecipient,
+                amountMicrocanton,
                 withdrawalNonce++,
                 block.timestamp
             )
         );
 
-        withdrawals[withdrawalId] = HASHWithdrawal({
+        withdrawals[withdrawalId] = CANTONWithdrawal({
             withdrawalId: withdrawalId,
             evmSender: msg.sender,
-            provRecipient: provRecipient,
-            amountNhash: amountNhash,
-            provTxHash: bytes32(0),
+            cantonRecipient: cantonRecipient,
+            amountMicrocanton: amountMicrocanton,
+            cantonTxHash: bytes32(0),
             status: WithdrawalStatus.PENDING,
             initiatedAt: block.timestamp,
             completedAt: 0
         });
 
         userWithdrawals[msg.sender].push(withdrawalId);
-        totalWithdrawn += amountNhash;
+        totalWithdrawn += amountMicrocanton;
 
-        emit HASHWithdrawalInitiated(
+        emit CANTONWithdrawalInitiated(
             withdrawalId,
             msg.sender,
-            provRecipient,
-            amountNhash
+            cantonRecipient,
+            amountMicrocanton
         );
     }
 
     function completeWithdrawal(
         bytes32 withdrawalId,
-        bytes32 provTxHash,
-        ProvenanceMerkleProof calldata txProof,
-        ValidatorAttestation[] calldata attestations
+        bytes32 cantonTxHash,
+        CantonMerkleProof calldata txProof,
+        MediatorAttestation[] calldata attestations
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
-        HASHWithdrawal storage withdrawal = withdrawals[withdrawalId];
+        CANTONWithdrawal storage withdrawal = withdrawals[withdrawalId];
         if (withdrawal.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (
@@ -366,42 +381,47 @@ contract ProvenanceBridgeAdapter is
         ) {
             revert InvalidWithdrawalStatus(withdrawalId, withdrawal.status);
         }
-        if (usedProvTxHashes[provTxHash]) revert ProvTxAlreadyUsed(provTxHash);
+        if (usedCantonTxHashes[cantonTxHash])
+            revert CantonTxAlreadyUsed(cantonTxHash);
 
         bool verified = false;
         for (
-            uint256 i = latestBlockNumber;
-            i > 0 && i > latestBlockNumber - 100;
+            uint256 i = latestRoundNumber;
+            i > 0 && i > latestRoundNumber - 100;
             i--
         ) {
-            TendermintBlockHeader storage header = blockHeaders[i];
+            SynchronizerRoundHeader storage header = roundHeaders[i];
             if (
                 header.finalized &&
-                _verifyMerkleProof(txProof, header.transactionsRoot, provTxHash)
+                _verifyMerkleProof(
+                    txProof,
+                    header.transactionsRoot,
+                    cantonTxHash
+                )
             ) {
                 if (
-                    _verifyValidatorAttestations(header.blockHash, attestations)
+                    _verifyMediatorAttestations(header.roundHash, attestations)
                 ) {
                     verified = true;
                     break;
                 }
             }
         }
-        if (!verified) revert InvalidBlockProof();
+        if (!verified) revert InvalidRoundProof();
 
-        usedProvTxHashes[provTxHash] = true;
+        usedCantonTxHashes[cantonTxHash] = true;
 
         withdrawal.status = WithdrawalStatus.COMPLETED;
-        withdrawal.provTxHash = provTxHash;
+        withdrawal.cantonTxHash = cantonTxHash;
         withdrawal.completedAt = block.timestamp;
 
-        emit HASHWithdrawalCompleted(withdrawalId, provTxHash);
+        emit CANTONWithdrawalCompleted(withdrawalId, cantonTxHash);
     }
 
     function refundWithdrawal(
         bytes32 withdrawalId
     ) external nonReentrant whenNotPaused {
-        HASHWithdrawal storage withdrawal = withdrawals[withdrawalId];
+        CANTONWithdrawal storage withdrawal = withdrawals[withdrawalId];
         if (withdrawal.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (withdrawal.status != WithdrawalStatus.PENDING) {
@@ -416,24 +436,24 @@ contract ProvenanceBridgeAdapter is
         withdrawal.status = WithdrawalStatus.REFUNDED;
         withdrawal.completedAt = block.timestamp;
 
-        (bool mintSuccess, ) = bridgeConfig.wrappedHASH.call(
+        (bool mintSuccess, ) = bridgeConfig.wrappedCANTON.call(
             abi.encodeWithSignature(
                 "mint(address,uint256)",
                 withdrawal.evmSender,
-                withdrawal.amountNhash
+                withdrawal.amountMicrocanton
             )
         );
         if (!mintSuccess) {
-            IERC20(bridgeConfig.wrappedHASH).safeTransfer(
+            IERC20(bridgeConfig.wrappedCANTON).safeTransfer(
                 withdrawal.evmSender,
-                withdrawal.amountNhash
+                withdrawal.amountMicrocanton
             );
         }
 
-        emit HASHWithdrawalRefunded(
+        emit CANTONWithdrawalRefunded(
             withdrawalId,
             withdrawal.evmSender,
-            withdrawal.amountNhash
+            withdrawal.amountMicrocanton
         );
     }
 
@@ -442,13 +462,13 @@ contract ProvenanceBridgeAdapter is
     //////////////////////////////////////////////////////////////*/
 
     function createEscrow(
-        address provParty,
+        address cantonParty,
         bytes32 hashlock,
         uint256 finishAfter,
         uint256 cancelAfter
     ) external payable nonReentrant whenNotPaused returns (bytes32 escrowId) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
-        if (provParty == address(0)) revert ZeroAddress();
+        if (cantonParty == address(0)) revert ZeroAddress();
         if (hashlock == bytes32(0)) revert InvalidHashlock();
         if (msg.value == 0) revert InvalidAmount();
 
@@ -459,25 +479,25 @@ contract ProvenanceBridgeAdapter is
             revert TimelockTooLong(duration, MAX_ESCROW_TIMELOCK);
         if (finishAfter < block.timestamp) revert InvalidAmount();
 
-        uint256 amountNhash = msg.value;
+        uint256 amountMicrocanton = msg.value;
 
         escrowId = keccak256(
             abi.encodePacked(
-                PROVENANCE_CHAIN_ID,
+                CANTON_CHAIN_ID,
                 msg.sender,
-                provParty,
+                cantonParty,
                 hashlock,
-                amountNhash,
+                amountMicrocanton,
                 escrowNonce++,
                 block.timestamp
             )
         );
 
-        escrows[escrowId] = HASHEscrow({
+        escrows[escrowId] = CANTONEscrow({
             escrowId: escrowId,
             evmParty: msg.sender,
-            provParty: provParty,
-            amountNhash: amountNhash,
+            cantonParty: cantonParty,
+            amountMicrocanton: amountMicrocanton,
             hashlock: hashlock,
             preimage: bytes32(0),
             finishAfter: finishAfter,
@@ -492,8 +512,8 @@ contract ProvenanceBridgeAdapter is
         emit EscrowCreated(
             escrowId,
             msg.sender,
-            provParty,
-            amountNhash,
+            cantonParty,
+            amountMicrocanton,
             hashlock
         );
     }
@@ -502,7 +522,7 @@ contract ProvenanceBridgeAdapter is
         bytes32 escrowId,
         bytes32 preimage
     ) external nonReentrant whenNotPaused {
-        HASHEscrow storage escrow = escrows[escrowId];
+        CANTONEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (escrow.status != EscrowStatus.ACTIVE)
             revert EscrowNotActive(escrowId);
@@ -519,9 +539,9 @@ contract ProvenanceBridgeAdapter is
         escrow.preimage = preimage;
         totalEscrowsFinished++;
 
-        (bool success, ) = payable(msg.sender).call{value: escrow.amountNhash}(
-            ""
-        );
+        (bool success, ) = payable(msg.sender).call{
+            value: escrow.amountMicrocanton
+        }("");
         if (!success) revert InvalidAmount();
 
         emit EscrowFinished(escrowId, preimage);
@@ -530,7 +550,7 @@ contract ProvenanceBridgeAdapter is
     function cancelEscrow(
         bytes32 escrowId
     ) external nonReentrant whenNotPaused {
-        HASHEscrow storage escrow = escrows[escrowId];
+        CANTONEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (escrow.status != EscrowStatus.ACTIVE)
             revert EscrowNotActive(escrowId);
@@ -542,7 +562,7 @@ contract ProvenanceBridgeAdapter is
         totalEscrowsCancelled++;
 
         (bool success, ) = payable(escrow.evmParty).call{
-            value: escrow.amountNhash
+            value: escrow.amountMicrocanton
         }("");
         if (!success) revert InvalidAmount();
 
@@ -559,7 +579,7 @@ contract ProvenanceBridgeAdapter is
         bytes32 nullifier,
         bytes calldata zkProof
     ) external nonReentrant whenNotPaused onlyRole(OPERATOR_ROLE) {
-        HASHDeposit storage deposit = deposits[depositId];
+        CANTONDeposit storage deposit = deposits[depositId];
         if (deposit.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (deposit.status != DepositStatus.COMPLETED) {
             revert InvalidDepositStatus(depositId, deposit.status);
@@ -576,52 +596,54 @@ contract ProvenanceBridgeAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                      BLOCK HEADER SUBMISSION
+                   ROUND HEADER SUBMISSION
     //////////////////////////////////////////////////////////////*/
 
-    function submitBlockHeader(
-        uint256 blockNumber,
-        bytes32 blockHash,
+    function submitRoundHeader(
+        uint256 roundNumber,
+        bytes32 roundHash,
         bytes32 parentHash,
         bytes32 transactionsRoot,
         bytes32 stateRoot,
-        bytes32 validatorsHash,
-        uint256 blockTime,
-        ValidatorAttestation[] calldata attestations
+        bytes32 mediatorSetHash,
+        bytes32 domainTopologyHash,
+        uint256 roundTime,
+        MediatorAttestation[] calldata attestations
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
-        if (!_verifyValidatorAttestations(blockHash, attestations)) {
-            revert InsufficientValidatorSignatures(
+        if (!_verifyMediatorAttestations(roundHash, attestations)) {
+            revert InsufficientMediatorSignatures(
                 attestations.length,
-                bridgeConfig.minValidatorSignatures
+                bridgeConfig.minMediatorSignatures
             );
         }
 
-        if (blockNumber > 0 && blockHeaders[blockNumber - 1].finalized) {
-            TendermintBlockHeader storage parent = blockHeaders[
-                blockNumber - 1
+        if (roundNumber > 0 && roundHeaders[roundNumber - 1].finalized) {
+            SynchronizerRoundHeader storage parent = roundHeaders[
+                roundNumber - 1
             ];
-            if (parent.blockHash != parentHash) {
-                revert InvalidBlockProof();
+            if (parent.roundHash != parentHash) {
+                revert InvalidRoundProof();
             }
         }
 
-        blockHeaders[blockNumber] = TendermintBlockHeader({
-            blockNumber: blockNumber,
-            blockHash: blockHash,
+        roundHeaders[roundNumber] = SynchronizerRoundHeader({
+            roundNumber: roundNumber,
+            roundHash: roundHash,
             parentHash: parentHash,
             transactionsRoot: transactionsRoot,
             stateRoot: stateRoot,
-            validatorsHash: validatorsHash,
-            blockTime: blockTime,
+            mediatorSetHash: mediatorSetHash,
+            domainTopologyHash: domainTopologyHash,
+            roundTime: roundTime,
             finalized: true
         });
 
-        if (blockNumber > latestBlockNumber) {
-            latestBlockNumber = blockNumber;
-            latestBlockHash = blockHash;
+        if (roundNumber > latestRoundNumber) {
+            latestRoundNumber = roundNumber;
+            latestRoundHash = roundHash;
         }
 
-        emit BlockHeaderSubmitted(blockNumber, blockHash);
+        emit RoundHeaderSubmitted(roundNumber, roundHash);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -641,13 +663,13 @@ contract ProvenanceBridgeAdapter is
         if (amount == 0) revert InvalidAmount();
         accumulatedFees = 0;
 
-        uint256 balance = IERC20(bridgeConfig.wrappedHASH).balanceOf(
+        uint256 balance = IERC20(bridgeConfig.wrappedCANTON).balanceOf(
             address(this)
         );
         uint256 transferAmount = amount > balance ? balance : amount;
 
         if (transferAmount > 0) {
-            IERC20(bridgeConfig.wrappedHASH).safeTransfer(
+            IERC20(bridgeConfig.wrappedCANTON).safeTransfer(
                 treasury,
                 transferAmount
             );
@@ -662,26 +684,26 @@ contract ProvenanceBridgeAdapter is
 
     function getDeposit(
         bytes32 depositId
-    ) external view returns (HASHDeposit memory) {
+    ) external view returns (CANTONDeposit memory) {
         return deposits[depositId];
     }
 
     function getWithdrawal(
         bytes32 withdrawalId
-    ) external view returns (HASHWithdrawal memory) {
+    ) external view returns (CANTONWithdrawal memory) {
         return withdrawals[withdrawalId];
     }
 
     function getEscrow(
         bytes32 escrowId
-    ) external view returns (HASHEscrow memory) {
+    ) external view returns (CANTONEscrow memory) {
         return escrows[escrowId];
     }
 
-    function getBlockHeader(
-        uint256 blockNumber
-    ) external view returns (TendermintBlockHeader memory) {
-        return blockHeaders[blockNumber];
+    function getRoundHeader(
+        uint256 roundNumber
+    ) external view returns (SynchronizerRoundHeader memory) {
+        return roundHeaders[roundNumber];
     }
 
     function getUserDeposits(
@@ -712,7 +734,7 @@ contract ProvenanceBridgeAdapter is
             uint256 totalEscFinished,
             uint256 totalEscCancelled,
             uint256 fees,
-            uint256 lastBlock
+            uint256 lastRound
         )
     {
         return (
@@ -722,7 +744,7 @@ contract ProvenanceBridgeAdapter is
             totalEscrowsFinished,
             totalEscrowsCancelled,
             accumulatedFees,
-            latestBlockNumber
+            latestRoundNumber
         );
     }
 
@@ -731,7 +753,7 @@ contract ProvenanceBridgeAdapter is
     //////////////////////////////////////////////////////////////*/
 
     function _verifyMerkleProof(
-        ProvenanceMerkleProof calldata proof,
+        CantonMerkleProof calldata proof,
         bytes32 root,
         bytes32 leafHash
     ) internal pure returns (bool valid) {
@@ -756,24 +778,24 @@ contract ProvenanceBridgeAdapter is
         return computedHash == root;
     }
 
-    function _verifyValidatorAttestations(
-        bytes32 blockHash,
-        ValidatorAttestation[] calldata attestations
+    function _verifyMediatorAttestations(
+        bytes32 roundHash,
+        MediatorAttestation[] calldata attestations
     ) internal view returns (bool valid) {
-        if (attestations.length < bridgeConfig.minValidatorSignatures)
+        if (attestations.length < bridgeConfig.minMediatorSignatures)
             return false;
-        if (bridgeConfig.validatorOracle == address(0)) return false;
+        if (bridgeConfig.mediatorOracle == address(0)) return false;
 
         uint256 validCount = 0;
 
         for (uint256 i = 0; i < attestations.length; i++) {
             (bool success, bytes memory result) = bridgeConfig
-                .validatorOracle
+                .mediatorOracle
                 .staticcall(
                     abi.encodeWithSignature(
                         "verifyAttestation(bytes32,address,bytes)",
-                        blockHash,
-                        attestations[i].validator,
+                        roundHash,
+                        attestations[i].mediator,
                         attestations[i].signature
                     )
                 );
@@ -786,7 +808,7 @@ contract ProvenanceBridgeAdapter is
             }
         }
 
-        return validCount >= bridgeConfig.minValidatorSignatures;
+        return validCount >= bridgeConfig.minMediatorSignatures;
     }
 
     function _verifyZKProof(

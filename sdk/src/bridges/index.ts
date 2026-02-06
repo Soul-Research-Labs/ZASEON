@@ -17,6 +17,7 @@ export * from './solana';
 export * from './bnb';
 export * from './hyperliquid';
 export * from './provenance';
+export * from './canton';
 
 import { 
     keccak256, 
@@ -935,13 +936,77 @@ export class ProvenanceBridgeAdapterSDK extends BaseBridgeAdapter {
   }
 }
 
+export class CantonBridgeAdapterSDK extends BaseBridgeAdapter {
+  private cantonBridgeAddress: string;
+
+  constructor(
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    cantonBridgeAddress: string
+  ) {
+    super({
+      name: 'Canton',
+      chainId: 510,
+      nativeToken: 'CANTON',
+      finality: 5, // ~5 rounds (~10s synchronizer finality)
+      maxAmount: 10_000_000n * 1_000_000n, // 10M CANTON in microcanton
+      minAmount: 1_000_000n / 10n // 0.1 CANTON in microcanton
+    }, publicClient, walletClient);
+
+    this.cantonBridgeAddress = cantonBridgeAddress;
+  }
+
+  async bridgeTransfer(params: BridgeTransferParams): Promise<BridgeTransferResult> {
+    this.validateAmount(params.amount);
+
+    const transferId = keccak256(encodeAbiParameters(
+      [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'uint256' }],
+      [params.recipient as Hex, this.cantonBridgeAddress as Hex, params.amount, BigInt(Date.now())]
+    ));
+
+    return {
+      transferId,
+      txHash: '0x...',
+      estimatedArrival: Date.now() + 10_000, // ~10 seconds (5 rounds × 2s)
+      fees: await this.estimateFees(params.amount, params.targetChainId)
+    };
+  }
+
+  async completeBridge(transferId: string, proof: Uint8Array): Promise<string> {
+    return '0x...';
+  }
+
+  async getStatus(transferId: string): Promise<BridgeStatus> {
+    return {
+      state: 'pending',
+      sourceChainId: 1,
+      targetChainId: this.config.chainId,
+      confirmations: 0,
+      requiredConfirmations: 5
+    };
+  }
+
+  async estimateFees(amount: bigint, targetChainId: number): Promise<BridgeFees> {
+    const protocolFee = amount * 5n / 10000n; // 0.05% bridge fee
+    const relayerFee = 100_000n; // 0.1 CANTON in microcanton
+    const gasFee = 10_000n; // 0.01 CANTON (Canton synchronizer fee)
+
+    return {
+      protocolFee,
+      relayerFee,
+      gasFee,
+      total: protocolFee + relayerFee + gasFee
+    };
+  }
+}
+
 // ============================================
 // Bridge Factory
 // ============================================
 
 export type SupportedChain = 
   | 'cardano' | 'midnight' | 'polkadot' | 'cosmos' | 'near'
-  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance';
+  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance' | 'canton';
 
 export class BridgeFactory {
   static createAdapter(
@@ -1015,6 +1080,11 @@ export class BridgeFactory {
         return new ProvenanceBridgeAdapterSDK(
           publicClient, walletClient,
           config.provBridgeAddress
+        );
+      case 'canton':
+        return new CantonBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.cantonBridgeAddress
         );
       default:
         throw new Error(`Unsupported chain: ${chain}`);

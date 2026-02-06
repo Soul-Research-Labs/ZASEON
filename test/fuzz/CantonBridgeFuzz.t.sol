@@ -2,27 +2,27 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../../contracts/crosschain/ProvenanceBridgeAdapter.sol";
-import "../../contracts/interfaces/IProvenanceBridgeAdapter.sol";
-import "../../contracts/mocks/MockWrappedHASH.sol";
-import "../../contracts/mocks/MockTendermintValidatorOracle.sol";
+import "../../contracts/crosschain/CantonBridgeAdapter.sol";
+import "../../contracts/interfaces/ICantonBridgeAdapter.sol";
+import "../../contracts/mocks/MockWrappedCANTON.sol";
+import "../../contracts/mocks/MockCantonMediatorOracle.sol";
 
 /**
- * @title ProvenanceBridgeFuzz
- * @notice Foundry fuzz & invariant tests for ProvenanceBridgeAdapter
+ * @title CantonBridgeFuzz
+ * @notice Foundry fuzz & invariant tests for CantonBridgeAdapter
  * @dev Tests cover deposit/withdrawal flows, escrow lifecycle,
- *      block header submission, and security invariants
+ *      round header submission, and security invariants
  *
- * Provenance-specific test parameters:
- * - 1 HASH = 1e9 nhash (9 decimals)
- * - Chain ID 505 (pio-mainnet-1 EVM mapping)
- * - 10 block confirmations (~60s BFT finality)
- * - 5 active validators (test set), 4/5 supermajority
+ * Canton-specific test parameters:
+ * - 1 CANTON = 1e6 microcanton (6 decimals)
+ * - Chain ID 510 (canton-global-1 EVM mapping)
+ * - 5 round confirmations (~10s synchronizer finality)
+ * - 6 active mediators (test set), 5/6 supermajority
  */
-contract ProvenanceBridgeFuzz is Test {
-    ProvenanceBridgeAdapter public bridge;
-    MockWrappedHASH public wHASH;
-    MockTendermintValidatorOracle public oracle;
+contract CantonBridgeFuzz is Test {
+    CantonBridgeAdapter public bridge;
+    MockWrappedCANTON public wCANTON;
+    MockCantonMediatorOracle public oracle;
 
     address public admin = makeAddr("admin");
     address public relayer = makeAddr("relayer");
@@ -32,26 +32,28 @@ contract ProvenanceBridgeFuzz is Test {
     address public user2 = makeAddr("user2");
     address public treasury = makeAddr("treasury");
 
-    address public constant PROV_BRIDGE_CONTRACT =
+    address public constant CANTON_BRIDGE_CONTRACT =
         address(0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB);
-    address public constant PROV_USER =
+    address public constant CANTON_USER =
         address(0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC);
 
-    uint256 public constant NHASH_PER_HASH = 1_000_000_000; // 1e9
-    uint256 public constant MIN_DEPOSIT = NHASH_PER_HASH / 10; // 0.1 HASH = 100_000_000 nhash
-    uint256 public constant MAX_DEPOSIT = 1_000_000 * NHASH_PER_HASH; // 1M HASH
+    uint256 public constant MICROCANTON_PER_CANTON = 1_000_000; // 1e6
+    uint256 public constant MIN_DEPOSIT = MICROCANTON_PER_CANTON / 10; // 0.1 CANTON = 100_000 microcanton
+    uint256 public constant MAX_DEPOSIT = 10_000_000 * MICROCANTON_PER_CANTON; // 10M CANTON
 
-    // Validator addresses (5 validators for Tendermint BFT test set)
-    address public constant VALIDATOR_1 =
+    // Mediator addresses (6 mediators for Canton test set)
+    address public constant MEDIATOR_1 =
         address(0x1111111111111111111111111111111111111111);
-    address public constant VALIDATOR_2 =
+    address public constant MEDIATOR_2 =
         address(0x2222222222222222222222222222222222222222);
-    address public constant VALIDATOR_3 =
+    address public constant MEDIATOR_3 =
         address(0x3333333333333333333333333333333333333333);
-    address public constant VALIDATOR_4 =
+    address public constant MEDIATOR_4 =
         address(0x4444444444444444444444444444444444444444);
-    address public constant VALIDATOR_5 =
+    address public constant MEDIATOR_5 =
         address(0x5555555555555555555555555555555555555555);
+    address public constant MEDIATOR_6 =
+        address(0x6666666666666666666666666666666666666666);
 
     /*//////////////////////////////////////////////////////////////
                               SETUP
@@ -61,11 +63,11 @@ contract ProvenanceBridgeFuzz is Test {
         vm.startPrank(admin);
 
         // Deploy mocks
-        wHASH = new MockWrappedHASH();
-        oracle = new MockTendermintValidatorOracle();
+        wCANTON = new MockWrappedCANTON();
+        oracle = new MockCantonMediatorOracle();
 
         // Deploy bridge
-        bridge = new ProvenanceBridgeAdapter(admin);
+        bridge = new CantonBridgeAdapter(admin);
 
         // Grant roles
         bridge.grantRole(bridge.RELAYER_ROLE(), relayer);
@@ -73,63 +75,68 @@ contract ProvenanceBridgeFuzz is Test {
         bridge.grantRole(bridge.GUARDIAN_ROLE(), guardian);
         bridge.grantRole(bridge.TREASURY_ROLE(), treasury);
 
-        // Register 5 Tendermint validators
-        oracle.addValidator(VALIDATOR_1);
-        oracle.addValidator(VALIDATOR_2);
-        oracle.addValidator(VALIDATOR_3);
-        oracle.addValidator(VALIDATOR_4);
-        oracle.addValidator(VALIDATOR_5);
+        // Register 6 Canton mediators
+        oracle.addMediator(MEDIATOR_1);
+        oracle.addMediator(MEDIATOR_2);
+        oracle.addMediator(MEDIATOR_3);
+        oracle.addMediator(MEDIATOR_4);
+        oracle.addMediator(MEDIATOR_5);
+        oracle.addMediator(MEDIATOR_6);
 
-        // Configure bridge (4 min sigs, 10 block confirmations)
+        // Configure bridge (5 min sigs, 5 round confirmations)
         bridge.configure(
-            PROV_BRIDGE_CONTRACT,
-            address(wHASH),
+            CANTON_BRIDGE_CONTRACT,
+            address(wCANTON),
             address(oracle),
-            4, // minValidatorSignatures (4/5 supermajority)
-            10 // requiredBlockConfirmations (~60s)
+            5, // minMediatorSignatures (5/6 supermajority)
+            5 // requiredRoundConfirmations (~10s)
         );
 
-        // Fund user1 with wHASH for withdrawal tests (10K HASH in nhash)
-        wHASH.mint(user1, 10_000 * NHASH_PER_HASH);
+        // Fund user1 with wCANTON for withdrawal tests (10K CANTON in microcanton)
+        wCANTON.mint(user1, 10_000 * MICROCANTON_PER_CANTON);
 
         vm.stopPrank();
 
-        // Approve bridge to spend user1's wHASH
+        // Approve bridge to spend user1's wCANTON
         vm.prank(user1);
-        IERC20(address(wHASH)).approve(address(bridge), type(uint256).max);
+        IERC20(address(wCANTON)).approve(address(bridge), type(uint256).max);
     }
 
     /*//////////////////////////////////////////////////////////////
                         HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _buildValidatorAttestations()
+    function _buildMediatorAttestations()
         internal
         pure
-        returns (IProvenanceBridgeAdapter.ValidatorAttestation[] memory)
+        returns (ICantonBridgeAdapter.MediatorAttestation[] memory)
     {
-        IProvenanceBridgeAdapter.ValidatorAttestation[]
-            memory attestations = new IProvenanceBridgeAdapter.ValidatorAttestation[](
-                5
+        ICantonBridgeAdapter.MediatorAttestation[]
+            memory attestations = new ICantonBridgeAdapter.MediatorAttestation[](
+                6
             );
-        attestations[0] = IProvenanceBridgeAdapter.ValidatorAttestation({
-            validator: VALIDATOR_1,
+        attestations[0] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_1,
             signature: hex"0123456789"
         });
-        attestations[1] = IProvenanceBridgeAdapter.ValidatorAttestation({
-            validator: VALIDATOR_2,
+        attestations[1] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_2,
             signature: hex"0123456789"
         });
-        attestations[2] = IProvenanceBridgeAdapter.ValidatorAttestation({
-            validator: VALIDATOR_3,
+        attestations[2] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_3,
             signature: hex"0123456789"
         });
-        attestations[3] = IProvenanceBridgeAdapter.ValidatorAttestation({
-            validator: VALIDATOR_4,
+        attestations[3] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_4,
             signature: hex"0123456789"
         });
-        attestations[4] = IProvenanceBridgeAdapter.ValidatorAttestation({
-            validator: VALIDATOR_5,
+        attestations[4] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_5,
+            signature: hex"0123456789"
+        });
+        attestations[5] = ICantonBridgeAdapter.MediatorAttestation({
+            mediator: MEDIATOR_6,
             signature: hex"0123456789"
         });
         return attestations;
@@ -138,32 +145,33 @@ contract ProvenanceBridgeFuzz is Test {
     function _buildMerkleProof()
         internal
         pure
-        returns (IProvenanceBridgeAdapter.ProvenanceMerkleProof memory)
+        returns (ICantonBridgeAdapter.CantonMerkleProof memory)
     {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = keccak256("sibling");
 
         return
-            IProvenanceBridgeAdapter.ProvenanceMerkleProof({
+            ICantonBridgeAdapter.CantonMerkleProof({
                 leafHash: keccak256("leaf"),
                 proof: proof,
                 index: 0
             });
     }
 
-    function _submitFinalizedBlock(uint256 blockNum) internal {
+    function _submitFinalizedRound(uint256 roundNum) internal {
         vm.prank(relayer);
-        bridge.submitBlockHeader(
-            blockNum,
-            keccak256(abi.encodePacked("block", blockNum)),
-            blockNum > 0
-                ? keccak256(abi.encodePacked("block", blockNum - 1))
+        bridge.submitRoundHeader(
+            roundNum,
+            keccak256(abi.encodePacked("round", roundNum)),
+            roundNum > 0
+                ? keccak256(abi.encodePacked("round", roundNum - 1))
                 : bytes32(0),
-            keccak256(abi.encodePacked("txRoot", blockNum)),
-            keccak256(abi.encodePacked("stateRoot", blockNum)),
-            keccak256(abi.encodePacked("validatorsHash", blockNum)),
+            keccak256(abi.encodePacked("txRoot", roundNum)),
+            keccak256(abi.encodePacked("stateRoot", roundNum)),
+            keccak256(abi.encodePacked("mediatorSet", roundNum)),
+            keccak256(abi.encodePacked("domainTopology", roundNum)),
             block.timestamp,
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
     }
 
@@ -174,50 +182,50 @@ contract ProvenanceBridgeFuzz is Test {
     function testFuzz_depositRejectsAmountBelowMin(uint256 amount) public {
         amount = bound(amount, 0, MIN_DEPOSIT - 1);
 
-        _submitFinalizedBlock(1);
+        _submitFinalizedRound(1);
 
         bytes32 txHash = keccak256(abi.encodePacked("tx", amount));
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProvenanceBridgeAdapter.AmountTooSmall.selector,
+                ICantonBridgeAdapter.AmountTooSmall.selector,
                 amount
             )
         );
-        bridge.initiateHASHDeposit(
+        bridge.initiateCANTONDeposit(
             txHash,
-            PROV_USER,
+            CANTON_USER,
             user1,
             amount,
             1,
             _buildMerkleProof(),
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
     }
 
     function testFuzz_depositRejectsAmountAboveMax(uint256 amount) public {
         amount = bound(amount, MAX_DEPOSIT + 1, type(uint256).max);
 
-        _submitFinalizedBlock(1);
+        _submitFinalizedRound(1);
 
         bytes32 txHash = keccak256(abi.encodePacked("tx", amount));
 
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProvenanceBridgeAdapter.AmountTooLarge.selector,
+                ICantonBridgeAdapter.AmountTooLarge.selector,
                 amount
             )
         );
-        bridge.initiateHASHDeposit(
+        bridge.initiateCANTONDeposit(
             txHash,
-            PROV_USER,
+            CANTON_USER,
             user1,
             amount,
             1,
             _buildMerkleProof(),
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
     }
 
@@ -231,11 +239,11 @@ contract ProvenanceBridgeFuzz is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProvenanceBridgeAdapter.AmountTooSmall.selector,
+                ICantonBridgeAdapter.AmountTooSmall.selector,
                 amount
             )
         );
-        bridge.initiateWithdrawal(PROV_USER, amount);
+        bridge.initiateWithdrawal(CANTON_USER, amount);
     }
 
     function testFuzz_withdrawalRejectsAmountAboveMax(uint256 amount) public {
@@ -244,11 +252,11 @@ contract ProvenanceBridgeFuzz is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProvenanceBridgeAdapter.AmountTooLarge.selector,
+                ICantonBridgeAdapter.AmountTooLarge.selector,
                 amount
             )
         );
-        bridge.initiateWithdrawal(PROV_USER, amount);
+        bridge.initiateWithdrawal(CANTON_USER, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -262,8 +270,8 @@ contract ProvenanceBridgeFuzz is Test {
         finishOffset = bound(finishOffset, 1, 365 days);
         uint256 finishAfter = block.timestamp + finishOffset;
 
-        // Duration too short (< 1 hour)
-        duration = bound(duration, 0, 1 hours - 1);
+        // Duration too short (< 2 hours)
+        duration = bound(duration, 0, 2 hours - 1);
         uint256 cancelAfter = finishAfter + duration;
 
         vm.deal(user1, 10 ether);
@@ -271,7 +279,7 @@ contract ProvenanceBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                PROV_USER,
+                CANTON_USER,
                 keccak256("hashlock"),
                 finishAfter,
                 cancelAfter
@@ -287,8 +295,8 @@ contract ProvenanceBridgeFuzz is Test {
         finishOffset = bound(finishOffset, 1, 365 days);
         uint256 finishAfter = block.timestamp + finishOffset;
 
-        // Duration too long (> 30 days)
-        duration = bound(duration, 30 days + 1, 365 days);
+        // Duration too long (> 60 days)
+        duration = bound(duration, 60 days + 1, 365 days);
         uint256 cancelAfter = finishAfter + duration;
 
         vm.deal(user1, 10 ether);
@@ -296,7 +304,7 @@ contract ProvenanceBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                PROV_USER,
+                CANTON_USER,
                 keccak256("hashlock"),
                 finishAfter,
                 cancelAfter
@@ -312,7 +320,7 @@ contract ProvenanceBridgeFuzz is Test {
     function testFuzz_feeCalculation(uint256 amount) public pure {
         amount = bound(amount, MIN_DEPOSIT, MAX_DEPOSIT);
 
-        uint256 expectedFee = (amount * 10) / 10_000; // 0.10% fee
+        uint256 expectedFee = (amount * 5) / 10_000; // 0.05% fee
         uint256 expectedNet = amount - expectedFee;
 
         // Fee should never exceed 1% even with rounding
@@ -329,10 +337,10 @@ contract ProvenanceBridgeFuzz is Test {
     function testFuzz_txHashReplayProtection(bytes32 txHash) public {
         vm.assume(txHash != bytes32(0));
 
-        _submitFinalizedBlock(1);
+        _submitFinalizedRound(1);
 
         // Tx hash should initially be unused
-        assertFalse(bridge.usedProvTxHashes(txHash));
+        assertFalse(bridge.usedCantonTxHashes(txHash));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -350,27 +358,21 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testFuzz_configCannotSetZeroAddresses(
-        address provBridge,
-        address wrappedHASHAddr,
+        address cantonBridge,
+        address wrappedCANTONAddr,
         address oracleAddr,
         uint256 minSigs
     ) public {
         vm.assume(minSigs > 0);
 
         if (
-            provBridge == address(0) ||
-            wrappedHASHAddr == address(0) ||
+            cantonBridge == address(0) ||
+            wrappedCANTONAddr == address(0) ||
             oracleAddr == address(0)
         ) {
             vm.prank(admin);
-            vm.expectRevert(IProvenanceBridgeAdapter.ZeroAddress.selector);
-            bridge.configure(
-                provBridge,
-                wrappedHASHAddr,
-                oracleAddr,
-                minSigs,
-                10
-            );
+            vm.expectRevert(ICantonBridgeAdapter.ZeroAddress.selector);
+            bridge.configure(cantonBridge, wrappedCANTONAddr, oracleAddr, minSigs, 5);
         }
     }
 
@@ -409,18 +411,18 @@ contract ProvenanceBridgeFuzz is Test {
     function testFuzz_onlyRelayerCanInitiateDeposit(address caller) public {
         vm.assume(caller != relayer && caller != admin);
 
-        _submitFinalizedBlock(1);
+        _submitFinalizedRound(1);
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.initiateHASHDeposit(
+        bridge.initiateCANTONDeposit(
             keccak256("tx"),
-            PROV_USER,
+            CANTON_USER,
             user1,
             MIN_DEPOSIT,
             1,
             _buildMerkleProof(),
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
     }
 
@@ -429,7 +431,7 @@ contract ProvenanceBridgeFuzz is Test {
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.completeHASHDeposit(keccak256("deposit"));
+        bridge.completeCANTONDeposit(keccak256("deposit"));
     }
 
     function testFuzz_onlyGuardianCanPause(address caller) public {
@@ -445,21 +447,21 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testFuzz_pauseBlocksDeposits() public {
-        _submitFinalizedBlock(1);
+        _submitFinalizedRound(1);
 
         vm.prank(guardian);
         bridge.pause();
 
         vm.prank(relayer);
         vm.expectRevert();
-        bridge.initiateHASHDeposit(
+        bridge.initiateCANTONDeposit(
             keccak256("tx"),
-            PROV_USER,
+            CANTON_USER,
             user1,
             MIN_DEPOSIT,
             1,
             _buildMerkleProof(),
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
     }
 
@@ -469,7 +471,7 @@ contract ProvenanceBridgeFuzz is Test {
 
         vm.prank(user1);
         vm.expectRevert();
-        bridge.initiateWithdrawal(PROV_USER, MIN_DEPOSIT);
+        bridge.initiateWithdrawal(CANTON_USER, MIN_DEPOSIT);
     }
 
     function testFuzz_pauseBlocksEscrow() public {
@@ -481,10 +483,10 @@ contract ProvenanceBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                PROV_USER,
+                CANTON_USER,
                 keccak256("hashlock"),
-                block.timestamp + 2 hours,
-                block.timestamp + 14 hours
+                block.timestamp + 3 hours,
+                block.timestamp + 26 hours
             )
         );
         assertFalse(success, "Escrow creation should be blocked when paused");
@@ -498,14 +500,14 @@ contract ProvenanceBridgeFuzz is Test {
         bytes32 preimage = keccak256("secret_preimage");
         bytes32 hashlock = sha256(abi.encodePacked(preimage));
 
-        uint256 finishAfter = block.timestamp + 2 hours;
-        uint256 cancelAfter = block.timestamp + 26 hours;
+        uint256 finishAfter = block.timestamp + 3 hours;
+        uint256 cancelAfter = block.timestamp + 48 hours;
 
         vm.deal(user1, 10 ether);
 
         vm.prank(user1);
         bytes32 escrowId = bridge.createEscrow{value: 1 ether}(
-            PROV_USER,
+            CANTON_USER,
             hashlock,
             finishAfter,
             cancelAfter
@@ -528,12 +530,12 @@ contract ProvenanceBridgeFuzz is Test {
         assertEq(user2.balance - balBefore, 1 ether);
 
         // Verify escrow status
-        IProvenanceBridgeAdapter.HASHEscrow memory esc = bridge.getEscrow(
+        ICantonBridgeAdapter.CANTONEscrow memory esc = bridge.getEscrow(
             escrowId
         );
         assertEq(
             uint8(esc.status),
-            uint8(IProvenanceBridgeAdapter.EscrowStatus.FINISHED)
+            uint8(ICantonBridgeAdapter.EscrowStatus.FINISHED)
         );
         assertEq(esc.preimage, preimage);
     }
@@ -541,14 +543,14 @@ contract ProvenanceBridgeFuzz is Test {
     function test_escrowCreateCancelLifecycle() public {
         bytes32 hashlock = sha256(abi.encodePacked(keccak256("secret")));
 
-        uint256 finishAfter = block.timestamp + 2 hours;
-        uint256 cancelAfter = block.timestamp + 26 hours;
+        uint256 finishAfter = block.timestamp + 3 hours;
+        uint256 cancelAfter = block.timestamp + 48 hours;
 
         vm.deal(user1, 10 ether);
 
         vm.prank(user1);
         bytes32 escrowId = bridge.createEscrow{value: 1 ether}(
-            PROV_USER,
+            CANTON_USER,
             hashlock,
             finishAfter,
             cancelAfter
@@ -570,12 +572,12 @@ contract ProvenanceBridgeFuzz is Test {
         assertEq(user1.balance - balBefore, 1 ether);
 
         // Verify escrow status
-        IProvenanceBridgeAdapter.HASHEscrow memory esc = bridge.getEscrow(
+        ICantonBridgeAdapter.CANTONEscrow memory esc = bridge.getEscrow(
             escrowId
         );
         assertEq(
             uint8(esc.status),
-            uint8(IProvenanceBridgeAdapter.EscrowStatus.CANCELLED)
+            uint8(ICantonBridgeAdapter.EscrowStatus.CANCELLED)
         );
     }
 
@@ -584,43 +586,42 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_withdrawalRefundAfterDelay() public {
-        uint256 amount = 1 * NHASH_PER_HASH; // 1 HASH in nhash
+        uint256 amount = 1 * MICROCANTON_PER_CANTON; // 1 CANTON in microcanton
 
         vm.prank(user1);
-        bytes32 withdrawalId = bridge.initiateWithdrawal(PROV_USER, amount);
+        bytes32 withdrawalId = bridge.initiateWithdrawal(CANTON_USER, amount);
 
-        // Cannot refund before 48 hours
+        // Cannot refund before 72 hours
         vm.prank(user1);
         vm.expectRevert();
         bridge.refundWithdrawal(withdrawalId);
 
-        // Advance 48 hours
-        vm.warp(block.timestamp + 48 hours + 1);
+        // Advance 72 hours
+        vm.warp(block.timestamp + 72 hours + 1);
 
         vm.prank(user1);
         bridge.refundWithdrawal(withdrawalId);
 
-        IProvenanceBridgeAdapter.HASHWithdrawal memory w = bridge.getWithdrawal(
-            withdrawalId
-        );
+        ICantonBridgeAdapter.CANTONWithdrawal memory w = bridge
+            .getWithdrawal(withdrawalId);
         assertEq(
             uint8(w.status),
-            uint8(IProvenanceBridgeAdapter.WithdrawalStatus.REFUNDED)
+            uint8(ICantonBridgeAdapter.WithdrawalStatus.REFUNDED)
         );
     }
 
     /*//////////////////////////////////////////////////////////////
-            BLOCK HEADER: PARENT CHAIN VALIDATION
+            ROUND HEADER: PARENT CHAIN VALIDATION
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_blockHeaderParentChain(uint8 count) public {
+    function testFuzz_roundHeaderParentChain(uint8 count) public {
         count = uint8(bound(count, 1, 10));
 
         for (uint8 i = 0; i < count; i++) {
-            _submitFinalizedBlock(i + 1);
+            _submitFinalizedRound(i + 1);
         }
 
-        assertEq(bridge.latestBlockNumber(), count);
+        assertEq(bridge.latestRoundNumber(), count);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -641,8 +642,8 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_constructorRejectsZeroAdmin() public {
-        vm.expectRevert(IProvenanceBridgeAdapter.ZeroAddress.selector);
-        new ProvenanceBridgeAdapter(address(0));
+        vm.expectRevert(ICantonBridgeAdapter.ZeroAddress.selector);
+        new CantonBridgeAdapter(address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -650,17 +651,16 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_viewFunctionsReturnDefaults() public view {
-        IProvenanceBridgeAdapter.HASHDeposit memory dep = bridge.getDeposit(
+        ICantonBridgeAdapter.CANTONDeposit memory dep = bridge.getDeposit(
             bytes32(0)
         );
         assertEq(dep.depositId, bytes32(0));
 
-        IProvenanceBridgeAdapter.HASHWithdrawal memory w = bridge.getWithdrawal(
-            bytes32(0)
-        );
+        ICantonBridgeAdapter.CANTONWithdrawal memory w = bridge
+            .getWithdrawal(bytes32(0));
         assertEq(w.withdrawalId, bytes32(0));
 
-        IProvenanceBridgeAdapter.HASHEscrow memory esc = bridge.getEscrow(
+        ICantonBridgeAdapter.CANTONEscrow memory esc = bridge.getEscrow(
             bytes32(0)
         );
         assertEq(esc.escrowId, bytes32(0));
@@ -692,7 +692,7 @@ contract ProvenanceBridgeFuzz is Test {
 
     function test_treasuryRejectsZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert(IProvenanceBridgeAdapter.ZeroAddress.selector);
+        vm.expectRevert(ICantonBridgeAdapter.ZeroAddress.selector);
         bridge.setTreasury(address(0));
     }
 
@@ -701,82 +701,83 @@ contract ProvenanceBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_constantsAreCorrect() public view {
-        assertEq(bridge.PROVENANCE_CHAIN_ID(), 505);
-        assertEq(bridge.NHASH_PER_HASH(), 1_000_000_000); // 1e9
-        assertEq(bridge.MIN_DEPOSIT_NHASH(), NHASH_PER_HASH / 10); // 0.1 HASH
-        assertEq(bridge.MAX_DEPOSIT_NHASH(), 1_000_000 * NHASH_PER_HASH); // 1M HASH
-        assertEq(bridge.BRIDGE_FEE_BPS(), 10); // 0.10%
+        assertEq(bridge.CANTON_CHAIN_ID(), 510);
+        assertEq(bridge.MICROCANTON_PER_CANTON(), 1_000_000); // 1e6
+        assertEq(bridge.MIN_DEPOSIT_MICROCANTON(), MICROCANTON_PER_CANTON / 10); // 0.1 CANTON
+        assertEq(bridge.MAX_DEPOSIT_MICROCANTON(), 10_000_000 * MICROCANTON_PER_CANTON); // 10M CANTON
+        assertEq(bridge.BRIDGE_FEE_BPS(), 5); // 0.05%
         assertEq(bridge.BPS_DENOMINATOR(), 10_000);
-        assertEq(bridge.MIN_ESCROW_TIMELOCK(), 1 hours);
-        assertEq(bridge.MAX_ESCROW_TIMELOCK(), 30 days);
-        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 48 hours);
-        assertEq(bridge.DEFAULT_BLOCK_CONFIRMATIONS(), 10);
+        assertEq(bridge.MIN_ESCROW_TIMELOCK(), 2 hours);
+        assertEq(bridge.MAX_ESCROW_TIMELOCK(), 60 days);
+        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 72 hours);
+        assertEq(bridge.DEFAULT_ROUND_CONFIRMATIONS(), 5);
     }
 
     /*//////////////////////////////////////////////////////////////
-            PROVENANCE-SPECIFIC: NHASH PRECISION
+            CANTON-SPECIFIC: MICROCANTON PRECISION
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_nhashPrecision(uint256 hashAmount) public pure {
-        hashAmount = bound(hashAmount, 1, 1_000_000);
+    function testFuzz_microcantonPrecision(uint256 cantonAmount) public pure {
+        cantonAmount = bound(cantonAmount, 1, 10_000_000);
 
-        uint256 nhash = hashAmount * NHASH_PER_HASH;
-        uint256 backToHash = nhash / NHASH_PER_HASH;
+        uint256 microcanton = cantonAmount * MICROCANTON_PER_CANTON;
+        uint256 backToCanton = microcanton / MICROCANTON_PER_CANTON;
 
-        assertEq(backToHash, hashAmount, "Nhash conversion not reversible");
-        assertEq(nhash % NHASH_PER_HASH, 0, "Nhash should be exact multiple");
+        assertEq(backToCanton, cantonAmount, "Microcanton conversion not reversible");
+        assertEq(microcanton % MICROCANTON_PER_CANTON, 0, "Microcanton should be exact multiple");
     }
 
-    function testFuzz_nhashSubUnitDeposit(uint256 subUnitNhash) public {
-        // Test deposits of fractional HASH amounts (sub-unit nhash)
-        subUnitNhash = bound(subUnitNhash, MIN_DEPOSIT, NHASH_PER_HASH - 1);
+    function testFuzz_microcantonSubUnitDeposit(uint256 subUnitMicrocanton) public {
+        // Test deposits of fractional CANTON amounts (sub-unit microcanton)
+        subUnitMicrocanton = bound(subUnitMicrocanton, MIN_DEPOSIT, MICROCANTON_PER_CANTON - 1);
 
         bytes32 txHash = keccak256(
-            abi.encodePacked("sub_unit_tx", subUnitNhash)
+            abi.encodePacked("sub_unit_tx", subUnitMicrocanton)
         );
 
         // Build a merkle proof that matches the txHash and derive txRoot
         bytes32 sibling = keccak256("sibling");
         bytes32 txRoot = keccak256(abi.encodePacked(txHash, sibling));
 
-        // Submit block with a txRoot that matches our proof
+        // Submit round with a txRoot that matches our proof
         vm.prank(relayer);
-        bridge.submitBlockHeader(
+        bridge.submitRoundHeader(
             1,
-            keccak256(abi.encodePacked("block", uint256(1))),
-            keccak256(abi.encodePacked("block", uint256(0))),
+            keccak256(abi.encodePacked("round", uint256(1))),
+            keccak256(abi.encodePacked("round", uint256(0))),
             txRoot,
             keccak256(abi.encodePacked("stateRoot", uint256(1))),
-            keccak256(abi.encodePacked("validatorsHash", uint256(1))),
+            keccak256(abi.encodePacked("mediatorSet", uint256(1))),
+            keccak256(abi.encodePacked("domainTopology", uint256(1))),
             block.timestamp,
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
 
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = sibling;
-        IProvenanceBridgeAdapter.ProvenanceMerkleProof
-            memory merkleProof = IProvenanceBridgeAdapter
-                .ProvenanceMerkleProof({
+        ICantonBridgeAdapter.CantonMerkleProof
+            memory merkleProof = ICantonBridgeAdapter
+                .CantonMerkleProof({
                     leafHash: txHash,
                     proof: proof,
                     index: 0
                 });
 
-        // Should succeed — fractional HASH deposits above min are valid
+        // Should succeed — fractional CANTON deposits above min are valid
         vm.prank(relayer);
-        bytes32 depositId = bridge.initiateHASHDeposit(
+        bytes32 depositId = bridge.initiateCANTONDeposit(
             txHash,
-            PROV_USER,
+            CANTON_USER,
             user1,
-            subUnitNhash,
+            subUnitMicrocanton,
             1,
             merkleProof,
-            _buildValidatorAttestations()
+            _buildMediatorAttestations()
         );
 
-        IProvenanceBridgeAdapter.HASHDeposit memory dep = bridge.getDeposit(
+        ICantonBridgeAdapter.CANTONDeposit memory dep = bridge.getDeposit(
             depositId
         );
-        assertEq(dep.amountNhash, subUnitNhash);
+        assertEq(dep.amountMicrocanton, subUnitMicrocanton);
     }
 }
