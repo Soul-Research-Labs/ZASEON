@@ -28,8 +28,7 @@ contract SolanaBridgeFuzz is Test {
 
     bytes32 public constant SOLANA_BRIDGE_PROGRAM =
         keccak256("SolanaBridgeProgram");
-    bytes32 public constant SOLANA_USER =
-        keccak256("SolanaUser");
+    bytes32 public constant SOLANA_USER = keccak256("SolanaUser");
 
     uint256 public constant MIN_DEPOSIT = 100_000_000; // 0.1 SOL
     uint256 public constant MAX_DEPOSIT = 1_000_000_000_000_000_000; // 1M SOL
@@ -509,7 +508,10 @@ contract SolanaBridgeFuzz is Test {
         ISolanaBridgeAdapter.SolanaEscrow memory esc = bridge.getEscrow(
             escrowId
         );
-        assertEq(uint8(esc.status), uint8(ISolanaBridgeAdapter.EscrowStatus.FINISHED));
+        assertEq(
+            uint8(esc.status),
+            uint8(ISolanaBridgeAdapter.EscrowStatus.FINISHED)
+        );
         assertEq(esc.preimage, preimage);
     }
 
@@ -548,7 +550,10 @@ contract SolanaBridgeFuzz is Test {
         ISolanaBridgeAdapter.SolanaEscrow memory esc = bridge.getEscrow(
             escrowId
         );
-        assertEq(uint8(esc.status), uint8(ISolanaBridgeAdapter.EscrowStatus.CANCELLED));
+        assertEq(
+            uint8(esc.status),
+            uint8(ISolanaBridgeAdapter.EscrowStatus.CANCELLED)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -559,10 +564,7 @@ contract SolanaBridgeFuzz is Test {
         uint256 amount = 1_000_000_000; // 1 SOL
 
         vm.prank(user1);
-        bytes32 withdrawalId = bridge.initiateWithdrawal(
-            SOLANA_USER,
-            amount
-        );
+        bytes32 withdrawalId = bridge.initiateWithdrawal(SOLANA_USER, amount);
 
         // Cannot refund before 48 hours
         vm.prank(user1);
@@ -603,15 +605,8 @@ contract SolanaBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_statisticsTracking() public {
-        (
-            uint256 totalDep,
-            uint256 totalWith,
-            uint256 totalEsc,
-            ,
-            ,
-            ,
-
-        ) = bridge.getBridgeStats();
+        (uint256 totalDep, uint256 totalWith, uint256 totalEsc, , , , ) = bridge
+            .getBridgeStats();
 
         assertEq(totalDep, 0);
         assertEq(totalWith, 0);

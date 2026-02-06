@@ -46,11 +46,15 @@ library PQCPrecompileDetector {
      * @param precompileAddr The precompile address to probe
      * @return available True if the precompile responds to calls
      */
-    function isPrecompileAvailable(address precompileAddr) internal view returns (bool available) {
+    function isPrecompileAvailable(
+        address precompileAddr
+    ) internal view returns (bool available) {
         // Send a minimal probe — empty calldata
         // Real precompiles will return (possibly with an error for bad input)
         // Non-existent addresses will return success with empty data (no code)
-        (bool success, bytes memory result) = precompileAddr.staticcall{gas: PROBE_GAS}("");
+        (bool success, bytes memory result) = precompileAddr.staticcall{
+            gas: PROBE_GAS
+        }("");
 
         // A real precompile will either:
         // 1. Return success with data (valid empty input handled)

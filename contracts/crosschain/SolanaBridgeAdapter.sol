@@ -461,11 +461,7 @@ contract SolanaBridgeAdapter is
 
         // Verify the Solana release transaction in a finalized slot
         bool verified = false;
-        for (
-            uint256 i = latestSlot;
-            i > 0 && i > latestSlot - 100;
-            i--
-        ) {
+        for (uint256 i = latestSlot; i > 0 && i > latestSlot - 100; i--) {
             SlotHeader storage header = slotHeaders[i];
             if (
                 header.finalized &&
@@ -476,10 +472,7 @@ contract SolanaBridgeAdapter is
                 )
             ) {
                 if (
-                    _verifyGuardianAttestations(
-                        header.blockHash,
-                        attestations
-                    )
+                    _verifyGuardianAttestations(header.blockHash, attestations)
                 ) {
                     verified = true;
                     break;

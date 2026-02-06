@@ -2,21 +2,27 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../../contracts/crosschain/BNBBridgeAdapter.sol";
-import "../../contracts/interfaces/IBNBBridgeAdapter.sol";
-import "../../contracts/mocks/MockWrappedBNB.sol";
-import "../../contracts/mocks/MockBSCValidatorOracle.sol";
+import "../../contracts/crosschain/HyperliquidBridgeAdapter.sol";
+import "../../contracts/interfaces/IHyperliquidBridgeAdapter.sol";
+import "../../contracts/mocks/MockWrappedHYPE.sol";
+import "../../contracts/mocks/MockHyperBFTValidatorOracle.sol";
 
 /**
- * @title BNBBridgeFuzz
- * @notice Foundry fuzz & invariant tests for BNBBridgeAdapter
+ * @title HyperliquidBridgeFuzz
+ * @notice Foundry fuzz & invariant tests for HyperliquidBridgeAdapter
  * @dev Tests cover deposit/withdrawal flows, escrow lifecycle,
  *      block header submission, and security invariants
+ *
+ * Hyperliquid-specific test parameters:
+ * - 1 HYPE = 1e8 drips (8 decimals, not 18)
+ * - Chain ID 999 (HyperEVM mainnet)
+ * - 3 block confirmations (~0.6s BFT finality)
+ * - 4 active validators, 3/4 supermajority
  */
-contract BNBBridgeFuzz is Test {
-    BNBBridgeAdapter public bridge;
-    MockWrappedBNB public wBNB;
-    MockBSCValidatorOracle public oracle;
+contract HyperliquidBridgeFuzz is Test {
+    HyperliquidBridgeAdapter public bridge;
+    MockWrappedHYPE public wHYPE;
+    MockHyperBFTValidatorOracle public oracle;
 
     address public admin = makeAddr("admin");
     address public relayer = makeAddr("relayer");
@@ -26,21 +32,24 @@ contract BNBBridgeFuzz is Test {
     address public user2 = makeAddr("user2");
     address public treasury = makeAddr("treasury");
 
-    address public constant BSC_BRIDGE_CONTRACT =
+    address public constant HL_BRIDGE_CONTRACT =
         address(0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB);
-    address public constant BSC_USER =
+    address public constant HL_USER =
         address(0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC);
 
-    uint256 public constant MIN_DEPOSIT = 0.01 ether; // 0.01 BNB
-    uint256 public constant MAX_DEPOSIT = 100_000 ether; // 100K BNB
+    uint256 public constant DRIPS_PER_HYPE = 100_000_000; // 1e8
+    uint256 public constant MIN_DEPOSIT = DRIPS_PER_HYPE / 10; // 0.1 HYPE = 10_000_000 drips
+    uint256 public constant MAX_DEPOSIT = 1_000_000 * DRIPS_PER_HYPE; // 1M HYPE
 
-    // Validator addresses
+    // Validator addresses (4 validators for HyperBFT)
     address public constant VALIDATOR_1 =
         address(0x1111111111111111111111111111111111111111);
     address public constant VALIDATOR_2 =
         address(0x2222222222222222222222222222222222222222);
     address public constant VALIDATOR_3 =
         address(0x3333333333333333333333333333333333333333);
+    address public constant VALIDATOR_4 =
+        address(0x4444444444444444444444444444444444444444);
 
     /*//////////////////////////////////////////////////////////////
                               SETUP
@@ -50,11 +59,11 @@ contract BNBBridgeFuzz is Test {
         vm.startPrank(admin);
 
         // Deploy mocks
-        wBNB = new MockWrappedBNB(admin);
-        oracle = new MockBSCValidatorOracle(admin);
+        wHYPE = new MockWrappedHYPE();
+        oracle = new MockHyperBFTValidatorOracle();
 
         // Deploy bridge
-        bridge = new BNBBridgeAdapter(admin);
+        bridge = new HyperliquidBridgeAdapter(admin);
 
         // Grant roles
         bridge.grantRole(bridge.RELAYER_ROLE(), relayer);
@@ -62,31 +71,29 @@ contract BNBBridgeFuzz is Test {
         bridge.grantRole(bridge.GUARDIAN_ROLE(), guardian);
         bridge.grantRole(bridge.TREASURY_ROLE(), treasury);
 
-        // Register validators
-        oracle.registerValidator(VALIDATOR_1);
-        oracle.registerValidator(VALIDATOR_2);
-        oracle.registerValidator(VALIDATOR_3);
+        // Register 4 HyperBFT validators
+        oracle.addValidator(VALIDATOR_1);
+        oracle.addValidator(VALIDATOR_2);
+        oracle.addValidator(VALIDATOR_3);
+        oracle.addValidator(VALIDATOR_4);
 
-        // Configure bridge
+        // Configure bridge (3 min sigs, 3 block confirmations)
         bridge.configure(
-            BSC_BRIDGE_CONTRACT,
-            address(wBNB),
+            HL_BRIDGE_CONTRACT,
+            address(wHYPE),
             address(oracle),
-            2, // minValidatorSignatures
-            15 // requiredBlockConfirmations
+            3, // minValidatorSignatures (3/4 supermajority)
+            3 // requiredBlockConfirmations (~0.6s)
         );
 
-        // Grant minter role to bridge
-        wBNB.grantMinter(address(bridge));
-
-        // Fund user1 with wBNB for withdrawal tests
-        wBNB.mint(user1, 10_000 ether); // 10K BNB
+        // Fund user1 with wHYPE for withdrawal tests (10K HYPE in drips)
+        wHYPE.mint(user1, 10_000 * DRIPS_PER_HYPE);
 
         vm.stopPrank();
 
-        // Approve bridge to spend user1's wBNB
+        // Approve bridge to spend user1's wHYPE
         vm.prank(user1);
-        wBNB.approve(address(bridge), type(uint256).max);
+        IERC20(address(wHYPE)).approve(address(bridge), type(uint256).max);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -96,22 +103,26 @@ contract BNBBridgeFuzz is Test {
     function _buildValidatorAttestations()
         internal
         pure
-        returns (IBNBBridgeAdapter.ValidatorAttestation[] memory)
+        returns (IHyperliquidBridgeAdapter.ValidatorAttestation[] memory)
     {
-        IBNBBridgeAdapter.ValidatorAttestation[]
-            memory attestations = new IBNBBridgeAdapter.ValidatorAttestation[](
-                3
+        IHyperliquidBridgeAdapter.ValidatorAttestation[]
+            memory attestations = new IHyperliquidBridgeAdapter.ValidatorAttestation[](
+                4
             );
-        attestations[0] = IBNBBridgeAdapter.ValidatorAttestation({
+        attestations[0] = IHyperliquidBridgeAdapter.ValidatorAttestation({
             validator: VALIDATOR_1,
             signature: hex"0123456789"
         });
-        attestations[1] = IBNBBridgeAdapter.ValidatorAttestation({
+        attestations[1] = IHyperliquidBridgeAdapter.ValidatorAttestation({
             validator: VALIDATOR_2,
             signature: hex"0123456789"
         });
-        attestations[2] = IBNBBridgeAdapter.ValidatorAttestation({
+        attestations[2] = IHyperliquidBridgeAdapter.ValidatorAttestation({
             validator: VALIDATOR_3,
+            signature: hex"0123456789"
+        });
+        attestations[3] = IHyperliquidBridgeAdapter.ValidatorAttestation({
+            validator: VALIDATOR_4,
             signature: hex"0123456789"
         });
         return attestations;
@@ -120,13 +131,13 @@ contract BNBBridgeFuzz is Test {
     function _buildMerkleProof()
         internal
         pure
-        returns (IBNBBridgeAdapter.BSCMerkleProof memory)
+        returns (IHyperliquidBridgeAdapter.HyperliquidMerkleProof memory)
     {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = keccak256("sibling");
 
         return
-            IBNBBridgeAdapter.BSCMerkleProof({
+            IHyperliquidBridgeAdapter.HyperliquidMerkleProof({
                 leafHash: keccak256("leaf"),
                 proof: proof,
                 index: 0
@@ -143,7 +154,6 @@ contract BNBBridgeFuzz is Test {
                 : bytes32(0),
             keccak256(abi.encodePacked("txRoot", blockNum)),
             keccak256(abi.encodePacked("stateRoot", blockNum)),
-            keccak256(abi.encodePacked("receiptsRoot", blockNum)),
             block.timestamp,
             _buildValidatorAttestations()
         );
@@ -163,13 +173,13 @@ contract BNBBridgeFuzz is Test {
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBNBBridgeAdapter.AmountTooSmall.selector,
+                IHyperliquidBridgeAdapter.AmountTooSmall.selector,
                 amount
             )
         );
-        bridge.initiateBNBDeposit(
+        bridge.initiateHYPEDeposit(
             txHash,
-            BSC_USER,
+            HL_USER,
             user1,
             amount,
             1,
@@ -188,13 +198,13 @@ contract BNBBridgeFuzz is Test {
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBNBBridgeAdapter.AmountTooLarge.selector,
+                IHyperliquidBridgeAdapter.AmountTooLarge.selector,
                 amount
             )
         );
-        bridge.initiateBNBDeposit(
+        bridge.initiateHYPEDeposit(
             txHash,
-            BSC_USER,
+            HL_USER,
             user1,
             amount,
             1,
@@ -213,11 +223,11 @@ contract BNBBridgeFuzz is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBNBBridgeAdapter.AmountTooSmall.selector,
+                IHyperliquidBridgeAdapter.AmountTooSmall.selector,
                 amount
             )
         );
-        bridge.initiateWithdrawal(BSC_USER, amount);
+        bridge.initiateWithdrawal(HL_USER, amount);
     }
 
     function testFuzz_withdrawalRejectsAmountAboveMax(uint256 amount) public {
@@ -226,11 +236,11 @@ contract BNBBridgeFuzz is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IBNBBridgeAdapter.AmountTooLarge.selector,
+                IHyperliquidBridgeAdapter.AmountTooLarge.selector,
                 amount
             )
         );
-        bridge.initiateWithdrawal(BSC_USER, amount);
+        bridge.initiateWithdrawal(HL_USER, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -244,8 +254,8 @@ contract BNBBridgeFuzz is Test {
         finishOffset = bound(finishOffset, 1, 365 days);
         uint256 finishAfter = block.timestamp + finishOffset;
 
-        // Duration too short (< 1 hour)
-        duration = bound(duration, 0, 1 hours - 1);
+        // Duration too short (< 30 minutes)
+        duration = bound(duration, 0, 30 minutes - 1);
         uint256 cancelAfter = finishAfter + duration;
 
         vm.deal(user1, 10 ether);
@@ -253,7 +263,7 @@ contract BNBBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                BSC_USER,
+                HL_USER,
                 keccak256("hashlock"),
                 finishAfter,
                 cancelAfter
@@ -269,8 +279,8 @@ contract BNBBridgeFuzz is Test {
         finishOffset = bound(finishOffset, 1, 365 days);
         uint256 finishAfter = block.timestamp + finishOffset;
 
-        // Duration too long (> 30 days)
-        duration = bound(duration, 30 days + 1, 365 days);
+        // Duration too long (> 14 days)
+        duration = bound(duration, 14 days + 1, 365 days);
         uint256 cancelAfter = finishAfter + duration;
 
         vm.deal(user1, 10 ether);
@@ -278,7 +288,7 @@ contract BNBBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                BSC_USER,
+                HL_USER,
                 keccak256("hashlock"),
                 finishAfter,
                 cancelAfter
@@ -294,7 +304,7 @@ contract BNBBridgeFuzz is Test {
     function testFuzz_feeCalculation(uint256 amount) public pure {
         amount = bound(amount, MIN_DEPOSIT, MAX_DEPOSIT);
 
-        uint256 expectedFee = (amount * 25) / 10_000;
+        uint256 expectedFee = (amount * 15) / 10_000; // 0.15% fee
         uint256 expectedNet = amount - expectedFee;
 
         // Fee should never exceed 1% even with rounding
@@ -314,7 +324,7 @@ contract BNBBridgeFuzz is Test {
         _submitFinalizedBlock(1);
 
         // Tx hash should initially be unused
-        assertFalse(bridge.usedBSCTxHashes(txHash));
+        assertFalse(bridge.usedHLTxHashes(txHash));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -332,21 +342,21 @@ contract BNBBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testFuzz_configCannotSetZeroAddresses(
-        address bscBridge,
-        address wrappedBNB,
+        address hlBridge,
+        address wrappedHYPEAddr,
         address oracleAddr,
         uint256 minSigs
     ) public {
         vm.assume(minSigs > 0);
 
         if (
-            bscBridge == address(0) ||
-            wrappedBNB == address(0) ||
+            hlBridge == address(0) ||
+            wrappedHYPEAddr == address(0) ||
             oracleAddr == address(0)
         ) {
             vm.prank(admin);
-            vm.expectRevert(IBNBBridgeAdapter.ZeroAddress.selector);
-            bridge.configure(bscBridge, wrappedBNB, oracleAddr, minSigs, 15);
+            vm.expectRevert(IHyperliquidBridgeAdapter.ZeroAddress.selector);
+            bridge.configure(hlBridge, wrappedHYPEAddr, oracleAddr, minSigs, 3);
         }
     }
 
@@ -389,9 +399,9 @@ contract BNBBridgeFuzz is Test {
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.initiateBNBDeposit(
+        bridge.initiateHYPEDeposit(
             keccak256("tx"),
-            BSC_USER,
+            HL_USER,
             user1,
             MIN_DEPOSIT,
             1,
@@ -405,7 +415,7 @@ contract BNBBridgeFuzz is Test {
 
         vm.prank(caller);
         vm.expectRevert();
-        bridge.completeBNBDeposit(keccak256("deposit"));
+        bridge.completeHYPEDeposit(keccak256("deposit"));
     }
 
     function testFuzz_onlyGuardianCanPause(address caller) public {
@@ -428,9 +438,9 @@ contract BNBBridgeFuzz is Test {
 
         vm.prank(relayer);
         vm.expectRevert();
-        bridge.initiateBNBDeposit(
+        bridge.initiateHYPEDeposit(
             keccak256("tx"),
-            BSC_USER,
+            HL_USER,
             user1,
             MIN_DEPOSIT,
             1,
@@ -445,7 +455,7 @@ contract BNBBridgeFuzz is Test {
 
         vm.prank(user1);
         vm.expectRevert();
-        bridge.initiateWithdrawal(BSC_USER, MIN_DEPOSIT);
+        bridge.initiateWithdrawal(HL_USER, MIN_DEPOSIT);
     }
 
     function testFuzz_pauseBlocksEscrow() public {
@@ -457,7 +467,7 @@ contract BNBBridgeFuzz is Test {
         (bool success, ) = address(bridge).call{value: 1 ether}(
             abi.encodeWithSelector(
                 bridge.createEscrow.selector,
-                BSC_USER,
+                HL_USER,
                 keccak256("hashlock"),
                 block.timestamp + 1 hours,
                 block.timestamp + 2 hours
@@ -475,13 +485,13 @@ contract BNBBridgeFuzz is Test {
         bytes32 hashlock = sha256(abi.encodePacked(preimage));
 
         uint256 finishAfter = block.timestamp + 2 hours;
-        uint256 cancelAfter = block.timestamp + 26 hours;
+        uint256 cancelAfter = block.timestamp + 14 hours;
 
         vm.deal(user1, 10 ether);
 
         vm.prank(user1);
         bytes32 escrowId = bridge.createEscrow{value: 1 ether}(
-            BSC_USER,
+            HL_USER,
             hashlock,
             finishAfter,
             cancelAfter
@@ -504,10 +514,12 @@ contract BNBBridgeFuzz is Test {
         assertEq(user2.balance - balBefore, 1 ether);
 
         // Verify escrow status
-        IBNBBridgeAdapter.BNBEscrow memory esc = bridge.getEscrow(escrowId);
+        IHyperliquidBridgeAdapter.HYPEEscrow memory esc = bridge.getEscrow(
+            escrowId
+        );
         assertEq(
             uint8(esc.status),
-            uint8(IBNBBridgeAdapter.EscrowStatus.FINISHED)
+            uint8(IHyperliquidBridgeAdapter.EscrowStatus.FINISHED)
         );
         assertEq(esc.preimage, preimage);
     }
@@ -516,13 +528,13 @@ contract BNBBridgeFuzz is Test {
         bytes32 hashlock = sha256(abi.encodePacked(keccak256("secret")));
 
         uint256 finishAfter = block.timestamp + 2 hours;
-        uint256 cancelAfter = block.timestamp + 26 hours;
+        uint256 cancelAfter = block.timestamp + 14 hours;
 
         vm.deal(user1, 10 ether);
 
         vm.prank(user1);
         bytes32 escrowId = bridge.createEscrow{value: 1 ether}(
-            BSC_USER,
+            HL_USER,
             hashlock,
             finishAfter,
             cancelAfter
@@ -544,10 +556,12 @@ contract BNBBridgeFuzz is Test {
         assertEq(user1.balance - balBefore, 1 ether);
 
         // Verify escrow status
-        IBNBBridgeAdapter.BNBEscrow memory esc = bridge.getEscrow(escrowId);
+        IHyperliquidBridgeAdapter.HYPEEscrow memory esc = bridge.getEscrow(
+            escrowId
+        );
         assertEq(
             uint8(esc.status),
-            uint8(IBNBBridgeAdapter.EscrowStatus.CANCELLED)
+            uint8(IHyperliquidBridgeAdapter.EscrowStatus.CANCELLED)
         );
     }
 
@@ -556,28 +570,27 @@ contract BNBBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_withdrawalRefundAfterDelay() public {
-        uint256 amount = 1 ether; // 1 BNB
+        uint256 amount = 1 * DRIPS_PER_HYPE; // 1 HYPE in drips
 
         vm.prank(user1);
-        bytes32 withdrawalId = bridge.initiateWithdrawal(BSC_USER, amount);
+        bytes32 withdrawalId = bridge.initiateWithdrawal(HL_USER, amount);
 
-        // Cannot refund before 48 hours
+        // Cannot refund before 24 hours
         vm.prank(user1);
         vm.expectRevert();
         bridge.refundWithdrawal(withdrawalId);
 
-        // Advance 48 hours
-        vm.warp(block.timestamp + 48 hours + 1);
+        // Advance 24 hours
+        vm.warp(block.timestamp + 24 hours + 1);
 
         vm.prank(user1);
         bridge.refundWithdrawal(withdrawalId);
 
-        IBNBBridgeAdapter.BNBWithdrawal memory w = bridge.getWithdrawal(
-            withdrawalId
-        );
+        IHyperliquidBridgeAdapter.HYPEWithdrawal memory w = bridge
+            .getWithdrawal(withdrawalId);
         assertEq(
             uint8(w.status),
-            uint8(IBNBBridgeAdapter.WithdrawalStatus.REFUNDED)
+            uint8(IHyperliquidBridgeAdapter.WithdrawalStatus.REFUNDED)
         );
     }
 
@@ -613,8 +626,8 @@ contract BNBBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_constructorRejectsZeroAdmin() public {
-        vm.expectRevert(IBNBBridgeAdapter.ZeroAddress.selector);
-        new BNBBridgeAdapter(address(0));
+        vm.expectRevert(IHyperliquidBridgeAdapter.ZeroAddress.selector);
+        new HyperliquidBridgeAdapter(address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -622,15 +635,18 @@ contract BNBBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_viewFunctionsReturnDefaults() public view {
-        IBNBBridgeAdapter.BNBDeposit memory dep = bridge.getDeposit(bytes32(0));
-        assertEq(dep.depositId, bytes32(0));
-
-        IBNBBridgeAdapter.BNBWithdrawal memory w = bridge.getWithdrawal(
+        IHyperliquidBridgeAdapter.HYPEDeposit memory dep = bridge.getDeposit(
             bytes32(0)
         );
+        assertEq(dep.depositId, bytes32(0));
+
+        IHyperliquidBridgeAdapter.HYPEWithdrawal memory w = bridge
+            .getWithdrawal(bytes32(0));
         assertEq(w.withdrawalId, bytes32(0));
 
-        IBNBBridgeAdapter.BNBEscrow memory esc = bridge.getEscrow(bytes32(0));
+        IHyperliquidBridgeAdapter.HYPEEscrow memory esc = bridge.getEscrow(
+            bytes32(0)
+        );
         assertEq(esc.escrowId, bytes32(0));
     }
 
@@ -660,7 +676,7 @@ contract BNBBridgeFuzz is Test {
 
     function test_treasuryRejectsZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert(IBNBBridgeAdapter.ZeroAddress.selector);
+        vm.expectRevert(IHyperliquidBridgeAdapter.ZeroAddress.selector);
         bridge.setTreasury(address(0));
     }
 
@@ -669,15 +685,81 @@ contract BNBBridgeFuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_constantsAreCorrect() public view {
-        assertEq(bridge.BSC_CHAIN_ID(), 56);
-        assertEq(bridge.WEI_PER_BNB(), 1 ether);
-        assertEq(bridge.MIN_DEPOSIT_WEI(), 0.01 ether); // 0.01 BNB
-        assertEq(bridge.MAX_DEPOSIT_WEI(), 100_000 ether); // 100K BNB
-        assertEq(bridge.BRIDGE_FEE_BPS(), 25);
+        assertEq(bridge.HYPERLIQUID_CHAIN_ID(), 999);
+        assertEq(bridge.DRIPS_PER_HYPE(), 100_000_000); // 1e8
+        assertEq(bridge.MIN_DEPOSIT_DRIPS(), DRIPS_PER_HYPE / 10); // 0.1 HYPE
+        assertEq(bridge.MAX_DEPOSIT_DRIPS(), 1_000_000 * DRIPS_PER_HYPE); // 1M HYPE
+        assertEq(bridge.BRIDGE_FEE_BPS(), 15); // 0.15%
         assertEq(bridge.BPS_DENOMINATOR(), 10_000);
-        assertEq(bridge.MIN_ESCROW_TIMELOCK(), 1 hours);
-        assertEq(bridge.MAX_ESCROW_TIMELOCK(), 30 days);
-        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 48 hours);
-        assertEq(bridge.DEFAULT_BLOCK_CONFIRMATIONS(), 15);
+        assertEq(bridge.MIN_ESCROW_TIMELOCK(), 30 minutes);
+        assertEq(bridge.MAX_ESCROW_TIMELOCK(), 14 days);
+        assertEq(bridge.WITHDRAWAL_REFUND_DELAY(), 24 hours);
+        assertEq(bridge.DEFAULT_BLOCK_CONFIRMATIONS(), 3);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            HYPERLIQUID-SPECIFIC: DRIP PRECISION
+    //////////////////////////////////////////////////////////////*/
+
+    function testFuzz_dripPrecision(uint256 hypeAmount) public pure {
+        hypeAmount = bound(hypeAmount, 1, 1_000_000);
+
+        uint256 drips = hypeAmount * DRIPS_PER_HYPE;
+        uint256 backToHype = drips / DRIPS_PER_HYPE;
+
+        assertEq(backToHype, hypeAmount, "Drip conversion not reversible");
+        assertEq(drips % DRIPS_PER_HYPE, 0, "Drips should be exact multiple");
+    }
+
+    function testFuzz_dripSubUnitDeposit(uint256 subUnitDrips) public {
+        // Test deposits of fractional HYPE amounts (sub-unit drips)
+        subUnitDrips = bound(subUnitDrips, MIN_DEPOSIT, DRIPS_PER_HYPE - 1);
+
+        bytes32 txHash = keccak256(
+            abi.encodePacked("sub_unit_tx", subUnitDrips)
+        );
+
+        // Build a merkle proof that matches the txHash and derive txRoot
+        bytes32 sibling = keccak256("sibling");
+        bytes32 txRoot = keccak256(abi.encodePacked(txHash, sibling));
+
+        // Submit block with a txRoot that matches our proof
+        vm.prank(relayer);
+        bridge.submitBlockHeader(
+            1,
+            keccak256(abi.encodePacked("block", uint256(1))),
+            keccak256(abi.encodePacked("block", uint256(0))),
+            txRoot,
+            keccak256(abi.encodePacked("stateRoot", uint256(1))),
+            block.timestamp,
+            _buildValidatorAttestations()
+        );
+
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = sibling;
+        IHyperliquidBridgeAdapter.HyperliquidMerkleProof
+            memory merkleProof = IHyperliquidBridgeAdapter
+                .HyperliquidMerkleProof({
+                    leafHash: txHash,
+                    proof: proof,
+                    index: 0
+                });
+
+        // Should succeed — fractional HYPE deposits above min are valid
+        vm.prank(relayer);
+        bytes32 depositId = bridge.initiateHYPEDeposit(
+            txHash,
+            HL_USER,
+            user1,
+            subUnitDrips,
+            1,
+            merkleProof,
+            _buildValidatorAttestations()
+        );
+
+        IHyperliquidBridgeAdapter.HYPEDeposit memory dep = bridge.getDeposit(
+            depositId
+        );
+        assertEq(dep.amountDrips, subUnitDrips);
     }
 }

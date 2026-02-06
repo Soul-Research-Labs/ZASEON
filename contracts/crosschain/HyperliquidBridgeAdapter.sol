@@ -6,59 +6,59 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IBNBBridgeAdapter} from "../interfaces/IBNBBridgeAdapter.sol";
+import {IHyperliquidBridgeAdapter} from "../interfaces/IHyperliquidBridgeAdapter.sol";
 
 /**
- * @title BNBBridgeAdapter
+ * @title HyperliquidBridgeAdapter
  * @author Soul Protocol
- * @notice Bridge adapter for BNB Chain (BSC) interoperability with Soul Protocol
- * @dev Enables cross-chain transfers between Soul Protocol (EVM) and BNB Chain
+ * @notice Bridge adapter for Hyperliquid L1 interoperability with Soul Protocol
+ * @dev Enables cross-chain transfers between Soul Protocol (EVM) and Hyperliquid
  *
  * ARCHITECTURE:
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │                     Soul <-> BNB Chain Bridge                               │
+ * │                  Soul <-> Hyperliquid Bridge                                │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │                                                                             │
  * │  ┌───────────────────┐           ┌───────────────────────────────────┐     │
- * │  │   Soul Side       │           │        BSC Side                   │     │
+ * │  │   Soul Side       │           │     Hyperliquid Side              │     │
  * │  │  ┌─────────────┐  │           │  ┌────────────────────────────┐   │     │
- * │  │  │ wBNB Token  │  │           │  │  Bridge Contract           │   │     │
- * │  │  │ (ERC-20)    │  │           │  │  (BEP-20 compatible)       │   │     │
+ * │  │  │ wHYPE Token │  │           │  │  Bridge Contract           │   │     │
+ * │  │  │ (ERC-20)    │  │           │  │  (HyperEVM compatible)     │   │     │
  * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
  * │  │        │          │           │        │                          │     │
  * │  │  ┌─────▼───────┐  │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  │ Bridge      │  │◄─────────►│  │  PoSA Validator Set        │   │     │
- * │  │  │ Adapter     │  │  Relayer  │  │  (21 active validators)    │   │     │
+ * │  │  │ Bridge      │  │◄─────────►│  │  HyperBFT Validator Set   │   │     │
+ * │  │  │ Adapter     │  │  Relayer  │  │  (4 active validators)     │   │     │
  * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
  * │  │        │          │           │        │                          │     │
  * │  │  ┌─────▼───────┐  │           │  ┌─────▼──────────────────────┐   │     │
- * │  │  │ ZK Privacy  │  │           │  │  Parlia Consensus          │   │     │
- * │  │  │ Layer       │  │           │  │  (DPoS + PoA hybrid)       │   │     │
+ * │  │  │ ZK Privacy  │  │           │  │  HotStuff Consensus        │   │     │
+ * │  │  │ Layer       │  │           │  │  (BFT with instant finality│   │     │
  * │  │  └─────────────┘  │           │  └────────────────────────────┘   │     │
  * │  └───────────────────┘           └───────────────────────────────────┘     │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
- * BNB CHAIN CONCEPTS:
- * - Wei: Smallest unit of BNB (1 BNB = 1,000,000,000,000,000,000 wei)
- * - Block: ~3 second block time
- * - Epoch: 200 blocks, validator set rotation boundary
- * - PoSA: Proof of Staked Authority — DPoS + PoA hybrid consensus
- * - Parlia: BSC's consensus engine (Clique-inspired PoSA)
- * - BEP-20: BSC token standard (equivalent to ERC-20)
- * - Finality: ~15 blocks (~45 seconds) for practical finality
- * - 21 active validators per epoch (elected by staking)
+ * HYPERLIQUID CONCEPTS:
+ * - Drips: Smallest unit of HYPE (1 HYPE = 100,000,000 drips = 1e8 drips)
+ * - Block: ~200ms block latency (sub-second finality)
+ * - HyperBFT: Modified HotStuff BFT consensus engine
+ * - HyperEVM: EVM-compatible execution layer on Hyperliquid L1
+ * - Chain ID: 999 (HyperEVM mainnet)
+ * - Finality: ~3 blocks (~0.6s) for BFT finality
+ * - 4 active validators in BFT committee
+ * - 2/3+1 supermajority = 3/4 validators required
  *
  * SECURITY PROPERTIES:
- * - BSC validator attestation threshold (configurable, default 15/21)
- * - Block finality confirmation depth (configurable, default 15 blocks ~45s)
- * - Merkle-Patricia trie inclusion proofs for BSC transaction verification
+ * - HyperBFT validator attestation threshold (configurable, default 3/4)
+ * - Block finality confirmation depth (configurable, default 3 blocks)
+ * - Merkle inclusion proofs for Hyperliquid transaction verification
  * - HTLC hashlock conditions (SHA-256 preimage) for atomic swaps
  * - ReentrancyGuard on all state-changing functions
  * - Pausable emergency circuit breaker
  * - Nullifier-based double-spend prevention for privacy deposits
  */
-contract BNBBridgeAdapter is
-    IBNBBridgeAdapter,
+contract HyperliquidBridgeAdapter is
+    IHyperliquidBridgeAdapter,
     AccessControl,
     ReentrancyGuard,
     Pausable
@@ -69,136 +69,68 @@ contract BNBBridgeAdapter is
                                  ROLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Operator role for administrative operations
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    /// @notice Relayer role for submitting proofs and completing operations
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
-    /// @notice Guardian role for emergency pause/unpause
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-    /// @notice Treasury role for fee withdrawal
     bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice BSC chain ID
-    uint256 public constant BSC_CHAIN_ID = 56;
-
-    /// @notice Wei per BNB (1 BNB = 1e18 wei)
-    uint256 public constant WEI_PER_BNB = 1 ether;
-
-    /// @notice Minimum deposit (0.01 BNB)
-    uint256 public constant MIN_DEPOSIT_WEI = WEI_PER_BNB / 100;
-
-    /// @notice Maximum deposit (100,000 BNB)
-    uint256 public constant MAX_DEPOSIT_WEI = 100_000 * WEI_PER_BNB;
-
-    /// @notice Bridge fee in basis points (0.25%)
-    uint256 public constant BRIDGE_FEE_BPS = 25;
-
-    /// @notice BPS denominator
+    uint256 public constant HYPERLIQUID_CHAIN_ID = 999;
+    uint256 public constant DRIPS_PER_HYPE = 100_000_000; // 1e8
+    uint256 public constant MIN_DEPOSIT_DRIPS = DRIPS_PER_HYPE / 10; // 0.1 HYPE
+    uint256 public constant MAX_DEPOSIT_DRIPS = 1_000_000 * DRIPS_PER_HYPE; // 1M HYPE
+    uint256 public constant BRIDGE_FEE_BPS = 15; // 0.15% — lower fee for high-perf chain
     uint256 public constant BPS_DENOMINATOR = 10_000;
-
-    /// @notice Default escrow timelock (24 hours)
-    uint256 public constant DEFAULT_ESCROW_TIMELOCK = 24 hours;
-
-    /// @notice Minimum escrow timelock (1 hour)
-    uint256 public constant MIN_ESCROW_TIMELOCK = 1 hours;
-
-    /// @notice Maximum escrow timelock (30 days)
-    uint256 public constant MAX_ESCROW_TIMELOCK = 30 days;
-
-    /// @notice Withdrawal refund grace period (48 hours)
-    uint256 public constant WITHDRAWAL_REFUND_DELAY = 48 hours;
-
-    /// @notice Default required block confirmations (~45 seconds)
-    uint256 public constant DEFAULT_BLOCK_CONFIRMATIONS = 15;
+    uint256 public constant DEFAULT_ESCROW_TIMELOCK = 12 hours;
+    uint256 public constant MIN_ESCROW_TIMELOCK = 30 minutes;
+    uint256 public constant MAX_ESCROW_TIMELOCK = 14 days;
+    uint256 public constant WITHDRAWAL_REFUND_DELAY = 24 hours;
+    uint256 public constant DEFAULT_BLOCK_CONFIRMATIONS = 3;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bridge configuration
     BridgeConfig public bridgeConfig;
-
-    /// @notice Treasury address for fee collection
     address public treasury;
-
-    /// @notice Deposit nonce for unique ID generation
     uint256 public depositNonce;
-
-    /// @notice Withdrawal nonce
     uint256 public withdrawalNonce;
-
-    /// @notice Escrow nonce
     uint256 public escrowNonce;
 
     /*//////////////////////////////////////////////////////////////
                               MAPPINGS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Deposits by ID
-    mapping(bytes32 => BNBDeposit) public deposits;
-
-    /// @notice Withdrawals by ID
-    mapping(bytes32 => BNBWithdrawal) public withdrawals;
-
-    /// @notice Escrows by ID
-    mapping(bytes32 => BNBEscrow) public escrows;
-
-    /// @notice Finalized BSC block headers
-    mapping(uint256 => BSCBlockHeader) public blockHeaders;
-
-    /// @notice Used BSC transaction hashes (replay protection)
-    mapping(bytes32 => bool) public usedBSCTxHashes;
-
-    /// @notice Used nullifiers for ZK privacy deposits
+    mapping(bytes32 => HYPEDeposit) public deposits;
+    mapping(bytes32 => HYPEWithdrawal) public withdrawals;
+    mapping(bytes32 => HYPEEscrow) public escrows;
+    mapping(uint256 => HyperBFTBlockHeader) public blockHeaders;
+    mapping(bytes32 => bool) public usedHLTxHashes;
     mapping(bytes32 => bool) public usedNullifiers;
-
-    /// @notice Per-user deposit IDs
     mapping(address => bytes32[]) public userDeposits;
-
-    /// @notice Per-user withdrawal IDs
     mapping(address => bytes32[]) public userWithdrawals;
-
-    /// @notice Per-user escrow IDs
     mapping(address => bytes32[]) public userEscrows;
-
-    /// @notice Latest finalized block number
     uint256 public latestBlockNumber;
-
-    /// @notice Latest finalized block hash
     bytes32 public latestBlockHash;
 
     /*//////////////////////////////////////////////////////////////
                              STATISTICS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Total BNB deposited (in wei)
     uint256 public totalDeposited;
-
-    /// @notice Total BNB withdrawn (in wei)
     uint256 public totalWithdrawn;
-
-    /// @notice Total escrows created
     uint256 public totalEscrows;
-
-    /// @notice Total escrows finished
     uint256 public totalEscrowsFinished;
-
-    /// @notice Total escrows cancelled
     uint256 public totalEscrowsCancelled;
-
-    /// @notice Accumulated bridge fees (in wei-equivalent wBNB)
     uint256 public accumulatedFees;
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Initialize the BNB bridge adapter
-    /// @param _admin Admin address granted all roles
     constructor(address _admin) {
         if (_admin == address(0)) revert ZeroAddress();
 
@@ -215,22 +147,21 @@ contract BNBBridgeAdapter is
                            CONFIGURATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function configure(
-        address bscBridgeContract,
-        address wrappedBNB,
+        address hyperliquidBridgeContract,
+        address wrappedHYPE,
         address validatorOracle,
         uint256 minValidatorSignatures,
         uint256 requiredBlockConfirmations
     ) external onlyRole(OPERATOR_ROLE) {
-        if (bscBridgeContract == address(0)) revert ZeroAddress();
-        if (wrappedBNB == address(0)) revert ZeroAddress();
+        if (hyperliquidBridgeContract == address(0)) revert ZeroAddress();
+        if (wrappedHYPE == address(0)) revert ZeroAddress();
         if (validatorOracle == address(0)) revert ZeroAddress();
         if (minValidatorSignatures == 0) revert InvalidAmount();
 
         bridgeConfig = BridgeConfig({
-            bscBridgeContract: bscBridgeContract,
-            wrappedBNB: wrappedBNB,
+            hyperliquidBridgeContract: hyperliquidBridgeContract,
+            wrappedHYPE: wrappedHYPE,
             validatorOracle: validatorOracle,
             minValidatorSignatures: minValidatorSignatures,
             requiredBlockConfirmations: requiredBlockConfirmations > 0
@@ -239,10 +170,13 @@ contract BNBBridgeAdapter is
             active: true
         });
 
-        emit BridgeConfigured(bscBridgeContract, wrappedBNB, validatorOracle);
+        emit BridgeConfigured(
+            hyperliquidBridgeContract,
+            wrappedHYPE,
+            validatorOracle
+        );
     }
 
-    /// @notice Set the treasury address for fee collection
     function setTreasury(
         address _treasury
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -251,17 +185,16 @@ contract BNBBridgeAdapter is
     }
 
     /*//////////////////////////////////////////////////////////////
-                      DEPOSITS (BSC → Soul)
+                      DEPOSITS (Hyperliquid → Soul)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
-    function initiateBNBDeposit(
-        bytes32 bscTxHash,
-        address bscSender,
+    function initiateHYPEDeposit(
+        bytes32 hlTxHash,
+        address hlSender,
         address evmRecipient,
-        uint256 amountWei,
+        uint256 amountDrips,
         uint256 blockNumber,
-        BSCMerkleProof calldata txProof,
+        HyperliquidMerkleProof calldata txProof,
         ValidatorAttestation[] calldata attestations
     )
         external
@@ -272,20 +205,17 @@ contract BNBBridgeAdapter is
     {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
         if (evmRecipient == address(0)) revert ZeroAddress();
-        if (amountWei < MIN_DEPOSIT_WEI) revert AmountTooSmall(amountWei);
-        if (amountWei > MAX_DEPOSIT_WEI) revert AmountTooLarge(amountWei);
-        if (usedBSCTxHashes[bscTxHash]) revert BSCTxAlreadyUsed(bscTxHash);
+        if (amountDrips < MIN_DEPOSIT_DRIPS) revert AmountTooSmall(amountDrips);
+        if (amountDrips > MAX_DEPOSIT_DRIPS) revert AmountTooLarge(amountDrips);
+        if (usedHLTxHashes[hlTxHash]) revert HLTxAlreadyUsed(hlTxHash);
 
-        // Verify the block containing the tx is finalized
-        BSCBlockHeader storage header = blockHeaders[blockNumber];
+        HyperBFTBlockHeader storage header = blockHeaders[blockNumber];
         if (!header.finalized) revert BlockNotFinalized(blockNumber);
 
-        // Verify Merkle inclusion proof
-        if (!_verifyMerkleProof(txProof, header.transactionsRoot, bscTxHash)) {
+        if (!_verifyMerkleProof(txProof, header.transactionsRoot, hlTxHash)) {
             revert InvalidBlockProof();
         }
 
-        // Verify validator attestations
         if (!_verifyValidatorAttestations(header.blockHash, attestations)) {
             revert InsufficientValidatorSignatures(
                 attestations.length,
@@ -293,32 +223,29 @@ contract BNBBridgeAdapter is
             );
         }
 
-        // Mark tx hash as used (replay protection)
-        usedBSCTxHashes[bscTxHash] = true;
+        usedHLTxHashes[hlTxHash] = true;
 
-        // Calculate fee
-        uint256 fee = (amountWei * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 netAmount = amountWei - fee;
+        uint256 fee = (amountDrips * BRIDGE_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 netAmount = amountDrips - fee;
 
-        // Generate deposit ID
         depositId = keccak256(
             abi.encodePacked(
-                BSC_CHAIN_ID,
-                bscTxHash,
-                bscSender,
+                HYPERLIQUID_CHAIN_ID,
+                hlTxHash,
+                hlSender,
                 evmRecipient,
-                amountWei,
+                amountDrips,
                 depositNonce++
             )
         );
 
-        deposits[depositId] = BNBDeposit({
+        deposits[depositId] = HYPEDeposit({
             depositId: depositId,
-            bscTxHash: bscTxHash,
-            bscSender: bscSender,
+            hlTxHash: hlTxHash,
+            hlSender: hlSender,
             evmRecipient: evmRecipient,
-            amountWei: amountWei,
-            netAmountWei: netAmount,
+            amountDrips: amountDrips,
+            netAmountDrips: netAmount,
             fee: fee,
             status: DepositStatus.VERIFIED,
             blockNumber: blockNumber,
@@ -328,22 +255,21 @@ contract BNBBridgeAdapter is
 
         userDeposits[evmRecipient].push(depositId);
         accumulatedFees += fee;
-        totalDeposited += amountWei;
+        totalDeposited += amountDrips;
 
-        emit BNBDepositInitiated(
+        emit HYPEDepositInitiated(
             depositId,
-            bscTxHash,
-            bscSender,
+            hlTxHash,
+            hlSender,
             evmRecipient,
-            amountWei
+            amountDrips
         );
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
-    function completeBNBDeposit(
+    function completeHYPEDeposit(
         bytes32 depositId
     ) external nonReentrant whenNotPaused onlyRole(OPERATOR_ROLE) {
-        BNBDeposit storage deposit = deposits[depositId];
+        HYPEDeposit storage deposit = deposits[depositId];
         if (deposit.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (deposit.status != DepositStatus.VERIFIED) {
             revert InvalidDepositStatus(depositId, deposit.status);
@@ -352,91 +278,85 @@ contract BNBBridgeAdapter is
         deposit.status = DepositStatus.COMPLETED;
         deposit.completedAt = block.timestamp;
 
-        // Mint wBNB to recipient (net of fees)
-        (bool success, ) = bridgeConfig.wrappedBNB.call(
+        (bool success, ) = bridgeConfig.wrappedHYPE.call(
             abi.encodeWithSignature(
                 "mint(address,uint256)",
                 deposit.evmRecipient,
-                deposit.netAmountWei
+                deposit.netAmountDrips
             )
         );
         if (!success) revert InvalidAmount();
 
-        emit BNBDepositCompleted(
+        emit HYPEDepositCompleted(
             depositId,
             deposit.evmRecipient,
-            deposit.netAmountWei
+            deposit.netAmountDrips
         );
     }
 
     /*//////////////////////////////////////////////////////////////
-                    WITHDRAWALS (Soul → BSC)
+                    WITHDRAWALS (Soul → Hyperliquid)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function initiateWithdrawal(
-        address bscRecipient,
-        uint256 amountWei
+        address hlRecipient,
+        uint256 amountDrips
     ) external nonReentrant whenNotPaused returns (bytes32 withdrawalId) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
-        if (bscRecipient == address(0)) revert ZeroAddress();
-        if (amountWei < MIN_DEPOSIT_WEI) revert AmountTooSmall(amountWei);
-        if (amountWei > MAX_DEPOSIT_WEI) revert AmountTooLarge(amountWei);
+        if (hlRecipient == address(0)) revert ZeroAddress();
+        if (amountDrips < MIN_DEPOSIT_DRIPS) revert AmountTooSmall(amountDrips);
+        if (amountDrips > MAX_DEPOSIT_DRIPS) revert AmountTooLarge(amountDrips);
 
-        // Transfer wBNB from sender to bridge
-        IERC20(bridgeConfig.wrappedBNB).safeTransferFrom(
+        IERC20(bridgeConfig.wrappedHYPE).safeTransferFrom(
             msg.sender,
             address(this),
-            amountWei
+            amountDrips
         );
 
-        // Attempt burn
-        (bool burnSuccess, ) = bridgeConfig.wrappedBNB.call(
-            abi.encodeWithSignature("burn(uint256)", amountWei)
+        (bool burnSuccess, ) = bridgeConfig.wrappedHYPE.call(
+            abi.encodeWithSignature("burn(uint256)", amountDrips)
         );
-        // If burn fails, tokens are held until refund or completion
 
         withdrawalId = keccak256(
             abi.encodePacked(
-                BSC_CHAIN_ID,
+                HYPERLIQUID_CHAIN_ID,
                 msg.sender,
-                bscRecipient,
-                amountWei,
+                hlRecipient,
+                amountDrips,
                 withdrawalNonce++,
                 block.timestamp
             )
         );
 
-        withdrawals[withdrawalId] = BNBWithdrawal({
+        withdrawals[withdrawalId] = HYPEWithdrawal({
             withdrawalId: withdrawalId,
             evmSender: msg.sender,
-            bscRecipient: bscRecipient,
-            amountWei: amountWei,
-            bscTxHash: bytes32(0),
+            hlRecipient: hlRecipient,
+            amountDrips: amountDrips,
+            hlTxHash: bytes32(0),
             status: WithdrawalStatus.PENDING,
             initiatedAt: block.timestamp,
             completedAt: 0
         });
 
         userWithdrawals[msg.sender].push(withdrawalId);
-        totalWithdrawn += amountWei;
+        totalWithdrawn += amountDrips;
 
-        emit BNBWithdrawalInitiated(
+        emit HYPEWithdrawalInitiated(
             withdrawalId,
             msg.sender,
-            bscRecipient,
-            amountWei
+            hlRecipient,
+            amountDrips
         );
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function completeWithdrawal(
         bytes32 withdrawalId,
-        bytes32 bscTxHash,
-        BSCMerkleProof calldata txProof,
+        bytes32 hlTxHash,
+        HyperliquidMerkleProof calldata txProof,
         ValidatorAttestation[] calldata attestations
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
-        BNBWithdrawal storage withdrawal = withdrawals[withdrawalId];
+        HYPEWithdrawal storage withdrawal = withdrawals[withdrawalId];
         if (withdrawal.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (
@@ -445,19 +365,18 @@ contract BNBBridgeAdapter is
         ) {
             revert InvalidWithdrawalStatus(withdrawalId, withdrawal.status);
         }
-        if (usedBSCTxHashes[bscTxHash]) revert BSCTxAlreadyUsed(bscTxHash);
+        if (usedHLTxHashes[hlTxHash]) revert HLTxAlreadyUsed(hlTxHash);
 
-        // Verify the BSC release transaction in a finalized block
         bool verified = false;
         for (
             uint256 i = latestBlockNumber;
             i > 0 && i > latestBlockNumber - 100;
             i--
         ) {
-            BSCBlockHeader storage header = blockHeaders[i];
+            HyperBFTBlockHeader storage header = blockHeaders[i];
             if (
                 header.finalized &&
-                _verifyMerkleProof(txProof, header.transactionsRoot, bscTxHash)
+                _verifyMerkleProof(txProof, header.transactionsRoot, hlTxHash)
             ) {
                 if (
                     _verifyValidatorAttestations(header.blockHash, attestations)
@@ -469,20 +388,19 @@ contract BNBBridgeAdapter is
         }
         if (!verified) revert InvalidBlockProof();
 
-        usedBSCTxHashes[bscTxHash] = true;
+        usedHLTxHashes[hlTxHash] = true;
 
         withdrawal.status = WithdrawalStatus.COMPLETED;
-        withdrawal.bscTxHash = bscTxHash;
+        withdrawal.hlTxHash = hlTxHash;
         withdrawal.completedAt = block.timestamp;
 
-        emit BNBWithdrawalCompleted(withdrawalId, bscTxHash);
+        emit HYPEWithdrawalCompleted(withdrawalId, hlTxHash);
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function refundWithdrawal(
         bytes32 withdrawalId
     ) external nonReentrant whenNotPaused {
-        BNBWithdrawal storage withdrawal = withdrawals[withdrawalId];
+        HYPEWithdrawal storage withdrawal = withdrawals[withdrawalId];
         if (withdrawal.withdrawalId == bytes32(0))
             revert WithdrawalNotFound(withdrawalId);
         if (withdrawal.status != WithdrawalStatus.PENDING) {
@@ -497,25 +415,24 @@ contract BNBBridgeAdapter is
         withdrawal.status = WithdrawalStatus.REFUNDED;
         withdrawal.completedAt = block.timestamp;
 
-        // Return wBNB to sender (mint back or transfer from contract balance)
-        (bool mintSuccess, ) = bridgeConfig.wrappedBNB.call(
+        (bool mintSuccess, ) = bridgeConfig.wrappedHYPE.call(
             abi.encodeWithSignature(
                 "mint(address,uint256)",
                 withdrawal.evmSender,
-                withdrawal.amountWei
+                withdrawal.amountDrips
             )
         );
         if (!mintSuccess) {
-            IERC20(bridgeConfig.wrappedBNB).safeTransfer(
+            IERC20(bridgeConfig.wrappedHYPE).safeTransfer(
                 withdrawal.evmSender,
-                withdrawal.amountWei
+                withdrawal.amountDrips
             );
         }
 
-        emit BNBWithdrawalRefunded(
+        emit HYPEWithdrawalRefunded(
             withdrawalId,
             withdrawal.evmSender,
-            withdrawal.amountWei
+            withdrawal.amountDrips
         );
     }
 
@@ -523,19 +440,17 @@ contract BNBBridgeAdapter is
                         ESCROW (ATOMIC SWAPS)
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function createEscrow(
-        address bscParty,
+        address hlParty,
         bytes32 hashlock,
         uint256 finishAfter,
         uint256 cancelAfter
     ) external payable nonReentrant whenNotPaused returns (bytes32 escrowId) {
         if (!bridgeConfig.active) revert BridgeNotConfigured();
-        if (bscParty == address(0)) revert ZeroAddress();
+        if (hlParty == address(0)) revert ZeroAddress();
         if (hashlock == bytes32(0)) revert InvalidHashlock();
         if (msg.value == 0) revert InvalidAmount();
 
-        // Validate timelocks
         uint256 duration = cancelAfter - finishAfter;
         if (duration < MIN_ESCROW_TIMELOCK)
             revert TimelockTooShort(duration, MIN_ESCROW_TIMELOCK);
@@ -543,25 +458,25 @@ contract BNBBridgeAdapter is
             revert TimelockTooLong(duration, MAX_ESCROW_TIMELOCK);
         if (finishAfter < block.timestamp) revert InvalidAmount();
 
-        uint256 amountWei = msg.value;
+        uint256 amountDrips = msg.value;
 
         escrowId = keccak256(
             abi.encodePacked(
-                BSC_CHAIN_ID,
+                HYPERLIQUID_CHAIN_ID,
                 msg.sender,
-                bscParty,
+                hlParty,
                 hashlock,
-                amountWei,
+                amountDrips,
                 escrowNonce++,
                 block.timestamp
             )
         );
 
-        escrows[escrowId] = BNBEscrow({
+        escrows[escrowId] = HYPEEscrow({
             escrowId: escrowId,
             evmParty: msg.sender,
-            bscParty: bscParty,
-            amountWei: amountWei,
+            hlParty: hlParty,
+            amountDrips: amountDrips,
             hashlock: hashlock,
             preimage: bytes32(0),
             finishAfter: finishAfter,
@@ -573,15 +488,20 @@ contract BNBBridgeAdapter is
         userEscrows[msg.sender].push(escrowId);
         totalEscrows++;
 
-        emit EscrowCreated(escrowId, msg.sender, bscParty, amountWei, hashlock);
+        emit EscrowCreated(
+            escrowId,
+            msg.sender,
+            hlParty,
+            amountDrips,
+            hashlock
+        );
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function finishEscrow(
         bytes32 escrowId,
         bytes32 preimage
     ) external nonReentrant whenNotPaused {
-        BNBEscrow storage escrow = escrows[escrowId];
+        HYPEEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (escrow.status != EscrowStatus.ACTIVE)
             revert EscrowNotActive(escrowId);
@@ -589,7 +509,6 @@ contract BNBBridgeAdapter is
             revert FinishAfterNotReached(escrowId, escrow.finishAfter);
         }
 
-        // Verify SHA-256 hashlock preimage
         bytes32 computedHash = sha256(abi.encodePacked(preimage));
         if (computedHash != escrow.hashlock) {
             revert InvalidPreimage(escrow.hashlock, computedHash);
@@ -599,8 +518,7 @@ contract BNBBridgeAdapter is
         escrow.preimage = preimage;
         totalEscrowsFinished++;
 
-        // Release funds to the preimage provider
-        (bool success, ) = payable(msg.sender).call{value: escrow.amountWei}(
+        (bool success, ) = payable(msg.sender).call{value: escrow.amountDrips}(
             ""
         );
         if (!success) revert InvalidAmount();
@@ -608,11 +526,10 @@ contract BNBBridgeAdapter is
         emit EscrowFinished(escrowId, preimage);
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function cancelEscrow(
         bytes32 escrowId
     ) external nonReentrant whenNotPaused {
-        BNBEscrow storage escrow = escrows[escrowId];
+        HYPEEscrow storage escrow = escrows[escrowId];
         if (escrow.escrowId == bytes32(0)) revert EscrowNotFound(escrowId);
         if (escrow.status != EscrowStatus.ACTIVE)
             revert EscrowNotActive(escrowId);
@@ -623,9 +540,8 @@ contract BNBBridgeAdapter is
         escrow.status = EscrowStatus.CANCELLED;
         totalEscrowsCancelled++;
 
-        // Return funds to the creator
         (bool success, ) = payable(escrow.evmParty).call{
-            value: escrow.amountWei
+            value: escrow.amountDrips
         }("");
         if (!success) revert InvalidAmount();
 
@@ -636,21 +552,19 @@ contract BNBBridgeAdapter is
                          PRIVACY INTEGRATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function registerPrivateDeposit(
         bytes32 depositId,
         bytes32 commitment,
         bytes32 nullifier,
         bytes calldata zkProof
     ) external nonReentrant whenNotPaused onlyRole(OPERATOR_ROLE) {
-        BNBDeposit storage deposit = deposits[depositId];
+        HYPEDeposit storage deposit = deposits[depositId];
         if (deposit.depositId == bytes32(0)) revert DepositNotFound(depositId);
         if (deposit.status != DepositStatus.COMPLETED) {
             revert InvalidDepositStatus(depositId, deposit.status);
         }
         if (usedNullifiers[nullifier]) revert NullifierAlreadyUsed(nullifier);
 
-        // Verify ZK proof binds commitment and nullifier to the deposit
         if (!_verifyZKProof(depositId, commitment, nullifier, zkProof)) {
             revert InvalidProof();
         }
@@ -664,18 +578,15 @@ contract BNBBridgeAdapter is
                       BLOCK HEADER SUBMISSION
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function submitBlockHeader(
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 parentHash,
         bytes32 transactionsRoot,
         bytes32 stateRoot,
-        bytes32 receiptsRoot,
         uint256 blockTime,
         ValidatorAttestation[] calldata attestations
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
-        // Verify validator attestations
         if (!_verifyValidatorAttestations(blockHash, attestations)) {
             revert InsufficientValidatorSignatures(
                 attestations.length,
@@ -683,21 +594,19 @@ contract BNBBridgeAdapter is
             );
         }
 
-        // Verify parent chain: if we have the parent block, verify hash match
         if (blockNumber > 0 && blockHeaders[blockNumber - 1].finalized) {
-            BSCBlockHeader storage parent = blockHeaders[blockNumber - 1];
+            HyperBFTBlockHeader storage parent = blockHeaders[blockNumber - 1];
             if (parent.blockHash != parentHash) {
                 revert InvalidBlockProof();
             }
         }
 
-        blockHeaders[blockNumber] = BSCBlockHeader({
+        blockHeaders[blockNumber] = HyperBFTBlockHeader({
             blockNumber: blockNumber,
             blockHash: blockHash,
             parentHash: parentHash,
             transactionsRoot: transactionsRoot,
             stateRoot: stateRoot,
-            receiptsRoot: receiptsRoot,
             blockTime: blockTime,
             finalized: true
         });
@@ -714,29 +623,26 @@ contract BNBBridgeAdapter is
                         EMERGENCY CONTROLS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Pause the bridge (emergency circuit breaker)
     function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
-    /// @notice Unpause the bridge
     function unpause() external onlyRole(GUARDIAN_ROLE) {
         _unpause();
     }
 
-    /// @notice Withdraw accumulated bridge fees to treasury
     function withdrawFees() external onlyRole(TREASURY_ROLE) {
         uint256 amount = accumulatedFees;
         if (amount == 0) revert InvalidAmount();
         accumulatedFees = 0;
 
-        uint256 balance = IERC20(bridgeConfig.wrappedBNB).balanceOf(
+        uint256 balance = IERC20(bridgeConfig.wrappedHYPE).balanceOf(
             address(this)
         );
         uint256 transferAmount = amount > balance ? balance : amount;
 
         if (transferAmount > 0) {
-            IERC20(bridgeConfig.wrappedBNB).safeTransfer(
+            IERC20(bridgeConfig.wrappedHYPE).safeTransfer(
                 treasury,
                 transferAmount
             );
@@ -749,56 +655,48 @@ contract BNBBridgeAdapter is
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IBNBBridgeAdapter
     function getDeposit(
         bytes32 depositId
-    ) external view returns (BNBDeposit memory) {
+    ) external view returns (HYPEDeposit memory) {
         return deposits[depositId];
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function getWithdrawal(
         bytes32 withdrawalId
-    ) external view returns (BNBWithdrawal memory) {
+    ) external view returns (HYPEWithdrawal memory) {
         return withdrawals[withdrawalId];
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function getEscrow(
         bytes32 escrowId
-    ) external view returns (BNBEscrow memory) {
+    ) external view returns (HYPEEscrow memory) {
         return escrows[escrowId];
     }
 
-    /// @inheritdoc IBNBBridgeAdapter
     function getBlockHeader(
         uint256 blockNumber
-    ) external view returns (BSCBlockHeader memory) {
+    ) external view returns (HyperBFTBlockHeader memory) {
         return blockHeaders[blockNumber];
     }
 
-    /// @notice Get user deposit history
     function getUserDeposits(
         address user
     ) external view returns (bytes32[] memory) {
         return userDeposits[user];
     }
 
-    /// @notice Get user withdrawal history
     function getUserWithdrawals(
         address user
     ) external view returns (bytes32[] memory) {
         return userWithdrawals[user];
     }
 
-    /// @notice Get user escrow history
     function getUserEscrows(
         address user
     ) external view returns (bytes32[] memory) {
         return userEscrows[user];
     }
 
-    /// @notice Get bridge statistics
     function getBridgeStats()
         external
         view
@@ -827,11 +725,8 @@ contract BNBBridgeAdapter is
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Verify a BSC Merkle-Patricia inclusion proof
-     */
     function _verifyMerkleProof(
-        BSCMerkleProof calldata proof,
+        HyperliquidMerkleProof calldata proof,
         bytes32 root,
         bytes32 leafHash
     ) internal pure returns (bool valid) {
@@ -856,9 +751,6 @@ contract BNBBridgeAdapter is
         return computedHash == root;
     }
 
-    /**
-     * @dev Verify BSC PoSA validator attestations for a block hash
-     */
     function _verifyValidatorAttestations(
         bytes32 blockHash,
         ValidatorAttestation[] calldata attestations
@@ -892,9 +784,6 @@ contract BNBBridgeAdapter is
         return validCount >= bridgeConfig.minValidatorSignatures;
     }
 
-    /**
-     * @dev Verify a ZK proof for private deposit registration
-     */
     function _verifyZKProof(
         bytes32 depositId,
         bytes32 commitment,
@@ -915,6 +804,5 @@ contract BNBBridgeAdapter is
         return false;
     }
 
-    /// @notice Accept ETH for escrow operations
     receive() external payable {}
 }

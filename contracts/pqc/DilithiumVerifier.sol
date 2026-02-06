@@ -382,15 +382,17 @@ contract DilithiumVerifier is Ownable, Pausable {
             // Precompile not deployed: fallback to ZK or Solidity verification
             if (address(zkVerifier) != address(0)) {
                 // Prefer ZK verification as fallback
-                return zkVerifier.verifyDilithiumProof(
-                    abi.encode(signature),
-                    message,
-                    PQCLib.hashPublicKey(publicKey, algorithm)
-                );
+                return
+                    zkVerifier.verifyDilithiumProof(
+                        abi.encode(signature),
+                        message,
+                        PQCLib.hashPublicKey(publicKey, algorithm)
+                    );
             }
             // Last resort: pure Solidity on testnets, revert on mainnet
             if (block.chainid != 1) {
-                return _solidityVerify(message, signature, publicKey, algorithm);
+                return
+                    _solidityVerify(message, signature, publicKey, algorithm);
             }
             revert PrecompileCallFailed();
         }

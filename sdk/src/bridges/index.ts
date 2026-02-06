@@ -15,6 +15,7 @@ export * from './hyperlane';
 export * from './l2-adapters';
 export * from './solana';
 export * from './bnb';
+export * from './hyperliquid';
 
 import { 
     keccak256, 
@@ -802,12 +803,80 @@ export class BNBBridgeAdapterSDK extends BaseBridgeAdapter {
 }
 
 // ============================================
+// Hyperliquid Bridge Adapter
+// ============================================
+
+export class HyperliquidBridgeAdapterSDK extends BaseBridgeAdapter {
+  private hlBridgeAddress: string;
+
+  constructor(
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    hlBridgeAddress: string
+  ) {
+    super({
+      name: 'Hyperliquid',
+      chainId: 999,
+      nativeToken: 'HYPE',
+      finality: 3, // ~3 blocks (~0.6s BFT finality)
+      maxAmount: 1_000_000n * 100_000_000n, // 1M HYPE in drips
+      minAmount: 100_000_000n / 10n // 0.1 HYPE in drips
+    }, publicClient, walletClient);
+
+    this.hlBridgeAddress = hlBridgeAddress;
+  }
+
+  async bridgeTransfer(params: BridgeTransferParams): Promise<BridgeTransferResult> {
+    this.validateAmount(params.amount);
+
+    const transferId = keccak256(encodeAbiParameters(
+      [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'uint256' }],
+      [params.recipient as Hex, this.hlBridgeAddress as Hex, params.amount, BigInt(Date.now())]
+    ));
+
+    return {
+      transferId,
+      txHash: '0x...',
+      estimatedArrival: Date.now() + 600, // ~0.6 seconds (3 blocks × 200ms)
+      fees: await this.estimateFees(params.amount, params.targetChainId)
+    };
+  }
+
+  async completeBridge(transferId: string, proof: Uint8Array): Promise<string> {
+    return '0x...';
+  }
+
+  async getStatus(transferId: string): Promise<BridgeStatus> {
+    return {
+      state: 'pending',
+      sourceChainId: 1,
+      targetChainId: this.config.chainId,
+      confirmations: 0,
+      requiredConfirmations: 3
+    };
+  }
+
+  async estimateFees(amount: bigint, targetChainId: number): Promise<BridgeFees> {
+    const protocolFee = amount * 15n / 10000n; // 0.15% bridge fee
+    const relayerFee = 100_000n; // 0.001 HYPE in drips
+    const gasFee = 10_000n; // 0.0001 HYPE (HyperEVM gas)
+
+    return {
+      protocolFee,
+      relayerFee,
+      gasFee,
+      total: protocolFee + relayerFee + gasFee
+    };
+  }
+}
+
+// ============================================
 // Bridge Factory
 // ============================================
 
 export type SupportedChain = 
   | 'cardano' | 'midnight' | 'polkadot' | 'cosmos' | 'near'
-  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb';
+  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid';
 
 export class BridgeFactory {
   static createAdapter(
@@ -871,6 +940,11 @@ export class BridgeFactory {
         return new BNBBridgeAdapterSDK(
           publicClient, walletClient,
           config.bscBridgeAddress
+        );
+      case 'hyperliquid':
+        return new HyperliquidBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.hlBridgeAddress
         );
       default:
         throw new Error(`Unsupported chain: ${chain}`);

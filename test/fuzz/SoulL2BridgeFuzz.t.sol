@@ -178,9 +178,7 @@ contract SoulL2BridgeFuzz is Test {
         vm.deal(admin, 10 ether);
 
         if (gasLimit < MIN_GAS_LIMIT) {
-            vm.expectRevert(
-                BaseBridgeAdapter.InsufficientGasLimit.selector
-            );
+            vm.expectRevert(BaseBridgeAdapter.InsufficientGasLimit.selector);
             baseL1Adapter.sendProofToL2{value: 0.01 ether}(
                 proofHash,
                 hex"1234",
@@ -201,9 +199,7 @@ contract SoulL2BridgeFuzz is Test {
     }
 
     /// @notice Fuzz test message counter increments
-    function testFuzz_BaseMessageCounterIncrements(
-        uint8 numMessages
-    ) public {
+    function testFuzz_BaseMessageCounterIncrements(uint8 numMessages) public {
         vm.assume(numMessages > 0 && numMessages <= 20);
 
         vm.startPrank(admin);
@@ -550,12 +546,7 @@ contract SoulL2BridgeFuzz is Test {
         vm.startPrank(admin);
 
         // Empty proof and inputs should still work
-        baseL2Adapter.receiveProofFromL1(
-            proofHash,
-            hex"",
-            hex"",
-            ETH_MAINNET
-        );
+        baseL2Adapter.receiveProofFromL1(proofHash, hex"", hex"", ETH_MAINNET);
 
         assertTrue(baseL2Adapter.isProofRelayed(proofHash));
 

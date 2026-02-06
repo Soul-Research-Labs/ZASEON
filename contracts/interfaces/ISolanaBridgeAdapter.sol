@@ -49,34 +49,34 @@ interface ISolanaBridgeAdapter {
 
     /// @notice Status of a SOL deposit (Solana → EVM)
     enum DepositStatus {
-        PENDING,    // Awaiting proof submission
-        VERIFIED,   // Proof verified, awaiting minting
-        COMPLETED,  // wSOL minted to recipient
-        FAILED      // Verification failed
+        PENDING, // Awaiting proof submission
+        VERIFIED, // Proof verified, awaiting minting
+        COMPLETED, // wSOL minted to recipient
+        FAILED // Verification failed
     }
 
     /// @notice Status of a SOL withdrawal (EVM → Solana)
     enum WithdrawalStatus {
-        PENDING,     // wSOL burned, awaiting Solana release
-        PROCESSING,  // Guardian signing in progress
-        COMPLETED,   // SOL released on Solana
-        REFUNDED,    // Refunded on EVM side
-        FAILED       // Release failed
+        PENDING, // wSOL burned, awaiting Solana release
+        PROCESSING, // Guardian signing in progress
+        COMPLETED, // SOL released on Solana
+        REFUNDED, // Refunded on EVM side
+        FAILED // Release failed
     }
 
     /// @notice Status of a token swap escrow
     enum EscrowStatus {
-        ACTIVE,     // Escrow created, awaiting finish/cancel
-        FINISHED,   // Escrow successfully finished
-        CANCELLED   // Escrow cancelled after timeout
+        ACTIVE, // Escrow created, awaiting finish/cancel
+        FINISHED, // Escrow successfully finished
+        CANCELLED // Escrow cancelled after timeout
     }
 
     /// @notice Solana transaction types relevant to the bridge
     enum SolanaTxType {
-        TRANSFER,          // Native SOL transfer
-        SPL_TRANSFER,      // SPL token transfer
+        TRANSFER, // Native SOL transfer
+        SPL_TRANSFER, // SPL token transfer
         WORMHOLE_TRANSFER, // Wormhole-mediated transfer
-        PROGRAM_CALL       // Arbitrary program invocation
+        PROGRAM_CALL // Arbitrary program invocation
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -85,9 +85,9 @@ interface ISolanaBridgeAdapter {
 
     /// @notice Bridge configuration
     struct BridgeConfig {
-        bytes32 solanaBridgeProgram;  // Solana bridge program address (32 bytes)
-        address wrappedSOL;           // ERC-20 wrapped SOL token
-        address guardianOracle;       // Oracle for Wormhole Guardian signatures
+        bytes32 solanaBridgeProgram; // Solana bridge program address (32 bytes)
+        address wrappedSOL; // ERC-20 wrapped SOL token
+        address guardianOracle; // Oracle for Wormhole Guardian signatures
         uint256 minGuardianSignatures; // Min Guardian signatures required
         uint256 requiredSlotConfirmations; // Slot confirmations before acceptance
         bool active;
@@ -96,14 +96,14 @@ interface ISolanaBridgeAdapter {
     /// @notice SOL deposit record (Solana → EVM)
     struct SOLDeposit {
         bytes32 depositId;
-        bytes32 solanaTxSignature;  // Solana transaction signature (64 bytes compressed to 32)
-        bytes32 solanaSender;       // Solana sender pubkey
-        address evmRecipient;       // EVM recipient address
-        uint256 amountLamports;     // Amount in lamports (1 SOL = 1e9 lamports)
-        uint256 netAmountLamports;  // After bridge fee
-        uint256 fee;                // Bridge fee in lamports
+        bytes32 solanaTxSignature; // Solana transaction signature (64 bytes compressed to 32)
+        bytes32 solanaSender; // Solana sender pubkey
+        address evmRecipient; // EVM recipient address
+        uint256 amountLamports; // Amount in lamports (1 SOL = 1e9 lamports)
+        uint256 netAmountLamports; // After bridge fee
+        uint256 fee; // Bridge fee in lamports
         DepositStatus status;
-        uint256 slot;               // Solana slot number
+        uint256 slot; // Solana slot number
         uint256 initiatedAt;
         uint256 completedAt;
     }
@@ -111,10 +111,10 @@ interface ISolanaBridgeAdapter {
     /// @notice SOL withdrawal record (EVM → Solana)
     struct SOLWithdrawal {
         bytes32 withdrawalId;
-        address evmSender;          // EVM sender
-        bytes32 solanaRecipient;    // Solana recipient pubkey
-        uint256 amountLamports;     // Amount in lamports
-        bytes32 solanaTxSignature;  // Solana release tx signature (set on completion)
+        address evmSender; // EVM sender
+        bytes32 solanaRecipient; // Solana recipient pubkey
+        uint256 amountLamports; // Amount in lamports
+        bytes32 solanaTxSignature; // Solana release tx signature (set on completion)
         WithdrawalStatus status;
         uint256 initiatedAt;
         uint256 completedAt;
@@ -123,13 +123,13 @@ interface ISolanaBridgeAdapter {
     /// @notice Token swap escrow (for atomic cross-chain swaps)
     struct SolanaEscrow {
         bytes32 escrowId;
-        address evmParty;           // EVM-side party
-        bytes32 solanaParty;        // Solana-side party pubkey
-        uint256 amountLamports;     // Amount in lamports
-        bytes32 hashlock;           // SHA-256 hashlock for HTLC
-        bytes32 preimage;           // Preimage (set on finish)
-        uint256 finishAfter;        // Earliest finish time (UNIX)
-        uint256 cancelAfter;        // Earliest cancel time (UNIX)
+        address evmParty; // EVM-side party
+        bytes32 solanaParty; // Solana-side party pubkey
+        uint256 amountLamports; // Amount in lamports
+        bytes32 hashlock; // SHA-256 hashlock for HTLC
+        bytes32 preimage; // Preimage (set on finish)
+        uint256 finishAfter; // Earliest finish time (UNIX)
+        uint256 cancelAfter; // Earliest cancel time (UNIX)
         EscrowStatus status;
         uint256 createdAt;
     }
@@ -139,23 +139,23 @@ interface ISolanaBridgeAdapter {
         uint256 slot;
         bytes32 blockHash;
         bytes32 parentHash;
-        bytes32 transactionsRoot;   // Merkle root of transactions in the slot
-        bytes32 accountsRoot;       // Root of accounts state
-        uint256 blockTime;          // Block time in UNIX seconds
+        bytes32 transactionsRoot; // Merkle root of transactions in the slot
+        bytes32 accountsRoot; // Root of accounts state
+        uint256 blockTime; // Block time in UNIX seconds
         bool finalized;
     }
 
     /// @notice Wormhole Guardian attestation
     struct GuardianAttestation {
-        bytes32 guardianPubKey;     // Guardian's public key
-        bytes signature;            // ECDSA/Ed25519 signature over VAA hash
+        bytes32 guardianPubKey; // Guardian's public key
+        bytes signature; // ECDSA/Ed25519 signature over VAA hash
     }
 
     /// @notice Solana Merkle inclusion proof
     struct SolanaMerkleProof {
-        bytes32 leafHash;           // Transaction signature hash
-        bytes32[] proof;            // Merkle proof nodes
-        uint256 index;              // Leaf index in the tree
+        bytes32 leafHash; // Transaction signature hash
+        bytes32[] proof; // Merkle proof nodes
+        uint256 index; // Leaf index in the tree
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -222,10 +222,7 @@ interface ISolanaBridgeAdapter {
     event EscrowCancelled(bytes32 indexed escrowId);
 
     /// @notice Emitted when a Solana slot header is submitted
-    event SlotHeaderSubmitted(
-        uint256 indexed slot,
-        bytes32 blockHash
-    );
+    event SlotHeaderSubmitted(uint256 indexed slot, bytes32 blockHash);
 
     /// @notice Emitted when a private deposit is registered with ZK proof
     event PrivateDepositRegistered(
@@ -258,7 +255,10 @@ interface ISolanaBridgeAdapter {
     /// @notice Thrown when a withdrawal ID is not found
     error WithdrawalNotFound(bytes32 withdrawalId);
     /// @notice Thrown when a withdrawal is in an unexpected status
-    error InvalidWithdrawalStatus(bytes32 withdrawalId, WithdrawalStatus current);
+    error InvalidWithdrawalStatus(
+        bytes32 withdrawalId,
+        WithdrawalStatus current
+    );
     /// @notice Thrown when an escrow ID is not found
     error EscrowNotFound(bytes32 escrowId);
     /// @notice Thrown when an escrow is not in ACTIVE status
@@ -372,14 +372,22 @@ interface ISolanaBridgeAdapter {
     ) external;
 
     /// @notice Get deposit details
-    function getDeposit(bytes32 depositId) external view returns (SOLDeposit memory);
+    function getDeposit(
+        bytes32 depositId
+    ) external view returns (SOLDeposit memory);
 
     /// @notice Get withdrawal details
-    function getWithdrawal(bytes32 withdrawalId) external view returns (SOLWithdrawal memory);
+    function getWithdrawal(
+        bytes32 withdrawalId
+    ) external view returns (SOLWithdrawal memory);
 
     /// @notice Get escrow details
-    function getEscrow(bytes32 escrowId) external view returns (SolanaEscrow memory);
+    function getEscrow(
+        bytes32 escrowId
+    ) external view returns (SolanaEscrow memory);
 
     /// @notice Get slot header details
-    function getSlotHeader(uint256 slot) external view returns (SlotHeader memory);
+    function getSlotHeader(
+        uint256 slot
+    ) external view returns (SlotHeader memory);
 }
