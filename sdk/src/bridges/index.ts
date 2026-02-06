@@ -14,6 +14,7 @@ export * from './layerzero';
 export * from './hyperlane';
 export * from './l2-adapters';
 export * from './solana';
+export * from './bnb';
 
 import { 
     keccak256, 
@@ -733,12 +734,80 @@ export class SolanaBridgeAdapterSDK extends BaseBridgeAdapter {
 }
 
 // ============================================
+// BNB Chain Bridge Adapter
+// ============================================
+
+export class BNBBridgeAdapterSDK extends BaseBridgeAdapter {
+  private bscBridgeAddress: string;
+
+  constructor(
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    bscBridgeAddress: string
+  ) {
+    super({
+      name: 'BNB Chain',
+      chainId: 56,
+      nativeToken: 'BNB',
+      finality: 15, // ~15 blocks (~45s)
+      maxAmount: 100_000n * 10n ** 18n, // 100K BNB
+      minAmount: 10n ** 16n // 0.01 BNB
+    }, publicClient, walletClient);
+
+    this.bscBridgeAddress = bscBridgeAddress;
+  }
+
+  async bridgeTransfer(params: BridgeTransferParams): Promise<BridgeTransferResult> {
+    this.validateAmount(params.amount);
+
+    const transferId = keccak256(encodeAbiParameters(
+      [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'uint256' }],
+      [params.recipient as Hex, this.bscBridgeAddress as Hex, params.amount, BigInt(Date.now())]
+    ));
+
+    return {
+      transferId,
+      txHash: '0x...',
+      estimatedArrival: Date.now() + (45 * 1000), // ~45 seconds (15 blocks)
+      fees: await this.estimateFees(params.amount, params.targetChainId)
+    };
+  }
+
+  async completeBridge(transferId: string, proof: Uint8Array): Promise<string> {
+    return '0x...';
+  }
+
+  async getStatus(transferId: string): Promise<BridgeStatus> {
+    return {
+      state: 'pending',
+      sourceChainId: 1,
+      targetChainId: this.config.chainId,
+      confirmations: 0,
+      requiredConfirmations: 15
+    };
+  }
+
+  async estimateFees(amount: bigint, targetChainId: number): Promise<BridgeFees> {
+    const protocolFee = amount * 25n / 10000n; // 0.25% bridge fee
+    const relayerFee = parseEther('0.001'); // 0.001 BNB
+    const gasFee = parseEther('0.0005'); // 0.0005 BNB (BSC gas)
+
+    return {
+      protocolFee,
+      relayerFee,
+      gasFee,
+      total: protocolFee + relayerFee + gasFee
+    };
+  }
+}
+
+// ============================================
 // Bridge Factory
 // ============================================
 
 export type SupportedChain = 
   | 'cardano' | 'midnight' | 'polkadot' | 'cosmos' | 'near'
-  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet';
+  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb';
 
 export class BridgeFactory {
   static createAdapter(
@@ -797,6 +866,11 @@ export class BridgeFactory {
         return new SolanaBridgeAdapterSDK(
           publicClient, walletClient,
           config.bridgeProgramId
+        );
+      case 'bnb':
+        return new BNBBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.bscBridgeAddress
         );
       default:
         throw new Error(`Unsupported chain: ${chain}`);
