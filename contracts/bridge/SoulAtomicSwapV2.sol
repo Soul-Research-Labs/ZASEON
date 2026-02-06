@@ -18,7 +18,12 @@ import {SecurityModule} from "../security/SecurityModule.sol";
 /// - Circuit breaker for abnormal swap volume
 /// - Flash loan guards prevent same-block claim attacks
 /// - Withdrawal limits for fee extraction
-contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule {
+contract SoulAtomicSwapV2 is
+    Ownable,
+    ReentrancyGuard,
+    Pausable,
+    SecurityModule
+{
     using SafeERC20 for IERC20;
 
     /// @notice Swap status enum
@@ -88,6 +93,10 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
 
     /// @notice Timestamp buffer for miner manipulation protection
     uint256 public constant TIMESTAMP_BUFFER = 60;
+
+    /// @notice Minimum delay between commit and reveal (L2-compatible)
+    /// @dev Set to 2 seconds to be compatible with fast L2 block times (Arbitrum ~0.25s)
+    uint256 public constant MIN_REVEAL_DELAY = 2;
 
     /// @notice Events
     event ClaimCommitted(
@@ -240,9 +249,9 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
         if (hashLock == bytes32(0)) revert InvalidHashLock();
         if (hashLockToSwap[hashLock] != bytes32(0)) revert SwapAlreadyExists();
 
-        // Generate swap ID
+        // Generate swap ID using abi.encode (prevents collision with variable-length types)
         swapId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 msg.sender,
                 recipient,
                 token,
@@ -338,7 +347,8 @@ contract SoulAtomicSwapV2 is Ownable, ReentrancyGuard, Pausable, SecurityModule 
 
         // Verify commit was made at least 1 block ago (prevent same-block reveal)
         if (_commitTime == 0) revert InvalidCommitHash();
-        if (block.timestamp < _commitTime + 12) revert CommitTooRecent();
+        if (block.timestamp < _commitTime + MIN_REVEAL_DELAY)
+            revert CommitTooRecent();
 
         // Verify commit hash matches
         bytes32 expectedCommit = keccak256(

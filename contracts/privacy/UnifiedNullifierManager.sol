@@ -67,17 +67,17 @@ contract UnifiedNullifierManager is
     /// @notice Domain separator for nullifier derivation
     /// @dev keccak256("Soul_UNIFIED_NULLIFIER_V1")
     bytes32 public constant NULLIFIER_DOMAIN =
-        0x8b5d63a2e9f5c2a1d3b4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6;
+        0x4e34b80f71d0c7dd46ffae77756be54f9e303fc51e2f7be5fff8e7a2bf349f32;
 
     /// @notice Cross-domain separator
     /// @dev keccak256("CROSS_DOMAIN")
     bytes32 public constant CROSS_DOMAIN_TAG =
-        0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658;
+        0xf6f08d2d647836449ce6c7faec104604bd003520989d06a862b6d31058c3d5ed;
 
     /// @notice Soul binding tag
     /// @dev keccak256("Soul_BINDING")
     bytes32 public constant SOUL_BINDING_TAG =
-        0x7b2e5f6a8c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f;
+        0x656e8f2a48d70e58b878efa25a14fb177d2f624851d2d47f5979db5e4953df92;
 
     /// @notice Chain-specific tags
     bytes32 public constant ZCASH_TAG = keccak256("ZCASH");

@@ -278,6 +278,8 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         bytes32 commitment,
         uint256 sourceChainId
     ) internal {
+        if (nullifier == bytes32(0)) revert ZeroNullifier();
+
         uint256 index = totalNullifiers;
 
         nullifiers[nullifier] = NullifierData({
@@ -380,17 +382,20 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
     /// @notice Adds a root to the history ring buffer
     /// @param root The root to add
     function _addRootToHistory(bytes32 root) internal {
+        // First, invalidate the old root at the current index before overwriting
+        bytes32 evictedRoot = rootHistory[rootHistoryIndex];
+        if (evictedRoot != bytes32(0) && evictedRoot != root) {
+            // Only invalidate if this root doesn't appear elsewhere in the buffer
+            // For gas efficiency, we just mark it false; duplicate roots are unlikely
+            historicalRoots[evictedRoot] = false;
+        }
+
+        // Write new root at current position
         rootHistory[rootHistoryIndex] = root;
         historicalRoots[root] = true;
 
         unchecked {
             rootHistoryIndex = (rootHistoryIndex + 1) % ROOT_HISTORY_SIZE;
-        }
-
-        // Remove old root from valid roots
-        bytes32 oldRoot = rootHistory[rootHistoryIndex];
-        if (oldRoot != bytes32(0)) {
-            historicalRoots[oldRoot] = false;
         }
     }
 

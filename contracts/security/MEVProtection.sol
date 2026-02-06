@@ -214,11 +214,11 @@ contract MEVProtection is ReentrancyGuard, AccessControl, Pausable {
 
         // Verify the reveal matches the commitment
         bytes32 expectedHash = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 DOMAIN_SEPARATOR,
                 msg.sender,
                 operationType,
-                data,
+                keccak256(data),
                 salt
             )
         );
@@ -271,11 +271,11 @@ contract MEVProtection is ReentrancyGuard, AccessControl, Pausable {
     ) external view returns (bytes32 commitHash) {
         return
             keccak256(
-                abi.encodePacked(
+                abi.encode(
                     DOMAIN_SEPARATOR,
                     sender,
                     operationType,
-                    data,
+                    keccak256(data),
                     salt
                 )
             );

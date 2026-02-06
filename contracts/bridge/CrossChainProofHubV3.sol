@@ -84,12 +84,12 @@ contract CrossChainProofHubV3 is
     /// @notice Role for verifier administrators
     /// @dev Pre-computed: keccak256("VERIFIER_ADMIN_ROLE")
     bytes32 public constant VERIFIER_ADMIN_ROLE =
-        0x0128b67e5ff1d54f0f3a17b69e93d7c6f0f5e9d8c7b6a5f4e3d2c1b0a9f8e7d6;
+        0xb194a0b06484f8a501e0bef8877baf2a303f803540f5ddeb9d985c0cd76f3e70;
 
     /// @notice Role for authorized challengers
     /// @dev Pre-computed: keccak256("CHALLENGER_ROLE")
     bytes32 public constant CHALLENGER_ROLE =
-        0x1cf8cb71e72697a4f6c3f6e3e8a7d9c0b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7;
+        0xe752add323323eb13e36c71ee508dfd16d74e9e4c4fd78786ba97989e5e13818;
 
     /// @notice Role for operators (trusted remotes, config)
     /// @dev Pre-computed: keccak256("OPERATOR_ROLE")
@@ -99,15 +99,15 @@ contract CrossChainProofHubV3 is
     /// @notice Role for emergency operations
     /// @dev Pre-computed: keccak256("EMERGENCY_ROLE")
     bytes32 public constant EMERGENCY_ROLE =
-        0xbf233dd2aafeb4d50879c4aa5c81e96d92f6e19cec777fe1e4cc9d80a4b1c3f0;
+        0xbf233dd2aafeb4d50879c4aa5c81e96d92f6e6945c906a58f9f2d1c1631b4b26;
 
     /// @notice Maximum number of proofs in a batch
     uint256 public constant MAX_BATCH_SIZE = 100;
 
     /// @notice Default proof type for verification
-    /// @dev Pre-computed: keccak256("GROTH16_BLS12381")
+    /// @dev Pre-computed: keccak256("DEFAULT_PROOF_TYPE")
     bytes32 public constant DEFAULT_PROOF_TYPE =
-        0x3a58f4c29b9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f;
+        0x8cdf3a8b78ebe00eba9fa85c0a9029fb57ab374b0492d22d68498e28e9e5b598;
 
     /// @notice Minimum required roles for security-critical operations
     uint256 public constant MIN_ADMIN_THRESHOLD = 2;
@@ -736,11 +736,10 @@ contract CrossChainProofHubV3 is
         if (challenge.resolved) revert ChallengeNotFound(proofId);
 
         // SECURITY FIX: Only the original challenger can resolve to prevent front-running
-        // This prevents relayers from submitting correct proof data before the challenger
+        // This prevents operators/relayers from submitting correct proof data to make relayer win
         require(
-            msg.sender == challenge.challenger ||
-                hasRole(OPERATOR_ROLE, msg.sender),
-            "Only challenger or operator can resolve"
+            msg.sender == challenge.challenger,
+            "Only challenger can resolve"
         );
 
         ProofSubmission storage submission = proofs[proofId];
@@ -1068,6 +1067,7 @@ contract CrossChainProofHubV3 is
         address remote
     ) external onlyRole(OPERATOR_ROLE) {
         if (chainId == 0) revert InvalidChainId(chainId);
+        if (remote == address(0)) revert ZeroAddress();
         trustedRemotes[chainId] = remote;
         emit TrustedRemoteSet(chainId, remote);
     }
@@ -1105,6 +1105,10 @@ contract CrossChainProofHubV3 is
         uint256 _relayerStake,
         uint256 _challengerStake
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(
+            _relayerStake > 0 && _challengerStake > 0,
+            "Stakes must be non-zero"
+        );
         minRelayerStake = _relayerStake;
         minChallengerStake = _challengerStake;
         emit MinStakesUpdated(_relayerStake, _challengerStake);

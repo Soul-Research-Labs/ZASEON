@@ -363,10 +363,12 @@ contract StealthAddressRegistry is
 
     /**
      * @notice Update meta-address status
+     * @dev Cannot re-activate a revoked meta-address
      */
     function updateMetaAddressStatus(KeyStatus newStatus) external {
         StealthMetaAddress storage meta = metaAddresses[msg.sender];
         if (meta.status == KeyStatus.INACTIVE) revert MetaAddressNotFound();
+        if (meta.status == KeyStatus.REVOKED) revert MetaAddressRevoked();
 
         meta.status = newStatus;
 
@@ -868,6 +870,29 @@ contract StealthAddressRegistry is
             totalAnnouncements,
             totalCrossChainDerivations
         );
+    }
+
+    // =========================================================================
+    // ADMIN FUNCTIONS
+    // =========================================================================
+
+    /**
+     * @notice Withdraw accumulated fees from announcePrivate
+     * @dev Only callable by admin to prevent funds from being permanently locked
+     * @param recipient Address to send the fees to
+     * @param amount Amount to withdraw (0 for full balance)
+     */
+    function withdrawFees(
+        address payable recipient,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (recipient == address(0)) revert ZeroAddress();
+        uint256 balance = address(this).balance;
+        uint256 transferAmount = amount == 0 ? balance : amount;
+        if (transferAmount > balance) revert InsufficientFee();
+
+        (bool success, ) = recipient.call{value: transferAmount}("");
+        require(success, "ETH transfer failed");
     }
 
     // =========================================================================

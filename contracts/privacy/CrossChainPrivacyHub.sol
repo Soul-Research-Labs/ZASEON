@@ -640,7 +640,8 @@ contract CrossChainPrivacyHub is
         if (msg.value < fee) revert InsufficientFee(msg.value, fee);
 
         // Verify privacy proof if required
-        if (privacyLevel >= PrivacyLevel.MEDIUM && proof.proof.length > 0) {
+        if (privacyLevel >= PrivacyLevel.MEDIUM) {
+            if (proof.proof.length == 0) revert InvalidProof();
             if (!_verifyPrivacyProof(proof, destChainId)) {
                 revert InvalidProof();
             }
@@ -684,10 +685,14 @@ contract CrossChainPrivacyHub is
         });
 
         userTransfers[msg.sender].push(requestId);
-        totalTransfers++;
-        totalVolume += amount;
+        unchecked {
+            totalTransfers++;
+            totalVolume += amount;
+        }
         if (privacyLevel >= PrivacyLevel.MEDIUM) {
-            totalPrivateTransfers++;
+            unchecked {
+                totalPrivateTransfers++;
+            }
         }
 
         // Send fee to recipient
@@ -737,11 +742,15 @@ contract CrossChainPrivacyHub is
         uint256 fee = (amount * protocolFeeBps) / 10000;
 
         // Verify privacy proof if required
-        if (privacyLevel >= PrivacyLevel.MEDIUM && proof.proof.length > 0) {
+        if (privacyLevel >= PrivacyLevel.MEDIUM) {
+            if (proof.proof.length == 0) revert InvalidProof();
             if (!_verifyPrivacyProof(proof, destChainId)) {
                 revert InvalidProof();
             }
         }
+
+        // Check daily limit
+        _checkAndUpdateDailyLimit(destChainId, amount);
 
         // Generate request ID
         requestId = keccak256(
@@ -776,9 +785,16 @@ contract CrossChainPrivacyHub is
             status: TransferStatus.PENDING
         });
 
+        // Transfer fee to recipient
+        if (fee > 0 && feeRecipient != address(0)) {
+            IERC20(token).safeTransfer(feeRecipient, fee);
+        }
+
         userTransfers[msg.sender].push(requestId);
-        totalTransfers++;
-        totalVolume += amount;
+        unchecked {
+            totalTransfers++;
+            totalVolume += amount;
+        }
 
         emit TransferInitiated(
             requestId,
@@ -972,13 +988,14 @@ contract CrossChainPrivacyHub is
             abi.encode(viewingPrivKey, ephemeralPubKey)
         );
 
-        // Check if stealth key matches
+        // Derive expected stealth key: P' = P_spend + hash(S) * G
+        // Must match the same derivation used in generateStealthAddress
         bytes32 expectedStealth = keccak256(
             abi.encode(sharedSecret, ephemeralPubKey)
         );
 
-        // This is simplified - real implementation needs proper EC math
-        return stealthPubKey == expectedStealth || sharedSecret != bytes32(0);
+        // Only return true if derived stealth key matches the provided one
+        return stealthPubKey == expectedStealth;
     }
 
     // =========================================================================
@@ -1059,9 +1076,10 @@ contract CrossChainPrivacyHub is
         // where L_i = r_i * G + c_i * P_i
         // and R_i = r_i * Hp(P_i) + c_i * I
 
+        // Require valid key images and matching challenge
         return
-            computedChallenge == signature.challenge ||
-            signature.keyImages.length > 0;
+            signature.keyImages.length > 0 &&
+            computedChallenge == signature.challenge;
     }
 
     // =========================================================================

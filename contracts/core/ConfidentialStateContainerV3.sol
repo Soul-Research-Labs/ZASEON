@@ -35,11 +35,12 @@ contract ConfidentialStateContainerV3 is
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
 
     /// @notice Role for emergency actions
-    bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
+    bytes32 public constant EMERGENCY_ROLE =
+        0xbf233dd2aafeb4d50879c4aa5c81e96d92f6e6945c906a58f9f2d1c1631b4b26;
 
     /// @notice Role for verifier management
     bytes32 public constant VERIFIER_ADMIN_ROLE =
-        keccak256("VERIFIER_ADMIN_ROLE");
+        0xb194a0b06484f8a501e0bef8877baf2a303f803540f5ddeb9d985c0cd76f3e70;
 
     /*//////////////////////////////////////////////////////////////
                                  TYPES
@@ -577,7 +578,12 @@ contract ConfidentialStateContainerV3 is
             caller
         );
 
-        // Consume spending nullifier
+        // SECURITY: Prevent overwriting existing states
+        if (_states[newCommitment].owner != address(0))
+            revert CommitmentAlreadyExists(newCommitment);
+
+        // Consume spending nullifier AFTER validation but BEFORE proof verification
+        // to prevent race conditions within the same block
         _nullifiers[spendingNullifier] = true;
         _nullifierToCommitment[spendingNullifier] = oldCommitment;
 

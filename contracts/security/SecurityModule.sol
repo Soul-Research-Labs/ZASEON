@@ -259,6 +259,7 @@ abstract contract SecurityModule {
                 }
                 // Reset after cooldown
                 _setFlag(FLAG_CIRCUIT_TRIPPED, false);
+                circuitBreakerTrippedAt = 0;
                 lastHourlyVolume = 0;
                 emit CircuitBreakerReset();
             }
@@ -357,20 +358,19 @@ abstract contract SecurityModule {
                 accountLastWithdrawalDay[msg.sender] = currentDay;
             }
 
+            // Cache storage read to avoid triple SLOAD
+            uint256 currentWithdrawn = accountDailyWithdrawn[msg.sender];
+
             // Check account daily limit
-            if (
-                accountDailyWithdrawn[msg.sender] + amount >
-                accountMaxDailyWithdrawal
-            ) {
+            if (currentWithdrawn + amount > accountMaxDailyWithdrawal) {
                 revert DailyWithdrawalLimitExceeded(
                     amount,
-                    accountMaxDailyWithdrawal -
-                        accountDailyWithdrawn[msg.sender]
+                    accountMaxDailyWithdrawal - currentWithdrawn
                 );
             }
 
             // Update account counter
-            accountDailyWithdrawn[msg.sender] += amount;
+            accountDailyWithdrawn[msg.sender] = currentWithdrawn + amount;
         }
         _;
     }

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
@@ -44,14 +43,20 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * 3. Supports versioning for upgradeable components
  * 4. Emits events for all registrations for off-chain indexing
  */
-contract SoulProtocolHub is AccessControl, ReentrancyGuard, Pausable {
+contract SoulProtocolHub is AccessControl, Pausable {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    /// @dev Pre-computed: keccak256("OPERATOR_ROLE")
+    bytes32 public constant OPERATOR_ROLE =
+        0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
+    /// @dev Pre-computed: keccak256("GUARDIAN_ROLE")
+    bytes32 public constant GUARDIAN_ROLE =
+        0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041;
+    /// @dev Pre-computed: keccak256("UPGRADER_ROLE")
+    bytes32 public constant UPGRADER_ROLE =
+        0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3;
 
     /*//////////////////////////////////////////////////////////////
                                  TYPES

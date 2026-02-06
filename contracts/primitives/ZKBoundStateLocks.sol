@@ -54,8 +54,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         0x8601f95000f9db10f888b55a4dcf204d495f7b7e45e94a5425cd4562bae08468;
     bytes32 public constant DISPUTE_RESOLVER_ROLE =
         0x7b8bb8356a3f32f5c111ff23f050d97f08988e0883529ea7bff3b918887a6e0e;
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant RECOVERY_ROLE = keccak256("RECOVERY_ROLE");
+    bytes32 public constant OPERATOR_ROLE =
+        0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
+    bytes32 public constant RECOVERY_ROLE =
+        0x0acf805600123ef007091da3b3ffb39474074c656c127aa68cb0ffec232a8ff8;
 
     // =============================================================================
     // STRUCTS
@@ -358,6 +360,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         bytes32 domainSeparator,
         uint64 unlockDeadline
     ) external whenNotPaused returns (bytes32 lockId) {
+        // Validate deadline is in the future or zero (no deadline)
+        if (unlockDeadline != 0 && unlockDeadline <= uint64(block.timestamp)) {
+            revert LockExpired(bytes32(0), unlockDeadline);
+        }
+
         // M-23: Enforce maximum active locks to prevent unbounded growth
         if (_activeLockIds.length >= MAX_ACTIVE_LOCKS) {
             revert TooManyActiveLocks();
@@ -923,8 +930,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
             epoch
         );
         domains[domainSeparator] = Domain({
-            chainId: uint16(chainId % 65536),
-            appId: uint16(appId % 65536),
+            chainId: chainId,
+            appId: appId,
             epoch: epoch,
             name: name,
             isActive: true,

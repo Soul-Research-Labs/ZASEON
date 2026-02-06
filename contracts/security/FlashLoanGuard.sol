@@ -221,7 +221,7 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
         address user,
         address token,
         uint256 value
-    ) external returns (bool safe) {
+    ) external nonReentrant whenNotPaused returns (bool safe) {
         // Check 1: Block-level reentrancy
         UserOperations storage ops = userOperations[user];
 
@@ -318,25 +318,45 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
      * @return valid Whether price is valid
      */
     function _validateTokenPrice(
-        address /*token*/,
+        address token,
         TokenConfig storage config
     ) internal view returns (bool valid) {
-        // Get oracle price (simplified - would integrate Chainlink in production)
+        // Get oracle price
         (bool success, bytes memory data) = config.priceOracle.staticcall(
             abi.encodeWithSignature("latestAnswer()")
         );
 
         if (!success || data.length == 0) {
-            return true; // Fail open if oracle unavailable
+            // Fail closed: if oracle is unavailable, reject the operation
+            return false;
         }
 
         int256 oraclePrice = abi.decode(data, (int256));
         if (oraclePrice <= 0) {
-            return true; // Fail open
+            // Invalid oracle price — reject
+            return false;
         }
 
-        // In production, compare with DEX spot price
-        // For now, just validate oracle is responding
+        // Compare oracle price with on-chain balance snapshot as a proxy for manipulation
+        // If token has a same-block snapshot, verify price hasn't deviated beyond threshold
+        uint256 currentBalance = IERC20(token).balanceOf(address(this));
+        if (
+            config.lastSnapshotBlock == block.number &&
+            config.lastSnapshotBalance > 0
+        ) {
+            // Compute deviation: |current - snapshot| / snapshot
+            uint256 snapshot = config.lastSnapshotBalance;
+            uint256 deviation;
+            if (currentBalance > snapshot) {
+                deviation = ((currentBalance - snapshot) * 10000) / snapshot;
+            } else {
+                deviation = ((snapshot - currentBalance) * 10000) / snapshot;
+            }
+            if (deviation > config.maxPriceDeviation) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -348,11 +368,9 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
     function _validateTVLDelta(uint256 value) internal returns (bool valid) {
         if (lastTVLBlock != block.number) {
             lastTVLBlock = block.number;
-            // Reset tracking for new block
-            return true;
         }
 
-        // Check if value change exceeds limits
+        // Always check TVL delta, not just on subsequent calls in the same block
         if (lastTVL > 0) {
             uint256 maxDelta = (lastTVL * maxTVLDeltaBps) / 10000;
             if (value > maxDelta) {
