@@ -22,6 +22,16 @@ export * from './plasma';
 export * from './sui';
 export * from './sei';
 export * from './aptos';
+export * from './avalanche';
+export * from './cardano';
+export * from './ton';
+export * from './polkadot';
+export * from './cosmos';
+export * from './near';
+export * from './optimism';
+export * from './fantom';
+export * from './berachain';
+export * from './monad';
 export * from './zilliqa';
 
 import { 
@@ -1331,7 +1341,8 @@ export class ZilliqaBridgeAdapterSDK extends BaseBridgeAdapter {
 
 export type SupportedChain = 
   | 'cardano' | 'midnight' | 'polkadot' | 'cosmos' | 'near'
-  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance' | 'canton' | 'plasma' | 'sui' | 'sei' | 'aptos' | 'zilliqa';
+  | 'avalanche' | 'arbitrum' | 'solana' | 'bitcoin' | 'starknet' | 'bnb' | 'hyperliquid' | 'provenance' | 'canton' | 'plasma' | 'sui' | 'sei' | 'aptos' | 'zilliqa'
+  | 'ton' | 'optimism' | 'fantom' | 'berachain' | 'monad';
 
 export class BridgeFactory {
   static createAdapter(
@@ -1435,6 +1446,31 @@ export class BridgeFactory {
         return new ZilliqaBridgeAdapterSDK(
           publicClient, walletClient,
           config.zilliqaBridgeAddress
+        );
+      case 'ton':
+        return new TONBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.tonBridgeAddress
+        );
+      case 'optimism':
+        return new OptimismBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.optimismBridgeAddress
+        );
+      case 'fantom':
+        return new FantomBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.fantomBridgeAddress
+        );
+      case 'berachain':
+        return new BerachainBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.berachainBridgeAddress
+        );
+      case 'monad':
+        return new MonadBridgeAdapterSDK(
+          publicClient, walletClient,
+          config.monadBridgeAddress
         );
       default:
         throw new Error(`Unsupported chain: ${chain}`);
