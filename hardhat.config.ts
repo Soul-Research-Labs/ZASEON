@@ -270,6 +270,32 @@ export default defineConfig({
           viaIR: true,
           evmVersion: "cancun"
         }
+      },
+      // Upgradeable privacy contracts
+      "contracts/upgradeable/UniversalShieldedPoolUpgradeable.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "cancun"
+        }
+      },
+      "contracts/upgradeable/PrivacyRouterUpgradeable.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 1 },
+          viaIR: true,
+          evmVersion: "cancun"
+        }
+      },
+      // Cross-chain commitment relay
+      "contracts/crosschain/CrossChainCommitmentRelay.sol": {
+        version: "0.8.24",
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+          viaIR: true,
+          evmVersion: "cancun"
+        }
       }
     }
   },
@@ -343,13 +369,6 @@ export default defineConfig({
       accounts: [PRIVATE_KEY],
       chainId: 10
     }
-  },
-  
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts"
   },
   
   test: {
