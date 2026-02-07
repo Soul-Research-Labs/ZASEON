@@ -100,7 +100,8 @@ contract ERC8004ValidationRegistry is
             // Allow re-creation only if same parameters
             ValidationEntry storage existing = _validations[requestHash];
             require(
-                existing.validatorAddress == validatorAddress && existing.agentId == agentId,
+                existing.validatorAddress == validatorAddress &&
+                    existing.agentId == agentId,
                 "Duplicate request hash"
             );
             // Update is a no-op for existing identical request
@@ -121,7 +122,12 @@ contract ERC8004ValidationRegistry is
         _agentValidations[agentId].push(requestHash);
         _validatorRequests[validatorAddress].push(requestHash);
 
-        emit ValidationRequest(validatorAddress, agentId, requestURI, requestHash);
+        emit ValidationRequest(
+            validatorAddress,
+            agentId,
+            requestURI,
+            requestHash
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -139,7 +145,11 @@ contract ERC8004ValidationRegistry is
         ValidationEntry storage entry = _validations[requestHash];
         if (!entry.exists) revert RequestNotFound(requestHash);
         if (msg.sender != entry.validatorAddress)
-            revert NotDesignatedValidator(requestHash, msg.sender, entry.validatorAddress);
+            revert NotDesignatedValidator(
+                requestHash,
+                msg.sender,
+                entry.validatorAddress
+            );
         if (response > 100) revert InvalidResponse(response);
 
         entry.response = response;
@@ -166,14 +176,18 @@ contract ERC8004ValidationRegistry is
     /// @inheritdoc IERC8004ValidationRegistry
     function getValidationStatus(
         bytes32 requestHash
-    ) external view returns (
-        address validatorAddress,
-        uint256 agentId,
-        uint8 response,
-        bytes32 responseHash,
-        string memory tag,
-        uint256 lastUpdate
-    ) {
+    )
+        external
+        view
+        returns (
+            address validatorAddress,
+            uint256 agentId,
+            uint8 response,
+            bytes32 responseHash,
+            string memory tag,
+            uint256 lastUpdate
+        )
+    {
         ValidationEntry storage entry = _validations[requestHash];
         if (!entry.exists) revert RequestNotFound(requestHash);
         return (
@@ -192,7 +206,9 @@ contract ERC8004ValidationRegistry is
         address[] calldata validatorAddresses,
         string calldata tag
     ) external view returns (uint64 count, uint8 averageResponse) {
-        bytes32 tagHash = bytes(tag).length > 0 ? keccak256(abi.encodePacked(tag)) : bytes32(0);
+        bytes32 tagHash = bytes(tag).length > 0
+            ? keccak256(abi.encodePacked(tag))
+            : bytes32(0);
 
         uint256 totalResponse = 0;
 
@@ -253,15 +269,22 @@ contract ERC8004ValidationRegistry is
         }
     }
 
-    function _requireAgentOwnerOrOperator(uint256 agentId, address caller) internal view {
+    function _requireAgentOwnerOrOperator(
+        uint256 agentId,
+        address caller
+    ) internal view {
         address owner = IERC721(identityRegistry).ownerOf(agentId);
         if (caller == owner) return;
 
-        try IERC721(identityRegistry).isApprovedForAll(owner, caller) returns (bool isOperator) {
+        try IERC721(identityRegistry).isApprovedForAll(owner, caller) returns (
+            bool isOperator
+        ) {
             if (isOperator) return;
         } catch {}
 
-        try IERC721(identityRegistry).getApproved(agentId) returns (address approved) {
+        try IERC721(identityRegistry).getApproved(agentId) returns (
+            address approved
+        ) {
             if (caller == approved) return;
         } catch {}
 

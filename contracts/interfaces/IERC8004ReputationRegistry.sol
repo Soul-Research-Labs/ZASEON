@@ -109,10 +109,7 @@ interface IERC8004ReputationRegistry {
     /// @notice Revoke previously given feedback
     /// @param agentId The agent ID
     /// @param feedbackIndex The 1-indexed feedback counter
-    function revokeFeedback(
-        uint256 agentId,
-        uint64 feedbackIndex
-    ) external;
+    function revokeFeedback(uint256 agentId, uint64 feedbackIndex) external;
 
     /// @notice Append a response to existing feedback
     /// @param agentId The agent ID
@@ -141,20 +138,26 @@ interface IERC8004ReputationRegistry {
         address[] calldata clientAddresses,
         string calldata tag1,
         string calldata tag2
-    ) external view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals);
+    )
+        external
+        view
+        returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals);
 
     /// @notice Read a specific feedback entry
     function readFeedback(
         uint256 agentId,
         address clientAddress,
         uint64 feedbackIndex
-    ) external view returns (
-        int128 value,
-        uint8 valueDecimals,
-        string memory tag1,
-        string memory tag2,
-        bool isRevoked
-    );
+    )
+        external
+        view
+        returns (
+            int128 value,
+            uint8 valueDecimals,
+            string memory tag1,
+            string memory tag2,
+            bool isRevoked
+        );
 
     /// @notice Get the number of responses for a feedback entry
     function getResponseCount(

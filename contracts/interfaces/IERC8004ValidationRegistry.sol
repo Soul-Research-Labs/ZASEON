@@ -58,7 +58,11 @@ interface IERC8004ValidationRegistry {
 
     error AgentNotRegistered(uint256 agentId);
     error NotAgentOwnerOrOperator(uint256 agentId, address caller);
-    error NotDesignatedValidator(bytes32 requestHash, address caller, address expected);
+    error NotDesignatedValidator(
+        bytes32 requestHash,
+        address caller,
+        address expected
+    );
     error RequestNotFound(bytes32 requestHash);
     error InvalidResponse(uint8 response);
     error ZeroAddress();
@@ -99,14 +103,17 @@ interface IERC8004ValidationRegistry {
     /// @notice Get validation status for a request
     function getValidationStatus(
         bytes32 requestHash
-    ) external view returns (
-        address validatorAddress,
-        uint256 agentId,
-        uint8 response,
-        bytes32 responseHash,
-        string memory tag,
-        uint256 lastUpdate
-    );
+    )
+        external
+        view
+        returns (
+            address validatorAddress,
+            uint256 agentId,
+            uint8 response,
+            bytes32 responseHash,
+            string memory tag,
+            uint256 lastUpdate
+        );
 
     /// @notice Get aggregated validation statistics for an agent
     /// @param agentId The agent ID

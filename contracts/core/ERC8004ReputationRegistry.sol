@@ -58,7 +58,8 @@ contract ERC8004ReputationRegistry is
     bool public initialized;
 
     /// @notice Feedback storage: agentId → client → feedbackIndex → entry
-    mapping(uint256 => mapping(address => mapping(uint64 => FeedbackEntry))) private _feedback;
+    mapping(uint256 => mapping(address => mapping(uint64 => FeedbackEntry)))
+        private _feedback;
 
     /// @notice Last feedback index per (agentId, client) pair
     mapping(uint256 => mapping(address => uint64)) private _lastIndex;
@@ -70,7 +71,8 @@ contract ERC8004ReputationRegistry is
     mapping(uint256 => mapping(address => bool)) private _isClient;
 
     /// @notice Response tracking: agentId → client → index → responses
-    mapping(uint256 => mapping(address => mapping(uint64 => ResponseInfo))) private _responses;
+    mapping(uint256 => mapping(address => mapping(uint64 => ResponseInfo)))
+        private _responses;
 
     /*//////////////////////////////////////////////////////////////
                           INITIALIZATION
@@ -109,10 +111,13 @@ contract ERC8004ReputationRegistry is
 
         // Feedback submitter must not be the agent owner or operator
         address agentOwner = IERC721(identityRegistry).ownerOf(agentId);
-        if (msg.sender == agentOwner) revert CannotReviewOwnAgent(agentId, msg.sender);
+        if (msg.sender == agentOwner)
+            revert CannotReviewOwnAgent(agentId, msg.sender);
 
         // Check if approved operator
-        try IERC721(identityRegistry).isApprovedForAll(agentOwner, msg.sender) returns (bool isOperator) {
+        try
+            IERC721(identityRegistry).isApprovedForAll(agentOwner, msg.sender)
+        returns (bool isOperator) {
             if (isOperator) revert CannotReviewOwnAgent(agentId, msg.sender);
         } catch {}
 
@@ -158,11 +163,16 @@ contract ERC8004ReputationRegistry is
         uint256 agentId,
         uint64 feedbackIndex
     ) external nonReentrant {
-        if (feedbackIndex == 0 || feedbackIndex > _lastIndex[agentId][msg.sender])
-            revert FeedbackNotFound(agentId, msg.sender, feedbackIndex);
+        if (
+            feedbackIndex == 0 ||
+            feedbackIndex > _lastIndex[agentId][msg.sender]
+        ) revert FeedbackNotFound(agentId, msg.sender, feedbackIndex);
 
-        FeedbackEntry storage entry = _feedback[agentId][msg.sender][feedbackIndex];
-        if (entry.isRevoked) revert FeedbackAlreadyRevoked(agentId, msg.sender, feedbackIndex);
+        FeedbackEntry storage entry = _feedback[agentId][msg.sender][
+            feedbackIndex
+        ];
+        if (entry.isRevoked)
+            revert FeedbackAlreadyRevoked(agentId, msg.sender, feedbackIndex);
 
         entry.isRevoked = true;
 
@@ -181,10 +191,14 @@ contract ERC8004ReputationRegistry is
         string calldata responseURI,
         bytes32 responseHash
     ) external nonReentrant {
-        if (feedbackIndex == 0 || feedbackIndex > _lastIndex[agentId][clientAddress])
-            revert FeedbackNotFound(agentId, clientAddress, feedbackIndex);
+        if (
+            feedbackIndex == 0 ||
+            feedbackIndex > _lastIndex[agentId][clientAddress]
+        ) revert FeedbackNotFound(agentId, clientAddress, feedbackIndex);
 
-        ResponseInfo storage ri = _responses[agentId][clientAddress][feedbackIndex];
+        ResponseInfo storage ri = _responses[agentId][clientAddress][
+            feedbackIndex
+        ];
         if (!ri.hasResponded[msg.sender]) {
             ri.hasResponded[msg.sender] = true;
             ri.count++;
@@ -210,11 +224,19 @@ contract ERC8004ReputationRegistry is
         address[] calldata clientAddresses,
         string calldata tag1,
         string calldata tag2
-    ) external view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals) {
+    )
+        external
+        view
+        returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)
+    {
         if (clientAddresses.length == 0) revert EmptyClientList();
 
-        bytes32 tag1Hash = bytes(tag1).length > 0 ? keccak256(abi.encodePacked(tag1)) : bytes32(0);
-        bytes32 tag2Hash = bytes(tag2).length > 0 ? keccak256(abi.encodePacked(tag2)) : bytes32(0);
+        bytes32 tag1Hash = bytes(tag1).length > 0
+            ? keccak256(abi.encodePacked(tag1))
+            : bytes32(0);
+        bytes32 tag2Hash = bytes(tag2).length > 0
+            ? keccak256(abi.encodePacked(tag2))
+            : bytes32(0);
 
         for (uint256 c = 0; c < clientAddresses.length; c++) {
             address client = clientAddresses[c];
@@ -225,8 +247,14 @@ contract ERC8004ReputationRegistry is
                 if (entry.isRevoked) continue;
 
                 // Apply tag filters
-                if (tag1Hash != bytes32(0) && keccak256(abi.encodePacked(entry.tag1)) != tag1Hash) continue;
-                if (tag2Hash != bytes32(0) && keccak256(abi.encodePacked(entry.tag2)) != tag2Hash) continue;
+                if (
+                    tag1Hash != bytes32(0) &&
+                    keccak256(abi.encodePacked(entry.tag1)) != tag1Hash
+                ) continue;
+                if (
+                    tag2Hash != bytes32(0) &&
+                    keccak256(abi.encodePacked(entry.tag2)) != tag2Hash
+                ) continue;
 
                 count++;
                 summaryValue += entry.value;
@@ -242,15 +270,27 @@ contract ERC8004ReputationRegistry is
         uint256 agentId,
         address clientAddress,
         uint64 feedbackIndex
-    ) external view returns (
-        int128 value,
-        uint8 valueDecimals,
-        string memory tag1,
-        string memory tag2,
-        bool isRevoked
-    ) {
-        FeedbackEntry storage entry = _feedback[agentId][clientAddress][feedbackIndex];
-        return (entry.value, entry.valueDecimals, entry.tag1, entry.tag2, entry.isRevoked);
+    )
+        external
+        view
+        returns (
+            int128 value,
+            uint8 valueDecimals,
+            string memory tag1,
+            string memory tag2,
+            bool isRevoked
+        )
+    {
+        FeedbackEntry storage entry = _feedback[agentId][clientAddress][
+            feedbackIndex
+        ];
+        return (
+            entry.value,
+            entry.valueDecimals,
+            entry.tag1,
+            entry.tag2,
+            entry.isRevoked
+        );
     }
 
     /// @inheritdoc IERC8004ReputationRegistry

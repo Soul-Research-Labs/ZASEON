@@ -42,7 +42,9 @@ contract ERC8004IdentityRegistry is
 
     /// @dev EIP-712 typehash for setAgentWallet
     bytes32 public constant AGENT_WALLET_TYPEHASH =
-        keccak256("SetAgentWallet(uint256 agentId,address newWallet,uint256 deadline)");
+        keccak256(
+            "SetAgentWallet(uint256 agentId,address newWallet,uint256 deadline)"
+        );
 
     /// @dev Reserved metadata key for agent wallet
     string public constant AGENT_WALLET_KEY = "agentWallet";
@@ -97,7 +99,11 @@ contract ERC8004IdentityRegistry is
         // Set each metadata entry (reject reserved keys)
         for (uint256 i = 0; i < metadata.length; i++) {
             _requireNotReserved(metadata[i].metadataKey);
-            _setMetadata(agentId, metadata[i].metadataKey, metadata[i].metadataValue);
+            _setMetadata(
+                agentId,
+                metadata[i].metadataKey,
+                metadata[i].metadataValue
+            );
         }
     }
 
@@ -118,10 +124,7 @@ contract ERC8004IdentityRegistry is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC8004IdentityRegistry
-    function setAgentURI(
-        uint256 agentId,
-        string calldata newURI
-    ) external {
+    function setAgentURI(uint256 agentId, string calldata newURI) external {
         _requireOwnerOrOperator(agentId, msg.sender);
         _setTokenURI(agentId, newURI);
         emit URIUpdated(agentId, newURI, msg.sender);
@@ -173,8 +176,11 @@ contract ERC8004IdentityRegistry is
 
         // Verify signature: try ERC-1271 for contracts, ECDSA for EOAs
         if (_isContract(newWallet)) {
-            try IERC1271(newWallet).isValidSignature(digest, signature) returns (bytes4 magicValue) {
-                if (magicValue != IERC1271.isValidSignature.selector) revert InvalidSignature();
+            try
+                IERC1271(newWallet).isValidSignature(digest, signature)
+            returns (bytes4 magicValue) {
+                if (magicValue != IERC1271.isValidSignature.selector)
+                    revert InvalidSignature();
             } catch {
                 revert InvalidSignature();
             }
@@ -187,16 +193,14 @@ contract ERC8004IdentityRegistry is
         _agentWallets[agentId] = newWallet;
 
         // Store in metadata too for composability
-        _metadata[agentId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))] =
-            abi.encodePacked(newWallet);
+        _metadata[agentId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))] = abi
+            .encodePacked(newWallet);
 
         emit AgentWalletUpdated(agentId, oldWallet, newWallet);
     }
 
     /// @inheritdoc IERC8004IdentityRegistry
-    function getAgentWallet(
-        uint256 agentId
-    ) external view returns (address) {
+    function getAgentWallet(uint256 agentId) external view returns (address) {
         return _agentWallets[agentId];
     }
 
@@ -205,7 +209,9 @@ contract ERC8004IdentityRegistry is
         _requireOwnerOrOperator(agentId, msg.sender);
         address oldWallet = _agentWallets[agentId];
         delete _agentWallets[agentId];
-        delete _metadata[agentId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))];
+        delete _metadata[agentId][
+            keccak256(abi.encodePacked(AGENT_WALLET_KEY))
+        ];
         emit AgentWalletCleared(agentId);
 
         // Suppress unused variable warning
@@ -227,7 +233,9 @@ contract ERC8004IdentityRegistry is
         // On transfer (not mint), clear the agent wallet
         if (from != address(0) && to != address(0)) {
             delete _agentWallets[tokenId];
-            delete _metadata[tokenId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))];
+            delete _metadata[tokenId][
+                keccak256(abi.encodePacked(AGENT_WALLET_KEY))
+            ];
             emit AgentWalletCleared(tokenId);
         }
 
@@ -253,10 +261,15 @@ contract ERC8004IdentityRegistry is
 
         // Set default agentWallet to owner
         _agentWallets[agentId] = owner;
-        _metadata[agentId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))] =
-            abi.encodePacked(owner);
+        _metadata[agentId][keccak256(abi.encodePacked(AGENT_WALLET_KEY))] = abi
+            .encodePacked(owner);
 
-        emit MetadataSet(agentId, AGENT_WALLET_KEY, AGENT_WALLET_KEY, abi.encodePacked(owner));
+        emit MetadataSet(
+            agentId,
+            AGENT_WALLET_KEY,
+            AGENT_WALLET_KEY,
+            abi.encodePacked(owner)
+        );
         emit Registered(agentId, agentURI_, owner);
     }
 
@@ -269,15 +282,25 @@ contract ERC8004IdentityRegistry is
         emit MetadataSet(agentId, key, key, value);
     }
 
-    function _requireOwnerOrOperator(uint256 agentId, address caller) internal view {
+    function _requireOwnerOrOperator(
+        uint256 agentId,
+        address caller
+    ) internal view {
         address owner = ownerOf(agentId);
-        if (caller != owner && !isApprovedForAll(owner, caller) && getApproved(agentId) != caller) {
+        if (
+            caller != owner &&
+            !isApprovedForAll(owner, caller) &&
+            getApproved(agentId) != caller
+        ) {
             revert NotAgentOwnerOrOperator(agentId, caller);
         }
     }
 
     function _requireNotReserved(string memory key) internal pure {
-        if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked(AGENT_WALLET_KEY))) {
+        if (
+            keccak256(abi.encodePacked(key)) ==
+            keccak256(abi.encodePacked(AGENT_WALLET_KEY))
+        ) {
             revert ReservedMetadataKey(key);
         }
     }

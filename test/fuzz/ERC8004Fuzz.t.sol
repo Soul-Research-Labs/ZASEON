@@ -26,7 +26,9 @@ contract ERC8004Fuzz is Test {
 
     // EIP-712 domain separator components
     bytes32 constant AGENT_WALLET_TYPEHASH =
-        keccak256("SetAgentWallet(uint256 agentId,address newWallet,uint256 deadline)");
+        keccak256(
+            "SetAgentWallet(uint256 agentId,address newWallet,uint256 deadline)"
+        );
 
     uint256 internal walletPk = 0xBEEF;
     address internal walletAddr;
@@ -47,10 +49,17 @@ contract ERC8004Fuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Register with URI + metadata
-    function testFuzz_registerWithURIAndMetadata(string calldata uri, bytes calldata metaVal) public {
+    function testFuzz_registerWithURIAndMetadata(
+        string calldata uri,
+        bytes calldata metaVal
+    ) public {
         vm.prank(alice);
-        IERC8004IdentityRegistry.MetadataEntry[] memory meta = new IERC8004IdentityRegistry.MetadataEntry[](1);
-        meta[0] = IERC8004IdentityRegistry.MetadataEntry({metadataKey: "version", metadataValue: metaVal});
+        IERC8004IdentityRegistry.MetadataEntry[]
+            memory meta = new IERC8004IdentityRegistry.MetadataEntry[](1);
+        meta[0] = IERC8004IdentityRegistry.MetadataEntry({
+            metadataKey: "version",
+            metadataValue: metaVal
+        });
         uint256 agentId = identity.register(uri, meta);
         assertEq(agentId, 1);
         assertEq(identity.ownerOf(agentId), alice);
@@ -80,7 +89,10 @@ contract ERC8004Fuzz is Test {
     }
 
     /// @notice Set and update agent URI
-    function testFuzz_setAgentURI(string calldata uri1, string calldata uri2) public {
+    function testFuzz_setAgentURI(
+        string calldata uri1,
+        string calldata uri2
+    ) public {
         vm.prank(alice);
         uint256 agentId = identity.register(uri1);
 
@@ -97,7 +109,11 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004IdentityRegistry.NotAgentOwnerOrOperator.selector, agentId, bob)
+            abi.encodeWithSelector(
+                IERC8004IdentityRegistry.NotAgentOwnerOrOperator.selector,
+                agentId,
+                bob
+            )
         );
         identity.setAgentURI(agentId, "evil_uri");
     }
@@ -107,8 +123,14 @@ contract ERC8004Fuzz is Test {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set and read arbitrary metadata
-    function testFuzz_setAndGetMetadata(string calldata key, bytes calldata value) public {
-        vm.assume(keccak256(abi.encodePacked(key)) != keccak256(abi.encodePacked("agentWallet")));
+    function testFuzz_setAndGetMetadata(
+        string calldata key,
+        bytes calldata value
+    ) public {
+        vm.assume(
+            keccak256(abi.encodePacked(key)) !=
+                keccak256(abi.encodePacked("agentWallet"))
+        );
 
         vm.prank(alice);
         uint256 agentId = identity.register();
@@ -127,7 +149,10 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004IdentityRegistry.ReservedMetadataKey.selector, "agentWallet")
+            abi.encodeWithSelector(
+                IERC8004IdentityRegistry.ReservedMetadataKey.selector,
+                "agentWallet"
+            )
         );
         identity.setMetadata(agentId, "agentWallet", abi.encodePacked(bob));
     }
@@ -144,9 +169,13 @@ contract ERC8004Fuzz is Test {
         uint256 agentId = identity.register();
 
         // Build EIP-712 digest
-        bytes32 structHash = keccak256(abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline)
+        );
         bytes32 domainSeparator = identity.DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(walletPk, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
@@ -163,15 +192,24 @@ contract ERC8004Fuzz is Test {
         uint256 agentId = identity.register();
 
         uint256 deadline = block.timestamp - 1;
-        bytes32 structHash = keccak256(abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline)
+        );
         bytes32 domainSeparator = identity.DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(walletPk, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IERC8004IdentityRegistry.SignatureExpired.selector, deadline));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC8004IdentityRegistry.SignatureExpired.selector,
+                deadline
+            )
+        );
         identity.setAgentWallet(agentId, walletAddr, deadline, sig);
     }
 
@@ -183,9 +221,13 @@ contract ERC8004Fuzz is Test {
         uint256 deadline = block.timestamp + 1000;
         // Sign with wrong private key
         uint256 wrongPk = 0xDEAD;
-        bytes32 structHash = keccak256(abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline)
+        );
         bytes32 domainSeparator = identity.DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(wrongPk, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
@@ -202,9 +244,13 @@ contract ERC8004Fuzz is Test {
 
         // Set wallet
         uint256 deadline = block.timestamp + 1000;
-        bytes32 structHash = keccak256(abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(AGENT_WALLET_TYPEHASH, agentId, walletAddr, deadline)
+        );
         bytes32 domainSeparator = identity.DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(walletPk, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
@@ -260,8 +306,13 @@ contract ERC8004Fuzz is Test {
         );
 
         // Verify storage
-        (int128 v, uint8 d, string memory t1, string memory t2, bool revoked) =
-            reputation.readFeedback(agentId, bob, 1);
+        (
+            int128 v,
+            uint8 d,
+            string memory t1,
+            string memory t2,
+            bool revoked
+        ) = reputation.readFeedback(agentId, bob, 1);
         assertEq(v, value);
         assertEq(d, decimals);
         assertEq(t1, "quality");
@@ -278,7 +329,11 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.CannotReviewOwnAgent.selector, agentId, alice)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.CannotReviewOwnAgent.selector,
+                agentId,
+                alice
+            )
         );
         reputation.giveFeedback(agentId, 100, 0, "", "", "", "", bytes32(0));
     }
@@ -292,9 +347,21 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.InvalidValueDecimals.selector, decimals)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.InvalidValueDecimals.selector,
+                decimals
+            )
         );
-        reputation.giveFeedback(agentId, 100, decimals, "", "", "", "", bytes32(0));
+        reputation.giveFeedback(
+            agentId,
+            100,
+            decimals,
+            "",
+            "",
+            "",
+            "",
+            bytes32(0)
+        );
     }
 
     /// @notice Cannot give feedback to non-existent agent
@@ -303,7 +370,10 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.AgentNotRegistered.selector, fakeId)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.AgentNotRegistered.selector,
+                fakeId
+            )
         );
         reputation.giveFeedback(fakeId, 100, 0, "", "", "", "", bytes32(0));
     }
@@ -317,7 +387,16 @@ contract ERC8004Fuzz is Test {
 
         for (uint8 i = 0; i < count; i++) {
             vm.prank(bob);
-            reputation.giveFeedback(agentId, int128(int8(i)) * 10, 0, "", "", "", "", bytes32(0));
+            reputation.giveFeedback(
+                agentId,
+                int128(int8(i)) * 10,
+                0,
+                "",
+                "",
+                "",
+                "",
+                bytes32(0)
+            );
         }
 
         assertEq(reputation.getLastIndex(agentId, bob), count);
@@ -333,7 +412,16 @@ contract ERC8004Fuzz is Test {
         uint256 agentId = identity.register();
 
         vm.prank(bob);
-        reputation.giveFeedback(agentId, 85, 0, "quality", "", "", "", bytes32(0));
+        reputation.giveFeedback(
+            agentId,
+            85,
+            0,
+            "quality",
+            "",
+            "",
+            "",
+            bytes32(0)
+        );
 
         vm.prank(bob);
         reputation.revokeFeedback(agentId, 1);
@@ -351,7 +439,12 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.FeedbackNotFound.selector, agentId, bob, idx)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.FeedbackNotFound.selector,
+                agentId,
+                bob,
+                idx
+            )
         );
         reputation.revokeFeedback(agentId, idx);
     }
@@ -369,7 +462,12 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.FeedbackAlreadyRevoked.selector, agentId, bob, 1)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.FeedbackAlreadyRevoked.selector,
+                agentId,
+                bob,
+                1
+            )
         );
         reputation.revokeFeedback(agentId, 1);
     }
@@ -388,11 +486,23 @@ contract ERC8004Fuzz is Test {
 
         // Agent owner appends response
         vm.prank(alice);
-        reputation.appendResponse(agentId, bob, 1, "ipfs://response1", keccak256("response1"));
+        reputation.appendResponse(
+            agentId,
+            bob,
+            1,
+            "ipfs://response1",
+            keccak256("response1")
+        );
 
         // Carol (auditor) also responds
         vm.prank(carol);
-        reputation.appendResponse(agentId, bob, 1, "ipfs://audit1", keccak256("audit1"));
+        reputation.appendResponse(
+            agentId,
+            bob,
+            1,
+            "ipfs://audit1",
+            keccak256("audit1")
+        );
 
         // Count should reflect unique responders
         address[] memory responders = new address[](0);
@@ -407,7 +517,12 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(alice);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ReputationRegistry.FeedbackNotFound.selector, agentId, bob, 1)
+            abi.encodeWithSelector(
+                IERC8004ReputationRegistry.FeedbackNotFound.selector,
+                agentId,
+                bob,
+                1
+            )
         );
         reputation.appendResponse(agentId, bob, 1, "", bytes32(0));
     }
@@ -423,25 +538,62 @@ contract ERC8004Fuzz is Test {
 
         // bob gives 2 feedbacks with different tags
         vm.prank(bob);
-        reputation.giveFeedback(agentId, 80, 0, "quality", "", "", "", bytes32(0));
+        reputation.giveFeedback(
+            agentId,
+            80,
+            0,
+            "quality",
+            "",
+            "",
+            "",
+            bytes32(0)
+        );
         vm.prank(bob);
-        reputation.giveFeedback(agentId, 90, 0, "speed", "", "", "", bytes32(0));
+        reputation.giveFeedback(
+            agentId,
+            90,
+            0,
+            "speed",
+            "",
+            "",
+            "",
+            bytes32(0)
+        );
 
         // carol gives 1 feedback
         vm.prank(carol);
-        reputation.giveFeedback(agentId, 70, 0, "quality", "", "", "", bytes32(0));
+        reputation.giveFeedback(
+            agentId,
+            70,
+            0,
+            "quality",
+            "",
+            "",
+            "",
+            bytes32(0)
+        );
 
         address[] memory clients = new address[](2);
         clients[0] = bob;
         clients[1] = carol;
 
         // Filter by "quality" tag
-        (uint64 count, int128 summaryValue,) = reputation.getSummary(agentId, clients, "quality", "");
+        (uint64 count, int128 summaryValue, ) = reputation.getSummary(
+            agentId,
+            clients,
+            "quality",
+            ""
+        );
         assertEq(count, 2); // bob(80) + carol(70)
         assertEq(summaryValue, 150);
 
         // All feedbacks
-        (count, summaryValue,) = reputation.getSummary(agentId, clients, "", "");
+        (count, summaryValue, ) = reputation.getSummary(
+            agentId,
+            clients,
+            "",
+            ""
+        );
         assertEq(count, 3);
         assertEq(summaryValue, 240);
     }
@@ -463,7 +615,12 @@ contract ERC8004Fuzz is Test {
         address[] memory clients = new address[](1);
         clients[0] = bob;
 
-        (uint64 count, int128 summaryValue,) = reputation.getSummary(agentId, clients, "", "");
+        (uint64 count, int128 summaryValue, ) = reputation.getSummary(
+            agentId,
+            clients,
+            "",
+            ""
+        );
         assertEq(count, 1);
         assertEq(summaryValue, 20);
     }
@@ -508,7 +665,12 @@ contract ERC8004Fuzz is Test {
         uint256 agentId = identity.register();
 
         vm.prank(alice);
-        validation.validationRequest(validator1, agentId, "ipfs://req1", requestHash);
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            requestHash
+        );
 
         bytes32[] memory hashes = validation.getAgentValidations(agentId);
         assertEq(hashes.length, 1);
@@ -526,9 +688,18 @@ contract ERC8004Fuzz is Test {
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(IERC8004ValidationRegistry.NotAgentOwnerOrOperator.selector, agentId, bob)
+            abi.encodeWithSelector(
+                IERC8004ValidationRegistry.NotAgentOwnerOrOperator.selector,
+                agentId,
+                bob
+            )
         );
-        validation.validationRequest(validator1, agentId, "ipfs://req1", keccak256("req1"));
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            keccak256("req1")
+        );
     }
 
     /// @notice Validator submits response
@@ -540,13 +711,30 @@ contract ERC8004Fuzz is Test {
 
         bytes32 reqHash = keccak256("req1");
         vm.prank(alice);
-        validation.validationRequest(validator1, agentId, "ipfs://req1", reqHash);
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            reqHash
+        );
 
         vm.prank(validator1);
-        validation.validationResponse(reqHash, response, "ipfs://resp1", keccak256("resp1"), "security");
+        validation.validationResponse(
+            reqHash,
+            response,
+            "ipfs://resp1",
+            keccak256("resp1"),
+            "security"
+        );
 
-        (address vAddr, uint256 aId, uint8 resp, , string memory tag, uint256 lastUpdate) =
-            validation.getValidationStatus(reqHash);
+        (
+            address vAddr,
+            uint256 aId,
+            uint8 resp,
+            ,
+            string memory tag,
+            uint256 lastUpdate
+        ) = validation.getValidationStatus(reqHash);
         assertEq(vAddr, validator1);
         assertEq(aId, agentId);
         assertEq(resp, response);
@@ -561,12 +749,20 @@ contract ERC8004Fuzz is Test {
 
         bytes32 reqHash = keccak256("req1");
         vm.prank(alice);
-        validation.validationRequest(validator1, agentId, "ipfs://req1", reqHash);
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            reqHash
+        );
 
         vm.prank(bob);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IERC8004ValidationRegistry.NotDesignatedValidator.selector, reqHash, bob, validator1
+                IERC8004ValidationRegistry.NotDesignatedValidator.selector,
+                reqHash,
+                bob,
+                validator1
             )
         );
         validation.validationResponse(reqHash, 50, "", bytes32(0), "");
@@ -581,17 +777,32 @@ contract ERC8004Fuzz is Test {
 
         bytes32 reqHash = keccak256("req1");
         vm.prank(alice);
-        validation.validationRequest(validator1, agentId, "ipfs://req1", reqHash);
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            reqHash
+        );
 
         vm.prank(validator1);
-        vm.expectRevert(abi.encodeWithSelector(IERC8004ValidationRegistry.InvalidResponse.selector, response));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC8004ValidationRegistry.InvalidResponse.selector,
+                response
+            )
+        );
         validation.validationResponse(reqHash, response, "", bytes32(0), "");
     }
 
     /// @notice Response to non-existent request reverts
     function testFuzz_responseToNonexistentRequest(bytes32 fakeHash) public {
         vm.prank(validator1);
-        vm.expectRevert(abi.encodeWithSelector(IERC8004ValidationRegistry.RequestNotFound.selector, fakeHash));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC8004ValidationRegistry.RequestNotFound.selector,
+                fakeHash
+            )
+        );
         validation.validationResponse(fakeHash, 50, "", bytes32(0), "");
     }
 
@@ -609,9 +820,19 @@ contract ERC8004Fuzz is Test {
         bytes32 reqHash2 = keccak256("req2");
 
         vm.prank(alice);
-        validation.validationRequest(validator1, agentId, "ipfs://req1", reqHash1);
+        validation.validationRequest(
+            validator1,
+            agentId,
+            "ipfs://req1",
+            reqHash1
+        );
         vm.prank(alice);
-        validation.validationRequest(validator2, agentId, "ipfs://req2", reqHash2);
+        validation.validationRequest(
+            validator2,
+            agentId,
+            "ipfs://req2",
+            reqHash2
+        );
 
         vm.prank(validator1);
         validation.validationResponse(reqHash1, 80, "", bytes32(0), "security");
@@ -620,7 +841,11 @@ contract ERC8004Fuzz is Test {
 
         // Summary for all validators
         address[] memory validators = new address[](0);
-        (uint64 count, uint8 avg) = validation.getSummary(agentId, validators, "security");
+        (uint64 count, uint8 avg) = validation.getSummary(
+            agentId,
+            validators,
+            "security"
+        );
         assertEq(count, 2);
         assertEq(avg, 70); // (80 + 60) / 2
 

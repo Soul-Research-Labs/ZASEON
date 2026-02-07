@@ -119,10 +119,7 @@ interface IERC8004IdentityRegistry {
     /// @notice Update an agent's URI
     /// @param agentId The agent token ID
     /// @param newURI The new URI
-    function setAgentURI(
-        uint256 agentId,
-        string calldata newURI
-    ) external;
+    function setAgentURI(uint256 agentId, string calldata newURI) external;
 
     /// @notice Set on-chain metadata for an agent
     /// @param agentId The agent token ID
@@ -158,9 +155,7 @@ interface IERC8004IdentityRegistry {
     /// @notice Get the agent's verified wallet address
     /// @param agentId The agent token ID
     /// @return The agent wallet address (address(0) if unset)
-    function getAgentWallet(
-        uint256 agentId
-    ) external view returns (address);
+    function getAgentWallet(uint256 agentId) external view returns (address);
 
     /// @notice Clear the agent wallet
     /// @param agentId The agent token ID
