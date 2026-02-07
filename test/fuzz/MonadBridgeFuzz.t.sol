@@ -49,7 +49,7 @@ contract MonadBridgeFuzz is Test {
             address(wMON),
             address(monadBFTVerifier),
             2, // minValidatorSignatures
-            1  // requiredBlockConfirmations
+            1 // requiredBlockConfirmations
         );
 
         bridge.setTreasury(treasury);
@@ -120,8 +120,8 @@ contract MonadBridgeFuzz is Test {
             keccak256(abi.encode("parentHash", blockNumber)),
             keccak256(abi.encode("stateRoot", blockNumber)),
             keccak256(abi.encode("executionRoot", blockNumber)),
-            1,                // round
-            block.timestamp,  // timestamp
+            1, // round
+            block.timestamp, // timestamp
             attestations
         );
     }
@@ -163,8 +163,7 @@ contract MonadBridgeFuzz is Test {
 
         IMonadBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IMonadBridgeAdapter.MonadStateProof
-            memory proof = _buildStateProof(1);
+        IMonadBridgeAdapter.MonadStateProof memory proof = _buildStateProof(1);
 
         // Mock _verifyMonadStateProof to pass by mocking the internal staticcall behavior
         // The contract checks _verifyMonadStateProof internally (pure function), so we need
@@ -208,7 +207,7 @@ contract MonadBridgeFuzz is Test {
             1,
             blockHash,
             keccak256(abi.encode("parentHash", uint256(1))),
-            finalHash,     // stateRoot that matches our proof
+            finalHash, // stateRoot that matches our proof
             keccak256(abi.encode("executionRoot", uint256(1))),
             1,
             block.timestamp,
@@ -219,11 +218,12 @@ contract MonadBridgeFuzz is Test {
         bytes32[] memory merkleProof = new bytes32[](1);
         merkleProof[0] = sibling;
 
-        IMonadBridgeAdapter.MonadStateProof memory validProof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: merkleProof,
-            stateRoot: finalHash,
-            value: abi.encodePacked(stateRoot)
-        });
+        IMonadBridgeAdapter.MonadStateProof
+            memory validProof = IMonadBridgeAdapter.MonadStateProof({
+                merkleProof: merkleProof,
+                stateRoot: finalHash,
+                value: abi.encodePacked(stateRoot)
+            });
 
         // Re-compute to verify:
         // computedHash = keccak256(abi.encodePacked(txHash, finalHash, abi.encodePacked(stateRoot)))
@@ -258,7 +258,9 @@ contract MonadBridgeFuzz is Test {
         bytes32 mSibling = bytes32(uint256(0xbeef));
 
         // Step 2: Compute intermediate
-        bytes32 intermediate = keccak256(abi.encodePacked(txHash, proofStateRoot, proofValue));
+        bytes32 intermediate = keccak256(
+            abi.encodePacked(txHash, proofStateRoot, proofValue)
+        );
 
         // Step 3: One Merkle step
         bytes32 root;
@@ -285,11 +287,12 @@ contract MonadBridgeFuzz is Test {
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = mSibling;
 
-        IMonadBridgeAdapter.MonadStateProof memory correctProof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: proofStateRoot,
-            value: proofValue
-        });
+        IMonadBridgeAdapter.MonadStateProof
+            memory correctProof = IMonadBridgeAdapter.MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: proofStateRoot,
+                value: proofValue
+            });
 
         vm.prank(relayer);
         return
@@ -317,7 +320,9 @@ contract MonadBridgeFuzz is Test {
         bytes memory proofValue = hex"cafe";
         bytes32 mSibling = bytes32(uint256(0xbeef));
 
-        bytes32 intermediate = keccak256(abi.encodePacked(txHash, proofStateRoot, proofValue));
+        bytes32 intermediate = keccak256(
+            abi.encodePacked(txHash, proofStateRoot, proofValue)
+        );
         bytes32 root;
         if (intermediate <= mSibling) {
             root = keccak256(abi.encodePacked(intermediate, mSibling));
@@ -343,22 +348,24 @@ contract MonadBridgeFuzz is Test {
         // Build proof
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = mSibling;
-        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: proofStateRoot,
-            value: proofValue
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: proofStateRoot,
+                value: proofValue
+            });
 
         vm.prank(relayer);
-        return bridge.initiateMONDeposit(
-            txHash,
-            address(0x1234),
-            user,
-            amount,
-            blockNum,
-            proof,
-            attestations
-        );
+        return
+            bridge.initiateMONDeposit(
+                txHash,
+                address(0x1234),
+                user,
+                amount,
+                blockNum,
+                proof,
+                attestations
+            );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -444,11 +451,12 @@ contract MonadBridgeFuzz is Test {
 
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = bytes32(uint256(0xbeef));
-        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: bytes32(uint256(0xdead)),
-            value: hex"cafe"
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: bytes32(uint256(0xdead)),
+                value: hex"cafe"
+            });
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -517,8 +525,7 @@ contract MonadBridgeFuzz is Test {
 
         IMonadBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IMonadBridgeAdapter.MonadStateProof
-            memory proof = _buildStateProof(1);
+        IMonadBridgeAdapter.MonadStateProof memory proof = _buildStateProof(1);
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -547,8 +554,7 @@ contract MonadBridgeFuzz is Test {
 
         IMonadBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IMonadBridgeAdapter.MonadStateProof
-            memory proof = _buildStateProof(1);
+        IMonadBridgeAdapter.MonadStateProof memory proof = _buildStateProof(1);
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -583,7 +589,9 @@ contract MonadBridgeFuzz is Test {
         vm.prank(admin);
         bridge.completeMONDeposit(depositId);
 
-        IMonadBridgeAdapter.MONDeposit memory dep = bridge.getDeposit(depositId);
+        IMonadBridgeAdapter.MONDeposit memory dep = bridge.getDeposit(
+            depositId
+        );
         assertEq(
             uint256(dep.status),
             uint256(IMonadBridgeAdapter.DepositStatus.COMPLETED)
@@ -818,7 +826,9 @@ contract MonadBridgeFuzz is Test {
         duration = bound(duration, 1 hours, 30 days);
         uint256 cancel = finish + duration;
 
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("timelock_monad")));
+        bytes32 hashlock = sha256(
+            abi.encodePacked(keccak256("timelock_monad"))
+        );
 
         vm.deal(user, 1 ether);
         vm.prank(user);
@@ -1031,8 +1041,7 @@ contract MonadBridgeFuzz is Test {
 
         IMonadBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IMonadBridgeAdapter.MonadStateProof
-            memory proof = _buildStateProof(1);
+        IMonadBridgeAdapter.MonadStateProof memory proof = _buildStateProof(1);
 
         vm.prank(caller);
         vm.expectRevert();
@@ -1199,7 +1208,9 @@ contract MonadBridgeFuzz is Test {
         bytes32 proofStateRoot = bytes32(uint256(0xdead));
         bytes memory proofValue = hex"cafe";
         bytes32 mSibling = bytes32(uint256(0xbeef));
-        bytes32 intermediate = keccak256(abi.encodePacked(txHash, proofStateRoot, proofValue));
+        bytes32 intermediate = keccak256(
+            abi.encodePacked(txHash, proofStateRoot, proofValue)
+        );
         bytes32 root;
         if (intermediate <= mSibling) {
             root = keccak256(abi.encodePacked(intermediate, mSibling));
@@ -1223,11 +1234,12 @@ contract MonadBridgeFuzz is Test {
 
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = mSibling;
-        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: proofStateRoot,
-            value: proofValue
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: proofStateRoot,
+                value: proofValue
+            });
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -1505,7 +1517,9 @@ contract MonadBridgeFuzz is Test {
         bytes32 proofStateRoot = bytes32(uint256(0xdead));
         bytes memory proofValue = hex"cafe";
         bytes32 mSibling = bytes32(uint256(0xbeef));
-        bytes32 intermediate = keccak256(abi.encodePacked(monadTxHash, proofStateRoot, proofValue));
+        bytes32 intermediate = keccak256(
+            abi.encodePacked(monadTxHash, proofStateRoot, proofValue)
+        );
         bytes32 root;
         if (intermediate <= mSibling) {
             root = keccak256(abi.encodePacked(intermediate, mSibling));
@@ -1529,11 +1543,12 @@ contract MonadBridgeFuzz is Test {
 
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = mSibling;
-        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: proofStateRoot,
-            value: proofValue
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: proofStateRoot,
+                value: proofValue
+            });
 
         vm.prank(relayer);
         bridge.completeWithdrawal(wId, monadTxHash, proof, attestations);
@@ -1542,7 +1557,9 @@ contract MonadBridgeFuzz is Test {
         bytes32 monadTxHash2 = keccak256("complete_monad_tx_2");
 
         // Submit another block with proof for txHash2
-        bytes32 intermediate2 = keccak256(abi.encodePacked(monadTxHash2, proofStateRoot, proofValue));
+        bytes32 intermediate2 = keccak256(
+            abi.encodePacked(monadTxHash2, proofStateRoot, proofValue)
+        );
         bytes32 root2;
         if (intermediate2 <= mSibling) {
             root2 = keccak256(abi.encodePacked(intermediate2, mSibling));
@@ -1563,11 +1580,12 @@ contract MonadBridgeFuzz is Test {
 
         bytes32[] memory mProof2 = new bytes32[](1);
         mProof2[0] = mSibling;
-        IMonadBridgeAdapter.MonadStateProof memory proof2 = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof2,
-            stateRoot: proofStateRoot,
-            value: proofValue
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof2 = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof2,
+                stateRoot: proofStateRoot,
+                value: proofValue
+            });
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -1622,8 +1640,9 @@ contract MonadBridgeFuzz is Test {
         IMonadBridgeAdapter.MONEscrow memory e = bridge.getEscrow(bytes32(0));
         assertEq(e.amountWei, 0);
 
-        IMonadBridgeAdapter.MonadBFTBlock memory blk = bridge
-            .getMonadBFTBlock(0);
+        IMonadBridgeAdapter.MonadBFTBlock memory blk = bridge.getMonadBFTBlock(
+            0
+        );
         assertFalse(blk.verified);
     }
 
@@ -1666,7 +1685,9 @@ contract MonadBridgeFuzz is Test {
             attestations
         );
 
-        IMonadBridgeAdapter.MonadBFTBlock memory blk = bridge.getMonadBFTBlock(blockNumber);
+        IMonadBridgeAdapter.MonadBFTBlock memory blk = bridge.getMonadBFTBlock(
+            blockNumber
+        );
         assertTrue(blk.verified);
         assertEq(blk.blockHash, blockHash);
         assertEq(blk.stateRoot, stateRoot);
@@ -1737,11 +1758,12 @@ contract MonadBridgeFuzz is Test {
             memory attestations = _buildValidatorAttestations();
         bytes32[] memory mProof = new bytes32[](1);
         mProof[0] = bytes32(0);
-        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter.MonadStateProof({
-            merkleProof: mProof,
-            stateRoot: bytes32(0),
-            value: hex""
-        });
+        IMonadBridgeAdapter.MonadStateProof memory proof = IMonadBridgeAdapter
+            .MonadStateProof({
+                merkleProof: mProof,
+                stateRoot: bytes32(0),
+                value: hex""
+            });
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -1789,8 +1811,7 @@ contract MonadBridgeFuzz is Test {
 
         IMonadBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IMonadBridgeAdapter.MonadStateProof
-            memory proof = _buildStateProof(1);
+        IMonadBridgeAdapter.MonadStateProof memory proof = _buildStateProof(1);
 
         vm.prank(relayer);
         vm.expectRevert(IMonadBridgeAdapter.ZeroAddress.selector);

@@ -43,5 +43,6 @@ members = [
     "private_order",            # Private order matching proofs
     "private_transfer",         # Private transfer proofs
     "ring_signature",           # Ring signature verification
-    "swap_proof"                # Atomic swap proofs
+    "swap_proof",               # Atomic swap proofs
+    "shielded_pool"             # Shielded pool deposit/withdrawal proofs
 ]

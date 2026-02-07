@@ -678,9 +678,9 @@ contract MonadBridgeAdapter is
         totalEscrowsFinished++;
 
         // Release funds to the counterparty (Monad party)
-        (bool success, ) = payable(escrow.monadParty).call{value: escrow.amountWei}(
-            ""
-        );
+        (bool success, ) = payable(escrow.monadParty).call{
+            value: escrow.amountWei
+        }("");
         if (!success) revert InvalidAmount();
 
         emit EscrowFinished(escrowId, preimage);
@@ -920,7 +920,10 @@ contract MonadBridgeAdapter is
         for (uint256 i = 0; i < attestations.length; i++) {
             // Check for duplicate validators
             for (uint256 j = 0; j < i; j++) {
-                require(attestations[j].validator != attestations[i].validator, "Duplicate validator");
+                require(
+                    attestations[j].validator != attestations[i].validator,
+                    "Duplicate validator"
+                );
             }
             (bool success, bytes memory result) = bridgeConfig
                 .monadBFTVerifier

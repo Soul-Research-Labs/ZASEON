@@ -827,7 +827,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
         // Protect against signature malleability (EIP-2)
         // s must be in the lower half of the curve order
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) return false;
+        if (
+            uint256(s) >
+            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        ) return false;
 
         // Recover signer
         address recovered = ecrecover(messageHash, v, r, s);
@@ -1170,7 +1173,10 @@ contract ThresholdSignature is AccessControl, ReentrancyGuard, Pausable {
 
         // Protect against signature malleability (EIP-2)
         // s must be in the lower half of the curve order
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) return false;
+        if (
+            uint256(s) >
+            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        ) return false;
 
         // Recover address and compare with public key
         address recovered = ecrecover(messageHash, v, r, s);

@@ -123,7 +123,9 @@ contract FantomBridgeFuzz is Test {
 
     /// @dev Computes the Lachesis event state root that matches _buildDAGStateProof()
     ///      for a given leaf hash (ftmTxHash).
-    function _computeStateRoot(bytes32 leafHash) internal pure returns (bytes32) {
+    function _computeStateRoot(
+        bytes32 leafHash
+    ) internal pure returns (bytes32) {
         IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
         bytes32 computedHash = keccak256(
             abi.encodePacked(leafHash, proof.stateRoot, proof.value)
@@ -136,10 +138,7 @@ contract FantomBridgeFuzz is Test {
         }
     }
 
-    function _submitVerifiedEvent(
-        uint256 eventId,
-        bytes32 stateRoot
-    ) internal {
+    function _submitVerifiedEvent(uint256 eventId, bytes32 stateRoot) internal {
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
 
@@ -167,8 +166,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         return
@@ -301,8 +299,7 @@ contract FantomBridgeFuzz is Test {
         // Don't submit any Lachesis event — deposit should fail
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -391,8 +388,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -422,8 +418,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -463,9 +458,7 @@ contract FantomBridgeFuzz is Test {
         );
         vm.stopPrank();
 
-        IFantomBridgeAdapter.FTMWithdrawal memory w = bridge.getWithdrawal(
-            wId
-        );
+        IFantomBridgeAdapter.FTMWithdrawal memory w = bridge.getWithdrawal(wId);
         assertEq(
             uint256(w.status),
             uint256(IFantomBridgeAdapter.WithdrawalStatus.PENDING)
@@ -499,9 +492,7 @@ contract FantomBridgeFuzz is Test {
 
         assertEq(balAfter - balBefore, amount);
 
-        IFantomBridgeAdapter.FTMWithdrawal memory w = bridge.getWithdrawal(
-            wId
-        );
+        IFantomBridgeAdapter.FTMWithdrawal memory w = bridge.getWithdrawal(wId);
         assertEq(
             uint256(w.status),
             uint256(IFantomBridgeAdapter.WithdrawalStatus.REFUNDED)
@@ -886,8 +877,7 @@ contract FantomBridgeFuzz is Test {
         bytes32 stateRoot2 = _computeStateRoot(txHash2);
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         bridge.submitLachesisEvent(
@@ -951,8 +941,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(caller);
         vm.expectRevert();
@@ -1067,7 +1056,9 @@ contract FantomBridgeFuzz is Test {
         vm.prank(admin);
         bridge.unpause();
 
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("unpause_escrow")));
+        bytes32 hashlock = sha256(
+            abi.encodePacked(keccak256("unpause_escrow"))
+        );
         vm.deal(user, 1 ether);
         vm.prank(user);
         bytes32 escrowId = bridge.createEscrow{value: 0.1 ether}(
@@ -1221,8 +1212,7 @@ contract FantomBridgeFuzz is Test {
             attestations
         );
 
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -1280,7 +1270,13 @@ contract FantomBridgeFuzz is Test {
     function test_configRejectsZeroSignatures() public {
         vm.prank(admin);
         vm.expectRevert(IFantomBridgeAdapter.InvalidAmount.selector);
-        bridge.configure(address(0x1), address(wFTM), address(lachesisVerifier), 0, 1);
+        bridge.configure(
+            address(0x1),
+            address(wFTM),
+            address(lachesisVerifier),
+            0,
+            1
+        );
     }
 
     function test_treasuryCanBeUpdated() public {
@@ -1307,8 +1303,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectEmit(false, true, false, true);
@@ -1338,11 +1333,7 @@ contract FantomBridgeFuzz is Test {
 
         vm.prank(relayer);
         vm.expectEmit(false, false, false, true);
-        emit IFantomBridgeAdapter.LachesisEventVerified(
-            1,
-            42,
-            eventHash
-        );
+        emit IFantomBridgeAdapter.LachesisEventVerified(1, 42, eventHash);
         bridge.submitLachesisEvent(
             1,
             42,
@@ -1608,7 +1599,9 @@ contract FantomBridgeFuzz is Test {
     }
 
     function test_escrowDoubleCancel() public {
-        bytes32 hashlock = sha256(abi.encodePacked(keccak256("double_cancel_ftm")));
+        bytes32 hashlock = sha256(
+            abi.encodePacked(keccak256("double_cancel_ftm"))
+        );
 
         uint256 finishAfter = block.timestamp + 2 hours;
         uint256 cancelAfter = finishAfter + 6 hours;
@@ -1698,8 +1691,7 @@ contract FantomBridgeFuzz is Test {
             attestations
         );
 
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         bridge.completeWithdrawal(wId, ftmTxHash, proof, attestations);
@@ -1897,8 +1889,7 @@ contract FantomBridgeFuzz is Test {
 
         IFantomBridgeAdapter.ValidatorAttestation[]
             memory attestations = _buildValidatorAttestations();
-        IFantomBridgeAdapter.DAGStateProof
-            memory proof = _buildDAGStateProof();
+        IFantomBridgeAdapter.DAGStateProof memory proof = _buildDAGStateProof();
 
         vm.prank(relayer);
         vm.expectRevert(IFantomBridgeAdapter.ZeroAddress.selector);
@@ -2009,7 +2000,11 @@ contract FantomBridgeFuzz is Test {
         uint256 totalExpected = 0;
 
         for (uint256 i = 0; i < n; i++) {
-            uint256 amount = bound(uint256(keccak256(abi.encode(i))), MIN_DEPOSIT, 100 ether);
+            uint256 amount = bound(
+                uint256(keccak256(abi.encode(i))),
+                MIN_DEPOSIT,
+                100 ether
+            );
             bytes32 txHash = keccak256(abi.encode("total_dep_tx", i));
 
             // Use widely-spaced event IDs to avoid parent chain linkage

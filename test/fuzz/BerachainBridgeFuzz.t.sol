@@ -137,13 +137,9 @@ contract BerachainBridgeFuzz is Test {
         merkleProof[0] = sibling;
 
         if (computedHash <= sibling) {
-            blockAppHash = keccak256(
-                abi.encodePacked(computedHash, sibling)
-            );
+            blockAppHash = keccak256(abi.encodePacked(computedHash, sibling));
         } else {
-            blockAppHash = keccak256(
-                abi.encodePacked(sibling, computedHash)
-            );
+            blockAppHash = keccak256(abi.encodePacked(sibling, computedHash));
         }
 
         proof = IBerachainBridgeAdapter.CometBFTProof({
@@ -334,7 +330,10 @@ contract BerachainBridgeFuzz is Test {
             memory attestations = _buildValidatorAttestations();
 
         bytes32 txHash = keccak256("unverified_tx");
-        (IBerachainBridgeAdapter.CometBFTProof memory proof, ) = _buildCometBFTProof(txHash);
+        (
+            IBerachainBridgeAdapter.CometBFTProof memory proof,
+
+        ) = _buildCometBFTProof(txHash);
 
         vm.prank(relayer);
         vm.expectRevert(
@@ -730,9 +729,7 @@ contract BerachainBridgeFuzz is Test {
     }
 
     function test_escrowCreateCancelLifecycle() public {
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("cancel_bera"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("cancel_bera")));
 
         uint256 finishAfter = block.timestamp + 2 hours;
         uint256 cancelAfter = finishAfter + 6 hours;
@@ -767,9 +764,7 @@ contract BerachainBridgeFuzz is Test {
         duration = bound(duration, 1 hours, 30 days);
         uint256 cancel = finish + duration;
 
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("timelock_bera"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("timelock_bera")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
@@ -795,9 +790,7 @@ contract BerachainBridgeFuzz is Test {
         excess = bound(excess, 30 days + 1, 365 days);
         uint256 cancel = finish + excess;
 
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("long_bera"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("long_bera")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
@@ -811,9 +804,7 @@ contract BerachainBridgeFuzz is Test {
     }
 
     function testFuzz_escrowRejectsZeroValue() public {
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("zero_bera"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("zero_bera")));
 
         vm.prank(user);
         vm.expectRevert(IBerachainBridgeAdapter.InvalidAmount.selector);
@@ -1100,9 +1091,7 @@ contract BerachainBridgeFuzz is Test {
     }
 
     function testFuzz_pauseBlocksEscrow() public {
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("paused_bera"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("paused_bera")));
 
         vm.prank(admin);
         bridge.pause();
@@ -1334,9 +1323,7 @@ contract BerachainBridgeFuzz is Test {
 
         // Escrow tracking
         vm.deal(user, 1 ether);
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("track_escrow"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("track_escrow")));
         vm.prank(user);
         bytes32 eId = bridge.createEscrow{value: 0.1 ether}(
             address(0x5678),
@@ -1391,9 +1378,7 @@ contract BerachainBridgeFuzz is Test {
 
         // After escrow
         vm.deal(user, 1 ether);
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("stats_escrow"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("stats_escrow")));
         vm.prank(user);
         bridge.createEscrow{value: 0.5 ether}(
             address(0x5678),
@@ -1762,9 +1747,7 @@ contract BerachainBridgeFuzz is Test {
     function testFuzz_escrowBeraPartyAddress(address beraParty) public {
         vm.assume(beraParty != address(0));
 
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("party_test"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("party_test")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
@@ -1783,9 +1766,7 @@ contract BerachainBridgeFuzz is Test {
     }
 
     function test_escrowRejectsZeroBeraParty() public {
-        bytes32 hashlock = sha256(
-            abi.encodePacked(keccak256("zero_party"))
-        );
+        bytes32 hashlock = sha256(abi.encodePacked(keccak256("zero_party")));
 
         vm.deal(user, 1 ether);
         vm.prank(user);
