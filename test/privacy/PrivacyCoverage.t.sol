@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../../contracts/privacy/UnifiedNullifierManager.sol";
 import "../../contracts/privacy/CrossChainPrivacyHub.sol";
-import "../../contracts/core/SovereignPrivacyDomain.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract PrivacyCoverageTest is Test {
@@ -166,25 +165,6 @@ contract PrivacyCoverageTest is Test {
             .verifyCrossDomainBinding(sourceNf, destNf);
         assertTrue(valid);
         assertEq(queriedPil, soulNf);
-    }
-
-    function test_SovereignPrivacyDomain_Deployment() public {
-        address deployer = address(this);
-        address kernelVerifier = makeAddr("kernelVerifier");
-        address transportLayer = makeAddr("transportLayer");
-        address nullifierRegistry = makeAddr("nullifierRegistry");
-
-        vm.prank(deployer);
-        SovereignPrivacyDomain domain = new SovereignPrivacyDomain(
-            kernelVerifier,
-            transportLayer,
-            nullifierRegistry
-        );
-
-        assertEq(domain.kernelVerifier(), kernelVerifier);
-        assertEq(domain.transportLayer(), transportLayer);
-        assertEq(domain.nullifierRegistry(), nullifierRegistry);
-        assertTrue(domain.hasRole(domain.DEFAULT_ADMIN_ROLE(), deployer));
     }
 }
 

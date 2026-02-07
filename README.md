@@ -134,16 +134,16 @@ container.transfer(dest)  // Moves to new chain, proof travels with it
 
 ### EASC — Execution-Agnostic State Commitments
 
-**Problem:** Different chains use different proof backends (zkVM, TEE, MPC). How do you verify across all of them?
+**Problem:** Different chains use different proof backends (Groth16, PLONK, STARK). How do you verify across all of them?
 
-**Solution:** Backend-independent commitments that verify on any system:
+**Solution:** Backend-independent commitments that verify on any proof system:
 
 | Backend | Use Case |
 |---------|----------|
-| zkVM | Full ZK verification |
-| TEE | Intel SGX/AMD SEV enclaves |
-| MPC | Multi-party computation |
-| Hybrid | Combined security |
+| Groth16 (BN254) | Production EVM verification |
+| PLONK/UltraPlonk | Noir circuit proofs |
+| STARK/FRI | Recursive proof aggregation |
+| Hybrid | Combined proof translation |
 
 ---
 
@@ -212,7 +212,7 @@ Soul sits between **privacy chains** and **public chains**, enabling confidentia
 │           UniversalProofTranslator + Universal Adapters     │
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 1: Core Infrastructure                               │
-│           Confidential State │ Nullifier Registry │ TEE     │
+│           Confidential State │ Nullifier Registry           │
 └─────────────────────────────────────────────────────────────┘
                               ↓
    ┌──────────────────────────┴──────────────────────────┐
@@ -253,14 +253,14 @@ Soul sits between **privacy chains** and **public chains**, enabling confidentia
 contracts/           # Production Solidity contracts
 ├── core/            # ConfidentialStateContainer, NullifierRegistry, PrivacyRouter
 ├── primitives/      # ZK-SLocks, PC³, CDNA, EASC, Orchestrator
-├── crosschain/      # Bridge adapters (Arbitrum, Base, LayerZero, Hyperlane)
+├── crosschain/      # L2 bridge adapters (Arbitrum, Optimism, Base, zkSync, Scroll, Linea, Polygon zkEVM)
 ├── privacy/         # UniversalShieldedPool, UniversalProofTranslator, Stealth addresses
 ├── compliance/      # CrossChainSanctionsOracle, KYC gating
 ├── relayer/         # RelayerFeeMarket (incentivized relaying)
 ├── bridge/          # AtomicSwap, CrossChainProofHub
-├── verifiers/       # Groth16 BN254 verifier, VerifierRegistry
+├── verifiers/       # Groth16 BN254, PLONK, FRI verifiers + VerifierRegistry
 ├── libraries/       # CryptoLib, PoseidonYul, GasOptimizations
-├── interfaces/      # Contract interfaces (46+ files)
+├── interfaces/      # Contract interfaces
 └── security/        # Timelock, circuit breaker, rate limiter, MEV protection
 
 noir/                # Noir ZK circuits (shielded_pool, nullifiers, transfers, etc.)
@@ -317,14 +317,17 @@ Soul provides adapters for major cross-chain messaging:
 | Adapter | Key Features |
 |---------|--------------|
 | `ArbitrumBridgeAdapter` | Arbitrum Nitro, Retryable Tickets |
+| `OptimismBridgeAdapter` | OP Stack, L2OutputOracle verification |
 | `BaseBridgeAdapter` | OP Stack, CCTP support |
+| `zkSyncBridgeAdapter` | zkSync Era native bridge |
+| `ScrollBridgeAdapter` | Scroll L2 native messaging |
+| `LineaBridgeAdapter` | Linea L2 bridge |
+| `PolygonZkEVMBridgeAdapter` | Polygon zkEVM bridge |
 | `LayerZeroAdapter` | 120+ chains via LayerZero V2 |
 | `HyperlaneAdapter` | Modular security with ISM |
 | `DirectL2Messenger` | Direct L2-to-L2 messaging |
+| `EthereumL1Bridge` | Ethereum L1 settlement bridge |
 | `CrossChainMessageRelay` | General message relay |
-| `XRPLBridgeAdapter` | XRP Ledger bridge with SHAMap proofs, escrow, UNL validator attestations |
-
-> **Archived adapters:** Optimism, zkSync, Scroll, Linea, Polygon zkEVM, Starknet, Aztec, Bitcoin/BitVM adapters are in `_archive/` for reference.
 
 ---
 
@@ -503,7 +506,7 @@ npx hardhat run scripts/deploy-l2.js --network base-sepolia
 
 ## Documentation
 
-[Architecture](docs/architecture.md) • [API Reference](docs/API_REFERENCE.md) • [Integration Guide](docs/INTEGRATION_GUIDE.md) • [L2 Bridges](docs/L2_INTEROPERABILITY.md) • [XRPL Bridge](docs/XRPL_INTEGRATION.md) • [Security](docs/THREAT_MODEL.md)
+[Architecture](docs/architecture.md) • [API Reference](docs/API_REFERENCE.md) • [Integration Guide](docs/INTEGRATION_GUIDE.md) • [L2 Bridges](docs/L2_INTEROPERABILITY.md) • [Security](docs/THREAT_MODEL.md)
 
 ---
 

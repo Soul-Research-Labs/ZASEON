@@ -10,7 +10,6 @@ import "../../contracts/verifiers/adapters/NullifierAdapter.sol";
 import "../../contracts/verifiers/adapters/PedersenCommitmentAdapter.sol";
 import "../../contracts/verifiers/adapters/AggregatorAdapter.sol";
 import "../../contracts/verifiers/adapters/InvariantCheckerAdapter.sol";
-import "../../contracts/verifiers/adapters/PqcVerifierAdapter.sol";
 import "../../contracts/verifiers/VerifierRegistryV2.sol";
 
 /**
@@ -39,7 +38,6 @@ contract VerifierGasBenchmark is Test {
     PedersenCommitmentAdapter public pedersenAdapter;
     AggregatorAdapter public aggregatorAdapter;
     InvariantCheckerAdapter public invariantAdapter;
-    PqcVerifierAdapter public pqcAdapter;
 
     // Registry
     VerifierRegistryV2 public registry;
@@ -68,7 +66,6 @@ contract VerifierGasBenchmark is Test {
         pedersenAdapter = new PedersenCommitmentAdapter(address(mockVerifier));
         aggregatorAdapter = new AggregatorAdapter(address(mockVerifier));
         invariantAdapter = new InvariantCheckerAdapter(address(mockVerifier));
-        pqcAdapter = new PqcVerifierAdapter();
 
         // Deploy registry
         registry = new VerifierRegistryV2();
@@ -163,22 +160,6 @@ contract VerifierGasBenchmark is Test {
         assertLt(gasUsed, 45000, "Gas exceeds 45k threshold");
     }
 
-    function test_gas_PqcVerifier() public {
-        bytes memory proof = _generateMockProof(93);
-        bytes32 publicElement = keccak256("element");
-
-        uint256 gasBefore = gasleft();
-        bool result = pqcAdapter.verifyWotsChain(proof, publicElement);
-        uint256 gasUsed = gasBefore - gasleft();
-
-        assertTrue(result, "Verification should succeed");
-
-        _recordResult("PqcVerifier", gasUsed, gasUsed < 45000);
-
-        emit log_named_uint("PqcVerifier gas", gasUsed);
-        assertLt(gasUsed, 45000, "Gas exceeds 45k threshold");
-    }
-
     /*//////////////////////////////////////////////////////////////
                          BATCH BENCHMARKS
     //////////////////////////////////////////////////////////////*/
@@ -197,29 +178,20 @@ contract VerifierGasBenchmark is Test {
 
     function _benchmarkBatchSize(uint256 batchSize) internal {
         bytes[] memory proofs = new bytes[](batchSize);
-        bytes32[] memory elements = new bytes32[](batchSize);
+        bytes[] memory inputs = new bytes[](batchSize);
 
         for (uint256 i = 0; i < batchSize; i++) {
             proofs[i] = _generateMockProof(93);
-            elements[i] = keccak256(abi.encodePacked("element", i));
+            inputs[i] = _generateNullifierInputs();
         }
 
         // Measure individual verification gas
         uint256 individualGas = 0;
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 gasBeforeIndividual = gasleft();
-            pqcAdapter.verifyWotsChain(proofs[i], elements[i]);
+            nullifierAdapter.verifyProof(proofs[i], inputs[i]);
             individualGas += gasBeforeIndividual - gasleft();
         }
-
-        // Measure batch verification gas
-        uint256 gasBeforeBatch = gasleft();
-        bool result = pqcAdapter.batchVerifyWotsChains(proofs, elements);
-        uint256 batchGas = gasBeforeBatch - gasleft();
-
-        assertTrue(result, "Batch verification should succeed");
-
-        uint256 savings = ((individualGas - batchGas) * 100) / individualGas;
 
         emit log_named_uint(
             string.concat(
@@ -229,32 +201,6 @@ contract VerifierGasBenchmark is Test {
             ),
             individualGas
         );
-        emit log_named_uint(
-            string.concat(
-                "Batch size ",
-                vm.toString(batchSize),
-                " - Batch gas"
-            ),
-            batchGas
-        );
-        emit log_named_uint(
-            string.concat(
-                "Batch size ",
-                vm.toString(batchSize),
-                " - Savings %"
-            ),
-            savings
-        );
-
-        // For 4+ proofs, expect > 40% savings (may vary with mock)
-        if (batchSize >= 4) {
-            // Note: With real verifiers, batch should save more
-            // Mock verifier won't show savings, so we just log
-            emit log_named_string(
-                "Note",
-                "Real verifiers should show 40%+ savings"
-            );
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -352,7 +298,6 @@ contract VerifierGasBenchmark is Test {
         test_gas_Nullifier();
         test_gas_PedersenCommitment();
         test_gas_InvariantChecker();
-        test_gas_PqcVerifier();
 
         emit log_string("");
         emit log_string("=== Gas Benchmark Summary ===");

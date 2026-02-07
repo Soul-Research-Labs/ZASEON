@@ -99,31 +99,7 @@ export default defineConfig({
           evmVersion: "paris"
         }
       },
-      "contracts/infrastructure/ConfidentialDataAvailability.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
       "contracts/crosschain/ZKBoundStateLocks.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/fhe/FHEGateway.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/kernel/ParallelKernelVerifier.sol": {
         version: "0.8.20",
         settings: {
           optimizer: { enabled: true, runs: 1 },
@@ -158,95 +134,6 @@ export default defineConfig({
       },
       // Security module inherited by many contracts
       "contracts/security/SecurityModule.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      // Large generated verifiers - need minimal optimization
-      "contracts/verifiers/generated/ProofCarryingContainerVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/CrossDomainNullifierVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/PolicyBoundProofVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/StateCommitmentVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/ComplianceProofVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/CrossChainProofVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/StateTransferVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/MerkleProofVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/NullifierVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/ContainerVerifier.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: { enabled: true, runs: 1 },
-          viaIR: true,
-          evmVersion: "paris"
-        }
-      },
-      "contracts/verifiers/generated/PolicyVerifier.sol": {
         version: "0.8.20",
         settings: {
           optimizer: { enabled: true, runs: 1 },
