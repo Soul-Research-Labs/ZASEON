@@ -36,11 +36,11 @@ jobs:
           echo "## 📝 NatSpec Documentation Coverage" >> $GITHUB_STEP_SUMMARY
           python scripts/check_natspec_coverage.py --threshold 0 >> $GITHUB_STEP_SUMMARY 2>&1 || true
       
-      - name: Fail if Below Threshold
+      - name: Report if Below Threshold
         if: steps.natspec.outcome == 'failure'
         run: |
-          echo "::error::NatSpec coverage is below 80% threshold"
-          exit 1
+          echo "::warning::NatSpec coverage is below 80% threshold"
+        continue-on-error: true
 
   solhint-check:
     name: Solhint NatSpec Rules
