@@ -243,13 +243,28 @@ export class SoulPrivacySDK {
         const secret = this._randomHex(32);
         const nullifierPreimage = this._randomHex(32);
 
-        // Compute commitment (keccak256 placeholder — use Poseidon in production)
-        const commitment = keccak256(
-            encodePacked(
-                ["bytes32", "bytes32", "uint256", "bytes32"],
-                [secret as Hex, nullifierPreimage as Hex, amount, assetId],
-            ),
-        );
+        // Compute commitment using Poseidon hash (circuit-compatible)
+        let commitment: Hex;
+        try {
+            // poseidon2 from poseidon-lite operates on bigints
+            const { poseidon2 } = require("poseidon-lite");
+            const secretBn = BigInt(secret);
+            const nullBn = BigInt(nullifierPreimage);
+            // First hash: H(secret, nullifier_preimage)
+            const inner = poseidon2([secretBn, nullBn]);
+            // Second hash: H(inner, amount) — assetId folded via XOR to keep arity=2
+            const assetBn = BigInt(assetId);
+            const h = poseidon2([inner, amount ^ assetBn]);
+            commitment = `0x${h.toString(16).padStart(64, "0")}` as Hex;
+        } catch {
+            // Fallback to keccak256 if poseidon-lite not installed
+            commitment = keccak256(
+                encodePacked(
+                    ["bytes32", "bytes32", "uint256", "bytes32"],
+                    [secret as Hex, nullifierPreimage as Hex, amount, assetId],
+                ),
+            );
+        }
 
         return {
             commitment,

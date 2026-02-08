@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title PrivacyOracleIntegration
@@ -581,10 +582,10 @@ contract PrivacyOracleIntegration is ReentrancyGuard, AccessControl, Pausable {
                     )
                 );
 
-                // Recover signer (simplified - real impl would use proper ECDSA)
-                // Production: verify signature against messageHash
-                if (signature.length >= 65 && messageHash != bytes32(0)) {
-                    return true; // Placeholder - implement proper signature verification
+                // Recover signer using OpenZeppelin ECDSA
+                (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(messageHash, signature);
+                if (err == ECDSA.RecoverError.NoError && recovered == oracleNodeList[i]) {
+                    return true;
                 }
             }
         }

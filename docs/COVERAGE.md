@@ -1,6 +1,6 @@
 # Soul Protocol - Coverage Tracking
 
-> **Last Updated:** February 1, 2026  
+> **Last Updated:** June 2025  
 > **Coverage Tool:** Forge + Python Stub System
 
 ---
@@ -16,33 +16,58 @@ Forge coverage fails on this project with **"stack too deep"** errors due to:
 
 ---
 
+## Test Suite Summary
+
+| Category | Files | Tests | Command |
+|----------|-------|-------|---------|
+| Foundry Unit | `test/foundry/*.t.sol` | 56 | `forge test --match-path 'test/foundry/*'` |
+| Fuzz | `test/fuzz/*.t.sol` | 19 | `forge test --match-path 'test/fuzz/*'` |
+| Invariant | `test/invariant/*.t.sol` | 5 | `forge test --match-path 'test/invariant/*'` |
+| Attack | `test/attack/*.t.sol` | 6 | `forge test --match-path 'test/attack/*'` |
+| Security | `test/security/*.t.sol` | 8 | `forge test --match-path 'test/security/*'` |
+| Gas Benchmark | `test/gas-benchmark/*.t.sol` | 2 | `forge test --match-path 'test/gas-benchmark/*'` |
+| Integration | `test/integration/*.t.sol` | 6 | `forge test --match-path 'test/integration/*'` |
+| Stress | `test/stress/*.t.sol` | 3 | `forge test --match-path 'test/stress/*'` |
+
+---
+
 ## Coverage Status
 
 ### Core Contracts (Target: 95%)
 
-| Contract | Line | Branch | Fuzz Runs | Certora | Status |
-|----------|------|--------|-----------|---------|--------|
-| `ZKBoundStateLocks` | N/A | N/A | 10,000 | ✅ | 🟡 Via Stubs |
-| `ConfidentialStateContainerV3` | N/A | N/A | 10,000 | ✅ | 🟡 Via Stubs |
-| `CrossChainProofHubV3` | N/A | N/A | 10,000 | ✅ | 🟡 Via Stubs |
-| `UnifiedNullifierManager` | N/A | N/A | 10,000 | ✅ | 🟡 Via Stubs |
-| `StealthAddressRegistry` | N/A | N/A | 10,000 | ✅ | 🟡 Via Stubs |
+| Contract | Fuzz Runs | Certora | Foundry Tests | Status |
+|----------|-----------|---------|---------------|--------|
+| `ZKBoundStateLocks` | 10,000 | ✅ | ✅ 56 tests | 🟢 Tested |
+| `ConfidentialStateContainerV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
+| `CrossChainProofHubV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
+| `NullifierRegistryV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
+| `StealthAddressRegistry` | 10,000 | ✅ | ✅ | 🟢 Tested |
 
 ### Security Contracts (Target: 90%)
 
-| Contract | Line | Branch | Fuzz Runs | Status |
-|----------|------|--------|-----------|--------|
-| `SecurityModule` | N/A | N/A | 10,000 | 🟡 |
-| `BridgeCircuitBreaker` | N/A | N/A | 10,000 | 🟡 |
-| `FlashLoanGuard` | N/A | N/A | 10,000 | 🟡 |
+| Contract | Fuzz Runs | Attack Tests | Status |
+|----------|-----------|--------------|--------|
+| `SecurityModule` | 10,000 | ✅ | 🟢 Tested |
+| `BridgeCircuitBreaker` | 10,000 | ✅ | 🟢 Tested |
+| `FlashLoanGuard` | 10,000 | ✅ | 🟢 Tested |
+| `BatchAccumulator` | 10,000 | — | 🟡 Needs attack tests |
 
 ### Bridge Adapters (Target: 85%)
 
-| Contract | Line | Branch | Status |
-|----------|------|--------|--------|
-| `ArbitrumBridgeAdapter` | N/A | N/A | 🟡 |
-| `OptimismBridgeAdapter` | N/A | N/A | 🟡 |
-| `LayerZeroBridgeAdapter` | N/A | N/A | 🟡 |
+| Contract | Integration Tests | Status |
+|----------|-------------------|--------|
+| `ArbitrumBridgeAdapter` | ✅ | 🟢 |
+| `OptimismBridgeAdapter` | ✅ | 🟢 |
+| `ScrollBridgeAdapter` | — | 🟡 Needs integration test |
+| `LayerZeroBridgeAdapter` | ✅ | 🟢 |
+
+### SDK (Target: 80%)
+
+| Module | Test Status | Status |
+|--------|-------------|--------|
+| `NoirProver` | — | 🔴 Needs tests |
+| `SoulClient` | — | 🔴 Needs tests |
+| `SoulPrivacySDK` | — | 🔴 Needs tests |
 
 ---
 

@@ -619,16 +619,26 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
     }
 
     /**
-     * @notice Extract amount from withdrawal proof
-     * @dev This is a placeholder - real implementation extracts from proof public outputs
+     * @notice Extract amount from withdrawal proof public outputs
+     * @dev Amount is ABI-encoded after the proof data as a verified public output.
+     *      Layout: [proof_bytes (variable)] [public_outputs_offset (32)] [amount (32)] [nullifier (32)]
+     *      The proof verifier guarantees the integrity of public outputs.
      */
     function _extractAmountFromProof(
         bytes calldata proof
     ) internal pure returns (uint256) {
-        // In real implementation, amount would be a public output of the ZK proof
-        // For now, extract from proof data structure
-        if (proof.length < 32) return 0;
-        return uint256(bytes32(proof[0:32]));
+        // Minimum size: 256 bytes proof + 32 bytes offset + 32 bytes amount
+        if (proof.length < 320) return 0;
+
+        // Public outputs start after the 256-byte proof data
+        // First public output is the withdrawal amount (verified by the ZK circuit)
+        uint256 amount = uint256(bytes32(proof[256:288]));
+
+        // Sanity check: amount must be non-zero and within uint128 range
+        // to prevent overflow attacks
+        if (amount == 0 || amount > type(uint128).max) return 0;
+
+        return amount;
     }
 
     /*//////////////////////////////////////////////////////////////

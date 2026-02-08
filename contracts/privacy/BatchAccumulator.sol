@@ -664,10 +664,35 @@ contract BatchAccumulator is
         bytes32 batchId,
         bytes calldata proof
     ) internal view returns (bool) {
-        // TODO: Integrate with actual proof verifier
-        // For now, check proof is non-empty and batch exists
         Batch storage batch = batches[batchId];
-        return proof.length > 0 && batch.commitments.length > 0;
+        if (proof.length == 0 || batch.commitments.length == 0) return false;
+
+        // If a proof verifier is configured, delegate to it
+        if (proofVerifier != address(0)) {
+            // Encode batch commitments as public inputs for the verifier
+            uint256[] memory publicInputs = new uint256[](batch.commitments.length + 1);
+            publicInputs[0] = uint256(batchId);
+            for (uint256 i = 0; i < batch.commitments.length; i++) {
+                publicInputs[i + 1] = uint256(batch.commitments[i]);
+            }
+
+            (bool success, bytes memory result) = proofVerifier.staticcall(
+                abi.encodeWithSignature(
+                    "verify(bytes,uint256[])",
+                    proof,
+                    publicInputs
+                )
+            );
+
+            if (success && result.length >= 32) {
+                return abi.decode(result, (bool));
+            }
+            return false;
+        }
+
+        // No verifier configured — require minimum proof length as a safety check
+        // This path should only be used during initial deployment before verifier is set
+        return proof.length >= 256;
     }
 
     function _getRouteHash(

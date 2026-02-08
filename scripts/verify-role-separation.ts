@@ -127,7 +127,7 @@ async function verifyRoleSeparation(rpcUrl: string, contracts: ContractVerificat
     return allPassed;
 }
 
-// Sepolia deployment addresses (from deployments/undefined-11155111.json)
+// Sepolia deployment addresses (from deployments/sepolia-11155111.json)
 const SEPOLIA_CONTRACTS: ContractVerification[] = [
     {
         name: 'ZKBoundStateLocks',

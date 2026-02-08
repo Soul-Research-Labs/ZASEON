@@ -12,7 +12,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 // Load deployment data using process.cwd() which works in ESM
-const deploymentPath = path.join(process.cwd(), "deployments/undefined-11155111.json");
+const deploymentPath = path.join(process.cwd(), "deployments/sepolia-11155111.json");
 const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf-8"));
 
 // Contract addresses from deployment

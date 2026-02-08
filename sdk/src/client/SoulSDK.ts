@@ -54,8 +54,6 @@ export class ProverModule {
   ): Promise<ProofResult> {
     return withRetryAndTimeout(
       async () => {
-        // TODO: Implement actual prover integration
-        // Integration options: snarkjs (WASM), rapidsnark (native), or remote prover service
         if (!params.circuit) {
           throw new SoulError(
             "Circuit identifier is required",
@@ -63,10 +61,32 @@ export class ProverModule {
             { context: { params } }
           );
         }
-        
-        // Placeholder implementation - replace with actual prover
-        console.warn("ProverModule.generateProof: Using placeholder implementation");
-        return { proof: Buffer.from("proof"), publicInputs: Buffer.from("inputs") };
+
+        // Remote prover service via HTTP POST
+        const res = await fetch(`${this.proverUrl}/prove`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            circuit: params.circuit,
+            inputs: params.inputs,
+            witnesses: params.witnesses,
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.text().catch(() => "unknown");
+          throw new SoulError(
+            `Prover service returned ${res.status}: ${body}`,
+            SoulErrorCode.PROOF_GENERATION_FAILED,
+            { context: { status: res.status } }
+          );
+        }
+
+        const data = await res.json();
+        return {
+          proof: Buffer.from(data.proof, "hex"),
+          publicInputs: Buffer.from(data.publicInputs, "hex"),
+        };
       },
       {
         timeoutMs: 60000, // 60 second timeout for proof generation
@@ -94,15 +114,32 @@ export class ProverModule {
   async verifyProof(proof: ProofResult, stateRoot: string): Promise<boolean> {
     return withTimeout(
       async () => {
-        // TODO: Implement actual verification
         if (!proof.proof || proof.proof.length === 0) {
           throw new SoulError(
             "Invalid proof: empty proof buffer",
             SoulErrorCode.INVALID_PROOF
           );
         }
-        console.warn("ProverModule.verifyProof: Using placeholder implementation");
-        return true;
+
+        const res = await fetch(`${this.proverUrl}/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            proof: Buffer.from(proof.proof).toString("hex"),
+            publicInputs: Buffer.from(proof.publicInputs).toString("hex"),
+            stateRoot,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new SoulError(
+            `Verification service returned ${res.status}`,
+            SoulErrorCode.INVALID_PROOF
+          );
+        }
+
+        const data = await res.json();
+        return data.valid === true;
       },
       10000, // 10 second timeout for verification
       "proof verification"
@@ -150,10 +187,38 @@ export class RelayerClient {
           );
         }
 
-        // TODO: Implement actual relayer communication via HTTP/WebSocket
-        // Note: mixnet and decoyTraffic options are reserved for future implementation
-        console.warn("RelayerClient.send: Using placeholder implementation");
-        return { txHash: "0x123", status: "sent" };
+        const res = await fetch(`${this.endpoint}/relay`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            encryptedState: packet.encryptedState.toString("hex"),
+            ephemeralKey: packet.ephemeralKey.toString("hex"),
+            mac: packet.mac.toString("hex"),
+            proof: {
+              proof: Buffer.from(packet.proof.proof).toString("hex"),
+              publicInputs: Buffer.from(packet.proof.publicInputs).toString("hex"),
+            },
+            sourceChain: packet.sourceChain,
+            destChain: packet.destChain,
+            timestamp: packet.timestamp,
+            options: {
+              mixnet: opts.mixnet,
+              decoyTraffic: opts.decoyTraffic,
+              maxDelay: opts.maxDelay,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.text().catch(() => "unknown");
+          throw new SoulError(
+            `Relayer returned ${res.status}: ${body}`,
+            SoulErrorCode.RELAY_FAILED,
+          );
+        }
+
+        const data = await res.json();
+        return { txHash: data.txHash, status: data.status ?? "sent" };
       },
       {
         timeoutMs: 30000, // 30 second timeout for relay
@@ -181,15 +246,56 @@ export class RelayerClient {
     chainId: string,
     callback: (packet: RelayerPacket) => void
   ): Promise<Subscription> {
-    // TODO: Implement actual subscription via WebSocket
     if (!chainId) {
       throw new SoulError(
         "Chain ID is required for subscription",
         SoulErrorCode.INVALID_INPUT
       );
     }
-    console.warn("RelayerClient.subscribe: Using placeholder implementation");
-    return { unsubscribe: () => {} };
+
+    // Subscribe via WebSocket for real-time packet delivery
+    const wsUrl = this.endpoint.replace(/^http/, "ws") + `/subscribe/${chainId}`;
+    let ws: WebSocket | null = null;
+
+    try {
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event: MessageEvent) => {
+        try {
+          const raw = JSON.parse(String(event.data));
+          const packet: RelayerPacket = {
+            encryptedState: Buffer.from(raw.encryptedState, "hex"),
+            ephemeralKey: Buffer.from(raw.ephemeralKey, "hex"),
+            mac: Buffer.from(raw.mac, "hex"),
+            proof: {
+              proof: Buffer.from(raw.proof.proof, "hex"),
+              publicInputs: Buffer.from(raw.proof.publicInputs, "hex"),
+            },
+            sourceChain: raw.sourceChain,
+            destChain: raw.destChain,
+            timestamp: raw.timestamp,
+          };
+          callback(packet);
+        } catch {
+          // Skip malformed messages
+        }
+      };
+
+      ws.onerror = () => {
+        console.warn("Relayer WebSocket error");
+      };
+    } catch {
+      console.warn("WebSocket connection failed for relayer subscription");
+    }
+
+    return {
+      unsubscribe: () => {
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+      },
+    };
   }
 }
 

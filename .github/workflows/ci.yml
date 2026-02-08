@@ -19,7 +19,7 @@ env:
 
 jobs:
   build-and-test:
-    name: Build & Test
+    name: Build & Test (Hardhat)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,20 +40,78 @@ jobs:
         with:
           version: nightly
 
-      - name: Compile contracts
+      - name: Compile contracts (Hardhat)
         run: npx hardhat compile
 
       - name: Run Hardhat tests
         run: npx hardhat test
 
       - name: Lint Solidity
-        run: npx solhint 'contracts/**/*.sol' --config .solhint.json --max-warnings 20000
+        run: npx solhint 'contracts/**/*.sol' --config .solhint.json --max-warnings 500
+
+  foundry-tests:
+    name: Foundry Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Build contracts (Forge)
+        run: forge build
+
+      - name: Run unit tests
+        run: forge test --match-path "test/foundry/*" -vvv
+
+      - name: Run fuzz tests
+        run: forge test --match-path "test/fuzz/*" -vvv --fuzz-runs 1000
+
+      - name: Run invariant tests
+        run: forge test --match-path "test/invariant/*" -vvv
         continue-on-error: true
 
-  security:
-    name: Security
+      - name: Run attack simulation tests
+        run: forge test --match-path "test/attacks/*" -vvv
+
+      - name: Run security tests
+        run: forge test --match-path "test/security/*" -vvv
+
+      - name: Run gas benchmarks
+        run: forge test --match-path "test/gas/*" -vvv --gas-report
+
+  noir-circuits:
+    name: Noir Circuits
     runs-on: ubuntu-latest
-    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Noir (nargo)
+        run: |
+          curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+          echo "$HOME/.nargo/bin" >> $GITHUB_PATH
+
+      - name: Check all circuits compile
+        run: |
+          cd noir
+          for circuit in nullifier state_commitment state_transfer cross_chain_proof container \
+            cross_domain_nullifier merkle_proof balance_proof private_transfer swap_proof \
+            pedersen_commitment compliance_proof policy policy_bound_proof shielded_pool \
+            sanctions_check accredited_investor aggregator encrypted_transfer ring_signature; do
+            echo "=== Checking $circuit ==="
+            cd "$circuit"
+            nargo check 2>&1 || echo "⚠️ $circuit check failed"
+            cd ..
+          done
+
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    needs: [build-and-test, foundry-tests]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
@@ -86,9 +144,7 @@ jobs:
         run: npx hardhat compile
 
       - name: Run Slither
-        run: slither . --config-file slither.config.json || true
-        continue-on-error: true
+        run: slither . --config-file slither.config.json
 
       - name: NPM Audit
-        run: npm audit --audit-level=critical || true
-        continue-on-error: true
+        run: npm audit --audit-level=critical

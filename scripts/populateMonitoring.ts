@@ -62,7 +62,7 @@ function loadDeployments(network: string): DeploymentFile {
     const patterns = [
         `deployments/${network}.json`,
         `deployments/localhost-31337.json`,
-        `deployments/undefined-31337.json`,
+        `deployments/localhost-31337.json`,
     ];
 
     for (const pat of patterns) {

@@ -59,7 +59,7 @@ const VERIFIER_CONFIG = {
 } as const;
 
 async function main() {
-  const networkName = hre.network.name || "localhost";
+  const networkName = hre.network.name ?? (chainId === 11155111n ? "sepolia" : chainId === 1n ? "mainnet" : `chain-${chainId}`);
   const l2Config = L2_CONFIG[networkName] || L2_CONFIG["localhost"];
 
   console.log("\n" + "=".repeat(80));

@@ -19,7 +19,7 @@ interface DeploymentInfo {
 function loadDeployments(network: string): DeploymentInfo {
     const patterns = [
         `deployments/${network}.json`,
-        `deployments/undefined-${network === 'sepolia' ? '11155111' : '1'}.json`,
+        `deployments/${network}-${network === 'sepolia' ? '11155111' : '1'}.json`,
         `deployments/localhost-31337.json`,
     ];
 
