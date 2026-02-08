@@ -10,12 +10,38 @@ import {UniversalChainRegistry} from "../../contracts/libraries/UniversalChainRe
 
 /// @notice Mock verifier that accepts all proofs (test-only)
 contract AcceptAllVerifierForAdapter is IProofVerifier {
-    function verify(bytes calldata, uint256[] calldata) external pure override returns (bool) { return true; }
-    function verifyProof(bytes calldata, bytes calldata) external pure override returns (bool) { return true; }
-    function verifySingle(bytes calldata, uint256) external pure override returns (bool) { return true; }
-    function getPublicInputCount() external pure override returns (uint256) { return 4; }
-    function getVerificationKeyHash() external pure returns (bytes32) { return bytes32(0); }
-    function isReady() external pure override returns (bool) { return true; }
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external pure override returns (bool) {
+        return true;
+    }
+
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure override returns (bool) {
+        return true;
+    }
+
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external pure override returns (bool) {
+        return true;
+    }
+
+    function getPublicInputCount() external pure override returns (uint256) {
+        return 4;
+    }
+
+    function getVerificationKeyHash() external pure returns (bytes32) {
+        return bytes32(0);
+    }
+
+    function isReady() external pure override returns (bool) {
+        return true;
+    }
 }
 
 /**
@@ -53,8 +79,14 @@ contract EVMUniversalAdapterTest is Test {
 
         // Deploy and register an accept-all verifier for GROTH16 & PLONK
         AcceptAllVerifierForAdapter acceptVerifier = new AcceptAllVerifierForAdapter();
-        adapter.setProofVerifier(IUniversalChainAdapter.ProofSystem.GROTH16, address(acceptVerifier));
-        adapter.setProofVerifier(IUniversalChainAdapter.ProofSystem.PLONK, address(acceptVerifier));
+        adapter.setProofVerifier(
+            IUniversalChainAdapter.ProofSystem.GROTH16,
+            address(acceptVerifier)
+        );
+        adapter.setProofVerifier(
+            IUniversalChainAdapter.ProofSystem.PLONK,
+            address(acceptVerifier)
+        );
 
         // Grant roles
         adapter.grantRole(RELAYER_ROLE, relayer);

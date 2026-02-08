@@ -651,9 +651,9 @@ contract OptimismBridgeAdapter is
         totalEscrowsFinished++;
 
         // Release funds to the L2 party counterparty
-        (bool success, ) = payable(escrow.l2Party).call{value: escrow.amountWei}(
-            ""
-        );
+        (bool success, ) = payable(escrow.l2Party).call{
+            value: escrow.amountWei
+        }("");
         if (!success) revert InvalidAmount();
 
         emit EscrowFinished(escrowId, preimage);
@@ -894,7 +894,10 @@ contract OptimismBridgeAdapter is
         for (uint256 i = 0; i < attestations.length; i++) {
             // Check for duplicate validators
             for (uint256 j = 0; j < i; j++) {
-                require(attestations[j].validator != attestations[i].validator, "Duplicate validator");
+                require(
+                    attestations[j].validator != attestations[i].validator,
+                    "Duplicate validator"
+                );
             }
             // Delegate ECDSA signature verification to the oracle contract
             // The oracle maintains the validator set and verifies each attestation

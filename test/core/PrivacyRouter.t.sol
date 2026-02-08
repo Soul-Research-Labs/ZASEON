@@ -25,8 +25,10 @@ contract PrivacyRouterTest is Test {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @dev Helper: produce a valid BN254 commitment from arbitrary seed
-    function _validCommitment(bytes memory seed) internal pure returns (bytes32) {
-        return bytes32(uint256(keccak256(seed)) % (FIELD_SIZE - 1) + 1);
+    function _validCommitment(
+        bytes memory seed
+    ) internal pure returns (bytes32) {
+        return bytes32((uint256(keccak256(seed)) % (FIELD_SIZE - 1)) + 1);
     }
 
     function setUp() public {

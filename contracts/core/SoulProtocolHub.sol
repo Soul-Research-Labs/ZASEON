@@ -248,7 +248,10 @@ contract SoulProtocolHub is AccessControl, Pausable {
 
     event SecurityModuleRegistered(string indexed moduleName, address module);
 
-    event ThresholdSigModuleRegistered(string indexed moduleName, address module);
+    event ThresholdSigModuleRegistered(
+        string indexed moduleName,
+        address module
+    );
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -689,7 +692,9 @@ contract SoulProtocolHub is AccessControl, Pausable {
     /**
      * @notice Set Threshold Signature Gateway
      */
-    function setThresholdSigGateway(address _module) external onlyRole(OPERATOR_ROLE) {
+    function setThresholdSigGateway(
+        address _module
+    ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
         thresholdSigGateway = _module;
         emit ThresholdSigModuleRegistered("THRESHOLD_SIG_GATEWAY", _module);

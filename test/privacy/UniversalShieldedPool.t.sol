@@ -33,8 +33,10 @@ contract UniversalShieldedPoolTest is Test {
     bytes32 public NATIVE_ASSET;
 
     /// @dev Helper: produce a valid BN254 commitment from arbitrary seed
-    function _validCommitment(bytes memory seed) internal pure returns (bytes32) {
-        return bytes32(uint256(keccak256(seed)) % (FIELD_SIZE - 1) + 1);
+    function _validCommitment(
+        bytes memory seed
+    ) internal pure returns (bytes32) {
+        return bytes32((uint256(keccak256(seed)) % (FIELD_SIZE - 1)) + 1);
     }
 
     function setUp() public {
@@ -121,7 +123,9 @@ contract UniversalShieldedPoolTest is Test {
 
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(UniversalShieldedPool.DepositTooSmall.selector)
+            abi.encodeWithSelector(
+                UniversalShieldedPool.DepositTooSmall.selector
+            )
         );
         pool.depositETH{value: 0}(commitment);
     }
@@ -150,7 +154,9 @@ contract UniversalShieldedPoolTest is Test {
     function test_MultipleDeposits() public {
         vm.startPrank(user);
         for (uint256 i = 0; i < 5; i++) {
-            bytes32 commitment = _validCommitment(abi.encodePacked("secret", i));
+            bytes32 commitment = _validCommitment(
+                abi.encodePacked("secret", i)
+            );
             pool.depositETH{value: 1 ether}(commitment);
         }
         vm.stopPrank();
@@ -484,7 +490,9 @@ contract UniversalShieldedPoolTest is Test {
         amount = bound(amount, minDeposit, maxDeposit);
         vm.deal(user, amount);
 
-        bytes32 commitment = _validCommitment(abi.encodePacked("fuzz_secret", amount));
+        bytes32 commitment = _validCommitment(
+            abi.encodePacked("fuzz_secret", amount)
+        );
 
         vm.prank(user);
         pool.depositETH{value: amount}(commitment);
@@ -498,8 +506,12 @@ contract UniversalShieldedPoolTest is Test {
         uint256 seed2
     ) public {
         // Use _validCommitment to guarantee field-valid, non-zero commitments
-        bytes32 commitment1 = _validCommitment(abi.encodePacked("root_fuzz_a", seed1));
-        bytes32 commitment2 = _validCommitment(abi.encodePacked("root_fuzz_b", seed2));
+        bytes32 commitment1 = _validCommitment(
+            abi.encodePacked("root_fuzz_a", seed1)
+        );
+        bytes32 commitment2 = _validCommitment(
+            abi.encodePacked("root_fuzz_b", seed2)
+        );
         vm.assume(commitment1 != commitment2);
 
         uint256 minDeposit = pool.MIN_DEPOSIT();
