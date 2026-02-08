@@ -90,7 +90,9 @@ contract SoulProtocolHubTest is Test {
 
         assertEq(hub.getVerifier(verifierType), verifier);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(verifierType);
+        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+            verifierType
+        );
         assertEq(info.verifier, verifier);
         assertEq(info.proofType, verifierType);
         assertEq(info.gasLimit, 300_000);
@@ -104,7 +106,9 @@ contract SoulProtocolHubTest is Test {
         vm.prank(operator);
         hub.registerVerifier(verifierType, verifier, 0);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(verifierType);
+        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+            verifierType
+        );
         assertEq(info.gasLimit, 500_000, "Should default to 500k");
     }
 
@@ -149,14 +153,20 @@ contract SoulProtocolHubTest is Test {
 
         vm.prank(operator);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulProtocolHub.BatchTooLarge.selector, size, 50)
+            abi.encodeWithSelector(
+                SoulProtocolHub.BatchTooLarge.selector,
+                size,
+                50
+            )
         );
         hub.batchRegisterVerifiers(types, addrs, limits);
     }
 
     function test_RevertVerifierZeroAddress() public {
         vm.prank(operator);
-        vm.expectRevert(abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+        );
         hub.setVerifierRegistry(address(0));
     }
 
@@ -211,7 +221,12 @@ contract SoulProtocolHubTest is Test {
         confirmations[1] = 1;
 
         vm.prank(operator);
-        hub.batchRegisterBridgeAdapters(chainIds, adapters, privacy, confirmations);
+        hub.batchRegisterBridgeAdapters(
+            chainIds,
+            adapters,
+            privacy,
+            confirmations
+        );
 
         assertTrue(hub.isChainSupported(42161));
         assertTrue(hub.isChainSupported(10));
@@ -234,7 +249,9 @@ contract SoulProtocolHubTest is Test {
 
     function test_RevertBridgeZeroAddress() public {
         vm.prank(operator);
-        vm.expectRevert(abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+        );
         hub.registerBridgeAdapter(42161, address(0), true, 12);
     }
 
@@ -263,7 +280,9 @@ contract SoulProtocolHubTest is Test {
 
     function test_RevertPrivacyModuleZeroAddress() public {
         vm.prank(operator);
-        vm.expectRevert(abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+        );
         hub.setMLSAGSignatures(address(0));
     }
 
@@ -388,7 +407,9 @@ contract SoulProtocolHubTest is Test {
         vm.prank(guardian);
         hub.deactivateVerifier(verifierType);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(verifierType);
+        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+            verifierType
+        );
         assertFalse(info.isActive);
     }
 

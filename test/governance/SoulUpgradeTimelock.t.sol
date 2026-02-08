@@ -75,13 +75,20 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_ProposeStandardUpgrade() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Test upgrade");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Test upgrade"
+        );
 
         assertGt(uint256(opId), 0, "opId should be non-zero");
         assertEq(timelock.getProposalCount(), 1);
         assertEq(timelock.proposalIds(0), opId);
 
-        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(opId);
+        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(
+            opId
+        );
         assertEq(p.target, target);
         assertEq(p.executableAt, block.timestamp + 48 hours);
         assertFalse(p.isEmergency);
@@ -110,9 +117,16 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_ProposeCriticalUpgrade() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeCriticalUpgrade(target, upgradeData, salt, "Critical fix");
+        bytes32 opId = timelock.proposeCriticalUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Critical fix"
+        );
 
-        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(opId);
+        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(
+            opId
+        );
         assertEq(p.executableAt, block.timestamp + 72 hours);
         assertTrue(p.isCritical);
         assertFalse(p.isEmergency);
@@ -127,9 +141,16 @@ contract SoulUpgradeTimelockTest is Test {
         timelock.enableEmergencyMode();
 
         vm.prank(admin);
-        bytes32 opId = timelock.proposeEmergencyUpgrade(target, upgradeData, salt, "Emergency fix");
+        bytes32 opId = timelock.proposeEmergencyUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Emergency fix"
+        );
 
-        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(opId);
+        SoulUpgradeTimelock.UpgradeProposal memory p = timelock.getProposal(
+            opId
+        );
         assertEq(p.executableAt, block.timestamp + 6 hours);
         assertTrue(p.isEmergency);
         assertFalse(p.isCritical);
@@ -139,7 +160,12 @@ contract SoulUpgradeTimelockTest is Test {
     function test_RevertEmergencyUpgradeWithoutEmergencyMode() public {
         vm.prank(admin);
         vm.expectRevert(SoulUpgradeTimelock.NotInEmergencyMode.selector);
-        timelock.proposeEmergencyUpgrade(target, upgradeData, salt, "Should fail");
+        timelock.proposeEmergencyUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Should fail"
+        );
     }
 
     function test_RevertEmergencyUpgradeByNonGuardian() public {
@@ -159,7 +185,12 @@ contract SoulUpgradeTimelockTest is Test {
         timelock.setUpgradeFrozen(target, true);
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(SoulUpgradeTimelock.UpgradesFrozen.selector, target));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SoulUpgradeTimelock.UpgradesFrozen.selector,
+                target
+            )
+        );
         timelock.proposeUpgrade(target, upgradeData, salt, "Frozen");
     }
 
@@ -168,7 +199,12 @@ contract SoulUpgradeTimelockTest is Test {
         timelock.setUpgradeFrozen(target, true);
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(SoulUpgradeTimelock.UpgradesFrozen.selector, target));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SoulUpgradeTimelock.UpgradesFrozen.selector,
+                target
+            )
+        );
         timelock.proposeCriticalUpgrade(target, upgradeData, salt, "Frozen");
     }
 
@@ -180,7 +216,12 @@ contract SoulUpgradeTimelockTest is Test {
         timelock.setUpgradeFrozen(target, true);
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(SoulUpgradeTimelock.UpgradesFrozen.selector, target));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SoulUpgradeTimelock.UpgradesFrozen.selector,
+                target
+            )
+        );
         timelock.proposeEmergencyUpgrade(target, upgradeData, salt, "Frozen");
     }
 
@@ -188,7 +229,12 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_SignUpgrade() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Sign test");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Sign test"
+        );
 
         // Second signer
         vm.prank(proposer2);
@@ -200,7 +246,12 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_RevertDoubleSign() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Double sign");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Double sign"
+        );
 
         // Admin already signed during proposal
         vm.prank(admin);
@@ -210,7 +261,12 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_RevertSignByNonUpgradeRole() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Auth test");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Auth test"
+        );
 
         vm.prank(nonAuthorized);
         vm.expectRevert();
@@ -222,7 +278,12 @@ contract SoulUpgradeTimelockTest is Test {
     function test_ExecuteStandardUpgrade() public {
         // 1. Propose
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Execute test");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Execute test"
+        );
 
         // 2. Second signature
         vm.prank(proposer2);
@@ -248,7 +309,11 @@ contract SoulUpgradeTimelockTest is Test {
 
         vm.prank(admin);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulUpgradeTimelock.InsufficientSignatures.selector, 1, 2)
+            abi.encodeWithSelector(
+                SoulUpgradeTimelock.InsufficientSignatures.selector,
+                1,
+                2
+            )
         );
         timelock.executeUpgrade(target, upgradeData, bytes32(0), salt);
     }
@@ -275,7 +340,12 @@ contract SoulUpgradeTimelockTest is Test {
         timelock.enableEmergencyMode();
 
         vm.prank(admin);
-        timelock.proposeEmergencyUpgrade(target, upgradeData, salt, "No exit window");
+        timelock.proposeEmergencyUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "No exit window"
+        );
 
         // Lower minSignatures to 1
         vm.prank(admin);
@@ -375,7 +445,12 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_IsUpgradeReady() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Ready check");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Ready check"
+        );
 
         // Not ready yet: only 1 sig, not past delay
         assertFalse(timelock.isUpgradeReady(opId));
@@ -394,7 +469,12 @@ contract SoulUpgradeTimelockTest is Test {
 
     function test_GetTimeUntilExecutable() public {
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Time check");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Time check"
+        );
 
         uint256 remaining = timelock.getTimeUntilExecutable(opId);
         assertEq(remaining, 48 hours);
@@ -418,7 +498,12 @@ contract SoulUpgradeTimelockTest is Test {
         assertEq(timelock.getProposalCount(), 1);
 
         vm.prank(admin);
-        timelock.proposeCriticalUpgrade(target, upgradeData, keccak256("salt-2"), "Count test 2");
+        timelock.proposeCriticalUpgrade(
+            target,
+            upgradeData,
+            keccak256("salt-2"),
+            "Count test 2"
+        );
         assertEq(timelock.getProposalCount(), 2);
     }
 
@@ -447,7 +532,12 @@ contract SoulUpgradeTimelockTest is Test {
     function test_FullStandardUpgradeLifecycle() public {
         // Propose
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Full lifecycle");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Full lifecycle"
+        );
         assertEq(timelock.signatureCount(opId), 1);
 
         // Sign
@@ -482,7 +572,12 @@ contract SoulUpgradeTimelockTest is Test {
 
         // Propose emergency upgrade
         vm.prank(admin);
-        bytes32 opId = timelock.proposeEmergencyUpgrade(target, upgradeData, salt, "Emergency lifecycle");
+        bytes32 opId = timelock.proposeEmergencyUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Emergency lifecycle"
+        );
 
         // Warp past 6h delay
         vm.warp(block.timestamp + 6 hours + 1);
@@ -516,7 +611,12 @@ contract SoulUpgradeTimelockTest is Test {
         elapsed = bound(elapsed, 0, 48 hours);
 
         vm.prank(admin);
-        bytes32 opId = timelock.proposeUpgrade(target, upgradeData, salt, "Fuzz time");
+        bytes32 opId = timelock.proposeUpgrade(
+            target,
+            upgradeData,
+            salt,
+            "Fuzz time"
+        );
 
         vm.warp(block.timestamp + elapsed);
         uint256 remaining = timelock.getTimeUntilExecutable(opId);
