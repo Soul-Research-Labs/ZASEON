@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title ComplianceProofCircuit
 /// @notice Privacy-preserving KYC/AML compliance verification
@@ -32,12 +32,12 @@ struct ComplianceRequirements {
 
 /// Derive public key from secret
 fn derive_pubkey(secret: Field) -> Field {
-    poseidon::bn254::hash_1([secret])
+    bn254::hash_1([secret])
 }
 
 /// Compute credential hash
 fn compute_credential_hash(cred: CredentialData, extra_data: [Field; 4]) -> Field {
-    poseidon::bn254::hash_4([
+    bn254::hash_4([
         cred.jurisdiction_code,
         cred.credential_type,
         cred.issuance_timestamp,
@@ -51,7 +51,7 @@ fn compute_credential_commitment(
     issuer_secret: Field,
     holder_secret: Field
 ) -> Field {
-    poseidon::bn254::hash_4([credential_hash, issuer_secret, holder_secret, 0])
+    bn254::hash_4([credential_hash, issuer_secret, holder_secret, 0])
 }
 
 /// Verify credential has not expired
@@ -93,7 +93,7 @@ fn compute_compliance_proof(
     policy_id: Field,
     timestamp: Field
 ) -> Field {
-    poseidon::bn254::hash_4([commitment, holder_pubkey, policy_id, timestamp])
+    bn254::hash_4([commitment, holder_pubkey, policy_id, timestamp])
 }
 
 /// Full compliance verification

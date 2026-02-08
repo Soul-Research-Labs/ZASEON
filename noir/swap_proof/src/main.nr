@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title SwapProofCircuit
 /// @notice Swap Proof Circuit for Soul Exchange AMM
@@ -44,7 +44,7 @@ fn compute_balance_leaf(
     token: Field,
     balance: Field
 ) -> Field {
-    poseidon::bn254::hash_4([user_address, token, balance, 0])
+    bn254::hash_4([user_address, token, balance, 0])
 }
 
 /// Derive swap nullifier
@@ -55,8 +55,8 @@ fn derive_swap_nullifier(
     amount_in: Field,
     salt: Field
 ) -> Field {
-    let h1 = poseidon::bn254::hash_4([nullifier_secret, user_address, pool_id, amount_in]);
-    poseidon::bn254::hash_2([h1, salt])
+    let h1 = bn254::hash_4([nullifier_secret, user_address, pool_id, amount_in]);
+    bn254::hash_2([h1, salt])
 }
 
 /// Verify Merkle proof for balance tree
@@ -77,7 +77,7 @@ fn verify_merkle_proof<let DEPTH: u32>(
             (path_elements[i], current_hash)
         };
         
-        current_hash = poseidon::bn254::hash_2([left, right]);
+        current_hash = bn254::hash_2([left, right]);
     }
     
     current_hash == root
@@ -308,15 +308,11 @@ fn calculate_price_impact(
     reserve_in: Field,
     reserve_out: Field
 ) -> Field {
-    // Spot price = reserve_out / reserve_in
-    // Execution price = amount_out / amount_in
-    // Price impact = (spot - execution) / spot
-    
     let spot_price_scaled = reserve_out * 10000 / reserve_in;
-    let amount_out = calculate_swap_output(amount_in, reserve_in, reserve_out, 30); // 0.3% fee
+    let amount_out = calculate_swap_output(amount_in, reserve_in, reserve_out, 30);
     let execution_price_scaled = amount_out * 10000 / amount_in;
     
-    if spot_price_scaled > execution_price_scaled {
+    if (spot_price_scaled as u64) > (execution_price_scaled as u64) {
         (spot_price_scaled - execution_price_scaled) * 10000 / spot_price_scaled
     } else {
         0

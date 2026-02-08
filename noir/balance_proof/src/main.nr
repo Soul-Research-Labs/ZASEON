@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title BalanceProofCircuit
 /// @notice Balance Proof Circuit for Soul Exchange
@@ -29,7 +29,7 @@ fn compute_balance_leaf(
     token: Field,
     balance: Field
 ) -> Field {
-    poseidon::bn254::hash_4([user_address, token, balance, 0])
+    bn254::hash_4([user_address, token, balance, 0])
 }
 
 /// Derive nullifier for balance operation
@@ -39,7 +39,7 @@ fn derive_nullifier(
     token: Field,
     salt: Field
 ) -> Field {
-    poseidon::bn254::hash_4([nullifier_secret, user_address, token, salt])
+    bn254::hash_4([nullifier_secret, user_address, token, salt])
 }
 
 /// Verify Merkle proof for balance tree
@@ -62,7 +62,7 @@ fn verify_merkle_proof<let DEPTH: u32>(
             (path_elements[i], current_hash)
         };
         
-        current_hash = poseidon::bn254::hash_2([left, right]);
+        current_hash = bn254::hash_2([left, right]);
     }
     
     current_hash == root
@@ -177,31 +177,18 @@ fn verify_deposit(
     old_proof: ([Field; 20], [Field; 20]),
     new_proof: ([Field; 20], [Field; 20])
 ) -> bool {
-    // Verify old state
     let old_leaf = compute_balance_leaf(inputs.user_address, token, inputs.old_balance);
     let old_valid = verify_merkle_proof(old_leaf, old_root, old_proof.0, old_proof.1);
-    
-    if !old_valid {
-        return false;
-    }
-    
-    // Verify balance update (deposit)
-    if inputs.new_balance != inputs.old_balance + amount {
-        return false;
-    }
-    
-    // Verify new state
+
+    let balance_update_valid = inputs.new_balance == inputs.old_balance + amount;
+
     let new_leaf = compute_balance_leaf(inputs.user_address, token, inputs.new_balance);
     let new_valid = verify_merkle_proof(new_leaf, new_root, new_proof.0, new_proof.1);
-    
-    if !new_valid {
-        return false;
-    }
-    
-    // Verify nullifier
+
     let computed_nullifier = derive_nullifier(inputs.nullifier_secret, inputs.user_address, token, inputs.salt);
-    
-    computed_nullifier == nullifier_hash
+    let nullifier_valid = computed_nullifier == nullifier_hash;
+
+    old_valid & balance_update_valid & new_valid & nullifier_valid
 }
 
 /// External verification helper for withdrawals
@@ -215,36 +202,20 @@ fn verify_withdrawal(
     old_proof: ([Field; 20], [Field; 20]),
     new_proof: ([Field; 20], [Field; 20])
 ) -> bool {
-    // Check sufficient balance first
-    if (inputs.old_balance as u64) < (amount as u64) {
-        return false;
-    }
-    
-    // Verify old state
+    let sufficient = (inputs.old_balance as u64) >= (amount as u64);
+
     let old_leaf = compute_balance_leaf(inputs.user_address, token, inputs.old_balance);
     let old_valid = verify_merkle_proof(old_leaf, old_root, old_proof.0, old_proof.1);
-    
-    if !old_valid {
-        return false;
-    }
-    
-    // Verify balance update (withdrawal)
-    if inputs.new_balance != inputs.old_balance - amount {
-        return false;
-    }
-    
-    // Verify new state
+
+    let balance_update_valid = inputs.new_balance == inputs.old_balance - amount;
+
     let new_leaf = compute_balance_leaf(inputs.user_address, token, inputs.new_balance);
     let new_valid = verify_merkle_proof(new_leaf, new_root, new_proof.0, new_proof.1);
-    
-    if !new_valid {
-        return false;
-    }
-    
-    // Verify nullifier
+
     let computed_nullifier = derive_nullifier(inputs.nullifier_secret, inputs.user_address, token, inputs.salt);
-    
-    computed_nullifier == nullifier_hash
+    let nullifier_valid = computed_nullifier == nullifier_hash;
+
+    sufficient & old_valid & balance_update_valid & new_valid & nullifier_valid
 }
 
 #[test]

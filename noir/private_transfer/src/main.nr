@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title PrivateTransferCircuit
 /// @notice Enables fully private transfers with:
@@ -65,20 +65,20 @@ struct TransferPublicOutputs {
 /// Compute a Pedersen-style commitment using Poseidon
 /// commitment = H(COMMITMENT_DOMAIN, value, blinding)
 fn compute_commitment(value: Field, blinding: Field) -> Field {
-    poseidon::bn254::hash_3([COMMITMENT_DOMAIN, value, blinding])
+    bn254::hash_3([COMMITMENT_DOMAIN, value, blinding])
 }
 
 /// Compute a nullifier from secret and commitment
 /// nullifier = H(NULLIFIER_DOMAIN, secret, commitment)
 fn compute_nullifier(secret: Field, commitment: Field) -> Field {
-    poseidon::bn254::hash_3([NULLIFIER_DOMAIN, secret, commitment])
+    bn254::hash_3([NULLIFIER_DOMAIN, secret, commitment])
 }
 
 /// Compute a key image for linkability
 /// key_image = H(KEY_IMAGE_DOMAIN, secret, H(commitment))
 fn compute_key_image(secret: Field, commitment: Field) -> Field {
-    let commitment_hash = poseidon::bn254::hash_1([commitment]);
-    poseidon::bn254::hash_3([KEY_IMAGE_DOMAIN, secret, commitment_hash])
+    let commitment_hash = bn254::hash_1([commitment]);
+    bn254::hash_3([KEY_IMAGE_DOMAIN, secret, commitment_hash])
 }
 
 /// Verify Merkle tree membership
@@ -102,7 +102,7 @@ fn verify_merkle_proof(
             (path_element, current_hash)
         };
         
-        current_hash = poseidon::bn254::hash_2([left, right]);
+        current_hash = bn254::hash_2([left, right]);
     }
     
     current_hash == root
@@ -124,7 +124,7 @@ fn derive_stealth_address(
     // In production, use actual elliptic curve operations
     
     // Compute shared secret hash (simulating ECDH)
-    let shared_secret = poseidon::bn254::hash_4([
+    let shared_secret = bn254::hash_4([
         STEALTH_DOMAIN,
         view_key_x,
         view_key_y,
@@ -132,14 +132,14 @@ fn derive_stealth_address(
     ]);
     
     // Compute tweak for stealth address
-    let tweak = poseidon::bn254::hash_2([shared_secret, spend_key_x]);
+    let tweak = bn254::hash_2([shared_secret, spend_key_x]);
     
     // Derive stealth address (simplified - in production use curve addition)
-    let stealth_address = poseidon::bn254::hash_3([spend_key_x, spend_key_y, tweak]);
+    let stealth_address = bn254::hash_3([spend_key_x, spend_key_y, tweak]);
     
     // Compute ephemeral public key (simplified)
-    let ephemeral_pub_x = poseidon::bn254::hash_2([ephemeral, 1]);
-    let ephemeral_pub_y = poseidon::bn254::hash_2([ephemeral, 2]);
+    let ephemeral_pub_x = bn254::hash_2([ephemeral, 1]);
+    let ephemeral_pub_y = bn254::hash_2([ephemeral, 2]);
     
     // View tag for efficient scanning (lower bits of shared secret)
     let view_tag = shared_secret;

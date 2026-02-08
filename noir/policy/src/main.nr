@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title PolicyCompliance
 /// @notice Policy Compliance Circuit (PBP)
@@ -26,12 +26,12 @@ struct PolicyInput {
 
 /// Compute user commitment
 fn compute_user_commitment(secret: Field, salt: Field) -> Field {
-    poseidon::bn254::hash_2([secret, salt])
+    bn254::hash_2([secret, salt])
 }
 
 /// Compute policy hash
 fn compute_policy_hash(policy_type: Field, threshold: Field, merkle_root: Field) -> Field {
-    poseidon::bn254::hash_4([policy_type, threshold, merkle_root, 0])
+    bn254::hash_4([policy_type, threshold, merkle_root, 0])
 }
 
 /// Verify Merkle membership
@@ -49,7 +49,7 @@ fn verify_membership<let DEPTH: u32>(
         } else {
             (path_elements[i], current)
         };
-        current = poseidon::bn254::hash_2([left, right]);
+        current = bn254::hash_2([left, right]);
     }
     
     current == root

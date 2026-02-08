@@ -1,48 +1,18 @@
 [workspace]
 members = [
-    "merkle_proof",
-    "nullifier", 
-    "state_commitment",
-    "pedersen_commitment",
-    "cross_chain_proof",
-    "policy",
-    "compliance_proof",
-    "cross_domain_nullifier",
-    "container",
-    "state_transfer",
-    "proof_carrying_container",
-    "policy_bound_proof",
-    "aggregator",
-    "pqc_verifier",
-    "invariant_checker",
-    # Ethereum Roadmap Alignment (Oct 2024)
-    "erc7683_intent",           # The Surge: ERC-7683 private intents
-    "verkle_witness",           # The Verge: Verkle tree verification  
-    "state_expiry_proof",       # The Purge: EIP-7736 resurrection proofs
-    "preconfirmation_proof",    # The Merge: SSF preconfirmations
-    # FHE Implementation
-    "fhe_computation",          # ZK proof of valid FHE computation
-    "encrypted_transfer",       # Confidential transfer proofs
-    # Post-Quantum Cryptography (NIST FIPS 203/204/205)
-    "dilithium_proof",          # ZK proof of Dilithium (ML-DSA) verification
-    "sphincs_proof",            # ZK proof of SPHINCS+ (SLH-DSA) verification
-    "hybrid_pqc_proof",         # ZK proof of hybrid ECDSA+PQC verification
-    # Multi-Party Computation (MPC)
-    "mpc_proof",                # ZK proof of correct MPC participation
-    "threshold_signature_proof", # ZK proof of threshold signature validity
-    # GKR Recursion & Binary Tower Fields
-    "hekate_hash",              # Hekate-Groestl hash for GKR recursion
-    "hekate_benchmark",         # Benchmark: Hekate vs Poseidon vs Keccak
-    "gkr_sumcheck",             # GKR sumcheck with Gruen's trick optimizations
-    # Private Information Retrieval
-    "plinko_pir",               # Plinko PIR for private cross-chain state reads
-    # The Splurge: EVM-MAX, VDF, FHE (Nov 2025)
-    "evm_max",                  # EVM-MAX modular arithmetic (EIP-6690)
-    "vdf_proof",                # VDF for unbiasable randomness
+    # Core circuits — mapped to deployed Solidity contracts
+    "nullifier",                # NullifierRegistryV3 — CDNA nullifier derivation
+    "state_commitment",         # ConfidentialStateContainerV3 — state preimage proof
+    "state_transfer",           # ZKBoundStateLocks — ownership transfer proof
+    "cross_chain_proof",        # CrossChainProofHubV3 — cross-chain relay proof
+    "container",                # ConfidentialStateContainerV3 — container validity
+    "cross_domain_nullifier",   # NullifierRegistryV3 + ZKBoundStateLocks — CDNA
+    "merkle_proof",             # Utility — Merkle inclusion proof
+    # Supporting circuits
     "balance_proof",            # Balance verification proofs
-    "private_order",            # Private order matching proofs
-    "private_transfer",         # Private transfer proofs
-    "ring_signature",           # Ring signature verification
+    "private_transfer",         # Private UTXO transfer (shielded pool)
     "swap_proof",               # Atomic swap proofs
-    "shielded_pool"             # Shielded pool deposit/withdrawal proofs
+    "pedersen_commitment",      # Pedersen commitment utility
+    "compliance_proof",         # Compliance / sanctions proof
+    "policy",                   # Policy verification
 ]

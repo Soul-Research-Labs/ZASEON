@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title ContainerValidity
 /// @notice PC3 Container Validity Circuit
@@ -31,15 +31,15 @@ fn compute_payload_commitment<let N: u32>(
 ) -> Field {
     // Hash payload chunks
     let payload_hash = if N <= 4 {
-        poseidon::bn254::hash_4([payload_chunks[0], payload_chunks[1], payload_chunks[2], payload_chunks[3]])
+        bn254::hash_4([payload_chunks[0], payload_chunks[1], payload_chunks[2], payload_chunks[3]])
     } else {
-        let h1 = poseidon::bn254::hash_4([payload_chunks[0], payload_chunks[1], payload_chunks[2], payload_chunks[3]]);
-        let h2 = poseidon::bn254::hash_4([payload_chunks[4], payload_chunks[5], payload_chunks[6], payload_chunks[7]]);
-        poseidon::bn254::hash_2([h1, h2])
+        let h1 = bn254::hash_4([payload_chunks[0], payload_chunks[1], payload_chunks[2], payload_chunks[3]]);
+        let h2 = bn254::hash_4([payload_chunks[4], payload_chunks[5], payload_chunks[6], payload_chunks[7]]);
+        bn254::hash_2([h1, h2])
     };
     
     // Include salt
-    poseidon::bn254::hash_2([payload_hash, salt])
+    bn254::hash_2([payload_hash, salt])
 }
 
 /// Compute state commitment from payload
@@ -48,12 +48,12 @@ fn compute_state_commitment(
     secret_key: Field,
     salt: Field
 ) -> Field {
-    poseidon::bn254::hash_4([payload_commitment, secret_key, salt, 0])
+    bn254::hash_4([payload_commitment, secret_key, salt, 0])
 }
 
 /// Compute nullifier hash
 fn compute_nullifier(nullifier_secret: Field, secret_key: Field) -> Field {
-    poseidon::bn254::hash_2([nullifier_secret, secret_key])
+    bn254::hash_2([nullifier_secret, secret_key])
 }
 
 /// Check if container has expired
@@ -117,7 +117,7 @@ fn verify_transfer(inputs: TransferInputs, public_inputs: TransferPublicInputs) 
     let nullifier_valid = computed_nullifier == public_inputs.sender_nullifier_hash;
     
     // Step 3: Compute recipient's commitment
-    let computed_recipient = poseidon::bn254::hash_4([
+    let computed_recipient = bn254::hash_4([
         inputs.transfer_amount,
         inputs.recipient_public_key,
         inputs.recipient_salt,
@@ -126,7 +126,7 @@ fn verify_transfer(inputs: TransferInputs, public_inputs: TransferPublicInputs) 
     let commitment_valid = computed_recipient == public_inputs.recipient_commitment;
     
     // Step 4: Verify transfer hash
-    let computed_transfer = poseidon::bn254::hash_4([
+    let computed_transfer = bn254::hash_4([
         public_inputs.sender_nullifier_hash,
         public_inputs.recipient_commitment,
         inputs.transfer_amount,

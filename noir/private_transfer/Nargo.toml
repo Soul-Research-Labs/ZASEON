@@ -2,7 +2,7 @@
 name = "private_transfer"
 type = "bin"
 authors = ["Soul Protocol"]
-compiler_version = ">=0.30.0"
 description = "Private transfer circuit with hidden amounts, stealth addresses, and balance verification"
 
 [dependencies]
+poseidon = { tag = "v0.2.3", git = "https://github.com/noir-lang/poseidon" }

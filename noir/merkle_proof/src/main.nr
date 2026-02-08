@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title MerkleProofVerifier
 /// @notice Optimized Merkle tree inclusion proof for nullifier registry
@@ -38,7 +38,7 @@ fn verify_merkle_proof<let DEPTH: u32>(
         };
 
         // Poseidon hash of (left, right)
-        current_hash = poseidon::bn254::hash_2([left, right]);
+        current_hash = bn254::hash_2([left, right]);
     }
 
     current_hash == root
@@ -87,7 +87,7 @@ fn test_merkle_proof_single_level() {
     // Simple test with depth 1
     let leaf = 0x1234;
     let sibling = 0x5678;
-    let expected_root = poseidon::bn254::hash_2([leaf, sibling]);
+    let expected_root = bn254::hash_2([leaf, sibling]);
     
     let path_indices: [Field; 1] = [0]; // leaf is on left
     let siblings: [Field; 1] = [sibling];

@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title CrossDomainNullifierCircuit
 /// @notice Circuit for domain-separated nullifiers (CDNA)
@@ -54,12 +54,12 @@ struct TransferOutput {
 
 /// Compute domain separator for nullifier scope
 fn compute_domain_separator(domain: DomainContext) -> Field {
-    poseidon::bn254::hash_4([CDNA_PREFIX, domain.chain_id, domain.app_id, domain.epoch_id])
+    bn254::hash_4([CDNA_PREFIX, domain.chain_id, domain.app_id, domain.epoch_id])
 }
 
 /// Compute a Pedersen-style commitment using Poseidon
 fn compute_commitment(c: Commitment) -> Field {
-    poseidon::bn254::hash_3([COMMITMENT_DOMAIN, c.value, c.blinding])
+    bn254::hash_3([COMMITMENT_DOMAIN, c.value, c.blinding])
 }
 
 /// Compute a domain-separated nullifier
@@ -69,13 +69,13 @@ fn compute_domain_nullifier(
     transition_id: Field
 ) -> Field {
     let separator = compute_domain_separator(domain);
-    poseidon::bn254::hash_4([secret, separator, transition_id, 0])
+    bn254::hash_4([secret, separator, transition_id, 0])
 }
 
 /// Compute nullifier from secret and commitment (for transfer inputs)
 fn compute_nullifier_from_commitment(secret: Field, commitment_hash: Field, domain: DomainContext) -> Field {
     let separator = compute_domain_separator(domain);
-    poseidon::bn254::hash_4([NULLIFIER_DOMAIN, secret, commitment_hash, separator])
+    bn254::hash_4([NULLIFIER_DOMAIN, secret, commitment_hash, separator])
 }
 
 /// Verify Merkle tree membership proof
@@ -100,7 +100,7 @@ fn verify_merkle_proof(
             (path_element, current_hash)
         };
         
-        current_hash = poseidon::bn254::hash_2([left, right]);
+        current_hash = bn254::hash_2([left, right]);
     }
     
     current_hash == root
@@ -133,7 +133,7 @@ fn derive_child_secret(
     source_nullifier: Field,
     target_chain_id: Field
 ) -> Field {
-    poseidon::bn254::hash_4([parent_secret, source_nullifier, target_chain_id, 0])
+    bn254::hash_4([parent_secret, source_nullifier, target_chain_id, 0])
 }
 
 /// Verify cross-domain nullifier derivation
@@ -150,7 +150,7 @@ fn verify_cross_domain_derivation(
     derivation_nonce: Field
 ) -> bool {
     // Step 1: Verify source nullifier derivation
-    let source_transition_id = poseidon::bn254::hash_1([derivation_nonce]);
+    let source_transition_id = bn254::hash_1([derivation_nonce]);
     let computed_source = compute_domain_nullifier(
         parent_secret,
         source_domain,
@@ -309,7 +309,7 @@ fn test_commitment_determinism() {
 #[test]
 fn test_merkle_proof_verification() {
     // Single-element tree test
-    let leaf = poseidon::bn254::hash_1([42]);
+    let leaf = bn254::hash_1([42]);
     
     // Build a simple Merkle path to a root
     let mut path: [Field; 20] = [0; 20];
@@ -319,7 +319,7 @@ fn test_merkle_proof_verification() {
     let mut current = leaf;
     for i in 0..20 {
         path[i] = 0; // Zero sibling
-        current = poseidon::bn254::hash_2([current, 0]);
+        current = bn254::hash_2([current, 0]);
     }
     
     // Verify the proof

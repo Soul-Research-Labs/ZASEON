@@ -1,5 +1,5 @@
 use std::hash::pedersen_hash;
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title PedersenStateCommitment
 /// @notice State commitment using Pedersen hash for hiding property
@@ -28,7 +28,7 @@ fn compute_pedersen_commitment(value: Field, blinding: Field) -> Field {
 
 /// Derive owner public key from secret
 fn derive_owner_pubkey(owner_secret: Field) -> Field {
-    poseidon::bn254::hash_1([owner_secret])
+    bn254::hash_1([owner_secret])
 }
 
 /// Verify a Pedersen state commitment

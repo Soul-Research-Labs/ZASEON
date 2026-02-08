@@ -2,7 +2,7 @@
 name = "swap_proof"
 type = "bin"
 authors = ["Soul Team"]
-compiler_version = ">=0.30.0"
 description = "AMM swap proof circuit for Soul Exchange with constant product verification"
 
 [dependencies]
+poseidon = { tag = "v0.2.3", git = "https://github.com/noir-lang/poseidon" }

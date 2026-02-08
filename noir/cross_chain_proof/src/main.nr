@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title CrossChainProofCircuit
 /// @notice Optimized circuit for cross-chain proof relay
@@ -26,12 +26,12 @@ struct DestinationContext {
 
 /// Derive relayer public key from secret
 fn derive_relayer_pubkey(relayer_secret: Field) -> Field {
-    poseidon::bn254::hash_1([relayer_secret])
+    bn254::hash_1([relayer_secret])
 }
 
 /// Compute proof commitment from source data
 fn compute_proof_commitment(source: SourceProofData) -> Field {
-    poseidon::bn254::hash_4([
+    bn254::hash_4([
         source.proof_hash,
         source.state_root,
         source.block_number,
@@ -44,7 +44,7 @@ fn compute_dest_proof_hash(
     proof_commitment: Field,
     dest: DestinationContext
 ) -> Field {
-    poseidon::bn254::hash_4([
+    bn254::hash_4([
         proof_commitment,
         dest.chain_id,
         dest.relayer_pubkey,
@@ -114,7 +114,7 @@ fn verify_batch_cross_chain_proofs<let BATCH_SIZE: u32>(
     }
     
     // Aggregate proof hashes
-    let aggregated = poseidon::bn254::hash_4([
+    let aggregated = bn254::hash_4([
         proof_hashes[0],
         proof_hashes[1],
         proof_hashes[2],

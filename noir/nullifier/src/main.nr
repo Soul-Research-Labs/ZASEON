@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title NullifierDerivation
 /// @notice Cross-Domain Nullifier Circuit (CDNA)
@@ -29,7 +29,7 @@ fn verify_commitment(
     salt: Field,
     expected_commitment: Field
 ) -> bool {
-    let computed = poseidon::bn254::hash_4([secret, asset_id, amount, salt]);
+    let computed = bn254::hash_4([secret, asset_id, amount, salt]);
     computed == expected_commitment
 }
 
@@ -40,7 +40,7 @@ fn derive_nullifier(
     domain_id: Field,
     nonce: Field
 ) -> Field {
-    poseidon::bn254::hash_4([secret, commitment, domain_id, nonce])
+    bn254::hash_4([secret, commitment, domain_id, nonce])
 }
 
 /// Full nullifier derivation verification
@@ -89,7 +89,7 @@ fn verify_merkle_membership<let DEPTH: u32>(
             (siblings[i], current)
         };
         
-        current = poseidon::bn254::hash_2([left, right]);
+        current = bn254::hash_2([left, right]);
     }
     
     current == root

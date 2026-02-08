@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title StateTransferCircuit  
 /// @notice Optimized circuit for proving valid state ownership transfer
@@ -33,27 +33,27 @@ struct StateTransferPublicInputs {
 /// Hash state fields
 fn hash_state_fields<let N: u32>(fields: [Field; N]) -> Field {
     if N <= 4 {
-        poseidon::bn254::hash_4([fields[0], fields[1], fields[2], fields[3]])
+        bn254::hash_4([fields[0], fields[1], fields[2], fields[3]])
     } else {
-        let h1 = poseidon::bn254::hash_4([fields[0], fields[1], fields[2], fields[3]]);
-        let h2 = poseidon::bn254::hash_4([fields[4], fields[5], fields[6], fields[7]]);
-        poseidon::bn254::hash_2([h1, h2])
+        let h1 = bn254::hash_4([fields[0], fields[1], fields[2], fields[3]]);
+        let h2 = bn254::hash_4([fields[4], fields[5], fields[6], fields[7]]);
+        bn254::hash_2([h1, h2])
     }
 }
 
 /// Derive public key from secret
 fn derive_pubkey(secret: Field) -> Field {
-    poseidon::bn254::hash_1([secret])
+    bn254::hash_1([secret])
 }
 
 /// Compute commitment
 fn compute_commitment(state_hash: Field, salt: Field, secret: Field) -> Field {
-    poseidon::bn254::hash_4([state_hash, salt, secret, 0])
+    bn254::hash_4([state_hash, salt, secret, 0])
 }
 
 /// Compute nullifier
 fn compute_nullifier(commitment: Field, secret: Field, nonce: Field) -> Field {
-    poseidon::bn254::hash_4([commitment, secret, nonce, 0])
+    bn254::hash_4([commitment, secret, nonce, 0])
 }
 
 /// Verify state transfer
