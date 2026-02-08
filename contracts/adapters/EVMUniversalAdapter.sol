@@ -5,6 +5,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IUniversalChainAdapter} from "../interfaces/IUniversalChainAdapter.sol";
+import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 import {UniversalChainRegistry} from "../libraries/UniversalChainRegistry.sol";
 
 /**
@@ -267,10 +268,28 @@ contract EVMUniversalAdapter is
             "Payload too large"
         );
 
-        // Verify the ZK proof
-        // In production, this delegates to the appropriate verifier
-        // For now we do inline verification
-        require(transfer.proof.length > 0, "Empty proof");
+        // Verify the ZK proof via the registered verifier
+        {
+            address verifier = proofVerifiers[chainDescriptor.proofSystem];
+            if (verifier == address(0)) {
+                revert ProofVerificationFailed(transfer.transferId);
+            }
+
+            // Construct public inputs from transfer data
+            uint256[] memory publicInputs = new uint256[](4);
+            publicInputs[0] = uint256(transfer.stateCommitment);
+            publicInputs[1] = uint256(transfer.nullifier);
+            publicInputs[2] = uint256(transfer.sourceChainId);
+            publicInputs[3] = uint256(transfer.newCommitment);
+
+            bool proofValid = IProofVerifier(verifier).verify(
+                transfer.proof,
+                publicInputs
+            );
+            if (!proofValid) {
+                revert ProofVerificationFailed(transfer.transferId);
+            }
+        }
 
         // Mark nullifier as used
         nullifierUsed[transfer.nullifier] = true;
@@ -396,12 +415,28 @@ contract EVMUniversalAdapter is
             );
         }
 
-        // Verify the proof
-        bool valid = _inlineVerifyProof(
-            universalProof.proof,
-            universalProof.publicInputs,
-            universalProof.proofSystem
-        );
+        // Verify the proof — try registered verifier first, then inline fallback
+        address verifier = proofVerifiers[universalProof.proofSystem];
+        bool valid;
+        if (verifier != address(0)) {
+            uint256[] memory pubInputs = new uint256[](
+                universalProof.publicInputs.length
+            );
+            for (uint256 i; i < universalProof.publicInputs.length; ) {
+                pubInputs[i] = uint256(universalProof.publicInputs[i]);
+                unchecked { ++i; }
+            }
+            valid = IProofVerifier(verifier).verify(
+                universalProof.proof,
+                pubInputs
+            );
+        } else {
+            valid = _inlineVerifyProof(
+                universalProof.proof,
+                universalProof.publicInputs,
+                universalProof.proofSystem
+            );
+        }
 
         if (!valid) {
             revert ProofVerificationFailed(universalProof.proofId);
