@@ -239,7 +239,7 @@
 //////////////////////////////////////////////////////////////*/
 
 /**
- * INVARIANTS for SoulTimelock
+ * INVARIANTS for SoulUpgradeTimelock
  *
  * INV-TL-001: Delay bounds
  *   MIN_DELAY_FLOOR ≤ minDelay ≤ MAX_DELAY
@@ -262,7 +262,7 @@
  */
 
 /**
- * SAFETY PROPERTIES for SoulTimelock
+ * SAFETY PROPERTIES for SoulUpgradeTimelock
  *
  * SAFE-TL-001: Execution requires sufficient delay
  *   ∀ op: execute(op) successful ⟹ 
@@ -327,7 +327,7 @@
  *     "contracts/primitives/PolicyBoundProofs.sol",
  *     "contracts/primitives/ExecutionAgnosticStateCommitments.sol",
  *     "contracts/primitives/CrossDomainNullifierAlgebra.sol",
- *     "contracts/security/SoulTimelock.sol"
+ *     "contracts/governance/SoulUpgradeTimelock.sol"
  *   ],
  *   "verify": "ProofCarryingContainer:specs/Soul.spec",
  *   "rule_sanity": "basic",

@@ -1,10 +1,10 @@
 /**
- * @title Certora Verification Rules for SoulTimelock
+ * @title Certora Verification Rules for SoulUpgradeTimelock
  * @notice Machine-verifiable specifications for timelock security properties
- * @dev Run with: certoraRun specs/Timelock.spec --contract SoulTimelock
+ * @dev Run with: certoraRun specs/Timelock.spec --contract SoulUpgradeTimelock
  */
 
-using SoulTimelock as TL;
+using SoulUpgradeTimelock as TL;
 
 /*//////////////////////////////////////////////////////////////
                          METHODS
