@@ -1,8 +1,6 @@
 # Soul Deployment Guide
 
-> **Complete process for deploying Soul to Ethereum mainnet and L2 networks**
-
-[![Networks](https://img.shields.io/badge/Networks-Ethereum%20|%20Arbitrum%20|%20Base-blue.svg)]()
+> **Deploy Soul Protocol to Ethereum testnets and L2 networks**
 
 ---
 
@@ -10,7 +8,7 @@
 
 - [Pre-Deployment Checklist](#pre-deployment-checklist)
 - [Environment Setup](#environment-setup)
-- [Trusted Setup Ceremony](#trusted-setup-ceremony-groth16)
+- [ZK Circuit Setup](#zk-circuit-setup)
 - [Deployment Steps](#deployment-steps)
 - [Post-Deployment Verification](#post-deployment-verification)
 - [Multi-Chain Deployment](#multi-chain-deployment)
@@ -19,18 +17,26 @@
 
 ---
 
-> Complete process for deploying Soul to Ethereum mainnet and L2 networks.
-
-For **live deployed addresses**, see [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md).
-
----
-
 ## Pre-Deployment Checklist
 
-**Code:** Tests passing, audit complete, code freeze  
-**Security:** Multi-sig wallets, hardware keys, emergency procedures  
-**Infra:** RPC endpoints, block explorer APIs, monitoring  
-**Funding:** 2-5 ETH for deployment, treasury funded
+**Code:**
+- [ ] All tests passing (`forge test -vvv` and `npx hardhat test`)
+- [ ] No compiler warnings
+- [ ] Code freeze applied
+
+**Security:**
+- [ ] Multi-sig wallets created for admin roles
+- [ ] Hardware wallet for deployer key
+- [ ] Emergency pause procedures documented
+- [ ] Role separation verified (`npx hardhat run scripts/verify-role-separation.ts`)
+
+**Infrastructure:**
+- [ ] RPC endpoints configured (Alchemy, Infura)
+- [ ] Block explorer API keys for contract verification
+- [ ] Monitoring configured (see `monitoring/`)
+
+**Funding:**
+- [ ] Deployer wallet funded (2-5 ETH for full deployment)
 
 ---
 
@@ -38,7 +44,7 @@ For **live deployed addresses**, see [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKL
 
 ### 1. Configure Environment Variables
 
-Create a `.env` file with the following:
+Create a `.env` file:
 
 ```bash
 # Deployer wallet (use hardware wallet in production)
@@ -46,19 +52,21 @@ PRIVATE_KEY=your_private_key_here
 
 # RPC Endpoints
 ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
 ARBITRUM_RPC_URL=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
 BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY
 OPTIMISM_RPC_URL=https://opt-mainnet.g.alchemy.com/v2/YOUR_KEY
 
+# Testnet RPCs
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+ARBITRUM_SEPOLIA_RPC_URL=https://arb-sepolia.g.alchemy.com/v2/YOUR_KEY
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+
 # Block Explorer API Keys
 ETHERSCAN_API_KEY=your_etherscan_key
-POLYGONSCAN_API_KEY=your_polygonscan_key
 ARBISCAN_API_KEY=your_arbiscan_key
 BASESCAN_API_KEY=your_basescan_key
-OPTIMISM_ETHERSCAN_API_KEY=your_optimism_key
 
-# Multi-sig addresses
+# Multi-sig addresses (set before mainnet deployment)
 MULTISIG_ADMIN=0x...your_admin_multisig
 MULTISIG_TREASURY=0x...your_treasury_multisig
 
@@ -66,117 +74,199 @@ MULTISIG_TREASURY=0x...your_treasury_multisig
 TIMELOCK_MIN_DELAY=172800  # 48 hours in seconds
 ```
 
-### 2. Verify Configuration
+### 2. Build Contracts
 
 ```bash
-# Check network connectivity
-npx hardhat run scripts/helpers/check-networks.js
-
-# Verify deployer balance
-npx hardhat run scripts/helpers/check-balance.js --network mainnet
+forge build && npx hardhat compile
 ```
 
 ---
 
-## Trusted Setup Ceremony (Groth16)
+## ZK Circuit Setup
+
+Soul uses **Noir circuits** compiled to **UltraHonk proofs** — no trusted setup ceremony is required.
+
+### Compile Circuits
 
 ```bash
-./scripts/compile-circuits.sh              # Compile circuits
-./scripts/trusted-setup-ceremony.sh init   # Initialize
-./scripts/trusted-setup-ceremony.sh contribute --name "participant1"  # Each contributor
-./scripts/trusted-setup-ceremony.sh finalize  # Finalize
-./scripts/trusted-setup-ceremony.sh verify    # Verify parameters
+# Compile all Noir circuits
+./scripts/compile-noir-circuits.sh
 ```
+
+### Generate Solidity Verifiers
+
+```bash
+# Generate UltraHonk verifiers for on-chain verification
+npx hardhat run scripts/deploy-with-verifiers.ts
+```
+
+Generated verifiers are placed in `contracts/verifiers/generated/` and integrated via `UltraHonkAdapter.sol`.
+
+Available circuits:
+| Circuit | Public Inputs | Purpose |
+|---------|--------------|---------|
+| `nullifier` | 20 | Nullifier derivation |
+| `state_transfer` | 23 | Cross-chain state transfer |
+| `container` | 21 | Proof-carrying container |
+| `state_commitment` | 19 | State commitment attestation |
+| `cross_chain_proof` | 23 | Cross-chain proof aggregation |
+| `private_transfer` | — | Private token transfer |
+| `cross_domain_nullifier` | — | Cross-domain nullifier derivation |
+| `policy` | — | Policy compliance |
 
 ---
 
 ## Deployment Steps
 
-### Step 1: Dry Run on Testnet
+### Step 1: Deploy to Testnet (Sepolia)
 
 Always test on Sepolia first:
 
 ```bash
-npx hardhat run scripts/deploy-soul-testnet.js --network sepolia
+npx hardhat run scripts/deploy/deploy-testnet.ts --network sepolia
 ```
 
-### Step 2: Estimate Mainnet Costs
+### Step 2: Deploy V3 Core Contracts
+
+The main deployment script deploys all core contracts:
 
 ```bash
-npx hardhat run scripts/helpers/estimate-deployment.js --network mainnet
+npx hardhat run scripts/deploy-v3.ts --network sepolia
 ```
 
-Expected costs (at ~30 gwei):
+### Step 3: Deploy Cross-Chain Infrastructure
+
+Deploy the cross-chain relay and nullifier sync to Arbitrum Sepolia and Base Sepolia:
+
+```bash
+npx hardhat run scripts/deploy-cross-chain.ts
+```
+
+This deploys:
+- `SoulCrossChainRelay` — proof relay with LayerZero/Hyperlane bridge support
+- `CrossChainNullifierSync` — bidirectional nullifier synchronization
+
+### Step 4: Deploy Privacy Middleware
+
+```bash
+npx hardhat run scripts/deploy/deploy-privacy-middleware.ts --network sepolia
+```
+
+### Step 5: Deploy L2 Bridge Adapters
+
+```bash
+# All testnets
+./scripts/deploy/deploy-all-testnets.sh
+
+# Or individual bridges
+npx hardhat run scripts/deploy/deploy-arbitrum-bridge.ts --network arbitrumSepolia
+npx hardhat run scripts/deploy/deploy-base-bridge.ts --network baseSepolia
+npx hardhat run scripts/deploy/deploy-layerzero-bridge.ts --network sepolia
+npx hardhat run scripts/deploy/deploy-hyperlane-adapter.ts --network sepolia
+```
+
+### Step 6: Verify Contracts
+
+```bash
+# Verify contracts on block explorers
+npx hardhat run scripts/verify-contracts.ts --network sepolia
+
+# Or manual verification
+npx hardhat run scripts/verify-manual.ts --network sepolia
+```
+
+### Expected Deployment Costs
+
+At ~30 gwei (Ethereum mainnet):
+
 | Contract | Estimated Gas | Cost (ETH) |
 |----------|---------------|------------|
-| Groth16VerifierBN254 | ~2,500,000 | ~0.075 |
+| ZKBoundStateLocks | ~3,000,000 | ~0.090 |
 | ProofCarryingContainer | ~2,800,000 | ~0.084 |
 | PolicyBoundProofs | ~2,300,000 | ~0.069 |
-| EASC | ~2,000,000 | ~0.060 |
-| CDNA | ~2,300,000 | ~0.069 |
-| Soulv2Orchestrator | ~1,400,000 | ~0.042 |
-| SoulTimelock | ~2,300,000 | ~0.069 |
-| SoulMultiSigGovernance | ~3,500,000 | ~0.105 |
-| TEEAttestation | ~2,200,000 | ~0.066 |
-| ZKBoundStateLocks | ~3,000,000 | ~0.090 |
-| BridgeWatchtower | ~2,100,000 | ~0.063 |
-| SoulPreconfirmationHandler | ~1,800,000 | ~0.054 |
-| ConfidentialDataAvailability | ~3,200,000 | ~0.096 |
-| MPCGateway | ~3,100,000 | ~0.093 |
-| **Total** | **~35,500,000** | **~1.07** |
+| ExecutionAgnosticStateCommitments | ~2,000,000 | ~0.060 |
+| CrossDomainNullifierAlgebra | ~2,300,000 | ~0.069 |
+| SoulCrossChainRelay | ~2,500,000 | ~0.075 |
+| CrossChainNullifierSync | ~2,200,000 | ~0.066 |
+| UniversalShieldedPool | ~3,200,000 | ~0.096 |
+| UltraHonk Verifiers (×8) | ~12,000,000 | ~0.360 |
+| **Total** | **~32,300,000** | **~0.97** |
 
-### Step 3: Deploy to Mainnet
-
-```bash
-# Full deployment
-npx hardhat run scripts/deploy-mainnet.js --network mainnet
-
-# Or step-by-step
-npx hardhat run scripts/deploy-core.js --network mainnet
-npx hardhat run scripts/deploy-primitives.js --network mainnet
-npx hardhat run scripts/deploy-governance.js --network mainnet
-```
-
-### Step 4: Verify Contracts
-
-```bash
-# Automated verification
-npx hardhat verify --network mainnet DEPLOYED_ADDRESS
-
-# Or use the batch verification script
-./scripts/verify-all.sh mainnet
-```
+L2 deployment costs are significantly lower (1-10% of L1).
 
 ---
 
 ## Post-Deployment Verification
 
 ```bash
-npx hardhat run scripts/verify-deployment.js --network mainnet  # Run checks
-npx hardhat verify --network mainnet DEPLOYED_ADDRESS           # Etherscan
-npx hardhat run scripts/test-mainnet-operations.js              # Test ops
-npx hardhat run scripts/transfer-ownership.js --network mainnet # Transfer to multi-sig
+# Test deployed contracts
+npx hardhat run scripts/test-deployed.ts --network sepolia
+
+# Verify role separation
+npx hardhat run scripts/verify-role-separation.ts --network sepolia
+
+# Verify contracts on block explorer
+npx hardhat verify --network sepolia DEPLOYED_ADDRESS
 ```
+
+Deployment addresses are saved to `deployments/`.
 
 ---
 
 ## Multi-Chain Deployment
 
-**Networks:** Ethereum (1), Polygon (137), Arbitrum (42161), Base (8453), Optimism (10)
+### Supported Networks
+
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Ethereum Sepolia | 11155111 | Testnet |
+| Arbitrum Sepolia | 421614 | Testnet |
+| Base Sepolia | 84532 | Testnet |
+| Ethereum Mainnet | 1 | Planned |
+| Arbitrum One | 42161 | Planned |
+| Base | 8453 | Planned |
+| Optimism | 10 | Planned |
+
+### Cross-Chain Configuration
+
+After deploying to multiple chains, configure the cross-chain relay:
 
 ```bash
-./scripts/deploy-multichain.sh --all                  # All networks
-./scripts/deploy-multichain.sh --networks polygon,arbitrum  # Specific
-npx hardhat run scripts/configure-crosschain.js --network mainnet  # Configure bridges
+npx hardhat run scripts/deploy-cross-chain.ts
 ```
+
+This sets up:
+- Bridge adapters (LayerZero endpoints, Hyperlane mailboxes)
+- Trusted remote pairs between relay contracts
+- Nullifier sync intervals and batch sizes
 
 ---
 
 ## Security
 
-**Roles:** `DEFAULT_ADMIN` (Timelock), `PAUSER` (Multi-sig 2/3), `UPGRADER` (Timelock), `OPERATOR` (Team)  
-**Timelock:** 48h standard, 6h emergency, 24h params  
-**Emergency:** `Soulv2Orchestrator.pause()` | Circuit breaker auto-pause
+### Access Control Roles
+
+| Role | Holder | Purpose |
+|------|--------|---------|
+| `DEFAULT_ADMIN_ROLE` | Timelock | Role admin, upgrade authority |
+| `PAUSER_ROLE` | Multi-sig (2/3) | Emergency pause |
+| `OPERATOR_ROLE` | Relayer/Team | Day-to-day operations |
+| `RELAYER_ROLE` | Relayer nodes | Proof relay operations |
+| `BRIDGE_ROLE` | Bridge adapters | Cross-chain message receiving |
+
+### Timelock Delays
+
+| Action | Delay |
+|--------|-------|
+| Standard operations | 48 hours |
+| Emergency pause | Immediate (multi-sig) |
+| Parameter changes | 24 hours |
+
+### Emergency Procedures
+
+1. **Pause**: Any `PAUSER_ROLE` holder can call `pause()` on any contract
+2. **Circuit breaker**: Auto-pause on anomalous activity
+3. **Recovery**: Admin can unpause after investigation via timelock
 
 ---
 
@@ -184,12 +274,14 @@ npx hardhat run scripts/configure-crosschain.js --network mainnet  # Configure b
 
 | Issue | Fix |
 |-------|-----|
-| Insufficient funds | Fund deployer, check gas prices |
-| Verification failed | Match compiler settings exactly |
+| Insufficient funds | Fund deployer wallet, check gas prices |
+| Verification failed | Ensure compiler settings match (solc 0.8.24, via_ir, optimizer) |
 | Tx reverted | Check constructor args, deploy dependencies first |
-
-**Support:** [Discord](https://discord.gg/soulprotocol) | [GitHub Issues](https://github.com/soul-protocol/issues)
+| Noir compilation error | Ensure nargo 1.0.0-beta.18+, check `noir/circuits/` |
+| Verifier mismatch | Re-generate verifiers with matching circuit version |
 
 ---
 
-**Deployment addresses:** `deployments/mainnet_<timestamp>.json` and `deployments/latest.json`
+**Deployment addresses:** `deployments/<network>-<chainId>.json`
+
+**Next:** [Architecture](architecture.md) | [Integration Guide](INTEGRATION_GUIDE.md) | [Security](../SECURITY.md)

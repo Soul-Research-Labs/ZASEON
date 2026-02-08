@@ -1,8 +1,7 @@
 # Getting Started with Soul
 
-> **Soul Protocol** - Cross-chain privacy infrastructure for Ethereum L2s
+> **Soul Protocol** — Cross-chain ZK privacy middleware for confidential state transfer across L2 networks.
 
-[![npm](https://img.shields.io/badge/npm-@soulprotocol/sdk-blue.svg)](https://www.npmjs.com/package/@soulprotocol/sdk)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -28,23 +27,20 @@
 | Git | 2.40+ | `git --version` |
 | Foundry | Latest | `forge --version` |
 
+**Optional (for ZK circuit development):**
+
+| Requirement | Version | Check Command |
+|-------------|---------|---------------|
+| Noir (nargo) | 1.0.0-beta.18+ | `nargo --version` |
+| Barretenberg (bb) | 0.82+ | `bb --version` |
+
 **Network Access:**
 - RPC endpoint (Alchemy, Infura, or local Anvil)
-- Testnet ETH for Sepolia (get from [faucets](#testnet-faucets))
-
-**Optional:**
-- TypeScript 5.9+ (for type safety)
-- Noir 1.0+ (for ZK circuit development)
+- Testnet ETH for Sepolia (see [faucets](#testnet-faucets))
 
 ---
 
 ## Installation
-
-### From npm
-
-```bash
-npm install @soulprotocol/sdk
-```
 
 ### From Source
 
@@ -52,89 +48,96 @@ npm install @soulprotocol/sdk
 git clone https://github.com/Soul-Research-Labs/SOUL.git
 cd SOUL
 npm install
+```
+
+### Build Contracts
+
+```bash
+# Foundry (primary)
+forge build
+
+# Hardhat (secondary)
 npx hardhat compile
 ```
 
-### Foundry Setup
+### Noir Circuits (Optional)
 
 ```bash
-# Install Foundry if not already installed
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
+# Install Noir toolchain
+curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+noirup -v 1.0.0-beta.18
 
-# Build with Foundry
-forge build
+# Compile all circuits
+./scripts/compile-noir-circuits.sh
+
+# Generate UltraHonk Solidity verifiers
+for circuit in noir/circuits/*/; do
+  name=$(basename "$circuit")
+  cd "$circuit" && nargo compile && cd -
+  bb write_vk_ultra_honk -b "$circuit/target/${name}.json" -o "$circuit/target/vk"
+  bb contract_ultra_honk -k "$circuit/target/vk" -o "contracts/verifiers/generated/${name}Verifier.sol"
+done
 ```
 
 ### Verify Installation
 
 ```bash
-npx hardhat compile --quiet && echo "✅ Hardhat compilation successful"
-forge build --quiet && echo "✅ Foundry compilation successful"
+forge build --quiet && echo "Foundry OK"
+npx hardhat compile --quiet && echo "Hardhat OK"
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Initialize the SDK
+### 1. Initialize the Client
 
 ```typescript
-import { SoulSDK } from '@soulprotocol/sdk';
+import { createSoulClient } from '@soul/sdk';
 
-// Create SDK instance
-const soul = new SoulSDK({
+// Create client (uses viem under the hood)
+const client = createSoulClient({
   rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY',
-  privateKey: process.env.PRIVATE_KEY,  // Optional: for signing transactions
-  network: 'sepolia'
+  chainId: 11155111,  // Sepolia
+  privateKey: '0x...',  // Optional: for signing transactions
 });
-
-// Connect to deployed contracts
-await soul.connect();
-console.log('✅ Connected to Soul Protocol');
 ```
 
-### 2. Create Your First ZK-Bound State Lock
+### 2. Create a ZK-Bound State Lock
 
 ```typescript
-// Generate cryptographic primitives
-const secret = soul.crypto.randomBytes(32);
-const nullifier = soul.crypto.poseidon([secret, 0n]);
-const commitment = soul.crypto.poseidon([secret, 1n]);
-
-// Create a state lock
-const lock = await soul.zkSlocks.createLock({
-  oldStateCommitment: commitment,
-  transitionPredicateHash: '0x...', // Your circuit hash
-  policyHash: '0x0', // No policy for this example
-  domainSeparator: await soul.zkSlocks.generateDomainSeparator('sepolia', 1),
-  unlockDeadline: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+// Create a lock that can only be unlocked with a valid ZK proof
+const lockTx = await client.createLock({
+  commitment: '0x...',       // Pedersen commitment
+  nullifierHash: '0x...',    // Hash of the nullifier
+  amount: 1000000000000000000n, // 1 ETH
+  destinationChainId: 42161, // Arbitrum
+  expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour
 });
 
-console.log('🔒 Lock created:', lock.lockId);
+console.log('Lock created:', lockTx);
 ```
 
 ### 3. Unlock with a ZK Proof
 
 ```typescript
-import { generateProof } from '@soulprotocol/sdk';
+// Generate proof off-chain using NoirProver
+import { NoirProver } from '@soul/sdk';
 
-// Generate the ZK proof (off-chain)
-const proof = await generateProof({
-  circuit: 'transfer',
-  inputs: { secret, nullifier, commitment }
+const prover = new NoirProver();
+const proof = await prover.generateProof('state_transfer', {
+  secret: '0x...',
+  nullifier: '0x...',
+  commitment: '0x...',
 });
 
-// Unlock the state
-await soul.zkSlocks.unlock({
-  lockId: lock.lockId,
-  zkProof: proof.proof,
-  newStateCommitment: newCommitment,
-  nullifier: nullifier,
-  verifierKeyHash: proof.vkHash
+// Submit proof on-chain to unlock
+const unlockTx = await client.unlockWithProof({
+  lockId: lockTx.lockId,
+  proof: proof.proof,
+  nullifier: '0x...',
+  newStateCommitment: '0x...',
 });
-
-console.log('🔓 State unlocked successfully!');
 ```
 
 ---
@@ -143,90 +146,96 @@ console.log('🔓 State unlocked successfully!');
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Soul CORE PRIMITIVES                           │
+│                    Soul CORE PRIMITIVES                          │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │  ZK-SLocks   │  │     PC³      │  │     CDNA     │           │
-│  │  State Locks │  │  Containers  │  │  Nullifiers  │           │
-│  └──────────────┘  └──────────────┘  └──────────────┘           │
-│         │                 │                 │                    │
-│         └─────────────────┼─────────────────┘                    │
-│                           ▼                                      │
-│               ┌──────────────────────┐                          │
-│               │  Cross-Chain Privacy │                          │
-│               │     Transactions     │                          │
-│               └──────────────────────┘                          │
-│                                                                  │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  ZK-SLocks   │  │     PC³      │  │     CDNA     │          │
+│  │  State Locks │  │  Containers  │  │  Nullifiers  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│         │                 │                 │                   │
+│         └─────────────────┼─────────────────┘                   │
+│                           ▼                                     │
+│               ┌──────────────────────┐                         │
+│               │  Cross-Chain Privacy │                         │
+│               │     Transactions     │                         │
+│               └──────────────────────┘                         │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-| Primitive | Purpose | When to Use |
-|-----------|---------|-------------|
-| **ZK-SLocks** | Lock state, unlock with ZK proof | Cross-chain atomic operations |
-| **PC³** | Self-authenticating containers | Portable proofs between chains |
-| **CDNA** | Cross-domain nullifiers | Prevent double-spending |
-| **PBP** | Policy-bound proofs | Compliant privacy (KYC/AML) |
-| **EASC** | Backend-agnostic commitments | Multi-backend verification |
+| Primitive | Contract | Purpose |
+|-----------|----------|---------|
+| **ZK-SLocks** | `ZKBoundStateLocks` | Lock state, unlock with ZK proof for cross-chain atomic ops |
+| **PC³** | `ProofCarryingContainer` | Self-authenticating containers for portable proofs between chains |
+| **CDNA** | `CrossDomainNullifierAlgebra` | Cross-domain nullifier tracking to prevent double-spending |
+| **PBP** | `PolicyBoundProofs` | Policy-bound proofs for compliant privacy (KYC/AML) |
+| **EASC** | `ExecutionAgnosticStateCommitments` | Backend-agnostic state commitments for multi-backend verification |
+
+### ZK Backend: Noir + UltraHonk
+
+Soul uses **Noir** circuits compiled to **UltraHonk** proofs (no trusted setup required). Generated Solidity verifiers are deployed on-chain and integrated via `UltraHonkAdapter.sol`.
+
+Available circuits (in `noir/circuits/`):
+- `nullifier` — Nullifier derivation proof
+- `state_transfer` — Cross-chain state transfer
+- `container` — Proof-carrying container verification
+- `state_commitment` — State commitment attestation
+- `cross_chain_proof` — Cross-chain proof aggregation
+- `private_transfer` — Private token transfers
+- `cross_domain_nullifier` — Cross-domain nullifier derivation
+- `policy` — Policy compliance verification
 
 ---
 
 ## Complete Example: Private Cross-Chain Transfer
 
 ```typescript
-import { SoulSDK, generateProof, BridgeFactory } from '@soulprotocol/sdk';
+import { createSoulClient, NoirProver, BridgeFactory } from '@soul/sdk';
 
 async function privateTransfer() {
-  // 1. Initialize SDK
-  const soul = new SoulSDK({
-    rpcUrl: process.env.SEPOLIA_RPC_URL,
-    privateKey: process.env.PRIVATE_KEY,
-    network: 'sepolia'
+  // 1. Create clients for source and destination chains
+  const sourceClient = createSoulClient({
+    rpcUrl: process.env.SEPOLIA_RPC_URL!,
+    chainId: 11155111,
+    privateKey: process.env.PRIVATE_KEY as `0x${string}`,
   });
-  await soul.connect();
 
-  // 2. Generate cryptographic values
-  const secret = soul.crypto.randomBytes(32);
-  const nullifier = soul.crypto.poseidon([secret, 0n]);
-  const commitment = soul.crypto.poseidon([secret, 100n]); // 100 tokens
-
-  // 3. Create lock on source chain
-  const lock = await soul.zkSlocks.createLock({
-    oldStateCommitment: commitment,
-    transitionPredicateHash: await soul.getCircuitHash('transfer'),
-    policyHash: '0x0',
-    domainSeparator: await soul.zkSlocks.generateDomainSeparator('sepolia', 1),
-    unlockDeadline: Math.floor(Date.now() / 1000) + 86400 // 24 hours
+  // 2. Create a lock on the source chain
+  const lock = await sourceClient.createLock({
+    commitment: commitmentHash,
+    nullifierHash: nullifierHash,
+    amount: 1000000000000000000n,
+    destinationChainId: 421614, // Arbitrum Sepolia
   });
-  console.log('✅ Lock created:', lock.lockId);
 
-  // 4. Generate proof
-  const proof = await generateProof({
-    circuit: 'transfer',
-    inputs: {
-      secret,
-      nullifier,
-      oldCommitment: commitment,
-      newCommitment: soul.crypto.poseidon([secret, 0n]), // Spend all
-      amount: 100n
-    }
+  // 3. Generate ZK proof off-chain
+  const prover = new NoirProver();
+  const proof = await prover.generateProof('state_transfer', {
+    secret,
+    nullifier,
+    oldCommitment: commitmentHash,
+    newCommitment: newCommitmentHash,
+    amount: 1000000000000000000n,
   });
-  console.log('✅ Proof generated');
 
-  // 5. Unlock on destination chain (simulated here)
-  const result = await soul.zkSlocks.unlock({
+  // 4. Unlock on destination chain with proof
+  const destClient = createSoulClient({
+    rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+    chainId: 421614,
+    privateKey: process.env.PRIVATE_KEY as `0x${string}`,
+  });
+
+  const result = await destClient.unlockWithProof({
     lockId: lock.lockId,
-    zkProof: proof.proof,
-    newStateCommitment: proof.newCommitment,
-    nullifier: nullifier,
-    verifierKeyHash: proof.vkHash
+    proof: proof.proof,
+    nullifier: nullifierHash,
+    newStateCommitment: newCommitmentHash,
   });
-  console.log('✅ Transfer complete:', result.txHash);
 
-  return { lockId: lock.lockId, txHash: result.txHash };
+  console.log('Transfer complete:', result);
 }
 
-// Run it
 privateTransfer().catch(console.error);
 ```
 
@@ -239,21 +248,10 @@ privateTransfer().catch(console.error);
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `INSUFFICIENT_FUNDS` | Not enough ETH for gas | Fund your wallet with testnet ETH |
-| `INVALID_PROOF` | Proof doesn't verify | Check circuit inputs match |
+| `INVALID_PROOF` | Proof doesn't verify | Check circuit inputs match public inputs |
 | `NULLIFIER_ALREADY_USED` | Double-spend attempt | Generate fresh nullifier |
 | `LOCK_EXPIRED` | Unlock deadline passed | Increase deadline or act faster |
 | `NETWORK_ERROR` | RPC connection failed | Check RPC URL, try different provider |
-
-### Debug Mode
-
-```typescript
-const soul = new SoulSDK({
-  rpcUrl: process.env.RPC_URL,
-  privateKey: process.env.PRIVATE_KEY,
-  network: 'sepolia',
-  debug: true  // Enable verbose logging
-});
-```
 
 ### Testnet Faucets
 
@@ -270,9 +268,14 @@ const soul = new SoulSDK({
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 PRIVATE_KEY=your_private_key_here  # Never commit this!
 
-# Optional
-ARBITRUM_RPC_URL=https://arb-sepolia.g.alchemy.com/v2/YOUR_KEY
-BASE_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+# L2 RPCs
+ARBITRUM_SEPOLIA_RPC_URL=https://arb-sepolia.g.alchemy.com/v2/YOUR_KEY
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+
+# Block Explorer API Keys (for contract verification)
+ETHERSCAN_API_KEY=your_key
+ARBISCAN_API_KEY=your_key
+BASESCAN_API_KEY=your_key
 ```
 
 ---
@@ -281,16 +284,10 @@ BASE_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
 
 | Resource | Description |
 |----------|-------------|
-| **[Integration Guide](INTEGRATION_GUIDE.md)** | Deep-dive into SDK usage |
+| **[Integration Guide](INTEGRATION_GUIDE.md)** | Deep-dive into SDK usage with v2 primitives |
 | **[API Reference](API_REFERENCE.md)** | Complete function documentation |
 | **[Architecture](architecture.md)** | System design and components |
-| **[ZK-SLocks](../ZK-Slocks.md)** | Core primitive deep-dive |
-
-### Join the Community
-
-- 💬 [Discord](https://discord.gg/soul-network) - Get help, share ideas
-- 🐙 [GitHub Issues](https://github.com/soul-research-labs/Soul/issues) - Report bugs
-- 🐦 [Twitter](https://twitter.com/pil_protocol) - Latest updates
+| **[Deployment Guide](DEPLOYMENT.md)** | Testnet and mainnet deployment |
 
 ---
 

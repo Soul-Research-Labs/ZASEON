@@ -2,15 +2,15 @@
 
 > **Step-by-step guide to integrate Soul into your application**
 
-[![SDK](https://img.shields.io/badge/SDK-@soul/sdk-blue.svg)]()
-
 ---
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Basic Integration](#basic-integration)
-- [Advanced Usage](#advanced-usage)
+- [Client Setup](#client-setup)
+- [ZK-Bound State Locks](#zk-bound-state-locks)
+- [V2 Primitives](#v2-primitives)
+- [Privacy Middleware](#privacy-middleware)
 - [Cross-Chain Operations](#cross-chain-operations)
 - [Proof Generation](#proof-generation)
 - [Error Handling](#error-handling)
@@ -19,95 +19,136 @@
 
 ---
 
-Integrate the Soul Protocol into your application.
-
 ## Installation
 
 ```bash
 npm install @soul/sdk viem
 ```
 
+The SDK uses [viem](https://viem.sh) for all Ethereum interactions.
+
 ---
 
-## Basic Integration
+## Client Setup
 
-### Step 1: Initialize the Client
+### Main Client (SoulProtocolClient)
+
+The primary entry point for ZK-SLocks, nullifier tracking, and cross-chain proof hub:
 
 ```typescript
-import { SoulClient, SoulClientConfig } from '@soul/sdk';
-import { createPublicClient, http } from 'viem';
+import { createSoulClient, type SoulProtocolConfig } from '@soul/sdk';
 
-// Configuration
-const config: SoulClientConfig = {
-  network: 'mainnet',
+const client = createSoulClient({
   rpcUrl: process.env.RPC_URL!,
-  privateKey: process.env.PRIVATE_KEY, // Optional for read-only
-};
-
-// Create client
-const client = new SoulClient(config);
-
-// Verify connection
-const isConnected = await client.isConnected();
-console.log(`Connected: ${isConnected}`);
+  chainId: 11155111,    // Sepolia
+  privateKey: '0x...',  // Optional for read-only
+});
 ```
 
-### Step 2: Create a Privacy Container
+For read-only access (no transactions):
 
 ```typescript
-import { generateProof } from '@soul/sdk';
+import { createReadOnlySoulClient } from '@soul/sdk';
 
-// 1. Generate the proof off-chain
-const proof = await generateProof('container', {
-  secret: '0x123...',
-  commitment: '0x456...',
-  nullifier: '0x789...',
+const readOnly = createReadOnlySoulClient({
+  rpcUrl: process.env.RPC_URL!,
+  chainId: 11155111,
+});
+```
+
+### V2 Primitives Client
+
+For interacting with PC³, PBP, EASC, and CDNA contracts:
+
+```typescript
+import { Soulv2ClientFactory, type Soulv2Config } from '@soul/sdk';
+
+const config: Soulv2Config = {
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: '0x...',
+  // Contract addresses (auto-resolved from deployments if omitted)
+  addresses: {
+    pc3: '0x...',
+    pbp: '0x...',
+    easc: '0x...',
+    cdna: '0x...',
+  },
+};
+
+const factory = new Soulv2ClientFactory(config);
+const pc3 = factory.createPC3Client();
+const pbp = factory.createPBPClient();
+const easc = factory.createEASCClient();
+const cdna = factory.createCDNAClient();
+```
+
+---
+
+## ZK-Bound State Locks
+
+### Create a Lock
+
+```typescript
+const lock = await client.createLock({
+  commitment: '0x...',       // Pedersen commitment to the secret
+  nullifierHash: '0x...',    // Nullifier hash (for double-spend prevention)
+  amount: 1000000000000000000n,
+  destinationChainId: 42161, // Arbitrum mainnet
+  expiresAt: Math.floor(Date.now() / 1000) + 86400, // 24 hours
 });
 
-// 2. Create the container on-chain
-const result = await client.getPC3().createContainer({
-  proof: proof.proof,
-  publicInputs: proof.publicInputs,
+console.log('Lock ID:', lock.lockId);
+```
+
+### Unlock with Proof
+
+```typescript
+const result = await client.unlockWithProof({
+  lockId: lock.lockId,
+  proof: proofBytes,
+  nullifier: '0x...',
+  newStateCommitment: '0x...',
+});
+```
+
+### Query Lock State
+
+```typescript
+const lockInfo = await client.getLock(lockId);
+console.log('Is active:', lockInfo.isActive);
+console.log('Expires at:', lockInfo.expiresAt);
+```
+
+---
+
+## V2 Primitives
+
+### Proof-Carrying Containers (PC³)
+
+```typescript
+const pc3 = factory.createPC3Client();
+
+// Create a container with a ZK proof
+const container = await pc3.createContainer({
+  proof: proofBytes,
+  publicInputs: publicInputs,
   metadata: {
     sourceChain: 1,
     targetChain: 42161,
-    expiresAt: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    expiresAt: Math.floor(Date.now() / 1000) + 86400,
   },
 });
-
-console.log(`Container created: ${result.containerId}`);
-console.log(`Transaction: ${result.txHash}`);
 ```
 
-### Step 3: Consume the Container
+### Policy-Bound Proofs (PBP)
 
 ```typescript
-// On the destination chain
-const destClient = new SoulClient({
-  network: 'arbitrum',
-  rpcUrl: process.env.ARBITRUM_RPC_URL!,
-  privateKey: process.env.PRIVATE_KEY,
-});
+const pbp = factory.createPBPClient();
 
-// Consume the container
-const consumeResult = await destClient.getPC3().consumeContainer(
-  result.containerId
-);
-
-console.log(`Container consumed in tx: ${consumeResult.txHash}`);
-```
-
----
-
-## Advanced Usage
-
-### Working with Policy-Bound Proofs
-
-```typescript
 // Register a compliance policy
-const policyResult = await client.getPBP().registerPolicy({
-  policyHash: '0x...', // Hash of policy rules
-  verifierAddress: '0x...', // Custom verifier contract
+const policy = await pbp.registerPolicy({
+  policyHash: '0x...',
+  verifierAddress: '0x...',
   constraints: {
     minAge: 18,
     jurisdictions: ['US', 'EU'],
@@ -116,206 +157,180 @@ const policyResult = await client.getPBP().registerPolicy({
 });
 
 // Verify a proof against the policy
-const isValid = await client.getPBP().verifyProofAgainstPolicy(
-  proof,
-  policyResult.policyId
-);
-
-if (!isValid) {
-  throw new Error('Proof does not satisfy policy requirements');
-}
+const isValid = await pbp.verifyBoundProof(proof, policy.policyId);
 ```
 
-### Managing State Commitments
+### Execution-Agnostic State Commitments (EASC)
 
 ```typescript
-// Commit state from source chain
-const commitment = await client.getEASC().commitState({
-  stateRoot: merkleTree.root,
-  blockHeight: await provider.getBlockNumber(),
-  chainId: 1,
+const easc = factory.createEASCClient();
+
+// Register a backend (ZkVM, SNARK, etc.)
+const backend = await easc.registerBackend({
+  backendType: 'ZkVM',
+  name: 'UltraHonk',
+  attestationKey: '0x...',
+  configHash: '0x...',
 });
 
-// Verify on destination chain
-const isVerified = await destClient.getEASC().verifyState(
-  commitment.commitmentId,
-  {
-    proof: inclusionProof,
-    leaf: leafData,
-    index: leafIndex,
-  }
-);
+// Create a state commitment
+const commitment = await easc.createCommitment({
+  stateHash: '0x...',
+  transitionHash: '0x...',
+  nullifier: '0x...',
+});
 ```
 
-### Nullifier Management
+### Cross-Domain Nullifier Algebra (CDNA)
 
 ```typescript
-// Check if nullifier is already used (prevents double-spending)
-const isSpent = await client.getCDNA().checkNullifier(
-  nullifierHash,
-  domainId
-);
+const cdna = factory.createCDNAClient();
 
-if (isSpent) {
-  throw new Error('This commitment has already been spent');
-}
-
-// Register the nullifier when consuming
-await client.getCDNA().registerNullifier({
-  nullifier: nullifierHash,
-  domain: domainId,
-  proof: consumptionProof,
+// Register a domain
+const domain = await cdna.registerDomain({
+  chainId: 42161n,
+  appId: '0x...',
+  epochEnd: BigInt(Math.floor(Date.now() / 1000) + 86400 * 365),
 });
+
+// Register a nullifier
+await cdna.registerNullifier({
+  domainId: domain.domainId,
+  nullifierValue: '0x...',
+  commitmentHash: '0x...',
+  transitionId: '0x...',
+});
+
+// Check if nullifier is spent
+const isSpent = await cdna.isNullifierSpent(domain.domainId, nullifierHash);
+```
+
+---
+
+## Privacy Middleware
+
+### Privacy Router
+
+For deposits, withdrawals, and cross-chain transfers through the shielded pool:
+
+```typescript
+import { createPrivacyRouterClient, OperationType } from '@soul/sdk';
+
+const router = createPrivacyRouterClient({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: '0x...',
+});
+
+// Deposit into the shielded pool
+const deposit = await router.deposit({
+  amount: 1000000000000000000n,
+  commitment: '0x...',
+});
+
+// Withdraw from the shielded pool
+const withdrawal = await router.withdraw({
+  proof: proofBytes,
+  nullifier: '0x...',
+  recipient: '0x...',
+  amount: 1000000000000000000n,
+});
+```
+
+### Shielded Pool
+
+```typescript
+import { createShieldedPoolClient } from '@soul/sdk';
+
+const pool = createShieldedPoolClient({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: '0x...',
+});
+
+const stats = await pool.getPoolStats();
+console.log('Total deposited:', stats.totalDeposited);
 ```
 
 ---
 
 ## Cross-Chain Operations
 
-### Complete Bridge Flow
+### Bridge Factory
 
 ```typescript
-import { SoulClient, OperationType } from '@soul/sdk';
+import { BridgeFactory } from '@soul/sdk';
 
-async function bridgeWithPrivacy(
-  sourceChain: number,
-  targetChain: number,
-  amount: bigint,
-  recipient: string
-) {
-  // 1. Initialize clients for both chains
-  const sourceClient = new SoulClient({
-    network: getNetworkName(sourceChain),
-    rpcUrl: getRpcUrl(sourceChain),
-    privateKey: process.env.PRIVATE_KEY,
-  });
+// Create a bridge adapter for the target chain
+const bridge = BridgeFactory.create('arbitrum', {
+  sourceRpcUrl: process.env.ETHEREUM_RPC_URL!,
+  targetRpcUrl: process.env.ARBITRUM_RPC_URL!,
+  privateKey: '0x...',
+});
 
-  const targetClient = new SoulClient({
-    network: getNetworkName(targetChain),
-    rpcUrl: getRpcUrl(targetChain),
-    privateKey: process.env.PRIVATE_KEY,
-  });
-
-  // 2. Generate proof for the bridge operation
-  const proof = await generateProof('bridge', {
-    amount: amount.toString(),
-    recipient,
-    sourceChain,
-    targetChain,
-    secret: generateSecret(),
-  });
-
-  // 3. Create container on source chain
-  const container = await sourceClient.getPC3().createContainer({
-    proof: proof.proof,
-    publicInputs: proof.publicInputs,
-    metadata: {
-      operationType: OperationType.BRIDGE,
-      sourceChain,
-      targetChain,
-      amount: amount.toString(),
-    },
-  });
-
-  // 4. Wait for finality
-  await sourceClient.waitForFinality(container.txHash, 12); // 12 confirmations
-
-  // 5. Get state proof
-  const stateProof = await sourceClient.getStateProof(container.containerId);
-
-  // 6. Relay to destination chain
-  const relayResult = await targetClient.getOrchestrator().executePrivacyOperation({
-    operationType: OperationType.BRIDGE,
-    sourceChain,
-    targetChain,
-    proof: stateProof.proof,
-    publicInputs: stateProof.publicInputs,
-    metadata: {
-      containerId: container.containerId,
-      recipient,
-    },
-  });
-
-  return {
-    sourceContainerId: container.containerId,
-    sourceTxHash: container.txHash,
-    targetTxHash: relayResult.txHash,
-  };
-}
+// Bridge with privacy
+const result = await bridge.bridgeWithProof({
+  proof: proofBytes,
+  amount: 1000000000000000000n,
+  recipient: '0x...',
+});
 ```
 
-### Multi-Chain Coordination
+### Cross-Chain Proof Relay
+
+Soul uses `SoulCrossChainRelay` for relaying proofs between L2s. The relay supports LayerZero and Hyperlane bridges:
 
 ```typescript
-// Deploy same container across multiple chains
-async function multiChainDeploy(chains: number[], proof: Uint8Array) {
-  const results = await Promise.all(
-    chains.map(async (chainId) => {
-      const client = new SoulClient({
-        network: getNetworkName(chainId),
-        rpcUrl: getRpcUrl(chainId),
-        privateKey: process.env.PRIVATE_KEY,
-      });
-
-      return client.getPC3().createContainer({
-        proof,
-        publicInputs: [],
-        metadata: { chainId },
-      });
-    })
-  );
-
-  return results;
-}
+// Run the relayer (see sdk/src/relayer/CrossChainProofRelayer.ts)
+// ENV: SOURCE_RPC, DEST_RPC, PROOF_HUB_ADDRESS, RELAY_ADDRESS, RELAYER_PRIVATE_KEY
+import { CrossChainProofRelayer } from '@soul/sdk';
 ```
+
+### Cross-Chain Nullifier Sync
+
+Nullifiers are synchronized across chains via `CrossChainNullifierSync`:
+- Nullifiers are queued on-chain with `queueNullifier()`
+- Batches are flushed to target chains with `flushToChain()`
+- MAX_BATCH_SIZE: 20, MIN_SYNC_INTERVAL: 5 minutes
 
 ---
 
 ## Proof Generation
 
-### Using the Built-in Circuit
+### Using NoirProver
+
+The SDK includes a `NoirProver` for generating proofs using Noir circuits:
 
 ```typescript
-import { generateProof, CircuitType } from '@soul/sdk';
+import { NoirProver } from '@soul/sdk';
 
-// Generate a container proof
-const containerProof = await generateProof(CircuitType.CONTAINER, {
-  secret: randomBytes(32),
-  commitment: computeCommitment(secret, amount),
-  nullifier: computeNullifier(secret, commitment),
-  amount: '1000000000000000000', // 1 ETH in wei
+const prover = new NoirProver();
+
+// Generate proof for a specific circuit
+const proof = await prover.generateProof('state_transfer', {
+  secret: '0x...',
+  nullifier: '0x...',
+  commitment: '0x...',
+  amount: '1000000000000000000',
 });
+
+console.log('Proof:', proof.proof);
+console.log('Public inputs:', proof.publicInputs);
 ```
 
-### Using Custom Circuits
+### Proof Translation
+
+For translating proofs between different backends (snarkjs, gnark, arkworks):
 
 ```typescript
-import { loadCircuit, generateProofWithCircuit } from '@soul/sdk';
+import ProofTranslator, {
+  parseSnarkjsProof,
+  createVerifyCalldata,
+} from '@soul/sdk';
 
-// Load custom circuit
-const circuit = await loadCircuit('./circuits/custom.wasm', './circuits/custom.zkey');
+// Parse snarkjs output to Solidity-compatible format
+const solidityProof = parseSnarkjsProof(snarkjsProof);
 
-// Generate proof
-const proof = await generateProofWithCircuit(circuit, {
-  input1: '123',
-  input2: '456',
-});
-```
-
-### Proof Verification
-
-```typescript
-import { verifyProof, loadVerificationKey } from '@soul/sdk';
-
-// Load verification key
-const vk = await loadVerificationKey('./circuits/custom.vkey.json');
-
-// Verify locally before submitting
-const isValid = await verifyProof(proof.proof, proof.publicInputs, vk);
-
-if (!isValid) {
-  throw new Error('Proof verification failed');
-}
+// Create calldata for on-chain verification
+const calldata = createVerifyCalldata(proof, publicInputs);
 ```
 
 ---
@@ -323,16 +338,21 @@ if (!isValid) {
 ## Error Handling
 
 ```typescript
-import { SoulError, ErrorCode, isRecoverableError } from '@soul/sdk';
+import { SoulError, SoulErrorCode } from '@soul/sdk';
 
 try {
-  await client.getPC3().createContainer(params);
+  await client.createLock(params);
 } catch (error) {
   if (error instanceof SoulError) {
     switch (error.code) {
-      case ErrorCode.PROOF_INVALID: throw new Error('Regenerate proof');
-      case ErrorCode.INSUFFICIENT_GAS: /* retry with higher gas */ break;
-      case ErrorCode.NETWORK_ERROR: /* retry with backoff */ break;
+      case SoulErrorCode.PROOF_INVALID:
+        console.error('Invalid proof - regenerate');
+        break;
+      case SoulErrorCode.NETWORK_ERROR:
+        console.error('Network error - retry');
+        break;
+      default:
+        console.error('Soul error:', error.message);
     }
   }
 }
@@ -342,36 +362,62 @@ try {
 
 ## Testing
 
-```typescript
-import { SoulClient, MockProvider, LocalTestnet } from '@soul/sdk/testing';
+### Foundry Tests
 
-// Unit test with mocks
-const mockProvider = new MockProvider();
-const client = new SoulClient({ provider: mockProvider });
+```bash
+# Run all Foundry tests
+forge test -vvv
 
-// E2E test with local testnet
-const testnet = await LocalTestnet.start();
-const client = new SoulClient({ rpcUrl: testnet.rpcUrl, contracts: testnet.deployedContracts });
+# Run specific test file
+forge test --match-path test/foundry/ZKVerifierIntegration.t.sol -vvv
+
+# Run with gas reporting
+forge test --gas-report
+```
+
+### Hardhat Tests
+
+```bash
+npx hardhat test
+```
+
+### Local Development
+
+```bash
+# Start a local Anvil node
+anvil
+
+# Deploy to local network
+npx hardhat run scripts/deploy-v3.ts --network localhost
+
+# Run e2e ZK test
+./scripts/e2e-zk-test.sh
 ```
 
 ---
 
 ## Production
 
-**Checklist:** Env vars for secrets, gas limits configured, monitoring, retry logic, multi-sig admin, verified contracts
+### Checklist
+
+- [ ] Environment variables for secrets (never hardcode)
+- [ ] Gas limit configuration with safety margins
+- [ ] Monitoring and alerting (see `monitoring/`)
+- [ ] Retry logic with exponential backoff
+- [ ] Multi-sig admin for contract ownership
+- [ ] All contracts verified on block explorer
+- [ ] Emergency pause procedures documented
+
+### Production Config
 
 ```typescript
-const prodConfig = {
-  network: 'mainnet',
-  rpcUrl: process.env.MAINNET_RPC_URL,
-  options: {
-    gasMultiplier: 1.2,
-    maxRetries: 3,
-    flashbots: { enabled: true, relayUrl: 'https://relay.flashbots.net' }
-  }
-};
+const client = createSoulClient({
+  rpcUrl: process.env.MAINNET_RPC_URL!,
+  chainId: 1,
+  privateKey: process.env.PRIVATE_KEY as `0x${string}`,
+});
 ```
 
 ---
 
-**Next:** [API Reference](API_REFERENCE.md) • [Security](SECURITY.md) • [Discord](https://discord.gg/soul-protocol)
+**Next:** [API Reference](API_REFERENCE.md) | [Deployment Guide](DEPLOYMENT.md) | [Architecture](architecture.md)
