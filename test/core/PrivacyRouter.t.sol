@@ -20,6 +20,15 @@ contract PrivacyRouterTest is Test {
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
 
+    /// @dev BN254 scalar field order
+    uint256 internal constant FIELD_SIZE =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+
+    /// @dev Helper: produce a valid BN254 commitment from arbitrary seed
+    function _validCommitment(bytes memory seed) internal pure returns (bytes32) {
+        return bytes32(uint256(keccak256(seed)) % (FIELD_SIZE - 1) + 1);
+    }
+
     function setUp() public {
         vm.startPrank(admin);
 
@@ -66,7 +75,7 @@ contract PrivacyRouterTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_DepositETH() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("router_secret", uint256(1 ether))
         );
 
@@ -102,8 +111,8 @@ contract PrivacyRouterTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetOperationCount() public {
-        bytes32 c1 = keccak256(abi.encodePacked("op1", uint256(1)));
-        bytes32 c2 = keccak256(abi.encodePacked("op2", uint256(2)));
+        bytes32 c1 = _validCommitment(abi.encodePacked("op1", uint256(1)));
+        bytes32 c2 = _validCommitment(abi.encodePacked("op2", uint256(2)));
 
         vm.startPrank(user);
         router.depositETH{value: 1 ether}(c1);
@@ -121,7 +130,7 @@ contract PrivacyRouterTest is Test {
     }
 
     function test_GetReceipt() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("receipt_test", uint256(1))
         );
 
@@ -189,14 +198,14 @@ contract PrivacyRouterTest is Test {
         vm.expectRevert();
         vm.stopPrank();
         vm.prank(user);
-        router.depositETH{value: 1 ether}(keccak256("paused"));
+        router.depositETH{value: 1 ether}(_validCommitment("paused"));
 
         vm.prank(admin);
         router.unpause();
 
         // Should work again
         vm.prank(user);
-        router.depositETH{value: 1 ether}(keccak256("unpaused"));
+        router.depositETH{value: 1 ether}(_validCommitment("unpaused"));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -245,12 +254,12 @@ contract PrivacyRouterTest is Test {
         uint256 amount1,
         uint256 amount2
     ) public {
-        vm.assume(amount1 >= 0.001 ether && amount1 <= 10 ether);
-        vm.assume(amount2 >= 0.001 ether && amount2 <= 10 ether);
+        amount1 = bound(amount1, 0.001 ether, 10 ether);
+        amount2 = bound(amount2, 0.001 ether, 10 ether);
         vm.deal(user, amount1 + amount2);
 
-        bytes32 c1 = keccak256(abi.encodePacked("fuzz1", amount1));
-        bytes32 c2 = keccak256(abi.encodePacked("fuzz2", amount2));
+        bytes32 c1 = _validCommitment(abi.encodePacked("fuzz1", amount1));
+        bytes32 c2 = _validCommitment(abi.encodePacked("fuzz2", amount2));
         vm.assume(c1 != c2);
 
         vm.startPrank(user);

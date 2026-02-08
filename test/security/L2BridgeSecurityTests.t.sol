@@ -27,6 +27,7 @@ contract L2BridgeSecurityTests is Test {
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 constant CCTP_ROLE = keccak256("CCTP_ROLE");
+    bytes32 constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
 
     function setUp() public {
         vm.startPrank(admin);
@@ -49,6 +50,7 @@ contract L2BridgeSecurityTests is Test {
         baseL1.setL2Target(mockTarget);
         baseL1.configureCCTP(mockCCTP, mockUSDC);
         baseL1.grantRole(CCTP_ROLE, admin);
+        baseL2.grantRole(RELAYER_ROLE, admin);
 
         vm.stopPrank();
 

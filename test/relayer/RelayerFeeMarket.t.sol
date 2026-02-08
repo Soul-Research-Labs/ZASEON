@@ -479,7 +479,7 @@ contract RelayerFeeMarketTest is Test {
 
     function testFuzz_SubmitAndCancelRefundsExactly(uint256 maxFee) public {
         uint256 baseFee = market.getBaseFee(sourceChain, destChain);
-        vm.assume(maxFee >= baseFee && maxFee <= 10 ether);
+        maxFee = bound(maxFee, baseFee, 10 ether);
 
         vm.startPrank(admin);
         token.mint(user, maxFee);

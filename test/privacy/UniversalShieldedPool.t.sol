@@ -22,15 +22,27 @@ contract UniversalShieldedPoolTest is Test {
         0xe2b7fb3b832174769106daebcfd6d1970523240dda11281102db9363b83b0dc4;
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
+    bytes32 public constant COMPLIANCE_ROLE =
+        0x364d3d7565c7a8982189c6ab03c2167d1f2cc9c82a4c902413ce8d68cfbe88c3;
+
+    /// @dev BN254 scalar field order — commitments must be < this value
+    uint256 internal constant FIELD_SIZE =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     // Precomputed native ETH asset ID
     bytes32 public NATIVE_ASSET;
+
+    /// @dev Helper: produce a valid BN254 commitment from arbitrary seed
+    function _validCommitment(bytes memory seed) internal pure returns (bytes32) {
+        return bytes32(uint256(keccak256(seed)) % (FIELD_SIZE - 1) + 1);
+    }
 
     function setUp() public {
         vm.startPrank(admin);
         // Deploy in test mode (no verifier required)
         pool = new UniversalShieldedPool(admin, address(0), true);
         pool.grantRole(RELAYER_ROLE, relayer);
+        pool.grantRole(COMPLIANCE_ROLE, admin);
         NATIVE_ASSET = pool.NATIVE_ASSET();
         vm.stopPrank();
 
@@ -70,7 +82,7 @@ contract UniversalShieldedPoolTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_DepositETH() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("secret1", uint256(1 ether))
         );
 
@@ -87,7 +99,7 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_DepositETHEmitsEvent() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("secret2", uint256(2 ether))
         );
 
@@ -105,11 +117,11 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_RevertDepositETHZeroValue() public {
-        bytes32 commitment = keccak256(abi.encodePacked("secret"));
+        bytes32 commitment = _validCommitment(abi.encodePacked("secret"));
 
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(UniversalShieldedPool.InvalidAmount.selector)
+            abi.encodeWithSelector(UniversalShieldedPool.DepositTooSmall.selector)
         );
         pool.depositETH{value: 0}(commitment);
     }
@@ -125,7 +137,7 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_RevertDuplicateCommitment() public {
-        bytes32 commitment = keccak256(abi.encodePacked("duplicate"));
+        bytes32 commitment = _validCommitment(abi.encodePacked("duplicate"));
 
         vm.startPrank(user);
         pool.depositETH{value: 1 ether}(commitment);
@@ -138,7 +150,7 @@ contract UniversalShieldedPoolTest is Test {
     function test_MultipleDeposits() public {
         vm.startPrank(user);
         for (uint256 i = 0; i < 5; i++) {
-            bytes32 commitment = keccak256(abi.encodePacked("secret", i));
+            bytes32 commitment = _validCommitment(abi.encodePacked("secret", i));
             pool.depositETH{value: 1 ether}(commitment);
         }
         vm.stopPrank();
@@ -156,7 +168,7 @@ contract UniversalShieldedPoolTest is Test {
         bytes32 rootBefore = pool.currentRoot();
 
         vm.prank(user);
-        pool.depositETH{value: 1 ether}(keccak256("commitment1"));
+        pool.depositETH{value: 1 ether}(_validCommitment("commitment1"));
 
         bytes32 rootAfter = pool.currentRoot();
         assertTrue(rootBefore != rootAfter, "Root should change after deposit");
@@ -166,7 +178,7 @@ contract UniversalShieldedPoolTest is Test {
         bytes32 root0 = pool.currentRoot();
 
         vm.prank(user);
-        pool.depositETH{value: 1 ether}(keccak256("commitment1"));
+        pool.depositETH{value: 1 ether}(_validCommitment("commitment1"));
 
         bytes32 root1 = pool.currentRoot();
 
@@ -184,7 +196,7 @@ contract UniversalShieldedPoolTest is Test {
 
     function test_WithdrawInTestMode() public {
         // Deposit first
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("secret", uint256(1 ether))
         );
         vm.prank(user);
@@ -228,10 +240,10 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_RevertDoubleSpendNullifier() public {
-        bytes32 commitment1 = keccak256(
+        bytes32 commitment1 = _validCommitment(
             abi.encodePacked("s1", uint256(1 ether))
         );
-        bytes32 commitment2 = keccak256(
+        bytes32 commitment2 = _validCommitment(
             abi.encodePacked("s2", uint256(1 ether))
         );
         vm.startPrank(user);
@@ -269,7 +281,7 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_WithdrawWithRelayerFee() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("s_relay", uint256(1 ether))
         );
         vm.prank(user);
@@ -324,7 +336,7 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function test_RevertWithdrawAfterTestModeDisabled() public {
-        bytes32 commitment = keccak256(
+        bytes32 commitment = _validCommitment(
             abi.encodePacked("sec", uint256(1 ether))
         );
         vm.prank(user);
@@ -398,7 +410,7 @@ contract UniversalShieldedPoolTest is Test {
         vm.prank(admin);
         pool.pause();
 
-        bytes32 commitment = keccak256("paused_test");
+        bytes32 commitment = _validCommitment("paused_test");
         vm.prank(user);
         vm.expectRevert();
         pool.depositETH{value: 1 ether}(commitment);
@@ -410,7 +422,7 @@ contract UniversalShieldedPoolTest is Test {
         pool.unpause();
         vm.stopPrank();
 
-        bytes32 commitment = keccak256("unpaused_test");
+        bytes32 commitment = _validCommitment("unpaused_test");
         vm.prank(user);
         pool.depositETH{value: 1 ether}(commitment);
 
@@ -447,7 +459,7 @@ contract UniversalShieldedPoolTest is Test {
 
     function test_GetPoolStats() public {
         vm.prank(user);
-        pool.depositETH{value: 1 ether}(keccak256("stat_test"));
+        pool.depositETH{value: 1 ether}(_validCommitment("stat_test"));
 
         (uint256 deposits, , , uint256 treeSize, bytes32 root) = pool
             .getPoolStats();
@@ -469,10 +481,10 @@ contract UniversalShieldedPoolTest is Test {
     function testFuzz_DepositETHAnyAmount(uint256 amount) public {
         uint256 minDeposit = pool.MIN_DEPOSIT();
         uint256 maxDeposit = pool.MAX_DEPOSIT();
-        vm.assume(amount >= minDeposit && amount <= maxDeposit);
+        amount = bound(amount, minDeposit, maxDeposit);
         vm.deal(user, amount);
 
-        bytes32 commitment = keccak256(abi.encodePacked("fuzz_secret", amount));
+        bytes32 commitment = _validCommitment(abi.encodePacked("fuzz_secret", amount));
 
         vm.prank(user);
         pool.depositETH{value: amount}(commitment);
@@ -482,10 +494,12 @@ contract UniversalShieldedPoolTest is Test {
     }
 
     function testFuzz_UniqueCommitmentsProduceUniqueRoots(
-        bytes32 commitment1,
-        bytes32 commitment2
+        uint256 seed1,
+        uint256 seed2
     ) public {
-        vm.assume(commitment1 != bytes32(0) && commitment2 != bytes32(0));
+        // Use _validCommitment to guarantee field-valid, non-zero commitments
+        bytes32 commitment1 = _validCommitment(abi.encodePacked("root_fuzz_a", seed1));
+        bytes32 commitment2 = _validCommitment(abi.encodePacked("root_fuzz_b", seed2));
         vm.assume(commitment1 != commitment2);
 
         uint256 minDeposit = pool.MIN_DEPOSIT();

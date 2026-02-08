@@ -5,7 +5,18 @@ import "forge-std/Test.sol";
 import {EVMUniversalAdapter} from "../../contracts/adapters/EVMUniversalAdapter.sol";
 import {UniversalAdapterRegistry} from "../../contracts/adapters/UniversalAdapterRegistry.sol";
 import {IUniversalChainAdapter} from "../../contracts/interfaces/IUniversalChainAdapter.sol";
+import {IProofVerifier} from "../../contracts/interfaces/IProofVerifier.sol";
 import {UniversalChainRegistry} from "../../contracts/libraries/UniversalChainRegistry.sol";
+
+/// @notice Mock verifier that accepts all proofs (test-only)
+contract AcceptAllVerifierForAdapter is IProofVerifier {
+    function verify(bytes calldata, uint256[] calldata) external pure override returns (bool) { return true; }
+    function verifyProof(bytes calldata, bytes calldata) external pure override returns (bool) { return true; }
+    function verifySingle(bytes calldata, uint256) external pure override returns (bool) { return true; }
+    function getPublicInputCount() external pure override returns (uint256) { return 4; }
+    function getVerificationKeyHash() external pure returns (bytes32) { return bytes32(0); }
+    function isReady() external pure override returns (bool) { return true; }
+}
 
 /**
  * @title EVMUniversalAdapterTest
@@ -27,6 +38,9 @@ contract EVMUniversalAdapterTest is Test {
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
 
     function setUp() public {
+        // Advance block.timestamp so (block.timestamp - 25 hours) doesn't underflow
+        vm.warp(100_000);
+
         vm.startPrank(admin);
 
         adapter = new EVMUniversalAdapter(
@@ -36,6 +50,11 @@ contract EVMUniversalAdapterTest is Test {
         );
 
         registry = new UniversalAdapterRegistry(admin);
+
+        // Deploy and register an accept-all verifier for GROTH16 & PLONK
+        AcceptAllVerifierForAdapter acceptVerifier = new AcceptAllVerifierForAdapter();
+        adapter.setProofVerifier(IUniversalChainAdapter.ProofSystem.GROTH16, address(acceptVerifier));
+        adapter.setProofVerifier(IUniversalChainAdapter.ProofSystem.PLONK, address(acceptVerifier));
 
         // Grant roles
         adapter.grantRole(RELAYER_ROLE, relayer);

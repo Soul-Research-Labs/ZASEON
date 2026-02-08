@@ -186,8 +186,9 @@ contract CrossChainSanctionsOracleTest is Test {
         oracle.registerProvider(providerA, "Provider", 100);
         vm.stopPrank();
 
-        // With fail-closed, unflagged address should still pass if no error
-        assertFalse(oracle.isSanctioned(cleanAddr));
+        // With fail-closed, unscreened addresses (lastUpdated == 0)
+        // are treated as sanctioned — this is the correct fail-closed behavior
+        assertTrue(oracle.isSanctioned(cleanAddr));
     }
 
     /*//////////////////////////////////////////////////////////////
