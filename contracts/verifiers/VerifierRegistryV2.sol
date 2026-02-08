@@ -63,7 +63,7 @@ contract VerifierRegistryV2 is AccessControl {
         PEDERSEN_COMMITMENT, // 16
         // Phase 3 circuits (P2)
         AGGREGATOR, // 17
-        PQC_VERIFIER, // 18
+        RESERVED_18, // 18 (formerly PQC_VERIFIER, removed)
         INVARIANT_CHECKER // 19
     }
 
@@ -585,7 +585,7 @@ contract VerifierRegistryV2 is AccessControl {
         circuitNames[CircuitType.PRIVATE_ORDER] = "private_order";
         circuitNames[CircuitType.PEDERSEN_COMMITMENT] = "pedersen_commitment";
         circuitNames[CircuitType.AGGREGATOR] = "aggregator";
-        circuitNames[CircuitType.PQC_VERIFIER] = "pqc_verifier";
+        // CircuitType 18 reserved (formerly PQC_VERIFIER)
         circuitNames[CircuitType.INVARIANT_CHECKER] = "invariant_checker";
     }
 }

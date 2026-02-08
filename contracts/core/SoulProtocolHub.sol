@@ -27,12 +27,12 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * │  └────────────────┘  │ • Aztec        │  └────────────────────────────────┘ │
  * │                      └────────────────┘                                      │
  * │  ┌────────────────┐  ┌────────────────┐  ┌────────────────────────────────┐ │
- * │  │   SECURITY     │  │      MPC       │  │      PRIMITIVES                │ │
+ * │  │   SECURITY     │  │  THRESHOLD SIG │  │      PRIMITIVES                │ │
  * │  ├────────────────┤  ├────────────────┤  ├────────────────────────────────┤ │
  * │  │ • Proof Valid. │  │ • Threshold Sig│  │ • ZK-Bound State Locks         │ │
- * │  │ • Watchtower   │  │ • MPC Compl.   │  │ • Proof-Carrying Containers    │ │
- * │  │ • Security Orc.│  │ • Shamir SS    │  │ • Cross-Domain Nullifiers      │ │
- * │  │ • PQC Verifier │  │ • MPC Gateway  │  │ • Policy Bound Proofs          │ │
+ * │  │ • Watchtower   │  │ • Shamir SS    │  │ • Proof-Carrying Containers    │ │
+ * │  │ • Security Orc.│  │                │  │ • Cross-Domain Nullifiers      │ │
+ * │  │ • Crypto Verif │  │                │  │ • Policy Bound Proofs          │ │
  * │  └────────────────┘  └────────────────┘  └────────────────────────────────┘ │
  * │                                                                              │
  * └─────────────────────────────────────────────────────────────────────────────┘

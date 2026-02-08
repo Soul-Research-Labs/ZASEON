@@ -169,7 +169,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Security oracle for threat detection
     address public securityOracle;
 
-    /// @notice Hybrid crypto verifier for PQC + classical verification
+    /// @notice Hybrid crypto verifier for classical verification
     address public hybridCryptoVerifier;
 
     /// @notice Cross-chain message verifier for signature validation
@@ -756,7 +756,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Set Hybrid Crypto Verifier for PQC+classical verification
+     * @notice Set Hybrid Crypto Verifier for classical verification
      * @param _verifier The HybridCryptoVerifier contract address
      */
     function setHybridCryptoVerifier(

@@ -49,7 +49,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * 2. Ring Confidential Transactions - Amount hiding with decoys
  * 3. Cross-Domain Nullifiers - Double-spend prevention across chains
  * 4. ZK Proof Verification - Multiple proof systems supported
- * 5. Encrypted Metadata - TEE and FHE support
+ * 5. Encrypted Metadata - TEE support
  *
  * SUPPORTED CHAINS (41+):
  * - Privacy Chains: Monero, Zcash, Secret, Oasis, Railgun, Tornado, Midnight
@@ -289,7 +289,7 @@ contract CrossChainPrivacyHub is
     /// @notice Private relayer network for transaction submission
     address public privateRelayerNetwork;
 
-    /// @notice MPC compliance module for policy checking
+    /// @notice Compliance module for policy checking
     address public complianceModule;
 
     // =========================================================================
@@ -585,8 +585,8 @@ contract CrossChainPrivacyHub is
     }
 
     /**
-     * @notice Set MPC Compliance Module
-     * @param _module The SoulMPCComplianceModule contract address
+     * @notice Set Compliance Module
+     * @param _module The compliance module contract address
      */
     function setComplianceModule(
         address _module

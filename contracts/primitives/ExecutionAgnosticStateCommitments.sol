@@ -11,7 +11,7 @@ import "../interfaces/IProofVerifier.sol";
 /// @dev MVP Implementation - Decouples what happened from how it happened
 ///
 /// Key Properties:
-/// - Same commitment is valid across zkVM, TEE, MPC backends
+/// - Same commitment is valid across zkVM, TEE backends
 /// - Execution backend proves conformance, not ownership
 /// - Enables backend switching without re-trusting
 /// - Strong mitigation against TEE compromise
@@ -41,8 +41,6 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     enum BackendType {
         ZkVM, // Zero-knowledge virtual machine (e.g., SP1, RISC Zero)
         TEE, // Trusted Execution Environment (e.g., SGX, TDX)
-        MPC, // Multi-party computation
-        FHE, // Fully homomorphic encryption
         Native // Native chain execution (baseline)
     }
 

@@ -166,55 +166,6 @@ interface IZKVerifier {
     function getVerificationKeyHash() external view returns (bytes32);
 }
 
-/// @title IFHEOperations
-/// @notice Interface for FHE operations
-interface IFHEOperations {
-    /// @notice Ciphertext types
-    enum CiphertextType {
-        EUINT8,
-        EUINT16,
-        EUINT32,
-        EUINT64,
-        EUINT256,
-        EBOOL,
-        EADDRESS
-    }
-
-    /// @notice Store an encrypted value
-    /// @param ciphertext The encrypted data
-    /// @param ctype The ciphertext type
-    /// @return handle The ciphertext handle
-    function storeCiphertext(
-        bytes calldata ciphertext,
-        CiphertextType ctype
-    ) external returns (bytes32 handle);
-
-    /// @notice Request homomorphic addition
-    /// @param a First operand handle
-    /// @param b Second operand handle
-    /// @return requestId The computation request ID
-    function requestAdd(
-        bytes32 a,
-        bytes32 b
-    ) external returns (bytes32 requestId);
-
-    /// @notice Request homomorphic comparison
-    /// @param a First operand handle
-    /// @param b Second operand handle
-    /// @return requestId The computation request ID
-    function requestLessThan(
-        bytes32 a,
-        bytes32 b
-    ) external returns (bytes32 requestId);
-
-    /// @notice Request decryption
-    /// @param handle The ciphertext handle
-    /// @return requestId The decryption request ID
-    function requestDecryption(
-        bytes32 handle
-    ) external returns (bytes32 requestId);
-}
-
 /// @title ICrossChainPrivacy
 /// @notice Interface for cross-chain privacy operations
 interface ICrossChainPrivacy {

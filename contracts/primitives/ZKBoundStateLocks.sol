@@ -785,7 +785,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Force unlock a lock (Emergency Recovery)
-     * @dev Only callable by RECOVERY_ROLE (e.g., PQCProtectedLock)
+     * @dev Only callable by RECOVERY_ROLE
      * @param lockId The lock to recover
      * @param recipient The address that initiated recovery (for event tracking)
      */
