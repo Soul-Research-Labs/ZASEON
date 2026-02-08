@@ -73,7 +73,6 @@ jobs:
 
       - name: Run invariant tests
         run: forge test --match-path "test/invariant/*" -vvv
-        continue-on-error: true
 
       - name: Run attack simulation tests
         run: forge test --match-path "test/attacks/*" -vvv
@@ -105,6 +104,19 @@ jobs:
             echo "=== Checking $circuit ==="
             cd "$circuit"
             nargo check 2>&1 || echo "⚠️ $circuit check failed"
+            cd ..
+          done
+
+      - name: Test all circuits
+        run: |
+          cd noir
+          for circuit in nullifier state_commitment state_transfer cross_chain_proof container \
+            cross_domain_nullifier merkle_proof balance_proof private_transfer swap_proof \
+            pedersen_commitment compliance_proof policy policy_bound_proof shielded_pool \
+            sanctions_check accredited_investor aggregator encrypted_transfer ring_signature; do
+            echo "=== Testing $circuit ==="
+            cd "$circuit"
+            nargo test 2>&1 || echo "⚠️ $circuit test failed"
             cd ..
           done
 
