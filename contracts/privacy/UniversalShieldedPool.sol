@@ -696,6 +696,8 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Verify a withdrawal ZK proof
+    /// @dev Uses IProofVerifier.verifyProof(bytes,bytes) via the withdrawal verifier adapter.
+    ///      Test mode allows bypass with length-checked proofs (irreversibly disableable).
     function _verifyWithdrawalProof(
         WithdrawalProof calldata wp
     ) internal view returns (bool) {
@@ -705,20 +707,22 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
             return wp.proof.length >= 64;
         }
 
-        // Encode public inputs for the verifier
-        bytes memory publicInputs = abi.encode(
-            wp.merkleRoot,
-            wp.nullifier,
-            wp.recipient,
-            wp.amount,
-            wp.assetId,
-            wp.relayerAddress,
-            wp.relayerFee
-        );
+        // Encode public inputs as uint256[] for IProofVerifier compatibility
+        uint256[] memory inputs = new uint256[](7);
+        inputs[0] = uint256(wp.merkleRoot);
+        inputs[1] = uint256(wp.nullifier);
+        inputs[2] = uint256(uint160(wp.recipient));
+        inputs[3] = wp.amount;
+        inputs[4] = uint256(wp.assetId);
+        inputs[5] = uint256(uint160(wp.relayerAddress));
+        inputs[6] = wp.relayerFee;
 
+        bytes memory publicInputs = abi.encode(inputs);
+
+        // Call IProofVerifier.verifyProof(bytes,bytes) — matches UltraHonkAdapter
         (bool success, bytes memory result) = withdrawalVerifier.staticcall(
             abi.encodeWithSignature(
-                "verify(bytes,bytes)",
+                "verifyProof(bytes,bytes)",
                 wp.proof,
                 publicInputs
             )

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "../interfaces/IProofVerifier.sol";
 
 /// @title PolicyBoundProofs (PBP)
 /// @author Soul Protocol - Soul v2
@@ -129,6 +130,10 @@ contract PolicyBoundProofs is AccessControl, Pausable {
 
     /// @notice Maximum public inputs length (prevent DOS)
     uint256 public constant MAX_PUBLIC_INPUTS = 32;
+
+    /// @notice ZK verifier for policy-bound proofs
+    /// @dev Phase 3: Replaces length-check placeholder verification
+    IProofVerifier public policyVerifier;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -369,23 +374,42 @@ contract PolicyBoundProofs is AccessControl, Pausable {
         }
         result.policyValid = true;
 
-        // Verify proof structure (actual SNARK verification in production)
-        if (boundProof.proof.length < MIN_PROOF_SIZE) {
-            result.failureReason = "Invalid proof structure";
+        // Verify proof via real SNARK verifier (Phase 3)
+        if (address(policyVerifier) == address(0)) {
+            result.failureReason = "Policy verifier not configured";
             return result;
         }
 
-        // Validate public inputs length
-        uint256 inputsLen = boundProof.publicInputs.length;
-        if (inputsLen > MAX_PUBLIC_INPUTS) {
+        // Build public inputs: vkHash + policyHash + domainSeparator + user inputs
+        uint256 userInputsLen = boundProof.publicInputs.length;
+        if (userInputsLen > MAX_PUBLIC_INPUTS) {
             result.failureReason = "Too many public inputs";
+            return result;
+        }
+
+        uint256[] memory verifierInputs = new uint256[](3 + userInputsLen);
+        verifierInputs[0] = uint256(vkHash);
+        verifierInputs[1] = uint256(boundProof.policyHash);
+        verifierInputs[2] = uint256(boundProof.domainSeparator);
+        for (uint256 i = 0; i < userInputsLen; ) {
+            verifierInputs[3 + i] = uint256(boundProof.publicInputs[i]);
+            unchecked { ++i; }
+        }
+
+        try policyVerifier.verify(boundProof.proof, verifierInputs) returns (bool proofValid) {
+            if (!proofValid) {
+                result.failureReason = "SNARK proof verification failed";
+                return result;
+            }
+        } catch {
+            result.failureReason = "Verifier call failed";
             return result;
         }
 
         // Check public inputs include policy commitment
         bool hasPolicyCommitment = false;
         bytes32 policyHash_ = boundProof.policyHash;
-        for (uint256 i = 0; i < inputsLen; ) {
+        for (uint256 i = 0; i < userInputsLen; ) {
             if (boundProof.publicInputs[i] == policyHash_) {
                 hasPolicyCommitment = true;
                 break;
@@ -572,6 +596,19 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     ) external onlyRole(POLICY_ADMIN_ROLE) {
         defaultProofValidity = validity;
     }
+
+    /// @notice Set the ZK verifier for policy-bound proofs
+    /// @dev Phase 3: Required for real SNARK verification of policy proofs
+    /// @param _verifier Address of the IProofVerifier-compatible contract
+    function setPolicyVerifier(
+        address _verifier
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_verifier != address(0), "Zero verifier address");
+        policyVerifier = IProofVerifier(_verifier);
+        emit PolicyVerifierUpdated(_verifier);
+    }
+
+    event PolicyVerifierUpdated(address indexed newVerifier);
 
     /// @notice Pause contract
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "../interfaces/IProofVerifier.sol";
 
 /// @title CrossDomainNullifierAlgebra (CDNA)
 /// @author Soul Protocol - Soul v2
@@ -135,6 +136,10 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
 
     /// @notice Minimum cross-domain proof size
     uint256 public constant MIN_CROSS_DOMAIN_PROOF_SIZE = 256;
+
+    /// @notice ZK verifier for nullifier derivation proofs
+    /// @dev Phase 3: Replaces length-check placeholder verification
+    IProofVerifier public derivationVerifier;
 
     /// @notice Maximum child nullifiers per parent (prevent DOS)
     uint256 public constant MAX_CHILD_NULLIFIERS = 100;
@@ -409,9 +414,22 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
             revert DomainInactive(targetDomainId);
         }
 
-        // Verify derivation proof (simplified for MVP)
-        if (derivationProof.length < MIN_DERIVATION_PROOF_SIZE) {
-            revert InvalidCrossDomainProof();
+        // Verify derivation proof via real SNARK verifier (Phase 3)
+        require(
+            address(derivationVerifier) != address(0),
+            "Derivation verifier not configured"
+        );
+        {
+            uint256[] memory inputs = new uint256[](4);
+            inputs[0] = uint256(parentNullifier);
+            inputs[1] = uint256(targetDomainId);
+            inputs[2] = uint256(transitionId);
+            inputs[3] = uint256(targetDomain.domainSeparator);
+
+            bool proofValid = derivationVerifier.verify(derivationProof, inputs);
+            if (!proofValid) {
+                revert InvalidCrossDomainProof();
+            }
         }
 
         // Compute child nullifier
@@ -532,9 +550,22 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
             return false;
         }
 
-        // Verify proof structure (actual SNARK verification in production)
-        if (proof.proof.length < MIN_CROSS_DOMAIN_PROOF_SIZE) {
+        // Verify proof via real SNARK verifier (Phase 3)
+        if (address(derivationVerifier) == address(0)) {
             return false;
+        }
+        {
+            uint256[] memory inputs = new uint256[](4);
+            inputs[0] = uint256(proof.sourceNullifier);
+            inputs[1] = uint256(proof.targetNullifier);
+            inputs[2] = uint256(proof.sourceDomainId);
+            inputs[3] = uint256(proof.targetDomainId);
+
+            try derivationVerifier.verify(proof.proof, inputs) returns (bool proofValid) {
+                if (!proofValid) return false;
+            } catch {
+                return false;
+            }
         }
 
         // Verify proof hash
@@ -815,6 +846,19 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
         }
         epochDuration = duration;
     }
+
+    /// @notice Set the ZK verifier for nullifier derivation proofs
+    /// @dev Phase 3: Required for real SNARK verification of cross-domain nullifiers
+    /// @param _verifier Address of the IProofVerifier-compatible contract
+    function setDerivationVerifier(
+        address _verifier
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_verifier != address(0), "Zero verifier address");
+        derivationVerifier = IProofVerifier(_verifier);
+        emit DerivationVerifierUpdated(_verifier);
+    }
+
+    event DerivationVerifierUpdated(address indexed newVerifier);
 
     /// @notice Pause contract
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "../interfaces/IProofVerifier.sol";
 
 /// @title ExecutionAgnosticStateCommitments (EASC)
 /// @author Soul Protocol - Soul v2
@@ -136,6 +137,10 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
 
     /// @notice Total commitments
     uint256 public totalCommitments;
+
+    /// @notice ZK verifier for attestation proofs
+    /// @dev Phase 3: Replaces length-check placeholder verification
+    IProofVerifier public attestationVerifier;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -387,9 +392,25 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
             );
         }
 
-        // Verify attestation proof (simplified for MVP)
-        if (attestationProof.length < MIN_ATTESTATION_PROOF_SIZE) {
-            revert InvalidAttestationProof();
+        // Verify attestation proof via real SNARK verifier (Phase 3)
+        require(
+            address(attestationVerifier) != address(0),
+            "Attestation verifier not configured"
+        );
+        {
+            uint256[] memory inputs = new uint256[](4);
+            inputs[0] = uint256(commitmentId);
+            inputs[1] = uint256(backendId);
+            inputs[2] = uint256(executionHash);
+            inputs[3] = uint256(commitment.stateHash);
+
+            bool proofValid = attestationVerifier.verify(
+                attestationProof,
+                inputs
+            );
+            if (!proofValid) {
+                revert InvalidAttestationProof();
+            }
         }
 
         // Record attestation
@@ -611,6 +632,19 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     ) external onlyRole(BACKEND_ADMIN_ROLE) {
         minTrustScore = score;
     }
+
+    /// @notice Set the ZK verifier for attestation proofs
+    /// @dev Phase 3: Required for real SNARK verification of attestations
+    /// @param _verifier Address of the IProofVerifier-compatible contract
+    function setAttestationVerifier(
+        address _verifier
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_verifier != address(0), "Zero verifier address");
+        attestationVerifier = IProofVerifier(_verifier);
+        emit AttestationVerifierUpdated(_verifier);
+    }
+
+    event AttestationVerifierUpdated(address indexed newVerifier);
 
     /// @notice Pause contract
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {

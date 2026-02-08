@@ -334,52 +334,31 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
         // Cache proof references for gas efficiency
         ProofBundle storage proofs = container.proofs;
 
-        // Verify proofs using real verifiers or placeholder logic
-        if (useRealVerification && address(verifierRegistry) != address(0)) {
-            // Use real SNARK verification through registry
-            result.validityValid = _verifyWithRegistry(
-                proofs.validityProof,
-                container.stateCommitment,
-                verifierRegistry.VALIDITY_PROOF()
-            );
-            result.policyValid =
-                container.policyHash == bytes32(0) ||
-                _verifyWithRegistry(
-                    proofs.policyProof,
-                    container.policyHash,
-                    verifierRegistry.POLICY_PROOF()
-                );
-            result.nullifierValid = _verifyWithRegistry(
-                proofs.nullifierProof,
-                container.nullifier,
-                verifierRegistry.NULLIFIER_PROOF()
-            );
-        } else {
-            // Fallback verification for testing/development environments
-            // CRITICAL: Production deployments MUST use verifierRegistry
+        // Verify proofs using real SNARK verifiers
+        // Phase 3: All verification now requires real verifiers — no length-check fallback
+        require(
+            address(verifierRegistry) != address(0),
+            "VerifierRegistry not configured"
+        );
 
-            // Block mainnet deployment without real verification
-            if (block.chainid == 1) {
-                revert MainnetPlaceholderNotAllowed();
-            }
-
-            // Perform structural validation of proofs
-            // This is not cryptographic verification but validates proof format
-            result.validityValid = _validateProofStructure(
-                proofs.validityProof,
-                container.stateCommitment
+        // Use real SNARK verification through registry
+        result.validityValid = _verifyWithRegistry(
+            proofs.validityProof,
+            container.stateCommitment,
+            verifierRegistry.VALIDITY_PROOF()
+        );
+        result.policyValid =
+            container.policyHash == bytes32(0) ||
+            _verifyWithRegistry(
+                proofs.policyProof,
+                container.policyHash,
+                verifierRegistry.POLICY_PROOF()
             );
-            result.policyValid =
-                container.policyHash == bytes32(0) ||
-                _validateProofStructure(
-                    proofs.policyProof,
-                    container.policyHash
-                );
-            result.nullifierValid = _validateProofStructure(
-                proofs.nullifierProof,
-                container.nullifier
-            );
-        }
+        result.nullifierValid = _verifyWithRegistry(
+            proofs.nullifierProof,
+            container.nullifier,
+            verifierRegistry.NULLIFIER_PROOF()
+        );
 
         if (!result.validityValid) {
             result.failureReason = "Validity proof invalid";
@@ -575,44 +554,14 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
         }
     }
 
-    /// @notice Validate proof structure for test/dev environments
-    /// @dev NOT cryptographic verification - only validates format
-    /// @param proof The proof bytes to validate
-    /// @param publicInput The public input that should be bound to the proof
-    /// @return valid Whether the proof structure is valid
+    /// @notice DEPRECATED: Proof length-check fallback removed in Phase 3
+    /// @dev All verification now requires real SNARK verifiers via VerifierRegistry.
+    ///      This function is kept only for interface compatibility and always reverts.
     function _validateProofStructure(
-        bytes memory proof,
-        bytes32 publicInput
-    ) internal pure returns (bool valid) {
-        // Minimum proof size check
-        if (proof.length < MIN_PROOF_SIZE) return false;
-
-        // Check proof isn't all zeros
-        bool hasNonZero = false;
-        for (uint256 i = 0; i < 32 && i < proof.length; i++) {
-            if (proof[i] != 0) {
-                hasNonZero = true;
-                break;
-            }
-        }
-        if (!hasNonZero) return false;
-
-        // Validate public input binding
-        // Proof should contain a hash commitment to public input
-        bytes32 expectedBinding = keccak256(abi.encodePacked(publicInput));
-
-        // Check if binding exists in first 64 bytes of proof
-        if (proof.length >= 64) {
-            bytes32 proofBinding;
-            assembly {
-                proofBinding := mload(add(proof, 64))
-            }
-            // Allow if binding matches or proof has valid structure
-            if (proofBinding == expectedBinding) return true;
-        }
-
-        // Fallback: accept if proof length is substantial
-        return proof.length >= MIN_PROOF_SIZE * 2;
+        bytes memory,
+        bytes32
+    ) internal pure returns (bool) {
+        revert("Length-check verification removed: use VerifierRegistry");
     }
 
     /*//////////////////////////////////////////////////////////////
