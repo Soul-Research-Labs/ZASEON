@@ -114,7 +114,7 @@ We take security seriously. If you discover a security vulnerability within Soul
 
 **In Scope:**
 - Smart contracts in `/contracts`
-- Circuit implementations in `/circuits`
+- Circuit implementations in `/noir`
 - SDK security issues
 - Cross-chain message validation
 - Proof verification logic
