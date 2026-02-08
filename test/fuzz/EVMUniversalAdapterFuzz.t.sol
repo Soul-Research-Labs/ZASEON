@@ -440,7 +440,12 @@ contract EVMUniversalAdapterFuzz is Test {
             address(acceptVerifier)
         );
 
-        (uint256 proofsBefore, uint256 receivedBefore, , uint256 nullifiersBefore) = adapter.getStats();
+        (
+            uint256 proofsBefore,
+            uint256 receivedBefore,
+            ,
+            uint256 nullifiersBefore
+        ) = adapter.getStats();
 
         IUniversalChainAdapter.EncryptedStateTransfer
             memory transfer = IUniversalChainAdapter.EncryptedStateTransfer({
@@ -457,9 +462,22 @@ contract EVMUniversalAdapterFuzz is Test {
         vm.prank(relayer);
         adapter.receiveEncryptedState(transfer);
 
-        (uint256 proofsAfter, uint256 receivedAfter, , uint256 nullifiersAfter) = adapter.getStats();
+        (
+            uint256 proofsAfter,
+            uint256 receivedAfter,
+            ,
+            uint256 nullifiersAfter
+        ) = adapter.getStats();
 
-        assertGe(receivedAfter, receivedBefore + 1, "Received counter must increase");
-        assertGe(nullifiersAfter, nullifiersBefore + 1, "Nullifier counter must increase");
+        assertGe(
+            receivedAfter,
+            receivedBefore + 1,
+            "Received counter must increase"
+        );
+        assertGe(
+            nullifiersAfter,
+            nullifiersBefore + 1,
+            "Nullifier counter must increase"
+        );
     }
 }

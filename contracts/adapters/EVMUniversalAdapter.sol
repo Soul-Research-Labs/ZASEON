@@ -424,7 +424,9 @@ contract EVMUniversalAdapter is
             );
             for (uint256 i; i < universalProof.publicInputs.length; ) {
                 pubInputs[i] = uint256(universalProof.publicInputs[i]);
-                unchecked { ++i; }
+                unchecked {
+                    ++i;
+                }
             }
             valid = IProofVerifier(verifier).verify(
                 universalProof.proof,
