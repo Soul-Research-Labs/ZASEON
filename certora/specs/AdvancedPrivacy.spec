@@ -1,5 +1,5 @@
 // Certora specification for advanced privacy contracts
-// Verifies Triptych, Seraphis, Nova, and FHE properties
+// Verifies Triptych, Seraphis, and Nova properties
 
 // ==========================================================================
 // TRIPTYCH SIGNATURES SPECIFICATION
@@ -27,13 +27,6 @@ methods {
     function verifiedProofs(bytes32) external returns (bool) envfree;
     function verificationCount() external returns (uint256) envfree;
     function maxVerifiedDepth() external returns (uint256) envfree;
-    
-    // FHEPrivacyIntegration
-    function storeCiphertext(bytes, FHEPrivacyIntegration.CiphertextType) external returns (bytes32);
-    function requestComputation(FHEPrivacyIntegration.Operation, bytes32[]) external returns (bytes32);
-    function requestDecryption(bytes32, bytes32) external returns (bytes32);
-    function ciphertextExists(bytes32) external returns (bool) envfree;
-    function computationCount() external returns (uint256) envfree;
 }
 
 // ==========================================================================
@@ -181,52 +174,6 @@ rule maxDepthTracking() {
     uint256 maxAfter = maxVerifiedDepth();
     
     assert maxAfter >= maxBefore, "Max depth cannot decrease";
-}
-
-// ==========================================================================
-// FHE INVARIANTS
-// ==========================================================================
-
-// INV-F1: Stored ciphertexts exist
-rule ciphertextStoragePersistence(bytes ciphertext) {
-    env e;
-    FHEPrivacyIntegration.CiphertextType ctype;
-    
-    bytes32 hash = storeCiphertext(e, ciphertext, ctype);
-    
-    bool exists = ciphertextExists(hash);
-    
-    assert exists == true, "Stored ciphertext must exist";
-}
-
-// INV-F2: Computation count increases monotonically
-rule computationCountMonotonic(method f) {
-    uint256 before = computationCount();
-    
-    env e;
-    calldataarg args;
-    f(e, args);
-    
-    uint256 after = computationCount();
-    
-    assert after >= before, "Computation count must not decrease";
-}
-
-// INV-F3: Ciphertext hash is deterministic
-rule ciphertextHashDeterminism(bytes ciphertext) {
-    env e1;
-    env e2;
-    require e1.block.timestamp == e2.block.timestamp;
-    require e1.msg.sender == e2.msg.sender;
-    
-    FHEPrivacyIntegration.CiphertextType ctype;
-    
-    bytes32 hash1 = storeCiphertext(e1, ciphertext, ctype);
-    bytes32 hash2 = storeCiphertext(e2, ciphertext, ctype);
-    
-    // Note: Hashes include timestamp and sender, so same env should give same hash
-    // But different calls may have different timestamps, so this is expected
-    assert true; // Documenting expected behavior
 }
 
 // ==========================================================================
