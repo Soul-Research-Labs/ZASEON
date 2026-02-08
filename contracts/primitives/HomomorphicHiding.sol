@@ -527,9 +527,9 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
         RangeProof storage rangeProof = rangeProofs[proofId];
         if (rangeProof.proofId == bytes32(0)) revert InvalidProof();
 
-        // Delegate to external verifier if configured
-        /// @custom:security PLACEHOLDER — replace with real range proof verifier
-        if (rangeProofVerifier != address(0)) {
+        // Delegate to external verifier — reverts if not configured
+        require(rangeProofVerifier != address(0), "Range proof verifier not configured");
+        {
             (bool success, bytes memory result) = rangeProofVerifier.staticcall(
                 abi.encodeWithSignature("verify(bytes)", rangeProof.proof)
             );
@@ -537,8 +537,6 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
                 success &&
                 result.length >= 32 &&
                 abi.decode(result, (bool));
-        } else {
-            isValid = rangeProof.proof.length >= 32;
         }
 
         rangeProof.isVerified = true;

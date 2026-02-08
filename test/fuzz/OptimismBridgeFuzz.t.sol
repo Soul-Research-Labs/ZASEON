@@ -103,6 +103,12 @@ contract OptimismBridgeFuzz is Test {
             ),
             abi.encode(true)
         );
+
+        // Deploy mock ZK proof verifier for private deposit tests
+        MockZKProofVerifier mockZKVerifier = new MockZKProofVerifier();
+        vm.startPrank(admin);
+        bridge.setZKProofVerifier(address(mockZKVerifier));
+        vm.stopPrank();
     }
 
     /// @notice Accept ETH for escrow operations
@@ -1281,5 +1287,24 @@ contract OptimismBridgeFuzz is Test {
         assertEq(deps.length, 0);
         assertEq(ws.length, 0);
         assertEq(es.length, 0);
+    }
+}
+
+/// @notice Mock ZK proof verifier that validates proof binding structure
+/// @dev For test use only — validates the proof has correct binding at bytes [32:64]
+contract MockZKProofVerifier {
+    function verify(
+        bytes32 depositId,
+        bytes32 commitment,
+        bytes32 nullifier,
+        bytes calldata zkProof
+    ) external pure returns (bool) {
+        if (zkProof.length < 64) return false;
+
+        bytes32 expectedBinding = keccak256(
+            abi.encodePacked(depositId, commitment, nullifier)
+        );
+        bytes32 proofBind = bytes32(zkProof[32:64]);
+        return proofBind == expectedBinding;
     }
 }

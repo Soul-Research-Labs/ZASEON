@@ -1190,71 +1190,64 @@ contract CrossChainPrivacyHub is
             proof.proof.length == 0 || adapter.proofSystem == ProofSystem.NONE;
     }
 
-    /// @custom:security PLACEHOLDER — replace with real Groth16 verifier
+    /// @notice Verify a Groth16 proof via the registered verifier
+    /// @dev Reverts if no Groth16 verifier is configured. Call setProofVerifier() first.
     function _verifyGroth16(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.GROTH16];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        // Fallback: length check until verifier is wired
-        return proof.proof.length >= 192; // 2 G1 + 1 G2 = 64 + 64 + 128
+        require(verifier != address(0), "Groth16 verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
-    /// @custom:security PLACEHOLDER — replace with real PLONK verifier
+    /// @notice Verify a PLONK proof via the registered verifier
+    /// @dev Reverts if no PLONK verifier is configured. Call setProofVerifier() first.
     function _verifyPLONK(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.PLONK];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        return proof.proof.length >= 256;
+        require(verifier != address(0), "PLONK verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
-    /// @custom:security PLACEHOLDER — replace with real STARK verifier
+    /// @notice Verify a STARK proof via the registered verifier
+    /// @dev Reverts if no STARK verifier is configured. Call setProofVerifier() first.
     function _verifySTARK(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.STARK];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        return proof.proof.length >= 512;
+        require(verifier != address(0), "STARK verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
-    /// @custom:security PLACEHOLDER — replace with real Bulletproof verifier
+    /// @notice Verify a Bulletproof via the registered verifier
+    /// @dev Reverts if no Bulletproof verifier is configured. Call setProofVerifier() first.
     function _verifyBulletproof(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.BULLETPROOF];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        return proof.proof.length >= 128;
+        require(verifier != address(0), "Bulletproof verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
-    /// @custom:security PLACEHOLDER — replace with real Halo2 verifier
+    /// @notice Verify a Halo2 proof via the registered verifier
+    /// @dev Reverts if no Halo2 verifier is configured. Call setProofVerifier() first.
     function _verifyHalo2(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.HALO2];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        return proof.proof.length >= 256;
+        require(verifier != address(0), "Halo2 verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
-    /// @custom:security PLACEHOLDER — replace with real CLSAG verifier
+    /// @notice Verify a CLSAG proof via the registered verifier
+    /// @dev Reverts if no CLSAG verifier is configured. Call setProofVerifier() first.
     function _verifyCLSAG(
         PrivacyProof calldata proof
     ) internal view returns (bool) {
         address verifier = proofVerifiers[ProofSystem.CLSAG];
-        if (verifier != address(0)) {
-            return _delegateVerify(verifier, proof.proof);
-        }
-        return proof.proof.length >= 64;
+        require(verifier != address(0), "CLSAG verifier not configured");
+        return _delegateVerify(verifier, proof.proof);
     }
 
     /**

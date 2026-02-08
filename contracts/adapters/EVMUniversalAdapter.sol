@@ -344,8 +344,19 @@ contract EVMUniversalAdapter is
             encryptedPayload.length <= MAX_PAYLOAD_SIZE,
             "Payload too large"
         );
-        /// @custom:security PLACEHOLDER — add real proof verification before accepting transfer
-        require(proof.length > 0, "Empty proof");
+        // Verify ZK proof via registered verifier (same as receiveEncryptedState)
+        {
+            address verifier = proofVerifiers[chainDescriptor.proofSystem];
+            require(verifier != address(0), "No proof verifier configured");
+
+            uint256[] memory publicInputs = new uint256[](3);
+            publicInputs[0] = uint256(stateCommitment);
+            publicInputs[1] = uint256(nullifier);
+            publicInputs[2] = uint256(destChainId);
+
+            bool proofValid = IProofVerifier(verifier).verify(proof, publicInputs);
+            require(proofValid, "Proof verification failed");
+        }
 
         // Generate unique transfer ID
         transferId = keccak256(

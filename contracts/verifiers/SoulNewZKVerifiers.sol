@@ -186,9 +186,8 @@ contract SoulSP1Verifier is Ownable {
         // Full verification requires state changes via verify()
         // Check if gateway exists for actual verification capability
         if (sp1Gateway == address(0)) {
-            // No gateway - can only validate structure
-            /// @custom:security PLACEHOLDER — replace with real SP1 gateway verification
-            return proof.proof.length >= 32;
+            // No gateway configured — cannot verify SP1 proofs
+            return false;
         }
 
         // Call gateway for view verification

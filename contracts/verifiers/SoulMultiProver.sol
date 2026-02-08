@@ -473,9 +473,8 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
         ProverConfig storage config = provers[prover];
 
         if (config.verifier == address(0)) {
-            // No verifier set, use mock verification
-            /// @custom:security PLACEHOLDER — replace with real prover verification
-            return proof.length >= 32;
+            // No verifier configured — reject proof
+            return false;
         }
 
         // Call the verifier contract

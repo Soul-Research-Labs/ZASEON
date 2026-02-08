@@ -525,10 +525,10 @@ contract ComposableRevocationProofs is
             proof.credentialHash
         ] && proof.accumulatorValue == accumulator.currentValue;
 
-        // Delegate ZK proof verification to external verifier if configured
-        /// @custom:security PLACEHOLDER — replace length check with real non-membership proof verifier
+        // Delegate ZK proof verification to external verifier — reverts if not configured
+        require(nonMembershipVerifier != address(0), "Non-membership verifier not configured");
         bool proofValid;
-        if (nonMembershipVerifier != address(0)) {
+        {
             (bool success, bytes memory result) = nonMembershipVerifier
                 .staticcall(
                     abi.encodeWithSignature("verify(bytes)", proof.proof)
@@ -537,8 +537,6 @@ contract ComposableRevocationProofs is
                 success &&
                 result.length >= 32 &&
                 abi.decode(result, (bool));
-        } else {
-            proofValid = proof.proof.length >= 32;
         }
 
         isValid = stateValid && proofValid;

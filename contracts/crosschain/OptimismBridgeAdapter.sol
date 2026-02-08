@@ -950,46 +950,30 @@ contract OptimismBridgeAdapter is
      *   nullifier = hash(commitment, secret)
      *   deposit.amount matches the committed value
      */
-    /// @custom:security PLACEHOLDER — replace with real ZK proof verification contract call
+    /// @notice Verify a ZK proof for private deposit registration
+    /// @dev Reverts if no zkProofVerifier is configured. Call setZKProofVerifier() first.
     function _verifyZKProof(
         bytes32 depositId,
         bytes32 commitment,
         bytes32 nullifier,
         bytes calldata zkProof
     ) internal view returns (bool) {
-        // Delegate to external verifier if configured
+        // Delegate to external verifier — require it to be configured
         address verifier = zkProofVerifier;
-        if (verifier != address(0)) {
-            (bool success, bytes memory result) = verifier.staticcall(
-                abi.encodeWithSignature(
-                    "verify(bytes32,bytes32,bytes32,bytes)",
-                    depositId,
-                    commitment,
-                    nullifier,
-                    zkProof
-                )
-            );
-            if (success && result.length >= 32) {
-                return abi.decode(result, (bool));
-            }
-            return false;
-        }
+        require(verifier != address(0), "ZK proof verifier not configured");
 
-        // Fallback: length + binding check until verifier is wired
-        // Minimum proof length for Groth16 (256 bytes) or PLONK (512 bytes)
-        if (zkProof.length < 256) return false;
-
-        // Verify proof binds to the deposit, commitment, and nullifier
-        bytes32 proofBinding = keccak256(
-            abi.encodePacked(depositId, commitment, nullifier)
+        (bool success, bytes memory result) = verifier.staticcall(
+            abi.encodeWithSignature(
+                "verify(bytes32,bytes32,bytes32,bytes)",
+                depositId,
+                commitment,
+                nullifier,
+                zkProof
+            )
         );
-
-        // Verify the proof contains the binding hash (first 32 bytes after prefix)
-        if (zkProof.length >= 64) {
-            bytes32 proofBind = bytes32(zkProof[32:64]);
-            return proofBind == proofBinding;
+        if (success && result.length >= 32) {
+            return abi.decode(result, (bool));
         }
-
         return false;
     }
 

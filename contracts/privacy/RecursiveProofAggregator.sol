@@ -620,8 +620,8 @@ contract RecursiveProofAggregator is
         );
 
         if (!success || result.length < 32) {
-            /// @custom:security PLACEHOLDER — verifier call failed, fallback to length check
-            return proof.length > 0 && publicInputs.length > 0;
+            // Verifier call failed — reject proof (no fallback acceptance)
+            return false;
         }
 
         return abi.decode(result, (bool));

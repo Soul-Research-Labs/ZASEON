@@ -416,9 +416,9 @@ contract AggregateDisclosureAlgebra is
         ];
         if (credential.isRevoked) revert CredentialIsRevoked();
 
-        // Delegate to external verifier if configured
-        /// @custom:security PLACEHOLDER — replace with real disclosure proof verifier
-        if (disclosureProofVerifier != address(0)) {
+        // Delegate to external verifier — reverts if not configured
+        require(disclosureProofVerifier != address(0), "Disclosure proof verifier not configured");
+        {
             (bool success, bytes memory result) = disclosureProofVerifier
                 .staticcall(
                     abi.encodeWithSignature("verify(bytes)", disclosure.proof)
@@ -427,8 +427,6 @@ contract AggregateDisclosureAlgebra is
                 success &&
                 result.length >= 32 &&
                 abi.decode(result, (bool));
-        } else {
-            isValid = disclosure.proof.length >= 32;
         }
 
         disclosure.isConsumed = true;

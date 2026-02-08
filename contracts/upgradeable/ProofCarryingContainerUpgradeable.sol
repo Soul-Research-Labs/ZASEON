@@ -352,14 +352,9 @@ contract ProofCarryingContainerUpgradeable is
                 verifierRegistry.NULLIFIER_PROOF()
             );
         } else {
-            /// @custom:security PLACEHOLDER — replace length checks with real proof verification
-            result.validityValid =
-                proofs.validityProof.length >= MIN_PROOF_SIZE;
-            result.policyValid =
-                proofs.policyProof.length >= MIN_PROOF_SIZE ||
-                container.policyHash == bytes32(0);
-            result.nullifierValid =
-                proofs.nullifierProof.length >= MIN_PROOF_SIZE;
+            // No real verification configured — reject all proofs
+            // Call setRealVerification(true) and setVerifierRegistry() to enable
+            revert("Real verification not enabled: configure VerifierRegistry");
         }
 
         if (!result.validityValid) {
