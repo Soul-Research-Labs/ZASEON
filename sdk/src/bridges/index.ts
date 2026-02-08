@@ -20,7 +20,11 @@ export * as ZkSyncBridge from "./zksync";
 import {
     type PublicClient,
     type WalletClient,
+    type Address,
+    type Hash,
+    getAddress,
 } from "viem";
+import { ARB_ONE_CHAIN_ID, ARBITRUM_BRIDGE_ADAPTER_ABI, estimateDepositCost } from "./arbitrum";
 
 // ============================================
 // Types & Interfaces
@@ -123,16 +127,247 @@ export interface BridgeAddresses {
   [key: string]: string;
 }
 
+// ============================================
+// Chain Configurations
+// ============================================
+
+const CHAIN_CONFIGS: Record<SupportedChain, BridgeAdapterConfig> = {
+  arbitrum: {
+    name: "Arbitrum",
+    chainId: 42161,
+    nativeToken: "ETH",
+    finality: 45, // ~45 min challenge window for fast exits
+    maxAmount: 1_000_000_000_000_000_000_000_000n, // 1M ether
+    minAmount: 1_000_000_000_000_000n, // 0.001 ether
+  },
+  base: {
+    name: "Base",
+    chainId: 8453,
+    nativeToken: "ETH",
+    finality: 20,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  ethereum: {
+    name: "Ethereum",
+    chainId: 1,
+    nativeToken: "ETH",
+    finality: 15,
+    maxAmount: 10_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  linea: {
+    name: "Linea",
+    chainId: 59144,
+    nativeToken: "ETH",
+    finality: 30,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  optimism: {
+    name: "Optimism",
+    chainId: 10,
+    nativeToken: "ETH",
+    finality: 20,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  "polygon-zkevm": {
+    name: "Polygon zkEVM",
+    chainId: 1101,
+    nativeToken: "ETH",
+    finality: 30,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  scroll: {
+    name: "Scroll",
+    chainId: 534352,
+    nativeToken: "ETH",
+    finality: 30,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+  zksync: {
+    name: "zkSync Era",
+    chainId: 324,
+    nativeToken: "ETH",
+    finality: 15,
+    maxAmount: 1_000_000_000_000_000_000_000_000n,
+    minAmount: 1_000_000_000_000_000n,
+  },
+};
+
+// ============================================
+// L2 Bridge Adapter (generic implementation)
+// ============================================
+
+/**
+ * Generic L2 bridge adapter that delegates to Soul bridge contracts.
+ * Uses the bridge adapter ABI to interact with on-chain contracts.
+ */
+export class L2BridgeAdapter extends BaseBridgeAdapter {
+  private readonly bridgeAddress: Address;
+  private readonly abi: readonly any[];
+
+  constructor(
+    config: BridgeAdapterConfig,
+    publicClient: PublicClient,
+    walletClient: WalletClient | undefined,
+    bridgeAddress: Address,
+    abi: readonly any[] = ARBITRUM_BRIDGE_ADAPTER_ABI,
+  ) {
+    super(config, publicClient, walletClient);
+    this.bridgeAddress = bridgeAddress;
+    this.abi = abi;
+  }
+
+  async bridgeTransfer(params: BridgeTransferParams): Promise<BridgeTransferResult> {
+    this.validateAmount(params.amount);
+
+    if (!this.walletClient?.account) {
+      throw new Error("Wallet client with account required for transfers");
+    }
+
+    const fees = await this.estimateFees(params.amount, params.targetChainId);
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.bridgeAddress,
+      abi: this.abi,
+      functionName: "deposit",
+      args: [
+        BigInt(params.targetChainId),
+        getAddress(params.recipient),
+        "0x0000000000000000000000000000000000000000" as Address, // native ETH
+        params.amount,
+        1_000_000n, // l2GasLimit
+        100_000_000n, // l2GasPrice (0.1 gwei)
+      ],
+      value: params.amount + fees.total,
+      chain: null,
+      account: this.walletClient.account,
+    });
+
+    return {
+      transferId: txHash,
+      txHash,
+      estimatedArrival: Date.now() + this.config.finality * 60 * 1000,
+      fees,
+    };
+  }
+
+  async completeBridge(transferId: string, proof: Uint8Array): Promise<string> {
+    if (!this.walletClient?.account) {
+      throw new Error("Wallet client with account required to complete bridge");
+    }
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.bridgeAddress,
+      abi: this.abi,
+      functionName: "claimWithdrawal",
+      args: [
+        transferId as Hash,
+        [("0x" + Buffer.from(proof).toString("hex")) as Hash],
+        0n,
+      ],
+      chain: null,
+      account: this.walletClient.account,
+    });
+
+    return txHash;
+  }
+
+  async getStatus(transferId: string): Promise<BridgeStatus> {
+    // Read on-chain state via bridge contract events
+    const logs = await this.publicClient.getLogs({
+      address: this.bridgeAddress,
+      event: {
+        type: "event" as const,
+        name: "DepositInitiated",
+        inputs: [
+          { name: "depositId", type: "bytes32", indexed: true },
+          { name: "sender", type: "address", indexed: true },
+          { name: "l2Recipient", type: "address", indexed: false },
+          { name: "amount", type: "uint256", indexed: false },
+          { name: "ticketId", type: "uint256", indexed: false },
+        ],
+      },
+      args: { depositId: transferId as Hash },
+      fromBlock: "earliest",
+    });
+
+    if (logs.length === 0) {
+      return {
+        state: "pending",
+        sourceChainId: this.config.chainId,
+        targetChainId: 0,
+        confirmations: 0,
+        requiredConfirmations: this.config.finality,
+      };
+    }
+
+    const block = await this.publicClient.getBlockNumber();
+    const logBlock = logs[0].blockNumber ?? 0n;
+    const confirmations = Number(block - logBlock);
+
+    return {
+      state: confirmations >= this.config.finality ? "completed" : "confirming",
+      sourceChainId: this.config.chainId,
+      targetChainId: 0,
+      sourceTx: logs[0].transactionHash ?? undefined,
+      confirmations,
+      requiredConfirmations: this.config.finality,
+      estimatedCompletion:
+        confirmations < this.config.finality
+          ? Date.now() + (this.config.finality - confirmations) * 12 * 1000
+          : undefined,
+    };
+  }
+
+  async estimateFees(amount: bigint, _targetChainId: number): Promise<BridgeFees> {
+    const { fee, gasEstimate } = estimateDepositCost(amount);
+    return {
+      protocolFee: fee,
+      relayerFee: 0n,
+      gasFee: gasEstimate,
+      total: fee + gasEstimate,
+    };
+  }
+}
+
+// ============================================
+// Bridge Factory
+// ============================================
+
 export class BridgeFactory {
   static createAdapter(
     chain: SupportedChain,
     publicClient: PublicClient,
     walletClient?: WalletClient,
-    _addresses?: BridgeAddresses,
+    addresses?: BridgeAddresses,
   ): BaseBridgeAdapter {
-    throw new Error(
-      `Bridge adapter for chain "${chain}" is not yet implemented. ` +
-      `Available chains: arbitrum, base, ethereum, linea, optimism, polygon-zkevm, scroll, zksync`
+    const config = CHAIN_CONFIGS[chain];
+    if (!config) {
+      throw new Error(
+        `Unsupported chain "${chain}". ` +
+        `Available chains: ${Object.keys(CHAIN_CONFIGS).join(", ")}`
+      );
+    }
+
+    const addrKey = `bridge_${chain.replace("-", "_")}`;
+    const bridgeAddress = addresses?.[addrKey] ?? addresses?.bridge;
+    if (!bridgeAddress) {
+      throw new Error(
+        `No bridge address configured for "${chain}". ` +
+        `Set addresses.${addrKey} or addresses.bridge in your config.`
+      );
+    }
+
+    return new L2BridgeAdapter(
+      config,
+      publicClient,
+      walletClient,
+      getAddress(bridgeAddress),
     );
   }
 }
