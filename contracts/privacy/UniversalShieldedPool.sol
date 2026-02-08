@@ -704,6 +704,7 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
         if (withdrawalVerifier == address(0)) {
             // No verifier set — only accept in explicit test mode
             require(testMode, "No verifier configured");
+            /// @custom:security PLACEHOLDER — replace with real withdrawal proof verifier
             return wp.proof.length >= 64;
         }
 

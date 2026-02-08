@@ -414,6 +414,7 @@ contract AggregateDisclosureAlgebra is
         if (credential.isRevoked) revert CredentialIsRevoked();
 
         // Simplified verification - in production would verify ZK proof
+        /// @custom:security PLACEHOLDER — replace with real disclosure proof verifier
         isValid = disclosure.proof.length >= 32;
 
         disclosure.isConsumed = true;

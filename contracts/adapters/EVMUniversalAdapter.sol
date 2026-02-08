@@ -344,6 +344,7 @@ contract EVMUniversalAdapter is
             encryptedPayload.length <= MAX_PAYLOAD_SIZE,
             "Payload too large"
         );
+        /// @custom:security PLACEHOLDER — add real proof verification before accepting transfer
         require(proof.length > 0, "Empty proof");
 
         // Generate unique transfer ID

@@ -656,6 +656,7 @@ contract UniversalShieldedPoolUpgradeable is
     ) internal view returns (bool) {
         if (withdrawalVerifier == address(0)) {
             require(testMode, "No verifier configured");
+            /// @custom:security PLACEHOLDER — replace with real withdrawal proof verifier
             return wp.proof.length >= 64;
         }
 

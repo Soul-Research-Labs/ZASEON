@@ -519,6 +519,7 @@ contract ComposableRevocationProofs is
         // Check if credential was NOT revoked at proof time
         // In production, this would verify the ZK proof
         // Also verify the accumulator value matches the proof's recorded value
+        /// @custom:security PLACEHOLDER — replace length check with real non-membership proof verifier
         isValid =
             !isRevoked[proof.accumulatorId][proof.credentialHash] &&
             proof.proof.length >= 32 &&

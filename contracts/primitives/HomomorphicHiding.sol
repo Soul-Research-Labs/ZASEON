@@ -525,6 +525,7 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
         if (rangeProof.proofId == bytes32(0)) revert InvalidProof();
 
         // Simplified verification - in production would use a ZK verifier
+        /// @custom:security PLACEHOLDER — replace with real range proof verifier
         isValid = rangeProof.proof.length >= 32;
 
         rangeProof.isVerified = true;

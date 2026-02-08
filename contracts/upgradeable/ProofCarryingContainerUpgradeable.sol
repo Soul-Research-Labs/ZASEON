@@ -352,6 +352,7 @@ contract ProofCarryingContainerUpgradeable is
                 verifierRegistry.NULLIFIER_PROOF()
             );
         } else {
+            /// @custom:security PLACEHOLDER — replace length checks with real proof verification
             result.validityValid =
                 proofs.validityProof.length >= MIN_PROOF_SIZE;
             result.policyValid =

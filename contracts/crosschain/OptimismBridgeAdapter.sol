@@ -933,6 +933,7 @@ contract OptimismBridgeAdapter is
      *   nullifier = hash(commitment, secret)
      *   deposit.amount matches the committed value
      */
+    /// @custom:security PLACEHOLDER — replace with real ZK proof verification contract call
     function _verifyZKProof(
         bytes32 depositId,
         bytes32 commitment,

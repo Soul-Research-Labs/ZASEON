@@ -694,6 +694,7 @@ contract BatchAccumulator is
 
         // No verifier configured — require minimum proof length as a safety check
         // This path should only be used during initial deployment before verifier is set
+        /// @custom:security PLACEHOLDER — replace with real aggregate proof verifier
         return proof.length >= 256;
     }
 

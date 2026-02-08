@@ -1187,6 +1187,7 @@ contract CrossChainPrivacyHub is
             proof.proof.length == 0 || adapter.proofSystem == ProofSystem.NONE;
     }
 
+    /// @custom:security PLACEHOLDER — replace with real Groth16 verifier
     function _verifyGroth16(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {
@@ -1194,30 +1195,35 @@ contract CrossChainPrivacyHub is
         return proof.proof.length >= 192; // 2 G1 + 1 G2 = 64 + 64 + 128
     }
 
+    /// @custom:security PLACEHOLDER — replace with real PLONK verifier
     function _verifyPLONK(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {
         return proof.proof.length >= 256;
     }
 
+    /// @custom:security PLACEHOLDER — replace with real STARK verifier
     function _verifySTARK(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {
         return proof.proof.length >= 512;
     }
 
+    /// @custom:security PLACEHOLDER — replace with real Bulletproof verifier
     function _verifyBulletproof(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {
         return proof.proof.length >= 128;
     }
 
+    /// @custom:security PLACEHOLDER — replace with real Halo2 verifier
     function _verifyHalo2(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {
         return proof.proof.length >= 256;
     }
 
+    /// @custom:security PLACEHOLDER — replace with real CLSAG verifier
     function _verifyCLSAG(
         PrivacyProof calldata proof
     ) internal pure returns (bool) {

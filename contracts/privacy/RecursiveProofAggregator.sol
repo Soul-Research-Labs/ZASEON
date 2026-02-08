@@ -614,6 +614,7 @@ contract RecursiveProofAggregator is
 
         // In production, call the appropriate verifier
         // For now, return true if verifier exists
+        /// @custom:security PLACEHOLDER — delegate to real verifier at `verifier`
         return proof.length > 0 && publicInputs.length > 0;
     }
 
