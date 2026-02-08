@@ -99,7 +99,7 @@ export default defineConfig({
           evmVersion: "paris"
         }
       },
-      "contracts/crosschain/ZKBoundStateLocks.sol": {
+      "contracts/primitives/ZKBoundStateLocks.sol": {
         version: "0.8.20",
         settings: {
           optimizer: { enabled: true, runs: 1 },
