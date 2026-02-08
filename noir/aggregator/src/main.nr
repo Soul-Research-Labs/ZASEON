@@ -1,4 +1,4 @@
-use std::verify_proof;
+use std::verify_proof_with_type;
 
 /**
  * @title AggregatorCircuit
@@ -71,21 +71,21 @@ fn main(
     assert(batch_size as u32 <= MAX_BATCH_SIZE);
 
     // -- Always verify proof 0 (batch_size >= 1) --
-    verify_proof(vk_0, proof_0, pub_inputs_0, key_hash_0);
+    verify_proof_with_type(vk_0, proof_0, pub_inputs_0, key_hash_0, 0);
 
     // -- Conditionally verify proof 1 --
     if batch_size as u32 >= 2 {
-        verify_proof(vk_1, proof_1, pub_inputs_1, key_hash_1);
+        verify_proof_with_type(vk_1, proof_1, pub_inputs_1, key_hash_1, 0);
     }
 
     // -- Conditionally verify proof 2 --
     if batch_size as u32 >= 3 {
-        verify_proof(vk_2, proof_2, pub_inputs_2, key_hash_2);
+        verify_proof_with_type(vk_2, proof_2, pub_inputs_2, key_hash_2, 0);
     }
 
     // -- Conditionally verify proof 3 --
     if batch_size as u32 >= 4 {
-        verify_proof(vk_3, proof_3, pub_inputs_3, key_hash_3);
+        verify_proof_with_type(vk_3, proof_3, pub_inputs_3, key_hash_3, 0);
     }
 
     // Return the aggregation object for chaining
