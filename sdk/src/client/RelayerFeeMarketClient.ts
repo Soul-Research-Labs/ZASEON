@@ -184,6 +184,8 @@ export class RelayerFeeMarketClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.feeMarketAddress,
             abi: RELAYER_FEE_MARKET_ABI,
             functionName: "submitRelayRequest",
@@ -206,6 +208,8 @@ export class RelayerFeeMarketClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.feeMarketAddress,
             abi: RELAYER_FEE_MARKET_ABI,
             functionName: "cancelRelayRequest",
@@ -228,6 +232,8 @@ export class RelayerFeeMarketClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.feeMarketAddress,
             abi: RELAYER_FEE_MARKET_ABI,
             functionName: "claimRelayRequest",
@@ -246,6 +252,8 @@ export class RelayerFeeMarketClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.feeMarketAddress,
             abi: RELAYER_FEE_MARKET_ABI,
             functionName: "completeRelay",
@@ -264,6 +272,8 @@ export class RelayerFeeMarketClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.feeMarketAddress,
             abi: RELAYER_FEE_MARKET_ABI,
             functionName: "expireRelayRequest",

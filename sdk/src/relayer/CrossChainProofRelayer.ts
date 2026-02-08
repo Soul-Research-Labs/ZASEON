@@ -368,6 +368,8 @@ export class CrossChainProofRelayer {
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
         const hash = await this.walletClient.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
           address: this.config.relayAddress,
           abi: RELAY_ABI,
           functionName: 'relayProof',

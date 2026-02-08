@@ -295,6 +295,8 @@ export class SoulPrivacySDK {
         const abi = useRouter ? ROUTER_ABI : POOL_ABI;
 
         const hash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: target,
             abi,
             functionName: "depositETH",
@@ -326,6 +328,8 @@ export class SoulPrivacySDK {
         const abi = useRouter ? ROUTER_ABI : POOL_ABI;
 
         const hash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: target,
             abi,
             functionName: "depositERC20",

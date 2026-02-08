@@ -211,6 +211,8 @@ export class ShieldedPoolClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.poolAddress,
             abi: SHIELDED_POOL_ABI,
             functionName: "deposit",
@@ -238,6 +240,8 @@ export class ShieldedPoolClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.poolAddress,
             abi: SHIELDED_POOL_ABI,
             functionName: "deposit",
@@ -270,6 +274,8 @@ export class ShieldedPoolClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.poolAddress,
             abi: SHIELDED_POOL_ABI,
             functionName: "withdraw",

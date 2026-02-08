@@ -5,17 +5,17 @@
  * All adapters target EVM-compatible L2 networks.
  */
 
-export * from "./arbitrum";
-export * from "./base";
-export * from "./ethereum";
-export * from "./hyperlane";
-export * from "./l2-adapters";
-export * from "./layerzero";
-export * from "./linea";
+export * as ArbitrumBridge from "./arbitrum";
+export * as BaseBridge from "./base";
+export * as EthereumBridge from "./ethereum";
+export * as HyperlaneBridge from "./hyperlane";
+export * as L2Adapters from "./l2-adapters";
+export * as LayerZeroBridge from "./layerzero";
+export * as LineaBridge from "./linea";
 export * from "./optimism";
-export * from "./polygon-zkevm";
-export * from "./scroll";
-export * from "./zksync";
+export * as PolygonZkEvmBridge from "./polygon-zkevm";
+export * as ScrollBridge from "./scroll";
+export * as ZkSyncBridge from "./zksync";
 
 import {
     type PublicClient,
@@ -114,3 +114,25 @@ export type SupportedChain =
   | "polygon-zkevm"
   | "scroll"
   | "zksync";
+
+// ============================================
+// Bridge Factory
+// ============================================
+
+export interface BridgeAddresses {
+  [key: string]: string;
+}
+
+export class BridgeFactory {
+  static createAdapter(
+    chain: SupportedChain,
+    publicClient: PublicClient,
+    walletClient?: WalletClient,
+    _addresses?: BridgeAddresses,
+  ): BaseBridgeAdapter {
+    throw new Error(
+      `Bridge adapter for chain "${chain}" is not yet implemented. ` +
+      `Available chains: arbitrum, base, ethereum, linea, optimism, polygon-zkevm, scroll, zksync`
+    );
+  }
+}

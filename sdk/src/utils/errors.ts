@@ -66,6 +66,11 @@ export enum SoulErrorCode {
   AMOUNT_EXCEEDS_LIMIT = 7002,
   COUNTERPARTY_BLOCKED = 7003,
   ASSET_NOT_ALLOWED = 7004,
+
+  // Relay errors (8xxx)
+  RELAY_FAILED = 8000,
+  RELAY_TIMEOUT = 8001,
+  RELAY_REJECTED = 8002,
 }
 
 /**
@@ -524,7 +529,7 @@ export async function withTimeout<T>(
     fn(),
     new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new TimeoutError(timeoutMs, operation));
+        reject(new TimeoutError(operation, timeoutMs));
       }, timeoutMs);
     }),
   ]);

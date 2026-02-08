@@ -97,6 +97,8 @@ export class SoulClient {
     const proofHub = this._requireAddress("proofHub");
 
     const hash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
       address: proofHub as Address,
       abi: PROOF_HUB_ABI,
       functionName: "submitProof",
@@ -126,6 +128,8 @@ export class SoulClient {
     const proofHub = this._requireAddress("proofHub");
 
     const hash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
       address: proofHub as Address,
       abi: [
         {

@@ -187,6 +187,8 @@ export class PrivacyRouterClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.routerAddress,
             abi: PRIVACY_ROUTER_ABI,
             functionName: "depositETH",
@@ -217,6 +219,8 @@ export class PrivacyRouterClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.routerAddress,
             abi: PRIVACY_ROUTER_ABI,
             functionName: "depositERC20",
@@ -237,6 +241,8 @@ export class PrivacyRouterClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.routerAddress,
             abi: PRIVACY_ROUTER_ABI,
             functionName: "withdraw",
@@ -266,13 +272,15 @@ export class PrivacyRouterClient {
         this.requireWallet();
 
         const txHash = await this.walletClient!.writeContract({
+            chain: this.walletClient!.chain ?? null,
+            account: this.walletClient!.account!,
             address: this.routerAddress,
             abi: PRIVACY_ROUTER_ABI,
             functionName: "crossChainTransfer",
             args: [
                 params.commitment,
                 params.nullifierHash,
-                params.destinationChainId,
+                BigInt(params.destinationChainId),
                 params.proof,
             ],
         });
