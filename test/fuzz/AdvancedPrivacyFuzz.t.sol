@@ -62,25 +62,6 @@ interface ISeraphisAddressing {
     function usedKeyImages(bytes32) external view returns (bool);
 }
 
-interface IFHEPrivacyIntegration {
-    enum CiphertextType {
-        EUINT8,
-        EUINT16,
-        EUINT32,
-        EUINT64,
-        EUINT256,
-        EBOOL,
-        EADDRESS
-    }
-
-    function storeCiphertext(
-        bytes calldata,
-        CiphertextType
-    ) external returns (bytes32);
-
-    function ciphertextExists(bytes32) external view returns (bool);
-}
-
 /// @title AdvancedPrivacyFuzz
 /// @notice Comprehensive fuzz tests for advanced privacy research implementations
 contract AdvancedPrivacyFuzz is Test {
@@ -288,7 +269,7 @@ contract AdvancedPrivacyFuzz is Test {
     }
 
     // ==========================================================================
-    // FHE FUZZ TESTS
+    // CIPHERTEXT HASH FUZZ TESTS
     // ==========================================================================
 
     /// @notice Fuzz test: Ciphertext hash determinism (same inputs)
