@@ -113,6 +113,21 @@ jobs:
       - name: Run stress tests
         run: forge test --match-path "test/stress/*" -vvv
 
+      - name: Run infrastructure tests
+        run: forge test --match-path "test/infrastructure/*" -vvv
+
+      - name: Run integrations tests
+        run: forge test --match-path "test/integrations/*" -vvv
+
+      - name: Run internal tests
+        run: forge test --match-path "test/internal/*" -vvv
+
+      - name: Run libraries tests
+        run: forge test --match-path "test/libraries/*" -vvv
+
+      - name: Run upgradeable tests
+        run: forge test --match-path "test/upgradeable/*" -vvv
+
       - name: Run gas benchmarks
         run: forge test --match-path "test/gas/*" -vvv --gas-report
 
@@ -219,6 +234,43 @@ jobs:
     runs-on: ubuntu-latest
     needs: [foundry-tests]
     if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - verify_proofhub
+          - verify_circuit_breaker
+          - verify_rate_limiter
+          - verify_killswitch
+          - verify_fraud_proof
+          - verify
+          - verify_arbitrum_bridge
+          - verify_base_bridge
+          - verify_optimism_bridge
+          - verify_linea_bridge
+          - verify_scroll_bridge
+          - verify_zksync_bridge
+          - verify_polygon_zkevm_bridge
+          - verify_layerzero_bridge
+          - verify_hyperlane_bridge
+          - verify_ethereum_l1_bridge
+          - verify_l2_bridges
+          - verify_crosschain
+          - verify_crosschain_security
+          - verify_security
+          - verify_nullifier
+          - verify_cdna
+          - verify_pc3
+          - verify_pbp
+          - verify_easc
+          - verify_zkslocks
+          - verify_zkslocks_enhanced
+          - verify_atomicswap
+          - verify_batch_accumulator
+          - verify_privacy_oracle
+          - verify_crp
+          - verify_adv
+          - verify_timelock
     steps:
       - uses: actions/checkout@v4
         with:
@@ -246,27 +298,7 @@ jobs:
       - name: Install Certora CLI
         run: pip3 install certora-cli
 
-      - name: Run Certora - CrossChainProofHub
-        run: certoraRun certora/conf/verify_proofhub.conf
-        env:
-          CERTORAKEY: ${{ secrets.CERTORAKEY }}
-
-      - name: Run Certora - BridgeCircuitBreaker
-        run: certoraRun certora/conf/verify_circuit_breaker.conf
-        env:
-          CERTORAKEY: ${{ secrets.CERTORAKEY }}
-
-      - name: Run Certora - BridgeRateLimiter
-        run: certoraRun certora/conf/verify_rate_limiter.conf
-        env:
-          CERTORAKEY: ${{ secrets.CERTORAKEY }}
-
-      - name: Run Certora - EnhancedKillSwitch
-        run: certoraRun certora/conf/verify_killswitch.conf
-        env:
-          CERTORAKEY: ${{ secrets.CERTORAKEY }}
-
-      - name: Run Certora - ZKFraudProof
-        run: certoraRun certora/conf/verify_fraud_proof.conf
+      - name: Run Certora - ${{ matrix.spec }}
+        run: certoraRun certora/conf/${{ matrix.spec }}.conf
         env:
           CERTORAKEY: ${{ secrets.CERTORAKEY }}

@@ -1,0 +1,16 @@
+# Witness inputs for compliance_proof circuit
+credential_hash = "0x1111"
+issuer_secret = "0xaaaa"
+holder_secret = "0xbbbb"
+jurisdiction_code = "840"
+credential_type = "1"
+issuance_timestamp = "1700000000"
+expiration_timestamp = "1800000000"
+credential_data = ["0x01", "0x02", "0x03", "0x04"]
+credential_commitment = "0x2222"
+issuer_pubkey = "0x3333"
+holder_pubkey = "0x4444"
+current_timestamp = "1700100000"
+required_jurisdictions = ["840", "826", "276", "392", "0", "0", "0", "0"]
+min_credential_type = "1"
+policy_id = "0x5555"

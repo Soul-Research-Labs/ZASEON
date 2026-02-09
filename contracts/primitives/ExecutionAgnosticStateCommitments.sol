@@ -124,9 +124,6 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @notice Maximum trust score
     uint256 public constant MAX_TRUST_SCORE = 10000;
 
-    /// @notice Minimum attestation proof size
-    uint256 public constant MIN_ATTESTATION_PROOF_SIZE = 64;
-
     /// @notice Maximum backends per commitment (prevent DOS)
     uint256 public constant MAX_ATTESTATIONS_PER_COMMITMENT = 10;
 
@@ -137,7 +134,6 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     uint256 public totalCommitments;
 
     /// @notice ZK verifier for attestation proofs
-    /// @dev Phase 3: Replaces length-check placeholder verification
     IProofVerifier public attestationVerifier;
 
     /*//////////////////////////////////////////////////////////////

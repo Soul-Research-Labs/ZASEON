@@ -125,14 +125,10 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Default proof validity period
     uint256 public defaultProofValidity = 24 hours;
 
-    /// @notice Minimum proof size for validity
-    uint256 public constant MIN_PROOF_SIZE = 256;
-
     /// @notice Maximum public inputs length (prevent DOS)
     uint256 public constant MAX_PUBLIC_INPUTS = 32;
 
     /// @notice ZK verifier for policy-bound proofs
-    /// @dev Phase 3: Replaces length-check placeholder verification
     IProofVerifier public policyVerifier;
 
     /*//////////////////////////////////////////////////////////////

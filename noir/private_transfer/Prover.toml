@@ -1,0 +1,40 @@
+# Witness inputs for private_transfer circuit
+# Uses structured types — flattened to TOML format
+
+[input_0]
+secret = "0xaaaa"
+blinding = "0x1111"
+value = "1000"
+merkle_path = ["0x01", "0x02", "0x03", "0x04", "0x05", "0x06", "0x07", "0x08", "0x09", "0x0a", "0x0b", "0x0c", "0x0d", "0x0e", "0x0f", "0x10", "0x11", "0x12", "0x13", "0x14"]
+merkle_indices = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0]
+
+[input_1]
+secret = "0xbbbb"
+blinding = "0x2222"
+value = "500"
+merkle_path = ["0x01", "0x02", "0x03", "0x04", "0x05", "0x06", "0x07", "0x08", "0x09", "0x0a", "0x0b", "0x0c", "0x0d", "0x0e", "0x0f", "0x10", "0x11", "0x12", "0x13", "0x14"]
+merkle_indices = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1]
+
+[output_0]
+value = "800"
+blinding = "0x3333"
+recipient_spend_key_x = "0xcccc"
+recipient_spend_key_y = "0xdddd"
+recipient_view_key_x = "0xeeee"
+recipient_view_key_y = "0xffff"
+ephemeral_key = "0x5555"
+
+[output_1]
+value = "700"
+blinding = "0x4444"
+recipient_spend_key_x = "0x6666"
+recipient_spend_key_y = "0x7777"
+recipient_view_key_x = "0x8888"
+recipient_view_key_y = "0x9999"
+ephemeral_key = "0xa0a0"
+
+[pub_inputs]
+merkle_root = "0x1234"
+input_nullifiers = ["0xab01", "0xab02"]
+output_commitments = ["0xcd01", "0xcd02"]
+fee = "0"

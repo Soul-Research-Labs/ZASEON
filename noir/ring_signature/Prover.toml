@@ -1,0 +1,45 @@
+# Witness inputs for ring_signature circuit
+# Uses structured types — flattened to TOML format
+
+secret_key = "0xaaaa"
+signer_index = "0"
+random_scalars = ["0x01", "0x02", "0x03", "0x04", "0x05", "0x06", "0x07", "0x08"]
+
+[pub_inputs]
+message_hash = "0x1234"
+
+[pub_inputs.key_image]
+x = "0x5555"
+y = "0x6666"
+
+[[pub_inputs.ring_members]]
+x = "0x1001"
+y = "0x1002"
+
+[[pub_inputs.ring_members]]
+x = "0x2001"
+y = "0x2002"
+
+[[pub_inputs.ring_members]]
+x = "0x3001"
+y = "0x3002"
+
+[[pub_inputs.ring_members]]
+x = "0x4001"
+y = "0x4002"
+
+[[pub_inputs.ring_members]]
+x = "0x5001"
+y = "0x5002"
+
+[[pub_inputs.ring_members]]
+x = "0x6001"
+y = "0x6002"
+
+[[pub_inputs.ring_members]]
+x = "0x7001"
+y = "0x7002"
+
+[[pub_inputs.ring_members]]
+x = "0x8001"
+y = "0x8002"

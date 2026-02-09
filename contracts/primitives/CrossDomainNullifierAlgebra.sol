@@ -131,14 +131,7 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
     /// @notice Storage for domain IDs (for enumeration)
     bytes32[] private _domainIds;
 
-    /// @notice Minimum derivation proof size
-    uint256 public constant MIN_DERIVATION_PROOF_SIZE = 256;
-
-    /// @notice Minimum cross-domain proof size
-    uint256 public constant MIN_CROSS_DOMAIN_PROOF_SIZE = 256;
-
     /// @notice ZK verifier for nullifier derivation proofs
-    /// @dev Phase 3: Replaces length-check placeholder verification
     IProofVerifier public derivationVerifier;
 
     /// @notice Maximum child nullifiers per parent (prevent DOS)

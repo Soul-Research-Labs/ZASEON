@@ -1,0 +1,6 @@
+# Witness inputs for pedersen_commitment circuit
+value = "1000"
+blinding = "0xaaaa"
+owner_secret = "0xbbbb"
+commitment = "0xcccc"
+owner_pubkey = "0xdddd"

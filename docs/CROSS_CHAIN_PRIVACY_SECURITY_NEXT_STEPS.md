@@ -365,13 +365,13 @@ contract PrivacyInvariants is Test {
 
 ---
 
-## 🔗 Related Documents
+## Related Documents
 
 - [CROSS_CHAIN_PRIVACY.md](./CROSS_CHAIN_PRIVACY.md) - Privacy architecture
-- [SECURITY_ROADMAP.md](./SECURITY_ROADMAP.md) - Security phases
-- [SECURITY_NEXT_STEPS.md](./SECURITY_NEXT_STEPS.md) - Security tasks
-- [ROADMAP.md](./ROADMAP.md) - Overall project roadmap
-- [SECURITY_AUDIT_PREPARATION.md](./SECURITY_AUDIT_PREPARATION.md) - Audit prep
+- [THREAT_MODEL.md](./THREAT_MODEL.md) - Threat model and attack vectors
+- [FORMAL_VERIFICATION.md](./FORMAL_VERIFICATION.md) - Formal verification specs
+- [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) - Deployment phases
+- [MAINNET_SECURITY_CHECKLIST.md](./MAINNET_SECURITY_CHECKLIST.md) - Launch-day security protocol
 
 ---
 

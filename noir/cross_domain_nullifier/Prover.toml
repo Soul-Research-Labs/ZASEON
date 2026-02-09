@@ -1,0 +1,12 @@
+# Witness inputs for cross_domain_nullifier circuit
+parent_secret = "0xaaaa"
+derivation_nonce = "0xbbbb"
+source_chain_id = "1"
+source_app_id = "0x1111"
+source_epoch_id = "1"
+source_nullifier = "0x2222"
+target_chain_id = "42161"
+target_app_id = "0x3333"
+target_epoch_id = "1"
+target_nullifier = "0x4444"
+target_transition_id = "0x5555"

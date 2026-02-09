@@ -1,0 +1,9 @@
+# Witness inputs for container circuit
+state_commitment = "0x1111"
+nullifier_hash = "0x2222"
+current_timestamp = "1700000000"
+expiry_timestamp = "1700086400"
+payload_chunks = ["0x01", "0x02", "0x03", "0x04"]
+nullifier_secret = "0xaaaa"
+salt = "0xbbbb"
+secret_key = "0xcccc"
