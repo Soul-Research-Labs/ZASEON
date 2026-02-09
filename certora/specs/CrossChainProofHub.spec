@@ -22,6 +22,9 @@ methods {
     function supportedChains(uint256) external returns (bool) envfree;
     function relayerStakes(address) external returns (uint256) envfree;
     function accumulatedFees() external returns (uint256) envfree;
+    function hasRole(bytes32, address) external returns (bool) envfree;
+    function VERIFIER_ADMIN_ROLE() external returns (bytes32) envfree;
+    function DEFAULT_ADMIN_ROLE() external returns (bytes32) envfree;
     
     // Stake management
     function depositStake() external;
@@ -30,6 +33,10 @@ methods {
     // Chain management
     function addSupportedChain(uint256) external;
     function removeSupportedChain(uint256) external;
+
+    // Verifier management
+    function setVerifier(bytes32, address) external;
+    function setVerifierRegistry(address) external;
 }
 
 // ============================================================================
@@ -116,24 +123,53 @@ rule removeChainClearsSupport(uint256 chainId) {
         "Removed chain should not be supported";
 }
 // ============================================================================
+// VERIFIER DELEGATION RULES
+// ============================================================================
+
+/**
+ * RULE-HUB-VERIFIER-001: Only VERIFIER_ADMIN_ROLE can set verifiers
+ * setVerifier requires VERIFIER_ADMIN_ROLE authorization
+ */
+rule onlyVerifierAdminCanSetVerifier(bytes32 proofType, address verifier) {
+    env e;
+    require !hasRole(hub.VERIFIER_ADMIN_ROLE(), e.msg.sender);
+
+    setVerifier@withrevert(e, proofType, verifier);
+
+    assert lastReverted,
+        "Only VERIFIER_ADMIN_ROLE can set verifiers";
+}
+
+/**
+ * RULE-HUB-VERIFIER-002: Only VERIFIER_ADMIN_ROLE can set verifier registry
+ * setVerifierRegistry requires VERIFIER_ADMIN_ROLE authorization
+ */
+rule onlyVerifierAdminCanSetRegistry(address registry) {
+    env e;
+    require !hasRole(hub.VERIFIER_ADMIN_ROLE(), e.msg.sender);
+
+    setVerifierRegistry@withrevert(e, registry);
+
+    assert lastReverted,
+        "Only VERIFIER_ADMIN_ROLE can set verifier registry";
+}
+
+// ============================================================================
 // SECURITY FIX RULES (February 2026 Audit)
 // ============================================================================
 
 /**
- * RULE-HUB-ACCESS-001: submitProofInstant requires proper authorization
- * Security Fix C-3: Access control enforcement
- * Simplified: verify paused state is respected
+ * RULE-HUB-ACCESS-001: Paused state blocks state-changing operations
+ * Security Fix C-3: When paused, critical state changes should be blocked
  */
-rule submitProofInstantRespectsRoles(method f) filtered { f -> !f.isView } {
+rule pausedStateBlocksOperations() {
     env e;
-    calldataarg args;
-    
-    bool pausedBefore = paused();
-    
-    f(e, args);
-    
-    // If paused before, should still be paused (unless admin unpauses)
-    assert true, "Role-based access is enforced by modifiers";
+    require paused();
+
+    depositStake@withrevert(e);
+
+    assert lastReverted,
+        "Paused state must block stake deposits";
 }
 
 /**
