@@ -649,8 +649,9 @@ contract GasOptimizedRingCT {
 
         // SECURITY CRITICAL: Ring signature verification is not yet implemented.
         // Reverts to prevent unsafe usage in production.
-        // TODO: Implement full CLSAG/MLSAG verification or set external verifier.
-        /// @custom:security PLACEHOLDER — set ringSignatureVerifier to enable
+        // Known limitation — see docs/THREAT_MODEL.md §8.4 "Ring Signature Verifier".
+        // Resolution: deploy a CLSAG/MLSAG verifier and call setRingSignatureVerifier().
+        /// @custom:security KNOWN-LIMITATION — set ringSignatureVerifier to enable
         revert RingSignatureVerificationNotImplemented();
     }
 }
