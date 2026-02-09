@@ -98,7 +98,7 @@ contract SoulGovernorTest is Test {
             0, // votingDelay -> DEFAULT_VOTING_DELAY (1 day)
             0, // votingPeriod -> DEFAULT_VOTING_PERIOD (5 days)
             0, // proposalThreshold -> DEFAULT_PROPOSAL_THRESHOLD (100k)
-            0  // quorumPercentage -> DEFAULT_QUORUM_PERCENTAGE (4%)
+            0 // quorumPercentage -> DEFAULT_QUORUM_PERCENTAGE (4%)
         );
 
         // Grant governor the proposer and executor roles on timelock
@@ -395,10 +395,10 @@ contract SoulGovernorTest is Test {
         SoulGovernor customGov = new SoulGovernor(
             IVotes(address(token)),
             TimelockController(payable(address(timelock))),
-            2 days,    // custom voting delay
-            7 days,    // custom voting period
+            2 days, // custom voting delay
+            7 days, // custom voting period
             500_000e18, // custom threshold
-            10         // 10% quorum
+            10 // 10% quorum
         );
 
         assertEq(customGov.votingDelay(), 2 days);

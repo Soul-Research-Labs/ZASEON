@@ -27,10 +27,15 @@ import "forge-std/Script.sol";
 contract ConfirmRoleSeparation is Script {
     function run() external {
         address proofHubAddr = vm.envAddress("PROOF_HUB_ADDRESS");
-        address zkBoundStateLocksAddr = vm.envAddress("ZK_BOUND_STATE_LOCKS_ADDRESS");
+        address zkBoundStateLocksAddr = vm.envAddress(
+            "ZK_BOUND_STATE_LOCKS_ADDRESS"
+        );
 
         require(proofHubAddr != address(0), "PROOF_HUB_ADDRESS not set");
-        require(zkBoundStateLocksAddr != address(0), "ZK_BOUND_STATE_LOCKS_ADDRESS not set");
+        require(
+            zkBoundStateLocksAddr != address(0),
+            "ZK_BOUND_STATE_LOCKS_ADDRESS not set"
+        );
 
         uint256 adminPK = vm.envUint("ADMIN_PRIVATE_KEY");
         address admin = vm.addr(adminPK);

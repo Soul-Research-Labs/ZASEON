@@ -103,7 +103,12 @@ contract SoulGovernor is
      * @dev Use block.timestamp for voting clock — required for L2 compatibility
      *      where block numbers are unreliable across chains.
      */
-    function clock() public view override(Governor, GovernorVotes) returns (uint48) {
+    function clock()
+        public
+        view
+        override(Governor, GovernorVotes)
+        returns (uint48)
+    {
         return uint48(block.timestamp);
     }
 
@@ -166,12 +171,7 @@ contract SoulGovernor is
 
     function proposalNeedsQueuing(
         uint256 proposalId
-    )
-        public
-        view
-        override(Governor, GovernorTimelockControl)
-        returns (bool)
-    {
+    ) public view override(Governor, GovernorTimelockControl) returns (bool) {
         return super.proposalNeedsQueuing(proposalId);
     }
 
@@ -190,11 +190,7 @@ contract SoulGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    )
-        internal
-        override(Governor, GovernorTimelockControl)
-        returns (uint48)
-    {
+    ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
         return
             super._queueOperations(
                 proposalId,
@@ -226,13 +222,8 @@ contract SoulGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    )
-        internal
-        override(Governor, GovernorTimelockControl)
-        returns (uint256)
-    {
-        return
-            super._cancel(targets, values, calldatas, descriptionHash);
+    ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
     function _executor()

@@ -61,7 +61,8 @@ contract VerifierAdaptersTest is Test {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     // Sample proof bytes
-    bytes constant SAMPLE_PROOF = hex"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c";
+    bytes constant SAMPLE_PROOF =
+        hex"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c";
 
     function setUp() public {
         // Deploy mock verifiers
@@ -84,13 +85,9 @@ contract VerifierAdaptersTest is Test {
 
         // Deploy Groth16-based adapters
         balanceAdapter = new BalanceProofAdapter(address(mockVerifier));
-        stateTransferAdapter = new StateTransferAdapter(
-            address(mockVerifier)
-        );
+        stateTransferAdapter = new StateTransferAdapter(address(mockVerifier));
         nullifierAdapter = new NullifierAdapter(address(mockVerifier));
-        pedersenAdapter = new PedersenCommitmentAdapter(
-            address(mockVerifier)
-        );
+        pedersenAdapter = new PedersenCommitmentAdapter(address(mockVerifier));
 
         // Deploy UltraHonk adapter
         ultraHonkAdapter = new UltraHonkAdapter(
@@ -139,14 +136,22 @@ contract VerifierAdaptersTest is Test {
     function test_CommitmentAdapter_Verify_Success() public view {
         // 3 inputs: circuit_pass_gate=1, commitment, nullifier
         bytes memory inputs = _encodeSignals(3, true);
-        bool result = commitmentAdapter.verify(bytes32(0), SAMPLE_PROOF, inputs);
+        bool result = commitmentAdapter.verify(
+            bytes32(0),
+            SAMPLE_PROOF,
+            inputs
+        );
         assertTrue(result);
     }
 
     function test_CommitmentAdapter_CircuitGateFail() public view {
         // First input != 1 => returns false even if verifier says true
         bytes memory inputs = _encodeSignals(3, false);
-        bool result = commitmentAdapter.verify(bytes32(0), SAMPLE_PROOF, inputs);
+        bool result = commitmentAdapter.verify(
+            bytes32(0),
+            SAMPLE_PROOF,
+            inputs
+        );
         assertFalse(result);
     }
 
@@ -158,7 +163,11 @@ contract VerifierAdaptersTest is Test {
 
     function test_ComplianceAdapter_Verify_Success() public view {
         bytes memory inputs = _encodeSignals(16, true);
-        bool result = complianceAdapter.verify(bytes32(0), SAMPLE_PROOF, inputs);
+        bool result = complianceAdapter.verify(
+            bytes32(0),
+            SAMPLE_PROOF,
+            inputs
+        );
         assertTrue(result);
     }
 
@@ -170,7 +179,11 @@ contract VerifierAdaptersTest is Test {
 
     function test_CrossChainAdapter_Verify_Success() public view {
         bytes memory inputs = _encodeSignals(7, true);
-        bool result = crossChainAdapter.verify(bytes32(0), SAMPLE_PROOF, inputs);
+        bool result = crossChainAdapter.verify(
+            bytes32(0),
+            SAMPLE_PROOF,
+            inputs
+        );
         assertTrue(result);
     }
 
@@ -261,9 +274,18 @@ contract VerifierAdaptersTest is Test {
         signals[0] = bytes32(uint256(1)); // circuit pass gate
         signals[1] = bytes32(maxValid);
         signals[2] = bytes32(uint256(42));
-        bytes memory inputs = abi.encode(uint256(3), signals[0], signals[1], signals[2]);
+        bytes memory inputs = abi.encode(
+            uint256(3),
+            signals[0],
+            signals[1],
+            signals[2]
+        );
 
-        bool result = commitmentAdapter.verify(bytes32(0), SAMPLE_PROOF, inputs);
+        bool result = commitmentAdapter.verify(
+            bytes32(0),
+            SAMPLE_PROOF,
+            inputs
+        );
         assertTrue(result);
     }
 
@@ -275,7 +297,7 @@ contract VerifierAdaptersTest is Test {
         bool result = balanceAdapter.verify(
             SAMPLE_PROOF,
             uint256(1000e18), // balance
-            uint256(100e18),  // minRequired
+            uint256(100e18), // minRequired
             bytes32(keccak256("commitment"))
         );
         assertTrue(result);
@@ -402,7 +424,11 @@ contract VerifierAdaptersTest is Test {
         bytes memory result = new bytes(32 + count * 32);
         assembly {
             mstore(add(result, 32), count)
-            for { let i := 0 } lt(i, count) { i := add(i, 1) } {
+            for {
+                let i := 0
+            } lt(i, count) {
+                i := add(i, 1)
+            } {
                 mstore(
                     add(add(result, 64), mul(i, 32)),
                     mload(add(add(signals, 32), mul(i, 32)))

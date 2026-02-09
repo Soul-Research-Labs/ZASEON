@@ -209,12 +209,20 @@ contract DeployMainnet is Script {
         console.log("\nPost-deploy checklist:");
         console.log("  1. Verify all contracts on Etherscan");
         console.log("  2. Configure ZKFraudProof external contracts");
-        console.log("  3. Set up relayer/challenger roles on ProofHub (via multisig)");
+        console.log(
+            "  3. Set up relayer/challenger roles on ProofHub (via multisig)"
+        );
         console.log("  4. Configure verifier contracts");
         console.log("  5. Run verify-deployment.ts");
         console.log("  6. Update SDK addresses in mainnet-addresses.ts");
-        console.log("  7. CRITICAL: Run ConfirmRoleSeparation.s.sol from multisig");
-        console.log("     - Calls confirmRoleSeparation() on ProofHub & ZKBoundStateLocks");
-        console.log("     - Admin must NOT hold operational roles before calling");
+        console.log(
+            "  7. CRITICAL: Run ConfirmRoleSeparation.s.sol from multisig"
+        );
+        console.log(
+            "     - Calls confirmRoleSeparation() on ProofHub & ZKBoundStateLocks"
+        );
+        console.log(
+            "     - Admin must NOT hold operational roles before calling"
+        );
     }
 }
