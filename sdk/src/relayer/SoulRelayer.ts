@@ -137,7 +137,7 @@ export class SoulRelayer {
             abi: RELAYER_ABI,
             functionName: 'registerRelayer',
             args: [this.config.endpoints],
-            value: this.config.stake,
+            value: this.config.stake as any,
         });
     }
 

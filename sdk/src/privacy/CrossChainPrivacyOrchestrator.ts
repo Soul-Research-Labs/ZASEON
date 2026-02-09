@@ -398,7 +398,7 @@ export class CrossChainPrivacyOrchestrator {
                 amount: params.amount.toString(),
                 secret: params.secret,
                 merkle_root: params.merkleProof.root,
-                merkle_path: params.merkleProof.path,
+                merkle_path: params.merkleProof.path as any,
                 source_nullifier: params.sourceNullifier,
                 target_nullifier: params.targetNullifier,
                 source_chain_id: params.sourceChainId.toString(),
@@ -836,7 +836,12 @@ export class CrossChainPrivacyOrchestrator {
             // Fall through to heuristic
         }
 
-        // Heuristic fee estimation based on target chain\n        const baseFee = BigInt(1e15); // 0.001 ETH base\n        const chainMultiplier = targetChainId === 1 ? BigInt(3) : BigInt(1); // Higher for mainnet\n        console.warn('Using heuristic relay fee estimation — configure relay contract for accurate fees');\n        return baseFee * chainMultiplier;\n    }
+        // Heuristic fee estimation based on target chain
+        const baseFee = BigInt(1e15); // 0.001 ETH base
+        const chainMultiplier = targetChainId === 1 ? BigInt(3) : BigInt(1); // Higher for mainnet
+        console.warn('Using heuristic relay fee estimation — configure relay contract for accurate fees');
+        return baseFee * chainMultiplier;
+    }
 
     /**
      * Get chain configuration
