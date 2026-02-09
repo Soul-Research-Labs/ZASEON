@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title ShieldedPoolCircuit
 /// @author Soul Protocol
@@ -36,7 +36,7 @@ fn compute_commitment(
     amount: Field,
     asset_id: Field
 ) -> Field {
-    poseidon::bn254::hash_4([secret, nullifier_preimage, amount, asset_id])
+    bn254::hash_4([secret, nullifier_preimage, amount, asset_id])
 }
 
 /// Derive nullifier from private inputs
@@ -45,7 +45,7 @@ fn compute_nullifier(
     secret: Field,
     nullifier_preimage: Field
 ) -> Field {
-    poseidon::bn254::hash_2([secret, nullifier_preimage])
+    bn254::hash_2([secret, nullifier_preimage])
 }
 
 /// ============================================================
@@ -73,7 +73,7 @@ fn verify_merkle_inclusion(
             (siblings[i], current)
         };
 
-        current = poseidon::bn254::hash_2([left, right]);
+        current = bn254::hash_2([left, right]);
     }
 
     current == root
@@ -89,7 +89,7 @@ fn verify_merkle_inclusion(
 /// Private inputs: secret, nullifier_preimage, amount, asset_id
 ///
 /// The depositor generates (secret, nullifier_preimage) randomly off-chain,
-/// computes the commitment, and submits it on-chain. This proof is optional —
+/// computes the commitment, and submits it on-chain. This proof is optional --
 /// the contract can accept raw commitments. But verifying the structure
 /// allows the deposit receipt to bind to the correct amount + asset.
 fn verify_deposit(
@@ -163,7 +163,7 @@ fn verify_withdrawal(
     // The constraint that amount >= fee is implicit:
     // if fee > amount, subtraction would underflow in the field
     // We bind through the hash to prevent manipulation
-    let _binding = poseidon::bn254::hash_4([recipient, relayer, net_amount, nullifier]);
+    let _binding = bn254::hash_4([recipient, relayer, net_amount, nullifier]);
 
     true
 }
@@ -213,7 +213,7 @@ fn verify_cross_chain_withdrawal(
     assert(dest_computed == dest_commitment, "Invalid destination commitment");
 
     // Bind source withdrawal to destination chain
-    let _chain_binding = poseidon::bn254::hash_4([
+    let _chain_binding = bn254::hash_4([
         nullifier, dest_commitment, dest_chain_id, asset_id
     ]);
 
@@ -229,7 +229,7 @@ fn verify_cross_chain_withdrawal(
 ///
 /// Public inputs are marked `pub`, private inputs are unmarked.
 fn main(
-    // — Public inputs —
+    // -- Public inputs --
     merkle_root: pub Field,
     nullifier: pub Field,
     recipient: pub Field,
@@ -237,7 +237,7 @@ fn main(
     fee: pub Field,
     amount: pub Field,
     asset_id: pub Field,
-    // — Private inputs —
+    // -- Private inputs --
     secret: Field,
     nullifier_preimage: Field,
     path_indices: [Field; 32],
@@ -257,7 +257,7 @@ fn main(
     // 4. Fee constraint: amount - fee is valid (no underflow)
     // Binding recipient + relayer into the proof prevents front-running
     let net_amount = amount - fee;
-    let _binding = poseidon::bn254::hash_4([recipient, relayer, net_amount, nullifier]);
+    let _binding = bn254::hash_4([recipient, relayer, net_amount, nullifier]);
 }
 
 /// ============================================================

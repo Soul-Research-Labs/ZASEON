@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title PolicyBoundProofCircuit
 /// @notice Circuit for proofs cryptographically scoped by disclosure policy (PBP)
@@ -9,7 +9,7 @@ use std::hash::poseidon;
 
 /// Compute domain separator that binds VK to policy
 fn compute_domain_separator(vk_hash: Field, policy_hash: Field) -> Field {
-    poseidon::bn254::hash_2([vk_hash, policy_hash])
+    bn254::hash_2([vk_hash, policy_hash])
 }
 
 /// Verify domain separator binding
@@ -24,7 +24,7 @@ fn verify_domain_binding(
 
 /// Compute policy hash from preimage
 fn compute_policy_hash(preimage: [Field; 4]) -> Field {
-    poseidon::bn254::hash_4(preimage)
+    bn254::hash_4(preimage)
 }
 
 /// Verify policy commitment in public inputs
@@ -64,11 +64,11 @@ struct SelectiveDisclosurePublicInputs<let NUM_FIELDS: u32> {
 /// Compute data commitment
 fn compute_data_commitment<let N: u32>(data_fields: [Field; N]) -> Field {
     if N <= 4 {
-        poseidon::bn254::hash_4([data_fields[0], data_fields[1], data_fields[2], data_fields[3]])
+        bn254::hash_4([data_fields[0], data_fields[1], data_fields[2], data_fields[3]])
     } else {
-        let h1 = poseidon::bn254::hash_4([data_fields[0], data_fields[1], data_fields[2], data_fields[3]]);
-        let h2 = poseidon::bn254::hash_4([data_fields[4], data_fields[5], data_fields[6], data_fields[7]]);
-        poseidon::bn254::hash_2([h1, h2])
+        let h1 = bn254::hash_4([data_fields[0], data_fields[1], data_fields[2], data_fields[3]]);
+        let h2 = bn254::hash_4([data_fields[4], data_fields[5], data_fields[6], data_fields[7]]);
+        bn254::hash_2([h1, h2])
     }
 }
 

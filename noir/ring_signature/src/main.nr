@@ -1,4 +1,4 @@
-use std::hash::poseidon;
+use poseidon::poseidon::bn254;
 
 /// @title RingSignatureCircuit
 /// @notice Implements CLSAG-style ring signatures in ZK for proving:
@@ -47,15 +47,15 @@ struct RingPublicInputs {
 /// In production, use actual scalar multiplication on the curve
 fn compute_public_key(secret_key: Field) -> Point {
     // Simplified: P = sk * G using hash (in production use EC scalar mul)
-    let x = poseidon::bn254::hash_3([RING_SIG_DOMAIN, secret_key, BASE_X]);
-    let y = poseidon::bn254::hash_3([RING_SIG_DOMAIN, secret_key, BASE_Y]);
+    let x = bn254::hash_3([RING_SIG_DOMAIN, secret_key, BASE_X]);
+    let y = bn254::hash_3([RING_SIG_DOMAIN, secret_key, BASE_Y]);
     Point { x, y }
 }
 
 /// Hash a point to another point (hash-to-curve)
 fn hash_to_point(p: Point) -> Point {
-    let x = poseidon::bn254::hash_3([HASH_TO_POINT_DOMAIN, p.x, p.y]);
-    let y = poseidon::bn254::hash_3([HASH_TO_POINT_DOMAIN, p.y, p.x]);
+    let x = bn254::hash_3([HASH_TO_POINT_DOMAIN, p.x, p.y]);
+    let y = bn254::hash_3([HASH_TO_POINT_DOMAIN, p.y, p.x]);
     Point { x, y }
 }
 
@@ -63,18 +63,18 @@ fn hash_to_point(p: Point) -> Point {
 fn compute_key_image(secret_key: Field, public_key: Point) -> Point {
     let h_p = hash_to_point(public_key);
     // Simplified scalar multiplication using hash
-    let x = poseidon::bn254::hash_4([KEY_IMAGE_DOMAIN, secret_key, h_p.x, h_p.y]);
-    let y = poseidon::bn254::hash_4([KEY_IMAGE_DOMAIN, secret_key, h_p.y, h_p.x]);
+    let x = bn254::hash_4([KEY_IMAGE_DOMAIN, secret_key, h_p.x, h_p.y]);
+    let y = bn254::hash_4([KEY_IMAGE_DOMAIN, secret_key, h_p.y, h_p.x]);
     Point { x, y }
 }
 
 /// Compute L point: L = r * G + c * P
 fn compute_l(r: Field, c: Field, p: Point) -> Point {
     // Simplified computation using hash
-    let x = poseidon::bn254::hash_5([
+    let x = bn254::hash_5([
         CHALLENGE_DOMAIN, r, c, p.x, p.y
     ]);
-    let y = poseidon::bn254::hash_5([
+    let y = bn254::hash_5([
         CHALLENGE_DOMAIN, r, c, p.y, p.x
     ]);
     Point { x, y }
@@ -84,10 +84,10 @@ fn compute_l(r: Field, c: Field, p: Point) -> Point {
 fn compute_r(r: Field, c: Field, p: Point, i: Point) -> Point {
     let h_p = hash_to_point(p);
     // Simplified computation using hash
-    let x = poseidon::bn254::hash_6([
+    let x = bn254::hash_6([
         CHALLENGE_DOMAIN, r, c, h_p.x, i.x, 1
     ]);
-    let y = poseidon::bn254::hash_6([
+    let y = bn254::hash_6([
         CHALLENGE_DOMAIN, r, c, h_p.y, i.y, 2
     ]);
     Point { x, y }
@@ -95,7 +95,7 @@ fn compute_r(r: Field, c: Field, p: Point, i: Point) -> Point {
 
 /// Compute next challenge in the ring: c_{i+1} = H(L_i, R_i, message)
 fn compute_challenge(l: Point, r: Point, message_hash: Field) -> Field {
-    poseidon::bn254::hash_5([
+    bn254::hash_5([
         CHALLENGE_DOMAIN, l.x, l.y, r.x, message_hash
     ])
 }
@@ -165,7 +165,7 @@ fn main(
     // =========================================================================
     
     // Compute initial challenge from message and key image
-    let initial_challenge = poseidon::bn254::hash_5([
+    let initial_challenge = bn254::hash_5([
         CHALLENGE_DOMAIN,
         pub_inputs.message_hash,
         pub_inputs.key_image.x,
@@ -227,8 +227,8 @@ fn verify_ringct(
     // =========================================================================
     
     // Compute expected commitment
-    let commitment_x = poseidon::bn254::hash_3([0x434f4d4d4954, value, blinding]);
-    let commitment_y = poseidon::bn254::hash_3([0x434f4d4d4954, blinding, value]);
+    let commitment_x = bn254::hash_3([0x434f4d4d4954, value, blinding]);
+    let commitment_y = bn254::hash_3([0x434f4d4d4954, blinding, value]);
     let expected_commitment = Point { x: commitment_x, y: commitment_y };
     
     // Verify signer's commitment matches ring at index
@@ -248,7 +248,7 @@ fn verify_ringct(
     assert(points_equal(computed_key_image, inputs.key_image));
     
     // Verify ring signature
-    let initial_challenge = poseidon::bn254::hash_5([
+    let initial_challenge = bn254::hash_5([
         CHALLENGE_DOMAIN,
         inputs.message_hash,
         inputs.key_image.x,

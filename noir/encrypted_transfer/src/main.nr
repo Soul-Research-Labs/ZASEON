@@ -9,6 +9,8 @@
 // 4. Commitments are properly formed
 // 5. No double-spending (nullifier uniqueness)
 
+use poseidon::poseidon::bn254;
+
 // Maximum transfer amount (prevent overflow)
 global MAX_TRANSFER: u128 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -19,16 +21,16 @@ fn pedersen_commit(value: Field, randomness: Field) -> Field {
 
 /// Poseidon hash for nullifiers
 fn poseidon_hash_2(a: Field, b: Field) -> Field {
-    std::hash::poseidon::bn254::hash_2([a, b])
+    bn254::hash_2([a, b])
 }
 
 fn poseidon_hash_4(a: Field, b: Field, c: Field, d: Field) -> Field {
-    std::hash::poseidon::bn254::hash_4([a, b, c, d])
+    bn254::hash_4([a, b, c, d])
 }
 
 /// Verify that a value is within range [0, max]
-fn verify_range(value: u128, max: u128) -> bool {
-    value <= max
+fn verify_range(value: u128, upper_bound: u128) -> bool {
+    value <= upper_bound
 }
 
 /// Verify balance is non-negative after operation
@@ -65,14 +67,14 @@ fn compute_nullifier(
 /// - randomness values for all commitments
 fn main(
     // Public inputs
-    pub sender_balance_commitment: Field,
-    pub sender_new_balance_commitment: Field,
-    pub recipient_balance_commitment: Field,
-    pub recipient_new_balance_commitment: Field,
-    pub transfer_amount_commitment: Field,
-    pub nullifier: Field,
-    pub min_transfer: u128,
-    pub max_transfer: u128,
+    sender_balance_commitment: pub Field,
+    sender_new_balance_commitment: pub Field,
+    recipient_balance_commitment: pub Field,
+    recipient_new_balance_commitment: pub Field,
+    transfer_amount_commitment: pub Field,
+    nullifier_value: pub Field,
+    min_transfer: pub u128,
+    max_transfer_limit: pub u128,
     
     // Private witnesses
     sender_balance: u128,
@@ -96,7 +98,7 @@ fn main(
     
     // Transfer must be within limits
     assert(transfer_amount >= min_transfer);
-    assert(transfer_amount <= max_transfer);
+    assert(transfer_amount <= max_transfer_limit);
     
     // ==========================================
     // 2. Verify sender has sufficient balance
@@ -155,7 +157,7 @@ fn main(
         nonce,
         nullifier_secret
     );
-    assert(computed_nullifier == nullifier);
+    assert(computed_nullifier == nullifier_value);
     
     // ==========================================
     // 5. Conservation check
@@ -172,27 +174,17 @@ fn main(
 fn verify_batch_transfer(
     sender_balance: u128,
     transfer_amounts: [u128; 4],
-    recipient_balances: [u128; 4]
+    _recipient_balances: [u128; 4]
 ) -> bool {
-    // Sum all transfers
     let mut total_transfer: u128 = 0;
     for i in 0..4 {
         total_transfer += transfer_amounts[i];
     }
-    
-    // Verify sender has sufficient balance
-    if sender_balance < total_transfer {
-        return false;
-    }
-    
-    // Verify each transfer is valid
+    let mut valid = sender_balance >= total_transfer;
     for i in 0..4 {
-        if transfer_amounts[i] > MAX_TRANSFER {
-            return false;
-        }
+        valid = valid & (transfer_amounts[i] <= MAX_TRANSFER);
     }
-    
-    true
+    valid
 }
 
 /// Range proof for compliance
@@ -201,21 +193,13 @@ fn verify_range_proof(
     commitment: Field,
     value: u128,
     randomness: Field,
-    min: u128,
-    max: u128
+    min_val: u128,
+    max_val: u128
 ) -> bool {
-    // Verify commitment
     let computed_commit = pedersen_commit(value as Field, randomness);
-    if computed_commit != commitment {
-        return false;
-    }
-    
-    // Verify range
-    if value < min || value > max {
-        return false;
-    }
-    
-    true
+    let commit_valid = computed_commit == commitment;
+    let range_valid = (value >= min_val) & (value <= max_val);
+    commit_valid & range_valid
 }
 
 #[test]
@@ -245,7 +229,7 @@ fn test_valid_transfer() {
     
     let transfer_amount_commitment = pedersen_commit(transfer_amount as Field, transfer_randomness);
     
-    let nullifier = compute_nullifier(sender, sender_balance_commitment, nonce, nullifier_secret);
+    let nullifier_value = compute_nullifier(sender, sender_balance_commitment, nonce, nullifier_secret);
     
     // Run main proof
     main(
@@ -254,9 +238,9 @@ fn test_valid_transfer() {
         recipient_balance_commitment,
         recipient_new_balance_commitment,
         transfer_amount_commitment,
-        nullifier,
+        nullifier_value,
         1,      // min_transfer
-        10000,  // max_transfer
+        10000,  // max_transfer_limit
         sender_balance,
         recipient_balance,
         transfer_amount,
