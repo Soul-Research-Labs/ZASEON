@@ -59,7 +59,10 @@ contract DelayedClaimVaultTest is Test {
         vm.expectRevert(DelayedClaimVault.ZeroAddress.selector);
         new ERC1967Proxy(
             address(newImpl),
-            abi.encodeWithSelector(DelayedClaimVault.initialize.selector, address(0))
+            abi.encodeWithSelector(
+                DelayedClaimVault.initialize.selector,
+                address(0)
+            )
         );
     }
 
@@ -69,7 +72,10 @@ contract DelayedClaimVaultTest is Test {
 
     function test_Deposit_Tier1() public {
         vm.prank(depositor);
-        bytes32 claimId = vault.deposit{value: 0.1 ether}(commitment, 0.1 ether);
+        bytes32 claimId = vault.deposit{value: 0.1 ether}(
+            commitment,
+            0.1 ether
+        );
 
         assertTrue(claimId != bytes32(0));
         assertEq(vault.totalDeposited(address(0)), 0.1 ether);
@@ -115,7 +121,10 @@ contract DelayedClaimVaultTest is Test {
     function test_Deposit_EmitEvent() public {
         vm.prank(depositor);
         // Just verify the deposit succeeds and a claimId is returned
-        bytes32 claimId = vault.deposit{value: 0.1 ether}(commitment, 0.1 ether);
+        bytes32 claimId = vault.deposit{value: 0.1 ether}(
+            commitment,
+            0.1 ether
+        );
         assertTrue(claimId != bytes32(0));
         // Verify the claim was stored with correct commitment
         DelayedClaimVault.PendingClaim memory c = vault.getClaim(claimId);
@@ -157,12 +166,13 @@ contract DelayedClaimVaultTest is Test {
         // Warp past delay
         vm.warp(c.claimableAt);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         uint256 balBefore = recipient.balance;
         vault.claim(claimId, recipient, proof);
@@ -170,19 +180,23 @@ contract DelayedClaimVaultTest is Test {
 
         // Verify state
         DelayedClaimVault.PendingClaim memory after_ = vault.getClaim(claimId);
-        assertEq(uint256(after_.status), uint256(DelayedClaimVault.ClaimStatus.CLAIMED));
+        assertEq(
+            uint256(after_.status),
+            uint256(DelayedClaimVault.ClaimStatus.CLAIMED)
+        );
         assertEq(vault.totalClaimed(address(0)), 0.1 ether);
     }
 
     function test_Claim_BeforeDelay_Reverts() public {
         bytes32 claimId = _depositAndGetClaimId();
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         // Don't warp past delay
         vm.expectRevert(DelayedClaimVault.ClaimNotReady.selector);
@@ -196,12 +210,13 @@ contract DelayedClaimVaultTest is Test {
         // Warp past expiry
         vm.warp(c.expiresAt + 1);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         vm.expectRevert(DelayedClaimVault.ClaimExpiredError.selector);
         vault.claim(claimId, recipient, proof);
@@ -212,12 +227,13 @@ contract DelayedClaimVaultTest is Test {
         DelayedClaimVault.PendingClaim memory c = vault.getClaim(claimId);
         vm.warp(c.claimableAt);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         vault.claim(claimId, recipient, proof);
 
@@ -231,12 +247,15 @@ contract DelayedClaimVaultTest is Test {
         vm.warp(c.claimableAt);
 
         bytes32 wrongSecret = keccak256("wrong");
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: keccak256(abi.encodePacked(wrongSecret, "nullifier")),
-            secret: wrongSecret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: keccak256(
+                    abi.encodePacked(wrongSecret, "nullifier")
+                ),
+                secret: wrongSecret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         vm.expectRevert(DelayedClaimVault.InvalidProof.selector);
         vault.claim(claimId, recipient, proof);
@@ -247,24 +266,26 @@ contract DelayedClaimVaultTest is Test {
         DelayedClaimVault.PendingClaim memory c = vault.getClaim(claimId);
         vm.warp(c.claimableAt);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         vm.expectRevert(DelayedClaimVault.ZeroAddress.selector);
         vault.claim(claimId, address(0), proof);
     }
 
     function test_Claim_NonexistentClaim_Reverts() public {
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         vm.expectRevert(DelayedClaimVault.ClaimNotFound.selector);
         vault.claim(bytes32(uint256(99)), recipient, proof);
@@ -276,16 +297,19 @@ contract DelayedClaimVaultTest is Test {
         DelayedClaimVault.PendingClaim memory c1 = vault.getClaim(claimId1);
         vm.warp(c1.claimableAt);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
         vault.claim(claimId1, recipient, proof);
 
         // Second deposit with different commitment but same nullifier
-        bytes32 c2 = keccak256(abi.encodePacked(address(0xE), keccak256("other")));
+        bytes32 c2 = keccak256(
+            abi.encodePacked(address(0xE), keccak256("other"))
+        );
         vm.prank(depositor);
         bytes32 claimId2 = vault.deposit{value: 0.1 ether}(c2, 0.1 ether);
         DelayedClaimVault.PendingClaim memory claim2 = vault.getClaim(claimId2);
@@ -306,12 +330,13 @@ contract DelayedClaimVaultTest is Test {
         DelayedClaimVault.PendingClaim memory c = vault.getClaim(claimId);
         vm.warp(c.claimableAt);
 
-        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault.ClaimProof({
-            nullifier: nullifier,
-            secret: secret,
-            merkleProof: hex"",
-            zkProof: hex""
-        });
+        DelayedClaimVault.ClaimProof memory proof = DelayedClaimVault
+            .ClaimProof({
+                nullifier: nullifier,
+                secret: secret,
+                merkleProof: hex"",
+                zkProof: hex""
+            });
 
         uint256 balBefore = recipient.balance;
         vault.claimByCommitment(commitment, recipient, proof);
@@ -334,7 +359,10 @@ contract DelayedClaimVaultTest is Test {
         vault.markExpired(ids);
 
         DelayedClaimVault.PendingClaim memory after_ = vault.getClaim(claimId);
-        assertEq(uint256(after_.status), uint256(DelayedClaimVault.ClaimStatus.EXPIRED));
+        assertEq(
+            uint256(after_.status),
+            uint256(DelayedClaimVault.ClaimStatus.EXPIRED)
+        );
     }
 
     function test_RefundExpired() public {
@@ -356,7 +384,10 @@ contract DelayedClaimVaultTest is Test {
         assertEq(treasury.balance - balBefore, 0.1 ether);
 
         DelayedClaimVault.PendingClaim memory after_ = vault.getClaim(claimId);
-        assertEq(uint256(after_.status), uint256(DelayedClaimVault.ClaimStatus.REFUNDED));
+        assertEq(
+            uint256(after_.status),
+            uint256(DelayedClaimVault.ClaimStatus.REFUNDED)
+        );
     }
 
     function test_RefundExpired_NotExpired_Reverts() public {
@@ -396,7 +427,7 @@ contract DelayedClaimVaultTest is Test {
         DelayedClaimVault.PendingClaim memory c = vault.getClaim(claimId);
         vm.warp(c.claimableAt);
 
-        (bool ready,) = vault.isClaimReady(claimId);
+        (bool ready, ) = vault.isClaimReady(claimId);
         assertTrue(ready);
     }
 
@@ -485,7 +516,7 @@ contract DelayedClaimVaultTest is Test {
     function test_Receive_Reverts() public {
         vm.prank(depositor);
         vm.expectRevert("Use deposit()");
-        (bool ok,) = address(vault).call{value: 1 ether}("");
+        (bool ok, ) = address(vault).call{value: 1 ether}("");
         // suppress unused return
         ok;
     }
@@ -499,7 +530,12 @@ contract DelayedClaimVaultTest is Test {
         uint256[] memory tiers = vault.getDenominationTiers();
         uint256 tier = tiers[tierIndex];
 
-        bytes32 c = keccak256(abi.encodePacked(recipient, keccak256(abi.encode("fuzz", tierIndex))));
+        bytes32 c = keccak256(
+            abi.encodePacked(
+                recipient,
+                keccak256(abi.encode("fuzz", tierIndex))
+            )
+        );
         vm.deal(depositor, tier);
         vm.prank(depositor);
         bytes32 claimId = vault.deposit{value: tier}(c, tier);

@@ -10,19 +10,31 @@ contract GasOptHarness {
     using GasOptimizations for *;
 
     // --- Hashing ---
-    function efficientHash(bytes32 a, bytes32 b) external pure returns (bytes32) {
+    function efficientHash(
+        bytes32 a,
+        bytes32 b
+    ) external pure returns (bytes32) {
         return GasOptimizations.efficientHash(a, b);
     }
 
-    function efficientHash3(bytes32 a, bytes32 b, bytes32 c) external pure returns (bytes32) {
+    function efficientHash3(
+        bytes32 a,
+        bytes32 b,
+        bytes32 c
+    ) external pure returns (bytes32) {
         return GasOptimizations.efficientHash3(a, b, c);
     }
 
-    function efficientHashAddressUint(address addr, uint256 value) external pure returns (bytes32) {
+    function efficientHashAddressUint(
+        address addr,
+        uint256 value
+    ) external pure returns (bytes32) {
         return GasOptimizations.efficientHashAddressUint(addr, value);
     }
 
-    function batchHash(bytes32[] memory leaves) external pure returns (bytes32[] memory) {
+    function batchHash(
+        bytes32[] memory leaves
+    ) external pure returns (bytes32[] memory) {
         return GasOptimizations.batchHash(leaves);
     }
 
@@ -31,36 +43,59 @@ contract GasOptHarness {
         return GasOptimizations.packUint128(a, b);
     }
 
-    function unpackUint128(uint256 packed) external pure returns (uint128, uint128) {
+    function unpackUint128(
+        uint256 packed
+    ) external pure returns (uint128, uint128) {
         return GasOptimizations.unpackUint128(packed);
     }
 
-    function packUint64(uint64 a, uint64 b, uint64 c, uint64 d) external pure returns (uint256) {
+    function packUint64(
+        uint64 a,
+        uint64 b,
+        uint64 c,
+        uint64 d
+    ) external pure returns (uint256) {
         return GasOptimizations.packUint64(a, b, c, d);
     }
 
-    function unpackUint64(uint256 packed) external pure returns (uint64, uint64, uint64, uint64) {
+    function unpackUint64(
+        uint256 packed
+    ) external pure returns (uint64, uint64, uint64, uint64) {
         return GasOptimizations.unpackUint64(packed);
     }
 
-    function packAddressWithData(address addr, uint96 data) external pure returns (uint256) {
+    function packAddressWithData(
+        address addr,
+        uint96 data
+    ) external pure returns (uint256) {
         return GasOptimizations.packAddressWithData(addr, data);
     }
 
-    function unpackAddressWithData(uint256 packed) external pure returns (address, uint96) {
+    function unpackAddressWithData(
+        uint256 packed
+    ) external pure returns (address, uint96) {
         return GasOptimizations.unpackAddressWithData(packed);
     }
 
     // --- Bitmap ---
-    function getBit(uint256 bitmap, uint256 index) external pure returns (bool) {
+    function getBit(
+        uint256 bitmap,
+        uint256 index
+    ) external pure returns (bool) {
         return GasOptimizations.getBit(bitmap, index);
     }
 
-    function setBit(uint256 bitmap, uint256 index) external pure returns (uint256) {
+    function setBit(
+        uint256 bitmap,
+        uint256 index
+    ) external pure returns (uint256) {
         return GasOptimizations.setBit(bitmap, index);
     }
 
-    function clearBit(uint256 bitmap, uint256 index) external pure returns (uint256) {
+    function clearBit(
+        uint256 bitmap,
+        uint256 index
+    ) external pure returns (uint256) {
         return GasOptimizations.clearBit(bitmap, index);
     }
 
@@ -69,7 +104,10 @@ contract GasOptHarness {
     }
 
     // --- Array ---
-    function binarySearch(bytes32[] memory arr, bytes32 val) external pure returns (bool, uint256) {
+    function binarySearch(
+        bytes32[] memory arr,
+        bytes32 val
+    ) external pure returns (bool, uint256) {
         return GasOptimizations.binarySearch(arr, val);
     }
 
@@ -82,11 +120,17 @@ contract GasOptHarness {
     }
 
     // --- Merkle ---
-    function verifyMerkleProof(bytes32[] calldata proof, bytes32 root, bytes32 leaf) external pure returns (bool) {
+    function verifyMerkleProof(
+        bytes32[] calldata proof,
+        bytes32 root,
+        bytes32 leaf
+    ) external pure returns (bool) {
         return GasOptimizations.verifyMerkleProof(proof, root, leaf);
     }
 
-    function computeMerkleRoot(bytes32[] memory leaves) external pure returns (bytes32) {
+    function computeMerkleRoot(
+        bytes32[] memory leaves
+    ) external pure returns (bytes32) {
         return GasOptimizations.computeMerkleRoot(leaves);
     }
 
@@ -119,9 +163,13 @@ contract BatchHarness {
         bytes32[] calldata nullifiers,
         bytes32[] calldata commitments
     ) external returns (uint256, uint256) {
-        return BatchProcessing.batchRegisterNullifiers(
-            nullifiers, commitments, isSpentMapping, nullifierToCommitment
-        );
+        return
+            BatchProcessing.batchRegisterNullifiers(
+                nullifiers,
+                commitments,
+                isSpentMapping,
+                nullifierToCommitment
+            );
     }
 
     function batchVerifyMerkleProofs(
@@ -143,7 +191,9 @@ contract BatchHarness {
         return BatchProcessing.allUnique(values);
     }
 
-    function safeSum(uint256[] calldata values) external pure returns (uint256) {
+    function safeSum(
+        uint256[] calldata values
+    ) external pure returns (uint256) {
         return BatchProcessing.safeSum(values);
     }
 }
@@ -235,18 +285,30 @@ contract LibraryTests is Test {
     }
 
     function test_PackUnpackUint64_Roundtrip() public view {
-        uint64 a = 1; uint64 b = 2; uint64 c = 3; uint64 d = 4;
+        uint64 a = 1;
+        uint64 b = 2;
+        uint64 c = 3;
+        uint64 d = 4;
         uint256 packed = gas_.packUint64(a, b, c, d);
-        (uint64 ua, uint64 ub, uint64 uc, uint64 ud) = gas_.unpackUint64(packed);
+        (uint64 ua, uint64 ub, uint64 uc, uint64 ud) = gas_.unpackUint64(
+            packed
+        );
         assertEq(ua, a);
         assertEq(ub, b);
         assertEq(uc, c);
         assertEq(ud, d);
     }
 
-    function testFuzz_PackUnpackUint64(uint64 a, uint64 b, uint64 c, uint64 d) public view {
+    function testFuzz_PackUnpackUint64(
+        uint64 a,
+        uint64 b,
+        uint64 c,
+        uint64 d
+    ) public view {
         uint256 packed = gas_.packUint64(a, b, c, d);
-        (uint64 ua, uint64 ub, uint64 uc, uint64 ud) = gas_.unpackUint64(packed);
+        (uint64 ua, uint64 ub, uint64 uc, uint64 ud) = gas_.unpackUint64(
+            packed
+        );
         assertEq(ua, a);
         assertEq(ub, b);
         assertEq(uc, c);
@@ -262,7 +324,10 @@ contract LibraryTests is Test {
         assertEq(ud, data);
     }
 
-    function testFuzz_PackUnpackAddressData(address addr, uint96 data) public view {
+    function testFuzz_PackUnpackAddressData(
+        address addr,
+        uint96 data
+    ) public view {
         uint256 packed = gas_.packAddressWithData(addr, data);
         (address ua, uint96 ud) = gas_.unpackAddressWithData(packed);
         assertEq(ua, addr);
@@ -317,7 +382,10 @@ contract LibraryTests is Test {
         for (uint256 i = 0; i < 5; i++) {
             arr[i] = bytes32(uint256(i * 10));
         }
-        (bool found, uint256 index) = gas_.binarySearch(arr, bytes32(uint256(20)));
+        (bool found, uint256 index) = gas_.binarySearch(
+            arr,
+            bytes32(uint256(20))
+        );
         assertTrue(found);
         assertEq(index, 2);
     }
@@ -327,13 +395,13 @@ contract LibraryTests is Test {
         arr[0] = bytes32(uint256(1));
         arr[1] = bytes32(uint256(3));
         arr[2] = bytes32(uint256(5));
-        (bool found,) = gas_.binarySearch(arr, bytes32(uint256(2)));
+        (bool found, ) = gas_.binarySearch(arr, bytes32(uint256(2)));
         assertFalse(found);
     }
 
     function test_BinarySearch_Empty() public view {
         bytes32[] memory arr = new bytes32[](0);
-        (bool found,) = gas_.binarySearch(arr, bytes32(uint256(1)));
+        (bool found, ) = gas_.binarySearch(arr, bytes32(uint256(1)));
         assertFalse(found);
     }
 
@@ -359,7 +427,9 @@ contract LibraryTests is Test {
 
     function test_SafeSum() public view {
         uint256[] memory vals = new uint256[](3);
-        vals[0] = 10; vals[1] = 20; vals[2] = 30;
+        vals[0] = 10;
+        vals[1] = 20;
+        vals[2] = 30;
         assertEq(gas_.safeSum(vals), 60);
     }
 
@@ -422,7 +492,8 @@ contract LibraryTests is Test {
         nullifiers[1] = bytes32(uint256(2));
         nullifiers[2] = bytes32(uint256(3));
 
-        BatchProcessing.NullifierBatchResult memory result = batch_.batchCheckNullifiers(nullifiers);
+        BatchProcessing.NullifierBatchResult memory result = batch_
+            .batchCheckNullifiers(nullifiers);
         assertTrue(result.allUnspent);
         assertEq(result.spentBitmap, 0);
         assertEq(result.checkedCount, 3);
@@ -440,7 +511,8 @@ contract LibraryTests is Test {
         nullifiers[1] = n2;
         nullifiers[2] = n3;
 
-        BatchProcessing.NullifierBatchResult memory result = batch_.batchCheckNullifiers(nullifiers);
+        BatchProcessing.NullifierBatchResult memory result = batch_
+            .batchCheckNullifiers(nullifiers);
         assertFalse(result.allUnspent);
         // Bit 1 should be set (n2 is spent)
         assertEq(result.spentBitmap & (1 << 1), (1 << 1));
@@ -467,7 +539,8 @@ contract LibraryTests is Test {
             commitments[i] = keccak256(abi.encode("c", i));
         }
 
-        (uint256 registered, uint256 failBitmap) = batch_.batchRegisterNullifiers(nullifiers, commitments);
+        (uint256 registered, uint256 failBitmap) = batch_
+            .batchRegisterNullifiers(nullifiers, commitments);
         assertEq(registered, 3);
         assertEq(failBitmap, 0);
 
@@ -488,7 +561,8 @@ contract LibraryTests is Test {
         commitments[0] = bytes32(uint256(1));
         commitments[1] = bytes32(uint256(2));
 
-        (uint256 registered, uint256 failBitmap) = batch_.batchRegisterNullifiers(nullifiers, commitments);
+        (uint256 registered, uint256 failBitmap) = batch_
+            .batchRegisterNullifiers(nullifiers, commitments);
         assertEq(registered, 1);
         // Bit 0 should be set (duplicate)
         assertEq(failBitmap & 1, 1);
@@ -500,7 +574,10 @@ contract LibraryTests is Test {
         nullifiers[1] = keccak256(abi.encode("b"));
         bytes32[] memory empty = new bytes32[](0);
 
-        (uint256 registered,) = batch_.batchRegisterNullifiers(nullifiers, empty);
+        (uint256 registered, ) = batch_.batchRegisterNullifiers(
+            nullifiers,
+            empty
+        );
         assertEq(registered, 2);
     }
 
@@ -518,8 +595,10 @@ contract LibraryTests is Test {
     function test_BatchHash_Correct() public view {
         bytes32[] memory a = new bytes32[](2);
         bytes32[] memory b = new bytes32[](2);
-        a[0] = bytes32(uint256(1)); a[1] = bytes32(uint256(2));
-        b[0] = bytes32(uint256(3)); b[1] = bytes32(uint256(4));
+        a[0] = bytes32(uint256(1));
+        a[1] = bytes32(uint256(2));
+        b[0] = bytes32(uint256(3));
+        b[1] = bytes32(uint256(4));
 
         bytes32[] memory result = batch_.batchHash(a, b);
         assertEq(result.length, 2);
@@ -564,7 +643,9 @@ contract LibraryTests is Test {
 
     function test_SafeSum_Correct() public view {
         uint256[] memory vals = new uint256[](3);
-        vals[0] = 100; vals[1] = 200; vals[2] = 300;
+        vals[0] = 100;
+        vals[1] = 200;
+        vals[2] = 300;
         assertEq(batch_.safeSum(vals), 600);
     }
 
@@ -572,7 +653,10 @@ contract LibraryTests is Test {
     // FUZZ TESTS
     // =========================================================================
 
-    function testFuzz_EfficientHash_Deterministic(bytes32 a, bytes32 b) public view {
+    function testFuzz_EfficientHash_Deterministic(
+        bytes32 a,
+        bytes32 b
+    ) public view {
         assertEq(gas_.efficientHash(a, b), gas_.efficientHash(a, b));
     }
 
@@ -588,7 +672,10 @@ contract LibraryTests is Test {
         assertTrue(count <= 256);
     }
 
-    function testFuzz_ComputeMerkleRoot_Deterministic(bytes32 a, bytes32 b) public view {
+    function testFuzz_ComputeMerkleRoot_Deterministic(
+        bytes32 a,
+        bytes32 b
+    ) public view {
         bytes32[] memory leaves = new bytes32[](2);
         leaves[0] = a;
         leaves[1] = b;

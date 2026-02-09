@@ -21,7 +21,9 @@ contract CryptoHarness {
         return CryptoLib.g1Mul(p, scalar);
     }
 
-    function g1Neg(CryptoLib.G1Point memory p) external pure returns (CryptoLib.G1Point memory) {
+    function g1Neg(
+        CryptoLib.G1Point memory p
+    ) external pure returns (CryptoLib.G1Point memory) {
         return CryptoLib.g1Neg(p);
     }
 
@@ -32,7 +34,9 @@ contract CryptoHarness {
         return CryptoLib.g1Eq(p1, p2);
     }
 
-    function hashToPoint(bytes memory data) external view returns (CryptoLib.G1Point memory) {
+    function hashToPoint(
+        bytes memory data
+    ) external view returns (CryptoLib.G1Point memory) {
         return CryptoLib.hashToPoint(data);
     }
 }
@@ -51,11 +55,18 @@ contract ValidationHarness {
         ValidationLib.requireNonZeroValue(value);
     }
 
-    function requireInBounds(uint256 value, uint256 min_, uint256 max_) external pure {
+    function requireInBounds(
+        uint256 value,
+        uint256 min_,
+        uint256 max_
+    ) external pure {
         ValidationLib.requireInBounds(value, min_, max_);
     }
 
-    function requireBelowThreshold(uint256 value, uint256 threshold) external pure {
+    function requireBelowThreshold(
+        uint256 value,
+        uint256 threshold
+    ) external pure {
         ValidationLib.requireBelowThreshold(value, threshold);
     }
 
@@ -67,7 +78,10 @@ contract ValidationHarness {
         ValidationLib.requireMatchingLengths(a, b);
     }
 
-    function requireValidBatchSize(uint256 size, uint256 maxSize) external pure {
+    function requireValidBatchSize(
+        uint256 size,
+        uint256 maxSize
+    ) external pure {
         ValidationLib.requireValidBatchSize(size, maxSize);
     }
 
@@ -105,7 +119,12 @@ contract ValidationHarness {
         uint64 sourceChainId,
         uint64 destChainId
     ) external view {
-        ValidationLib.validateProofParams(proof, publicInputs, sourceChainId, destChainId);
+        ValidationLib.validateProofParams(
+            proof,
+            publicInputs,
+            sourceChainId,
+            destChainId
+        );
     }
 }
 
@@ -262,12 +281,21 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireInBounds_TooLow() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.OutOfBounds.selector, 0, 1, 10));
+        vm.expectRevert(
+            abi.encodeWithSelector(ValidationLib.OutOfBounds.selector, 0, 1, 10)
+        );
         val.requireInBounds(0, 1, 10);
     }
 
     function test_RequireInBounds_TooHigh() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.OutOfBounds.selector, 11, 1, 10));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.OutOfBounds.selector,
+                11,
+                1,
+                10
+            )
+        );
         val.requireInBounds(11, 1, 10);
     }
 
@@ -276,7 +304,13 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireBelowThreshold_Exceeds() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.AmountExceedsThreshold.selector, 11, 10));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.AmountExceedsThreshold.selector,
+                11,
+                10
+            )
+        );
         val.requireBelowThreshold(11, 10);
     }
 
@@ -298,7 +332,13 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireMatchingLengths_Mismatch() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.ArrayLengthMismatch.selector, 3, 5));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.ArrayLengthMismatch.selector,
+                3,
+                5
+            )
+        );
         val.requireMatchingLengths(3, 5);
     }
 
@@ -312,7 +352,13 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireValidBatchSize_TooLarge() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.BatchTooLarge.selector, 101, 100));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.BatchTooLarge.selector,
+                101,
+                100
+            )
+        );
         val.requireValidBatchSize(101, 100);
     }
 
@@ -326,7 +372,9 @@ contract CryptoValidationTest is Test {
 
     function test_RequireNotExpired_Expired() public {
         vm.warp(1000);
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.Expired.selector, 999, 1000));
+        vm.expectRevert(
+            abi.encodeWithSelector(ValidationLib.Expired.selector, 999, 1000)
+        );
         val.requireNotExpired(999);
     }
 
@@ -337,7 +385,9 @@ contract CryptoValidationTest is Test {
 
     function test_RequireExpired_NotExpired() public {
         vm.warp(1000);
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.Expired.selector, 1001, 1000));
+        vm.expectRevert(
+            abi.encodeWithSelector(ValidationLib.Expired.selector, 1001, 1000)
+        );
         val.requireExpired(1001);
     }
 
@@ -351,12 +401,19 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireValidDestinationChain_Zero() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.InvalidChainId.selector, 0));
+        vm.expectRevert(
+            abi.encodeWithSelector(ValidationLib.InvalidChainId.selector, 0)
+        );
         val.requireValidDestinationChain(0);
     }
 
     function test_RequireValidDestinationChain_SameChain() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.InvalidChainId.selector, block.chainid));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.InvalidChainId.selector,
+                block.chainid
+            )
+        );
         val.requireValidDestinationChain(block.chainid);
     }
 
@@ -365,7 +422,12 @@ contract CryptoValidationTest is Test {
     }
 
     function test_RequireOnChain_WrongChain() public {
-        vm.expectRevert(abi.encodeWithSelector(ValidationLib.InvalidChainId.selector, block.chainid));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ValidationLib.InvalidChainId.selector,
+                block.chainid
+            )
+        );
         val.requireOnChain(999);
     }
 
@@ -429,10 +491,21 @@ contract CryptoValidationTest is Test {
         val.requireNonZeroAddress(addr);
     }
 
-    function testFuzz_RequireInBounds(uint256 value, uint256 min_, uint256 max_) public {
+    function testFuzz_RequireInBounds(
+        uint256 value,
+        uint256 min_,
+        uint256 max_
+    ) public {
         vm.assume(min_ <= max_);
         if (value < min_ || value > max_) {
-            vm.expectRevert(abi.encodeWithSelector(ValidationLib.OutOfBounds.selector, value, min_, max_));
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ValidationLib.OutOfBounds.selector,
+                    value,
+                    min_,
+                    max_
+                )
+            );
         }
         val.requireInBounds(value, min_, max_);
     }
