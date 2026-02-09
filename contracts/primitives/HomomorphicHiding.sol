@@ -528,7 +528,10 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
         if (rangeProof.proofId == bytes32(0)) revert InvalidProof();
 
         // Delegate to external verifier — reverts if not configured
-        require(rangeProofVerifier != address(0), "Range proof verifier not configured");
+        require(
+            rangeProofVerifier != address(0),
+            "Range proof verifier not configured"
+        );
         {
             (bool success, bytes memory result) = rangeProofVerifier.staticcall(
                 abi.encodeWithSignature("verify(bytes)", rangeProof.proof)

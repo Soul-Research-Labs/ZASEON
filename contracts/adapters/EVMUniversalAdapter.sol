@@ -354,7 +354,10 @@ contract EVMUniversalAdapter is
             publicInputs[1] = uint256(nullifier);
             publicInputs[2] = uint256(destChainId);
 
-            bool proofValid = IProofVerifier(verifier).verify(proof, publicInputs);
+            bool proofValid = IProofVerifier(verifier).verify(
+                proof,
+                publicInputs
+            );
             require(proofValid, "Proof verification failed");
         }
 
@@ -611,7 +614,7 @@ contract EVMUniversalAdapter is
         ProofSystem proofSystem
     ) internal pure returns (bool) {
         // Structural sanity checks
-        if (proof.length < 64) return false;
+        if (proof.length < 64) revert("Proof too short");
         if (publicInputs.length == 0) return false;
 
         // No inline verifier available — reject

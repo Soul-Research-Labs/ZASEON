@@ -139,6 +139,8 @@ interface IUniversalShieldedPool {
 
     function disableTestMode() external;
 
+    function confirmProductionReady() external;
+
     function setBatchVerifier(address _verifier) external;
 
     function setSanctionsOracle(address _oracle) external;

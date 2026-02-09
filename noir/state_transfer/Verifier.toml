@@ -1,0 +1,8 @@
+# Verifier.toml — Public inputs for state_transfer circuit
+# Returns: pub bool
+old_commitment = "0"
+new_commitment = "0"
+old_nullifier = "0"
+sender_pubkey = "0"
+recipient_pubkey = "0"
+transfer_value = "0"

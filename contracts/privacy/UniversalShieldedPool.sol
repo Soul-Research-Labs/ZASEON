@@ -242,6 +242,12 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
 
     event SanctionsOracleUpdated(address indexed newOracle);
 
+    /// @notice Emitted when test mode is permanently disabled
+    event TestModeDisabled(address indexed disabledBy);
+
+    /// @notice Emitted when production readiness is confirmed on-chain
+    event ProductionReadinessConfirmed(address indexed confirmedBy, address verifier);
+
     /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -516,6 +522,16 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
     /// @dev Once disabled, withdrawals require a real verifier contract
     function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         testMode = false;
+        emit TestModeDisabled(msg.sender);
+    }
+
+    /// @notice Assert production readiness on-chain (reverts if not ready)
+    /// @dev Call after deployment to confirm verifier is set and testMode is off.
+    ///      Emits ProductionReadinessConfirmed for off-chain monitoring.
+    function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(!testMode, "Test mode still enabled");
+        require(withdrawalVerifier != address(0), "No withdrawal verifier set");
+        emit ProductionReadinessConfirmed(msg.sender, withdrawalVerifier);
     }
 
     /// @notice Set the cross-chain batch verifier

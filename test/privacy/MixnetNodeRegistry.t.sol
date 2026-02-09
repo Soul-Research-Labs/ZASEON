@@ -55,7 +55,9 @@ contract MixnetNodeRegistryTest is Test {
 
     function test_RegisterNode_InvalidLayer() public {
         vm.prank(operator1);
-        vm.expectRevert(abi.encodeWithSelector(MixnetNodeRegistry.InvalidLayer.selector, 5));
+        vm.expectRevert(
+            abi.encodeWithSelector(MixnetNodeRegistry.InvalidLayer.selector, 5)
+        );
         registry.registerNode{value: 0.1 ether}(PUB_KEY_1, ENC_KEY, 5);
     }
 
@@ -71,7 +73,10 @@ contract MixnetNodeRegistryTest is Test {
 
         vm.prank(operator1);
         vm.expectRevert(
-            abi.encodeWithSelector(MixnetNodeRegistry.OperatorAlreadyRegistered.selector, operator1)
+            abi.encodeWithSelector(
+                MixnetNodeRegistry.OperatorAlreadyRegistered.selector,
+                operator1
+            )
         );
         registry.registerNode{value: 0.1 ether}(PUB_KEY_2, ENC_KEY, 1);
     }
@@ -165,7 +170,10 @@ contract MixnetNodeRegistryTest is Test {
         registry.slashNode(nodeId, hex"badbad");
 
         IMixnetNodeRegistry.MixnetNode memory node = registry.getNode(nodeId);
-        assertEq(uint8(node.status), uint8(IMixnetNodeRegistry.NodeStatus.Slashed));
+        assertEq(
+            uint8(node.status),
+            uint8(IMixnetNodeRegistry.NodeStatus.Slashed)
+        );
         assertEq(node.stakedAmount, 1 ether); // 50% slashed
         assertEq(node.reputationScore, 0);
         assertEq(registry.slashingPool(), 1 ether);
@@ -188,7 +196,11 @@ contract MixnetNodeRegistryTest is Test {
 
     function test_GetRouteNodes() public {
         // Register nodes on layers 0, 1, 2
-        address[3] memory ops = [address(0x100), address(0x200), address(0x300)];
+        address[3] memory ops = [
+            address(0x100),
+            address(0x200),
+            address(0x300)
+        ];
         for (uint16 i = 0; i < 3; i++) {
             vm.deal(ops[i], 1 ether);
             vm.prank(ops[i]);

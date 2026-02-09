@@ -1,0 +1,6 @@
+# Verifier.toml — Public inputs for policy_bound_proof circuit
+# Returns: pub bool
+vk_hash = "0"
+policy_hash = "0"
+domain_separator = "0"
+data_commitment = "0"

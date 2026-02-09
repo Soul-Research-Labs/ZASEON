@@ -417,7 +417,10 @@ contract AggregateDisclosureAlgebra is
         if (credential.isRevoked) revert CredentialIsRevoked();
 
         // Delegate to external verifier — reverts if not configured
-        require(disclosureProofVerifier != address(0), "Disclosure proof verifier not configured");
+        require(
+            disclosureProofVerifier != address(0),
+            "Disclosure proof verifier not configured"
+        );
         {
             (bool success, bytes memory result) = disclosureProofVerifier
                 .staticcall(

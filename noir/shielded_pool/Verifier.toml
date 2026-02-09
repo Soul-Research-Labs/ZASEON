@@ -1,0 +1,8 @@
+# Verifier.toml — Public inputs for shielded_pool circuit
+merkle_root = "0"
+nullifier = "0"
+recipient = "0"
+relayer = "0"
+fee = "0"
+amount = "0"
+asset_id = "0"

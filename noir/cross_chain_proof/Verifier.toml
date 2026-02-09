@@ -1,0 +1,7 @@
+# Verifier.toml — Public inputs for cross_chain_proof circuit
+# Returns: pub (bool, Field)
+dest_chain_id = "0"
+relayer_pubkey = "0"
+proof_commitment = "0"
+timestamp = "0"
+fee = "0"

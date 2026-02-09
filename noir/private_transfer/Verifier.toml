@@ -1,0 +1,7 @@
+# Verifier.toml — Public inputs for private_transfer circuit
+# Returns: pub TransferPublicOutputs
+[pub_inputs]
+merkle_root = "0"
+input_nullifiers = ["0", "0"]
+output_commitments = ["0", "0"]
+fee = "0"

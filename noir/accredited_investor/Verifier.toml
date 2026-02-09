@@ -1,0 +1,6 @@
+# Verifier.toml — Public inputs for accredited_investor circuit
+identity_commitment = "0"
+qualification_nullifier = "0"
+issuer_pubkey = "0"
+qualification_path = "0"
+current_timestamp = "0"

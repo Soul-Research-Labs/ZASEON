@@ -1,0 +1,4 @@
+# Verifier.toml — Public inputs for pedersen_commitment circuit
+# Returns: pub bool
+commitment = "0"
+owner_pubkey = "0"

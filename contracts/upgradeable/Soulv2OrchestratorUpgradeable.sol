@@ -279,7 +279,7 @@ contract Soulv2OrchestratorUpgradeable is
         // Validate basic request parameters
         if (request.stateCommitment == bytes32(0)) return false;
         if (request.nullifier == bytes32(0)) return false;
-        if (request.validityProof.length < 256) return false;
+        if (request.validityProof.length < 256) revert("Validity proof too short");
         if (request.recipient == address(0)) return false;
 
         // In production, this would interact with all primitives

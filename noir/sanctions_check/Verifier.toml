@@ -1,0 +1,6 @@
+# Verifier.toml — Public inputs for sanctions_check circuit
+sanctions_merkle_root = "0"
+identity_commitment = "0"
+compliance_nullifier = "0"
+credential_issuer_pubkey = "0"
+current_timestamp = "0"

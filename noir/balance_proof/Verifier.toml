@@ -1,0 +1,7 @@
+# Verifier.toml — Public inputs for balance_proof circuit
+old_root = "0"
+new_root = "0"
+nullifier_hash = "0"
+public_amount = "0"
+token = "0"
+is_deposit = "0"

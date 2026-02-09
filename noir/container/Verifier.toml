@@ -1,0 +1,6 @@
+# Verifier.toml — Public inputs for container circuit
+# Returns: pub bool
+state_commitment = "0"
+nullifier_hash = "0"
+current_timestamp = "0"
+expiry_timestamp = "0"

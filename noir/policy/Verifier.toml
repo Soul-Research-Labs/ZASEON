@@ -1,0 +1,5 @@
+# Verifier.toml — Public inputs for policy circuit
+# Returns: pub bool
+policy_hash = "0"
+user_commitment = "0"
+merkle_root = "0"

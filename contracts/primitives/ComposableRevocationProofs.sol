@@ -526,7 +526,10 @@ contract ComposableRevocationProofs is
         ] && proof.accumulatorValue == accumulator.currentValue;
 
         // Delegate ZK proof verification to external verifier — reverts if not configured
-        require(nonMembershipVerifier != address(0), "Non-membership verifier not configured");
+        require(
+            nonMembershipVerifier != address(0),
+            "Non-membership verifier not configured"
+        );
         bool proofValid;
         {
             (bool success, bytes memory result) = nonMembershipVerifier

@@ -11,7 +11,10 @@ contract MockProofVerifier is IProofVerifier {
         returnValue = _returnValue;
     }
 
-    function verifyProof(bytes calldata, bytes calldata) external view override returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external view override returns (bool) {
         return returnValue;
     }
 }
@@ -28,7 +31,8 @@ contract CrossChainProofHubV3Test is Test {
     MockProofVerifier public trueVerifier;
     MockProofVerifier public falseVerifier;
 
-    bytes32 constant PROOF_TYPE = 0x8cdf3a8b78ebe00eba9fa85c0a9029fb57ab374b0492d22d68498e28e9e5b598;
+    bytes32 constant PROOF_TYPE =
+        0x8cdf3a8b78ebe00eba9fa85c0a9029fb57ab374b0492d22d68498e28e9e5b598;
 
     function setUp() public {
         admin = address(this);
@@ -77,7 +81,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         hub.depositStake{value: 1 ether}();
 
-        (uint256 stake,,) = hub.getRelayerStats(relayer);
+        (uint256 stake, , ) = hub.getRelayerStats(relayer);
         assertEq(stake, 1 ether);
     }
 
@@ -88,7 +92,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         hub.withdrawStake(0.5 ether);
 
-        (uint256 stake,,) = hub.getRelayerStats(relayer);
+        (uint256 stake, , ) = hub.getRelayerStats(relayer);
         assertEq(stake, 0.5 ether);
     }
 
@@ -112,7 +116,11 @@ contract CrossChainProofHubV3Test is Test {
 
         vm.prank(relayer);
         bytes32 proofId = hub.submitProof{value: 0.001 ether}(
-            proof, inputs, commitment, uint64(block.chainid), 42161
+            proof,
+            inputs,
+            commitment,
+            uint64(block.chainid),
+            42161
         );
 
         assertEq(hub.totalProofs(), 1);
@@ -122,7 +130,10 @@ contract CrossChainProofHubV3Test is Test {
         assertEq(sub.sourceChainId, uint64(block.chainid));
         assertEq(sub.destChainId, 42161);
         assertEq(sub.relayer, relayer);
-        assertEq(uint256(sub.status), uint256(CrossChainProofHubV3.ProofStatus.Pending));
+        assertEq(
+            uint256(sub.status),
+            uint256(CrossChainProofHubV3.ProofStatus.Pending)
+        );
     }
 
     function test_submitProof_insufficientFee() public {
@@ -131,7 +142,11 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         vm.expectRevert();
         hub.submitProof{value: 0.0001 ether}(
-            hex"aa", hex"bb", keccak256("c1"), uint64(block.chainid), 42161
+            hex"aa",
+            hex"bb",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161
         );
     }
 
@@ -140,7 +155,11 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         vm.expectRevert();
         hub.submitProof{value: 0.001 ether}(
-            hex"aa", hex"bb", keccak256("c1"), uint64(block.chainid), 42161
+            hex"aa",
+            hex"bb",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161
         );
     }
 
@@ -150,7 +169,11 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         vm.expectRevert();
         hub.submitProof{value: 0.001 ether}(
-            hex"aa", hex"bb", keccak256("c1"), uint64(block.chainid), 99999
+            hex"aa",
+            hex"bb",
+            keccak256("c1"),
+            uint64(block.chainid),
+            99999
         );
     }
 
@@ -161,13 +184,20 @@ contract CrossChainProofHubV3Test is Test {
 
         vm.prank(relayer);
         bytes32 proofId = hub.submitProofInstant{value: 0.003 ether}(
-            hex"deadbeef", hex"cafe", keccak256("c1"),
-            uint64(block.chainid), 42161, PROOF_TYPE
+            hex"deadbeef",
+            hex"cafe",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161,
+            PROOF_TYPE
         );
 
         CrossChainProofHubV3.ProofSubmission memory sub = hub.getProof(proofId);
         // Instant verification should set status to Verified
-        assertEq(uint256(sub.status), uint256(CrossChainProofHubV3.ProofStatus.Verified));
+        assertEq(
+            uint256(sub.status),
+            uint256(CrossChainProofHubV3.ProofStatus.Verified)
+        );
     }
 
     function test_submitProofInstant_failedVerification() public {
@@ -177,8 +207,12 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         vm.expectRevert();
         hub.submitProofInstant{value: 0.003 ether}(
-            hex"deadbeef", hex"cafe", keccak256("c1"),
-            uint64(block.chainid), 42161, PROOF_TYPE
+            hex"deadbeef",
+            hex"cafe",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161,
+            PROOF_TYPE
         );
     }
 
@@ -201,9 +235,14 @@ contract CrossChainProofHubV3Test is Test {
         bytes32 merkleRoot = keccak256("batchRoot");
 
         vm.prank(relayer);
-        bytes32 batchId = hub.submitBatch{value: 0.003 ether}(inputs, merkleRoot);
+        bytes32 batchId = hub.submitBatch{value: 0.003 ether}(
+            inputs,
+            merkleRoot
+        );
 
-        CrossChainProofHubV3.BatchSubmission memory batch = hub.getBatch(batchId);
+        CrossChainProofHubV3.BatchSubmission memory batch = hub.getBatch(
+            batchId
+        );
         assertEq(batch.merkleRoot, merkleRoot);
         assertEq(batch.proofCount, 3);
         assertEq(batch.relayer, relayer);
@@ -367,7 +406,11 @@ contract CrossChainProofHubV3Test is Test {
         _stakeRelayer();
         vm.prank(relayer);
         hub.submitProof{value: 0.001 ether}(
-            hex"aa", hex"bb", keccak256("c1"), uint64(block.chainid), 42161
+            hex"aa",
+            hex"bb",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161
         );
 
         address payable recipient = payable(address(0xFEED));
@@ -381,7 +424,9 @@ contract CrossChainProofHubV3Test is Test {
     function test_getRelayerStats() public {
         _stakeRelayer();
 
-        (uint256 stake, uint256 success, uint256 slash) = hub.getRelayerStats(relayer);
+        (uint256 stake, uint256 success, uint256 slash) = hub.getRelayerStats(
+            relayer
+        );
         assertEq(stake, 1 ether);
         assertEq(success, 0);
         assertEq(slash, 0);
@@ -398,7 +443,11 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(user);
         vm.expectRevert();
         hub.submitProof{value: 0.001 ether}(
-            hex"aa", hex"bb", keccak256("c1"), uint64(block.chainid), 42161
+            hex"aa",
+            hex"bb",
+            keccak256("c1"),
+            uint64(block.chainid),
+            42161
         );
     }
 
@@ -417,7 +466,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(relayer);
         hub.depositStake{value: amount}();
 
-        (uint256 stake,,) = hub.getRelayerStats(relayer);
+        (uint256 stake, , ) = hub.getRelayerStats(relayer);
         assertEq(stake, amount);
     }
 
@@ -430,7 +479,7 @@ contract CrossChainProofHubV3Test is Test {
     // ======= Receive ETH =======
 
     function test_receiveETH() public {
-        (bool sent,) = address(hub).call{value: 1 ether}("");
+        (bool sent, ) = address(hub).call{value: 1 ether}("");
         assertTrue(sent);
     }
 
@@ -445,12 +494,13 @@ contract CrossChainProofHubV3Test is Test {
         _stakeRelayer();
 
         vm.prank(relayer);
-        return hub.submitProof{value: 0.001 ether}(
-            hex"deadbeef",
-            hex"cafe",
-            keccak256("commitment1"),
-            uint64(block.chainid),
-            42161
-        );
+        return
+            hub.submitProof{value: 0.001 ether}(
+                hex"deadbeef",
+                hex"cafe",
+                keccak256("commitment1"),
+                uint64(block.chainid),
+                42161
+            );
     }
 }

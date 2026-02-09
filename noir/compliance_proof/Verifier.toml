@@ -1,0 +1,9 @@
+# Verifier.toml — Public inputs for compliance_proof circuit
+# Returns: pub (bool, Field)
+credential_commitment = "0"
+issuer_pubkey = "0"
+holder_pubkey = "0"
+current_timestamp = "0"
+required_jurisdictions = ["0", "0", "0", "0", "0", "0", "0", "0"]
+min_credential_type = "0"
+policy_id = "0"

@@ -4,45 +4,7 @@ pragma solidity ^0.8.24;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-
-/**
- * @title IMixnetNodeRegistry
- * @author Soul Protocol
- * @notice Interface for the Mixnet Node Registry used in onion-routed private relaying
- */
-interface IMixnetNodeRegistry {
-    /// @notice Node status in the registry
-    enum NodeStatus {
-        Inactive,
-        Active,
-        Slashed,
-        Exiting
-    }
-
-    /// @notice Registered mixnet node
-    struct MixnetNode {
-        address operator;
-        bytes32 publicKey;
-        bytes encryptionKey;
-        uint256 stakedAmount;
-        uint256 registeredAt;
-        uint256 lastRotation;
-        NodeStatus status;
-        uint16 layer;
-        uint32 reputationScore;
-    }
-
-    function registerNode(bytes32 publicKey, bytes calldata encryptionKey, uint16 layer) external payable;
-    function deregisterNode(bytes32 nodeId) external;
-    function rotateKeys(bytes32 nodeId, bytes32 newPublicKey, bytes calldata newEncryptionKey) external;
-    function slashNode(bytes32 nodeId, bytes calldata evidence) external;
-    function getActiveNodes(uint16 layer) external view returns (bytes32[] memory);
-    function getNode(bytes32 nodeId) external view returns (MixnetNode memory);
-    function getRouteNodes(uint256 pathLength) external view returns (bytes32[] memory);
-    function isNodeActive(bytes32 nodeId) external view returns (bool);
-    function totalActiveNodes() external view returns (uint256);
-    function minimumStake() external view returns (uint256);
-}
+import {IMixnetNodeRegistry} from "../interfaces/IMixnetNodeRegistry.sol";
 
 /**
  * @title MixnetNodeRegistry
@@ -56,7 +18,12 @@ interface IMixnetNodeRegistry {
  *
  * @custom:security-contact security@soul.network
  */
-contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGuard, Pausable {
+contract MixnetNodeRegistry is
+    IMixnetNodeRegistry,
+    AccessControl,
+    ReentrancyGuard,
+    Pausable
+{
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -190,10 +157,14 @@ contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGua
     ) external payable override nonReentrant whenNotPaused {
         if (publicKey == bytes32(0)) revert InvalidPublicKey();
         if (layer >= MAX_LAYERS) revert InvalidLayer(layer);
-        if (msg.value < MIN_STAKE) revert InsufficientStake(msg.value, MIN_STAKE);
-        if (operatorNode[msg.sender] != bytes32(0)) revert OperatorAlreadyRegistered(msg.sender);
+        if (msg.value < MIN_STAKE)
+            revert InsufficientStake(msg.value, MIN_STAKE);
+        if (operatorNode[msg.sender] != bytes32(0))
+            revert OperatorAlreadyRegistered(msg.sender);
 
-        bytes32 nodeId = keccak256(abi.encode(msg.sender, publicKey, block.timestamp));
+        bytes32 nodeId = keccak256(
+            abi.encode(msg.sender, publicKey, block.timestamp)
+        );
         if (nodeExists[nodeId]) revert NodeAlreadyRegistered(nodeId);
 
         nodes[nodeId] = MixnetNode({
@@ -240,7 +211,8 @@ contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGua
         _requireNodeOperator(nodeId);
         MixnetNode storage node = nodes[nodeId];
         if (node.status != NodeStatus.Exiting) revert NodeNotExiting(nodeId);
-        if (block.timestamp < exitTimestamps[nodeId]) revert ExitNotReady(exitTimestamps[nodeId]);
+        if (block.timestamp < exitTimestamps[nodeId])
+            revert ExitNotReady(exitTimestamps[nodeId]);
 
         uint256 stakeReturn = node.stakedAmount;
         node.status = NodeStatus.Inactive;
@@ -303,18 +275,24 @@ contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGua
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMixnetNodeRegistry
-    function getActiveNodes(uint16 layer) external view override returns (bytes32[] memory) {
+    function getActiveNodes(
+        uint16 layer
+    ) external view override returns (bytes32[] memory) {
         return _layerNodes[layer];
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function getNode(bytes32 nodeId) external view override returns (MixnetNode memory) {
+    function getNode(
+        bytes32 nodeId
+    ) external view override returns (MixnetNode memory) {
         if (!nodeExists[nodeId]) revert NodeNotFound(nodeId);
         return nodes[nodeId];
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function isNodeActive(bytes32 nodeId) external view override returns (bool) {
+    function isNodeActive(
+        bytes32 nodeId
+    ) external view override returns (bool) {
         return nodeExists[nodeId] && nodes[nodeId].status == NodeStatus.Active;
     }
 
@@ -326,15 +304,22 @@ contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGua
     /// @inheritdoc IMixnetNodeRegistry
     /// @dev Selects one random node per layer for a route of the given path length.
     ///      Uses block-based entropy (suitable for relay selection, NOT for security-critical randomness).
-    function getRouteNodes(uint256 pathLength) external view override returns (bytes32[] memory) {
-        require(pathLength > 0 && pathLength <= MAX_LAYERS, "Invalid path length");
+    function getRouteNodes(
+        uint256 pathLength
+    ) external view override returns (bytes32[] memory) {
+        require(
+            pathLength > 0 && pathLength <= MAX_LAYERS,
+            "Invalid path length"
+        );
 
         bytes32[] memory route = new bytes32[](pathLength);
         for (uint256 i = 0; i < pathLength; i++) {
             bytes32[] storage layerSet = _layerNodes[uint16(i)];
             require(layerSet.length > 0, "Empty layer");
 
-            uint256 idx = uint256(keccak256(abi.encode(block.prevrandao, i, block.timestamp))) % layerSet.length;
+            uint256 idx = uint256(
+                keccak256(abi.encode(block.prevrandao, i, block.timestamp))
+            ) % layerSet.length;
             route[i] = layerSet[idx];
         }
         return route;
@@ -389,7 +374,8 @@ contract MixnetNodeRegistry is IMixnetNodeRegistry, AccessControl, ReentrancyGua
     /// @dev Verify caller is the node operator
     function _requireNodeOperator(bytes32 nodeId) internal view {
         if (!nodeExists[nodeId]) revert NodeNotFound(nodeId);
-        if (nodes[nodeId].operator != msg.sender) revert NotNodeOperator(nodeId, msg.sender);
+        if (nodes[nodeId].operator != msg.sender)
+            revert NotNodeOperator(nodeId, msg.sender);
     }
 
     /// @dev Remove a node from its layer's active set (O(1) swap-and-pop)

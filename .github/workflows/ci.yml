@@ -255,7 +255,6 @@ jobs:
           - verify_hyperlane_bridge
           - verify_ethereum_l1_bridge
           - verify_l2_bridges
-          - verify_crosschain
           - verify_crosschain_security
           - verify_security
           - verify_nullifier

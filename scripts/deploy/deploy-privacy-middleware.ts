@@ -315,8 +315,18 @@ async function main() {
             console.log("\n⚠️  TEST MODE CHECKLIST:");
             console.log("  □ Deploy production ZK verifier contract");
             console.log("  □ Call shieldedPool.disableTestMode() before mainnet");
+            console.log("  □ Call shieldedPool.confirmProductionReady() to assert readiness on-chain");
             console.log("  □ Configure sanctions oracle providers");
             console.log("  □ Set up relayer fee routes for production chains");
+        } else if (isProduction) {
+            // On production, automatically confirm readiness on-chain
+            const poolAddr = deployed.contracts["shieldedPool"];
+            if (poolAddr) {
+                console.log("\n🔒 Confirming production readiness on-chain...");
+                const pool = await viem.getContractAt("UniversalShieldedPool", poolAddr as `0x${string}`);
+                await pool.write.confirmProductionReady();
+                console.log("  ✅ Production readiness confirmed (testMode=false, verifier set)");
+            }
         }
 
     } catch (error) {

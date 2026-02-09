@@ -16,9 +16,7 @@ contract HalmosNullifier is SymTest, Test {
     uint256 public totalConsumed;
 
     /// @notice Verify nullifier cannot be consumed twice (double-spend prevention)
-    function check_nullifierDoubleSpendPrevention(
-        bytes32 nullifier
-    ) public {
+    function check_nullifierDoubleSpendPrevention(bytes32 nullifier) public {
         // First consumption should succeed
         if (!consumed[nullifier]) {
             consumed[nullifier] = true;
@@ -60,9 +58,18 @@ contract HalmosNullifier is SymTest, Test {
         uint256 startCount = totalConsumed;
 
         // Consume 3 unique nullifiers
-        if (!consumed[n1]) { consumed[n1] = true; totalConsumed++; }
-        if (!consumed[n2]) { consumed[n2] = true; totalConsumed++; }
-        if (!consumed[n3]) { consumed[n3] = true; totalConsumed++; }
+        if (!consumed[n1]) {
+            consumed[n1] = true;
+            totalConsumed++;
+        }
+        if (!consumed[n2]) {
+            consumed[n2] = true;
+            totalConsumed++;
+        }
+        if (!consumed[n3]) {
+            consumed[n3] = true;
+            totalConsumed++;
+        }
 
         // Count should have increased by exactly 3
         assert(totalConsumed == startCount + 3);
@@ -79,7 +86,9 @@ contract HalmosNullifier is SymTest, Test {
 
         // Changing any input must change the nullifier
         bytes32 modifiedNonce = bytes32(uint256(nonce) + 1);
-        bytes32 nullifier2 = keccak256(abi.encode(commitment, secret, modifiedNonce));
+        bytes32 nullifier2 = keccak256(
+            abi.encode(commitment, secret, modifiedNonce)
+        );
         assert(nullifier != nullifier2);
     }
 }

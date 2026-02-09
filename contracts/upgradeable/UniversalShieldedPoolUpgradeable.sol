@@ -195,6 +195,12 @@ contract UniversalShieldedPoolUpgradeable is
     );
     event VerifierUpdated(address indexed newVerifier, string verifierType);
     event SanctionsOracleUpdated(address indexed newOracle);
+
+    /// @notice Emitted when test mode is permanently disabled
+    event TestModeDisabled(address indexed disabledBy);
+
+    /// @notice Emitted when production readiness is confirmed on-chain
+    event ProductionReadinessConfirmed(address indexed confirmedBy, address verifier);
     event CircuitBreakerTriggered(uint256 withdrawalCount, uint256 threshold);
     event ContractUpgraded(
         uint256 indexed oldVersion,
@@ -480,6 +486,16 @@ contract UniversalShieldedPoolUpgradeable is
 
     function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         testMode = false;
+        emit TestModeDisabled(msg.sender);
+    }
+
+    /// @notice Assert production readiness on-chain (reverts if not ready)
+    /// @dev Call after deployment to confirm verifier is set and testMode is off.
+    ///      Emits ProductionReadinessConfirmed for off-chain monitoring.
+    function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(!testMode, "Test mode still enabled");
+        require(withdrawalVerifier != address(0), "No withdrawal verifier set");
+        emit ProductionReadinessConfirmed(msg.sender, withdrawalVerifier);
     }
 
     function setBatchVerifier(

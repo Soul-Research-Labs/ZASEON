@@ -25,7 +25,10 @@ contract LibrariesTest is Test {
     }
 
     /// @notice Verify distinct inputs produce distinct hashes
-    function testFuzz_distinctInputsDistinctHashes(uint256 a, uint256 b) public pure {
+    function testFuzz_distinctInputsDistinctHashes(
+        uint256 a,
+        uint256 b
+    ) public pure {
         vm.assume(a != b);
         bytes32 hash1 = keccak256(abi.encode(a, uint256(0)));
         bytes32 hash2 = keccak256(abi.encode(b, uint256(0)));
@@ -44,7 +47,10 @@ contract LibrariesTest is Test {
     }
 
     /// @notice Verify different chain IDs produce different universal IDs
-    function testFuzz_differentChainIdsDifferentUniversalIds(uint256 chainId1, uint256 chainId2) public pure {
+    function testFuzz_differentChainIdsDifferentUniversalIds(
+        uint256 chainId1,
+        uint256 chainId2
+    ) public pure {
         vm.assume(chainId1 != chainId2);
         bytes32 id1 = keccak256(abi.encode("EVM", chainId1));
         bytes32 id2 = keccak256(abi.encode("EVM", chainId2));

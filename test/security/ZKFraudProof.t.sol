@@ -11,7 +11,11 @@ contract MockZKVerifier {
         returnValue = _ret;
     }
 
-    function verifyProof(bytes calldata, bytes calldata, bytes calldata) external view returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
         return returnValue;
     }
 }
@@ -70,7 +74,14 @@ contract ZKFraudProofTest is Test {
         vm.prank(operator);
         bytes32 batchId = fraud.submitBatch(stateRoot, prevRoot, txRoot);
 
-        (bytes32 sr, bytes32 pr, uint256 submittedAt, bool finalized, bool disputed, address sequencer) = fraud.getBatch(batchId);
+        (
+            bytes32 sr,
+            bytes32 pr,
+            uint256 submittedAt,
+            bool finalized,
+            bool disputed,
+            address sequencer
+        ) = fraud.getBatch(batchId);
         assertEq(sr, stateRoot);
         assertEq(pr, prevRoot);
         assertTrue(submittedAt > 0);
@@ -95,7 +106,7 @@ contract ZKFraudProofTest is Test {
 
         fraud.finalizeBatch(batchId);
 
-        (, , , bool finalized, ,) = fraud.getBatch(batchId);
+        (, , , bool finalized, , ) = fraud.getBatch(batchId);
         assertTrue(finalized);
     }
 
@@ -123,7 +134,10 @@ contract ZKFraudProofTest is Test {
 
         ZKFraudProof.FraudProof memory fp = fraud.getFraudProof(proofId);
         assertEq(fp.challenger, prover);
-        assertEq(uint256(fp.proofType), uint256(ZKFraudProof.ProofType.EXECUTION));
+        assertEq(
+            uint256(fp.proofType),
+            uint256(ZKFraudProof.ProofType.EXECUTION)
+        );
         assertEq(uint256(fp.status), uint256(ZKFraudProof.ProofStatus.PENDING));
         assertEq(fp.bondAmount, 1 ether);
         assertEq(fraud.totalProofsSubmitted(), 1);
@@ -154,11 +168,17 @@ contract ZKFraudProofTest is Test {
         bytes32 proverRole = fraud.PROVER_ROLE();
 
         vm.prank(unauthorized);
-        vm.expectRevert(abi.encodeWithSelector(
-            bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
-            unauthorized,
-            proverRole
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                bytes4(
+                    keccak256(
+                        "AccessControlUnauthorizedAccount(address,bytes32)"
+                    )
+                ),
+                unauthorized,
+                proverRole
+            )
+        );
         fraud.submitFraudProof{value: 1 ether}(
             ZKFraudProof.ProofType.EXECUTION,
             batchId,
@@ -184,7 +204,7 @@ contract ZKFraudProofTest is Test {
         ZKFraudProof.FraudProof memory fp = fraud.getFraudProof(proofId);
         assertTrue(
             uint256(fp.status) == uint256(ZKFraudProof.ProofStatus.VERIFIED) ||
-            uint256(fp.status) == uint256(ZKFraudProof.ProofStatus.REJECTED)
+                uint256(fp.status) == uint256(ZKFraudProof.ProofStatus.REJECTED)
         );
     }
 
@@ -213,13 +233,19 @@ contract ZKFraudProofTest is Test {
 
     function test_addVerificationKey() public {
         bytes memory vkData = hex"aabbccdd";
-        bytes32 vkId = fraud.addVerificationKey(ZKFraudProof.ProofType.EXECUTION, vkData);
+        bytes32 vkId = fraud.addVerificationKey(
+            ZKFraudProof.ProofType.EXECUTION,
+            vkData
+        );
 
         assertTrue(vkId != bytes32(0));
     }
 
     function test_deactivateVerificationKey() public {
-        bytes32 vkId = fraud.addVerificationKey(ZKFraudProof.ProofType.EXECUTION, hex"aabb");
+        bytes32 vkId = fraud.addVerificationKey(
+            ZKFraudProof.ProofType.EXECUTION,
+            hex"aabb"
+        );
         fraud.deactivateVerificationKey(vkId);
     }
 
@@ -247,7 +273,7 @@ contract ZKFraudProofTest is Test {
 
     function test_emergencyWithdraw() public {
         // Send some ETH to the contract
-        (bool sent,) = address(fraud).call{value: 5 ether}("");
+        (bool sent, ) = address(fraud).call{value: 5 ether}("");
         assertTrue(sent);
 
         address recipient = address(0xBBBB);
@@ -289,7 +315,11 @@ contract ZKFraudProofTest is Test {
 
     // ======= Fuzz Tests =======
 
-    function testFuzz_submitBatch(bytes32 stateRoot, bytes32 prevRoot, bytes32 txRoot) public {
+    function testFuzz_submitBatch(
+        bytes32 stateRoot,
+        bytes32 prevRoot,
+        bytes32 txRoot
+    ) public {
         vm.prank(operator);
         bytes32 batchId = fraud.submitBatch(stateRoot, prevRoot, txRoot);
         assertTrue(batchId != bytes32(0));
@@ -318,24 +348,26 @@ contract ZKFraudProofTest is Test {
 
     function _submitBatch() internal returns (bytes32) {
         vm.prank(operator);
-        return fraud.submitBatch(
-            keccak256("state1"),
-            keccak256("state0"),
-            keccak256("txs1")
-        );
+        return
+            fraud.submitBatch(
+                keccak256("state1"),
+                keccak256("state0"),
+                keccak256("txs1")
+            );
     }
 
     function _submitFraudProofForBatch() internal returns (bytes32) {
         bytes32 batchId = _submitBatch();
 
         vm.prank(prover);
-        return fraud.submitFraudProof{value: 1 ether}(
-            ZKFraudProof.ProofType.EXECUTION,
-            batchId,
-            0,
-            keccak256("correctState"),
-            hex"deadbeefcafe0102030405060708",
-            keccak256("publicInputs")
-        );
+        return
+            fraud.submitFraudProof{value: 1 ether}(
+                ZKFraudProof.ProofType.EXECUTION,
+                batchId,
+                0,
+                keccak256("correctState"),
+                hex"deadbeefcafe0102030405060708",
+                keccak256("publicInputs")
+            );
     }
 }

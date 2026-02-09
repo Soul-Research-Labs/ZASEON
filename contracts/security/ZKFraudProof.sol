@@ -702,7 +702,10 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
         // The proof must include the ZK proof path for full security
         // Interactive-only verification is restricted to fraud that is
         // self-evident from state root divergence
-        require(proof.zkProof.length > 0, "Interactive verification requires ZK evidence");
+        require(
+            proof.zkProof.length > 0,
+            "Interactive verification requires ZK evidence"
+        );
         return true;
     }
 

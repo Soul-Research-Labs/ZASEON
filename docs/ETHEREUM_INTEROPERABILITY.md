@@ -331,7 +331,7 @@ event WithdrawalFinalized(bytes32 indexed withdrawalId, address recipient, uint2
 
 ## Related Documentation
 
-- [ZK Proof Systems](./ZK_PROOF_SYSTEMS.md)
-- [Cross-Chain Architecture](./CROSS_CHAIN_ARCHITECTURE.md)
-- [Security Model](./SECURITY_MODEL.md)
-- [Soul Protocol Specification](./PROTOCOL_SPEC.md)
+- [ZK Proof Systems](./RECURSIVE_PROOFS.md)
+- [Cross-Chain Architecture](./CROSS_CHAIN_PRIVACY.md)
+- [Security Model](./THREAT_MODEL.md)
+- [Soul Protocol Specification](./architecture.md)

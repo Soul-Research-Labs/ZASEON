@@ -47,7 +47,10 @@ contract NullifierRegistryV3Test is Test {
 
         vm.prank(registrar);
         vm.expectRevert(
-            abi.encodeWithSelector(NullifierRegistryV3.NullifierAlreadyExists.selector, nullifier)
+            abi.encodeWithSelector(
+                NullifierRegistryV3.NullifierAlreadyExists.selector,
+                nullifier
+            )
         );
         registry.registerNullifier(nullifier, bytes32(0));
     }
@@ -77,7 +80,10 @@ contract NullifierRegistryV3Test is Test {
         commitments[2] = keccak256("c3");
 
         vm.prank(registrar);
-        uint256 startIdx = registry.batchRegisterNullifiers(nullifiers, commitments);
+        uint256 startIdx = registry.batchRegisterNullifiers(
+            nullifiers,
+            commitments
+        );
 
         assertEq(startIdx, 0);
         assertEq(registry.totalNullifiers(), 3);
@@ -101,7 +107,13 @@ contract NullifierRegistryV3Test is Test {
         bytes32[] memory empty = new bytes32[](0);
 
         vm.prank(registrar);
-        vm.expectRevert(abi.encodeWithSelector(NullifierRegistryV3.BatchTooLarge.selector, 21, 20));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NullifierRegistryV3.BatchTooLarge.selector,
+                21,
+                20
+            )
+        );
         registry.batchRegisterNullifiers(tooMany, empty);
     }
 
@@ -169,7 +181,12 @@ contract NullifierRegistryV3Test is Test {
         bytes32 srcRoot = keccak256("srcRoot");
 
         vm.prank(bridge);
-        registry.receiveCrossChainNullifiers(42, nullifiers, commitments, srcRoot);
+        registry.receiveCrossChainNullifiers(
+            42,
+            nullifiers,
+            commitments,
+            srcRoot
+        );
 
         assertEq(registry.totalNullifiers(), 2);
         assertEq(registry.getNullifierCountByChain(42), 2);
@@ -183,7 +200,12 @@ contract NullifierRegistryV3Test is Test {
 
         vm.prank(bridge);
         vm.expectRevert(NullifierRegistryV3.InvalidChainId.selector);
-        registry.receiveCrossChainNullifiers(block.chainid, nullifiers, commitments, bytes32(0));
+        registry.receiveCrossChainNullifiers(
+            block.chainid,
+            nullifiers,
+            commitments,
+            bytes32(0)
+        );
     }
 
     function test_receiveCrossChain_skipsDuplicates() public {
@@ -211,7 +233,8 @@ contract NullifierRegistryV3Test is Test {
         vm.prank(registrar);
         registry.registerNullifier(nullifier, commitment);
 
-        NullifierRegistryV3.NullifierData memory data = registry.getNullifierData(nullifier);
+        NullifierRegistryV3.NullifierData memory data = registry
+            .getNullifierData(nullifier);
         assertEq(data.commitment, commitment);
         assertEq(data.registrar, registrar);
         assertEq(uint256(data.sourceChainId), block.chainid);
@@ -219,13 +242,17 @@ contract NullifierRegistryV3Test is Test {
 
     function test_getNullifierData_revertsNotFound() public {
         vm.expectRevert(
-            abi.encodeWithSelector(NullifierRegistryV3.NullifierNotFound.selector, keccak256("nope"))
+            abi.encodeWithSelector(
+                NullifierRegistryV3.NullifierNotFound.selector,
+                keccak256("nope")
+            )
         );
         registry.getNullifierData(keccak256("nope"));
     }
 
     function test_getTreeStats() public {
-        (uint256 total, bytes32 root, uint256 histSize) = registry.getTreeStats();
+        (uint256 total, bytes32 root, uint256 histSize) = registry
+            .getTreeStats();
         assertEq(total, 0);
         assertTrue(root != bytes32(0));
         assertEq(histSize, 100);

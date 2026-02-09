@@ -1,0 +1,40 @@
+# Verifier.toml — Public inputs for ring_signature circuit
+# Returns: pub bool
+[pub_inputs]
+message_hash = "0"
+
+[pub_inputs.key_image]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"
+
+[[pub_inputs.ring_members]]
+x = "0"
+y = "0"

@@ -513,7 +513,7 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl {
         // For encrypted data, verify the ZK proof
         // The proof must demonstrate knowledge of the decryption key
         // and that decryptedCalldata is the correct plaintext
-        if (zkProof.length < 128) return false;
+        if (zkProof.length < 128) revert("ZK proof too short");
 
         // Verify proof structure: first 32 bytes must commit to the calldata hash
         bytes32 proofCommitment = bytes32(zkProof[0:32]);

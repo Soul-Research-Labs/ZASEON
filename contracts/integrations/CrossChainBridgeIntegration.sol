@@ -685,7 +685,7 @@ contract CrossChainBridgeIntegration is
         bytes calldata proof
     ) internal view returns (bool) {
         // Require ECDSA signature from a RELAYER_ROLE holder
-        if (proof.length < 65) return false;
+        if (proof.length < 65) revert("Transfer proof too short");
 
         bytes32 messageHash = keccak256(
             abi.encodePacked(

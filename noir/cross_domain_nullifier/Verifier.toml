@@ -1,0 +1,11 @@
+# Verifier.toml — Public inputs for cross_domain_nullifier circuit
+# Returns: pub bool
+source_chain_id = "0"
+source_app_id = "0"
+source_epoch_id = "0"
+source_nullifier = "0"
+target_chain_id = "0"
+target_app_id = "0"
+target_epoch_id = "0"
+target_nullifier = "0"
+target_transition_id = "0"

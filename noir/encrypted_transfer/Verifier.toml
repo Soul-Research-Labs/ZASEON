@@ -1,0 +1,9 @@
+# Verifier.toml — Public inputs for encrypted_transfer circuit
+sender_balance_commitment = "0"
+sender_new_balance_commitment = "0"
+recipient_balance_commitment = "0"
+recipient_new_balance_commitment = "0"
+transfer_amount_commitment = "0"
+nullifier = "0"
+min_transfer = "0"
+max_transfer = "0"

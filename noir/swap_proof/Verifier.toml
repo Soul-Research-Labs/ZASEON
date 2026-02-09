@@ -1,0 +1,12 @@
+# Verifier.toml — Public inputs for swap_proof circuit
+old_balance_root = "0"
+new_balance_root = "0"
+pool_id = "0"
+nullifier_hash = "0"
+min_amount_out = "0"
+fee_amount = "0"
+reserve_in = "0"
+reserve_out = "0"
+new_reserve_in = "0"
+new_reserve_out = "0"
+pool_fee_rate = "0"

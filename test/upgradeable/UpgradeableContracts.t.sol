@@ -19,7 +19,9 @@ contract UpgradeableContractsTest is Test {
     /// @notice Verify storage gap sizing
     function test_storageGapSizing() public pure {
         // ERC1967 proxy storage slots are well-defined
-        bytes32 implSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 implSlot = bytes32(
+            uint256(keccak256("eip1967.proxy.implementation")) - 1
+        );
         assert(implSlot != bytes32(0));
     }
 

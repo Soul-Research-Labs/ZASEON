@@ -24,7 +24,10 @@ contract BridgeCircuitBreakerTest is Test {
     // ======= Initial State =======
 
     function test_initialState() public view {
-        assertEq(uint256(breaker.currentState()), uint256(BridgeCircuitBreaker.SystemState.NORMAL));
+        assertEq(
+            uint256(breaker.currentState()),
+            uint256(BridgeCircuitBreaker.SystemState.NORMAL)
+        );
         assertEq(breaker.anomalyScore(), 0);
     }
 
@@ -33,7 +36,10 @@ contract BridgeCircuitBreakerTest is Test {
     function test_recordTransaction_normalAmount() public {
         vm.prank(monitor);
         breaker.recordTransaction(1 ether, address(0xAA));
-        assertEq(uint256(breaker.currentState()), uint256(BridgeCircuitBreaker.SystemState.NORMAL));
+        assertEq(
+            uint256(breaker.currentState()),
+            uint256(BridgeCircuitBreaker.SystemState.NORMAL)
+        );
     }
 
     function test_recordTransaction_largeAmount() public {
@@ -93,7 +99,10 @@ contract BridgeCircuitBreakerTest is Test {
         vm.prank(guardian);
         breaker.emergencyHalt();
 
-        assertEq(uint256(breaker.currentState()), uint256(BridgeCircuitBreaker.SystemState.HALTED));
+        assertEq(
+            uint256(breaker.currentState()),
+            uint256(BridgeCircuitBreaker.SystemState.HALTED)
+        );
     }
 
     function test_guardianCanReportAnomaly() public {
@@ -122,7 +131,9 @@ contract BridgeCircuitBreakerTest is Test {
 
         // Propose recovery
         vm.prank(recoverer);
-        uint256 proposalId = breaker.proposeRecovery(BridgeCircuitBreaker.SystemState.NORMAL);
+        uint256 proposalId = breaker.proposeRecovery(
+            BridgeCircuitBreaker.SystemState.NORMAL
+        );
         assertTrue(proposalId > 0 || proposalId == 0); // Just check it doesn't revert
     }
 
@@ -131,7 +142,9 @@ contract BridgeCircuitBreakerTest is Test {
         breaker.emergencyHalt();
 
         vm.prank(recoverer);
-        uint256 proposalId = breaker.proposeRecovery(BridgeCircuitBreaker.SystemState.NORMAL);
+        uint256 proposalId = breaker.proposeRecovery(
+            BridgeCircuitBreaker.SystemState.NORMAL
+        );
 
         // Need another approval
         vm.prank(recoverer2);
@@ -143,7 +156,10 @@ contract BridgeCircuitBreakerTest is Test {
         vm.prank(recoverer);
         breaker.executeRecovery(proposalId);
 
-        assertEq(uint256(breaker.currentState()), uint256(BridgeCircuitBreaker.SystemState.NORMAL));
+        assertEq(
+            uint256(breaker.currentState()),
+            uint256(BridgeCircuitBreaker.SystemState.NORMAL)
+        );
     }
 
     function test_cannotExecuteRecoveryWithoutDelay() public {
@@ -151,7 +167,9 @@ contract BridgeCircuitBreakerTest is Test {
         breaker.emergencyHalt();
 
         vm.prank(recoverer);
-        uint256 proposalId = breaker.proposeRecovery(BridgeCircuitBreaker.SystemState.NORMAL);
+        uint256 proposalId = breaker.proposeRecovery(
+            BridgeCircuitBreaker.SystemState.NORMAL
+        );
 
         vm.prank(recoverer2);
         breaker.approveRecovery(proposalId);
@@ -187,17 +205,17 @@ contract BridgeCircuitBreakerTest is Test {
 
     function test_setThresholds() public {
         breaker.setThresholds(
-            200 ether,  // largeTransferAmount
-            1000,       // largeTransferPercent (10%)
-            200,        // velocityTxPerHour
+            200 ether, // largeTransferAmount
+            1000, // largeTransferPercent (10%)
+            200, // velocityTxPerHour
             2000 ether, // velocityAmountPerHour
-            2000,       // tvlDropPercent (20%)
-            40,         // warningScore
-            70,         // degradedScore
-            90          // haltedScore
+            2000, // tvlDropPercent (20%)
+            40, // warningScore
+            70, // degradedScore
+            90 // haltedScore
         );
 
-        (uint256 largeAmt,,,,,,,) = breaker.thresholds();
+        (uint256 largeAmt, , , , , , , ) = breaker.thresholds();
         assertEq(largeAmt, 200 ether);
     }
 

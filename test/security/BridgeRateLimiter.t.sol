@@ -20,30 +20,39 @@ contract BridgeRateLimiterTest is Test {
         // Raise velocity threshold so it doesn't interfere with limit tests
         // Default threshold is 100 (triggers at hourlyVolume >= 1 ether)
         limiter.setCircuitBreakerConfig(
-            500 ether,   // largeTransferThreshold
-            100_000,     // velocityThreshold (very high)
-            2000,        // tvlDropThreshold (20%)
-            3600,        // cooldownPeriod
-            true         // autoBreakEnabled
+            500 ether, // largeTransferThreshold
+            100_000, // velocityThreshold (very high)
+            2000, // tvlDropThreshold (20%)
+            3600, // cooldownPeriod
+            true // autoBreakEnabled
         );
     }
 
     // ======= Check Transfer Limits =======
 
     function test_checkTransfer_allowed() public view {
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 10 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            10 ether
+        );
         assertTrue(allowed);
         assertEq(bytes(reason).length, 0);
     }
 
     function test_checkTransfer_exceedsSingleTxLimit() public view {
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 101 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            101 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Exceeds user single tx limit");
     }
 
     function test_checkTransfer_exceedsGlobalSingleTxLimit() public view {
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 501 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            501 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Exceeds global single tx limit");
     }
@@ -53,7 +62,10 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTransfer(user, 95 ether);
 
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 10 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            10 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Exceeds user hourly limit");
     }
@@ -98,7 +110,10 @@ contract BridgeRateLimiterTest is Test {
         // Warp to a fresh hour to reset hourly, daily remains at 495
         vm.warp(baseTime + 18005);
 
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 10 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            10 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Exceeds user daily limit");
     }
@@ -108,7 +123,10 @@ contract BridgeRateLimiterTest is Test {
         limiter.recordTransfer(user, 1 ether);
 
         // Try immediately (default minTimeBetweenTx is 60s for users)
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 1 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            1 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Too soon between transactions");
     }
@@ -129,7 +147,10 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(guardian);
         limiter.setBlacklist(user, true);
 
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 1 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            1 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Address blacklisted");
     }
@@ -138,7 +159,10 @@ contract BridgeRateLimiterTest is Test {
         limiter.setWhitelist(user, true);
 
         // Even large amounts pass
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 10000 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            10000 ether
+        );
         assertTrue(allowed);
         assertEq(reason, "Whitelisted");
     }
@@ -162,7 +186,10 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTVLChange(999 ether, true);
 
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 10 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            10 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "TVL cap exceeded");
     }
@@ -228,7 +255,14 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTransfer(user, 10 ether);
 
-        (uint256 hourlyUsed, uint256 dailyUsed,,, uint256 lastTx, uint256 txCount) = limiter.userUsage(user);
+        (
+            uint256 hourlyUsed,
+            uint256 dailyUsed,
+            ,
+            ,
+            uint256 lastTx,
+            uint256 txCount
+        ) = limiter.userUsage(user);
         assertEq(hourlyUsed, 10 ether);
         assertEq(dailyUsed, 10 ether);
         assertEq(txCount, 1);
@@ -247,7 +281,7 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTVLChange(100 ether, true);
 
-        (,,,,uint256 tvl, uint256 peak) = limiter.globalStats();
+        (, , , , uint256 tvl, uint256 peak) = limiter.globalStats();
         assertEq(tvl, 100 ether);
         assertEq(peak, 100 ether);
     }
@@ -259,7 +293,7 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTVLChange(30 ether, false);
 
-        (,,,,uint256 tvl,) = limiter.globalStats();
+        (, , , , uint256 tvl, ) = limiter.globalStats();
         assertEq(tvl, 70 ether);
     }
 
@@ -270,7 +304,7 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTVLChange(20 ether, false); // more than TVL
 
-        (,,,,uint256 tvl,) = limiter.globalStats();
+        (, , , , uint256 tvl, ) = limiter.globalStats();
         assertEq(tvl, 0);
     }
 
@@ -280,7 +314,10 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(guardian);
         limiter.pause();
 
-        (bool allowed, string memory reason) = limiter.checkTransfer(user, 1 ether);
+        (bool allowed, string memory reason) = limiter.checkTransfer(
+            user,
+            1 ether
+        );
         assertFalse(allowed);
         assertEq(reason, "Bridge paused");
     }
@@ -290,7 +327,8 @@ contract BridgeRateLimiterTest is Test {
     function test_updateConfig() public {
         limiter.setGlobalConfig(2000 ether, 20000 ether, 1000 ether, 0, true);
 
-        (uint256 hourly, uint256 daily, uint256 max,,) = limiter.globalConfig();
+        (uint256 hourly, uint256 daily, uint256 max, , ) = limiter
+            .globalConfig();
         assertEq(hourly, 2000 ether);
         assertEq(daily, 20000 ether);
         assertEq(max, 1000 ether);
@@ -310,7 +348,7 @@ contract BridgeRateLimiterTest is Test {
         vm.prank(operator);
         limiter.recordTransfer(user, amount);
 
-        (uint256 hourlyUsed,,,,, ) = limiter.userUsage(user);
+        (uint256 hourlyUsed, , , , , ) = limiter.userUsage(user);
         assertEq(hourlyUsed, amount);
     }
 
@@ -323,7 +361,7 @@ contract BridgeRateLimiterTest is Test {
         limiter.recordTVLChange(withdraw, false);
         vm.stopPrank();
 
-        (,,,,uint256 tvl,) = limiter.globalStats();
+        (, , , , uint256 tvl, ) = limiter.globalStats();
         assertEq(tvl, deposit - withdraw);
     }
 }

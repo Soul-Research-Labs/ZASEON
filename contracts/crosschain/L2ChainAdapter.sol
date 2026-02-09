@@ -358,7 +358,7 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
     ) internal view returns (bool) {
         // Minimum proof length: stateRoot(32) + blockNumber(32) + at least 1 merkle node(32) + signature(65)
         if (proof.length < 161) {
-            return false;
+            revert("Message proof too short");
         }
 
         // Verify source chain is supported

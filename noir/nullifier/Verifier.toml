@@ -1,0 +1,5 @@
+# Verifier.toml — Public inputs for nullifier circuit
+# Returns: pub bool
+nullifier_hash = "0"
+domain_id = "0"
+commitment_root = "0"

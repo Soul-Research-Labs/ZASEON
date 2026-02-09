@@ -151,7 +151,10 @@ contract DeployMainnet is Script {
         proofHub.grantRole(proofHub.OPERATOR_ROLE(), admin);
 
         // NullifierRegistryV3: grant all roles to multisig
-        nullifierRegistry.grantRole(nullifierRegistry.DEFAULT_ADMIN_ROLE(), admin);
+        nullifierRegistry.grantRole(
+            nullifierRegistry.DEFAULT_ADMIN_ROLE(),
+            admin
+        );
         nullifierRegistry.grantRole(nullifierRegistry.REGISTRAR_ROLE(), admin);
         nullifierRegistry.grantRole(nullifierRegistry.BRIDGE_ROLE(), admin);
         nullifierRegistry.grantRole(nullifierRegistry.EMERGENCY_ROLE(), admin);
@@ -169,10 +172,22 @@ contract DeployMainnet is Script {
         proofHub.renounceRole(adminRole, deployer);
 
         // NullifierRegistryV3
-        nullifierRegistry.renounceRole(nullifierRegistry.EMERGENCY_ROLE(), deployer);
-        nullifierRegistry.renounceRole(nullifierRegistry.BRIDGE_ROLE(), deployer);
-        nullifierRegistry.renounceRole(nullifierRegistry.REGISTRAR_ROLE(), deployer);
-        nullifierRegistry.renounceRole(nullifierRegistry.DEFAULT_ADMIN_ROLE(), deployer);
+        nullifierRegistry.renounceRole(
+            nullifierRegistry.EMERGENCY_ROLE(),
+            deployer
+        );
+        nullifierRegistry.renounceRole(
+            nullifierRegistry.BRIDGE_ROLE(),
+            deployer
+        );
+        nullifierRegistry.renounceRole(
+            nullifierRegistry.REGISTRAR_ROLE(),
+            deployer
+        );
+        nullifierRegistry.renounceRole(
+            nullifierRegistry.DEFAULT_ADMIN_ROLE(),
+            deployer
+        );
 
         // ZKFraudProof
         zkFraudProof.renounceRole(zkFraudProof.DEFAULT_ADMIN_ROLE(), deployer);
