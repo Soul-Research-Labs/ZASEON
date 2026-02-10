@@ -10,21 +10,17 @@ contract MockTarget {
     bytes public lastData;
     bool public shouldRevert;
 
-    function setData(
-        uint256 val
-    ) external payable {
+    function setData(uint256 val) external payable {
         if (shouldRevert) revert("MockTarget: revert");
         lastValue = val;
         lastData = msg.data;
     }
 
-    function setShouldRevert(
-        bool _shouldRevert
-    ) external {
+    function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }
 
 contract SoulL2MessengerTest is Test {
@@ -56,7 +52,7 @@ contract SoulL2MessengerTest is Test {
 
         // Register fulfiller
         vm.prank(fulfiller1);
-        messenger.registerFulfiller{ value: 0.1 ether }();
+        messenger.registerFulfiller{value: 0.1 ether}();
 
         // Deploy target
         target = new MockTarget();
@@ -108,7 +104,12 @@ contract SoulL2MessengerTest is Test {
             address(target)
         );
         messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), abi.encode("data"), commitment, nullifier, 200_000
+            DEST_CHAIN,
+            address(target),
+            abi.encode("data"),
+            commitment,
+            nullifier,
+            200_000
         );
     }
 
@@ -131,13 +132,23 @@ contract SoulL2MessengerTest is Test {
 
         vm.prank(user);
         messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), "", commitment, nullifier, 200_000
+            DEST_CHAIN,
+            address(target),
+            "",
+            commitment,
+            nullifier,
+            200_000
         );
 
         vm.prank(user);
         vm.expectRevert(SoulL2Messenger.NullifierAlreadyUsed.selector);
         messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), "", keccak256("c2"), nullifier, 200_000
+            DEST_CHAIN,
+            address(target),
+            "",
+            keccak256("c2"),
+            nullifier,
+            200_000
         );
     }
 
@@ -153,18 +164,25 @@ contract SoulL2MessengerTest is Test {
             0 // Should default to defaultGasLimit
         );
 
-        (,,,,,,,,, uint256 storedGasLimit,,) = messenger.messages(msgId);
+        (, , , , , , , , , uint256 storedGasLimit, , ) = messenger.messages(
+            msgId
+        );
         assertEq(storedGasLimit, messenger.defaultGasLimit());
     }
 
     function test_sendPrivacyMessage_withValue() public {
         bytes32 nullifier = keccak256("val");
         vm.prank(user);
-        bytes32 msgId = messenger.sendPrivacyMessage{ value: 1 ether }(
-            DEST_CHAIN, address(target), "", keccak256("c"), nullifier, 200_000
+        bytes32 msgId = messenger.sendPrivacyMessage{value: 1 ether}(
+            DEST_CHAIN,
+            address(target),
+            "",
+            keccak256("c"),
+            nullifier,
+            200_000
         );
 
-        (,,,,,,,,, uint256 _value,,) = messenger.messages(msgId);
+        (, , , , , , , , , uint256 _value, , ) = messenger.messages(msgId);
         // Note: The message struct doesn't have a direct way to access `value` via auto-getter
         // since it returns individual fields in order. Let's verify via the struct position.
     }
@@ -181,41 +199,43 @@ contract SoulL2MessengerTest is Test {
             value: 0
         });
 
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger.CrossL2Request({
-            calls: calls,
-            sourceChainId: block.chainid,
-            destinationChainId: DEST_CHAIN,
-            inbox: address(0),
-            l2GasLimit: 300_000,
-            l2GasToken: address(0),
-            maxL2GasPrice: 0,
-            maxPriorityFeePerGas: 0,
-            rewardAmount: 0.01 ether,
-            rewardToken: address(0),
-            deadline: block.timestamp + 1 hours
-        });
+        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+            .CrossL2Request({
+                calls: calls,
+                sourceChainId: block.chainid,
+                destinationChainId: DEST_CHAIN,
+                inbox: address(0),
+                l2GasLimit: 300_000,
+                l2GasToken: address(0),
+                maxL2GasPrice: 0,
+                maxPriorityFeePerGas: 0,
+                rewardAmount: 0.01 ether,
+                rewardToken: address(0),
+                deadline: block.timestamp + 1 hours
+            });
 
         vm.prank(user);
-        bytes32 reqId = messenger.requestL2Call{ value: 0.01 ether }(request);
+        bytes32 reqId = messenger.requestL2Call{value: 0.01 ether}(request);
         assertNotEq(reqId, bytes32(0));
     }
 
     function test_requestL2Call_revertOnEmptyCalls() public {
         SoulL2Messenger.Call[] memory calls = new SoulL2Messenger.Call[](0);
 
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger.CrossL2Request({
-            calls: calls,
-            sourceChainId: block.chainid,
-            destinationChainId: DEST_CHAIN,
-            inbox: address(0),
-            l2GasLimit: 300_000,
-            l2GasToken: address(0),
-            maxL2GasPrice: 0,
-            maxPriorityFeePerGas: 0,
-            rewardAmount: 0,
-            rewardToken: address(0),
-            deadline: block.timestamp + 1 hours
-        });
+        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+            .CrossL2Request({
+                calls: calls,
+                sourceChainId: block.chainid,
+                destinationChainId: DEST_CHAIN,
+                inbox: address(0),
+                l2GasLimit: 300_000,
+                l2GasToken: address(0),
+                maxL2GasPrice: 0,
+                maxPriorityFeePerGas: 0,
+                rewardAmount: 0,
+                rewardToken: address(0),
+                deadline: block.timestamp + 1 hours
+            });
 
         vm.prank(user);
         vm.expectRevert(SoulL2Messenger.ExecutionFailed.selector);
@@ -224,25 +244,30 @@ contract SoulL2MessengerTest is Test {
 
     function test_requestL2Call_revertOnInsufficientValue() public {
         SoulL2Messenger.Call[] memory calls = new SoulL2Messenger.Call[](1);
-        calls[0] = SoulL2Messenger.Call({ to: address(target), data: "", value: 0 });
-
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger.CrossL2Request({
-            calls: calls,
-            sourceChainId: block.chainid,
-            destinationChainId: DEST_CHAIN,
-            inbox: address(0),
-            l2GasLimit: 300_000,
-            l2GasToken: address(0),
-            maxL2GasPrice: 0,
-            maxPriorityFeePerGas: 0,
-            rewardAmount: 1 ether,
-            rewardToken: address(0),
-            deadline: block.timestamp + 1 hours
+        calls[0] = SoulL2Messenger.Call({
+            to: address(target),
+            data: "",
+            value: 0
         });
+
+        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+            .CrossL2Request({
+                calls: calls,
+                sourceChainId: block.chainid,
+                destinationChainId: DEST_CHAIN,
+                inbox: address(0),
+                l2GasLimit: 300_000,
+                l2GasToken: address(0),
+                maxL2GasPrice: 0,
+                maxPriorityFeePerGas: 0,
+                rewardAmount: 1 ether,
+                rewardToken: address(0),
+                deadline: block.timestamp + 1 hours
+            });
 
         vm.prank(user);
         vm.expectRevert(SoulL2Messenger.InsufficientValue.selector);
-        messenger.requestL2Call{ value: 0.5 ether }(request);
+        messenger.requestL2Call{value: 0.5 ether}(request);
     }
 
     // =========================================================================
@@ -251,13 +276,21 @@ contract SoulL2MessengerTest is Test {
 
     function test_fulfillMessage_commitmentMatch() public {
         // Send a message where calldata commitment = keccak256(decryptedCalldata)
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 42);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            42
+        );
         bytes32 commitment = keccak256(calldata_);
         bytes32 nullifier = keccak256("fulfill_null");
 
         vm.prank(user);
         bytes32 msgId = messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), calldata_, commitment, nullifier, 500_000
+            DEST_CHAIN,
+            address(target),
+            calldata_,
+            commitment,
+            nullifier,
+            500_000
         );
 
         // Fulfill - commitment matches hash, so no ZK proof needed
@@ -269,13 +302,21 @@ contract SoulL2MessengerTest is Test {
     }
 
     function test_fulfillMessage_revertOnInsufficientBond() public {
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 1);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            1
+        );
         bytes32 commitment = keccak256(calldata_);
         bytes32 nullifier = keccak256("bond_null");
 
         vm.prank(user);
         bytes32 msgId = messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), calldata_, commitment, nullifier, 500_000
+            DEST_CHAIN,
+            address(target),
+            calldata_,
+            commitment,
+            nullifier,
+            500_000
         );
 
         // fulfiller2 has no bond
@@ -291,13 +332,21 @@ contract SoulL2MessengerTest is Test {
     }
 
     function test_fulfillMessage_revertOnExpired() public {
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 1);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            1
+        );
         bytes32 commitment = keccak256(calldata_);
         bytes32 nullifier = keccak256("exp_null");
 
         vm.prank(user);
         bytes32 msgId = messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), calldata_, commitment, nullifier, 500_000
+            DEST_CHAIN,
+            address(target),
+            calldata_,
+            commitment,
+            nullifier,
+            500_000
         );
 
         // Fast forward past deadline (1 hour)
@@ -310,13 +359,21 @@ contract SoulL2MessengerTest is Test {
 
     function test_fulfillMessage_revertOnExecutionFailed() public {
         target.setShouldRevert(true);
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 1);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            1
+        );
         bytes32 commitment = keccak256(calldata_);
         bytes32 nullifier = keccak256("fail_null");
 
         vm.prank(user);
         bytes32 msgId = messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), calldata_, commitment, nullifier, 500_000
+            DEST_CHAIN,
+            address(target),
+            calldata_,
+            commitment,
+            nullifier,
+            500_000
         );
 
         vm.prank(fulfiller1);
@@ -332,14 +389,22 @@ contract SoulL2MessengerTest is Test {
 
         vm.prank(user);
         bytes32 msgId = messenger.sendPrivacyMessage(
-            DEST_CHAIN, address(target), encrypted, commitment, nullifier, 500_000
+            DEST_CHAIN,
+            address(target),
+            encrypted,
+            commitment,
+            nullifier,
+            500_000
         );
 
         // Build valid ZK proof per _verifyDecryptionProof:
         // First 32 bytes = keccak256(decryptedCalldata)
         // Next 32 bytes = calldataCommitment
         // Must be >= 128 bytes
-        bytes memory decrypted = abi.encodeWithSelector(MockTarget.setData.selector, 99);
+        bytes memory decrypted = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            99
+        );
         bytes32 proofCommitment = keccak256(decrypted);
 
         bytes memory zkProof = abi.encodePacked(
@@ -360,22 +425,38 @@ contract SoulL2MessengerTest is Test {
     // =========================================================================
 
     function test_receiveMessage_fromProofHub() public {
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 77);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            77
+        );
 
         vm.deal(proofHub, 1 ether);
         vm.prank(proofHub);
-        messenger.receiveMessage(SOURCE_CHAIN, keccak256("recv_msg"), address(target), calldata_, 0);
+        messenger.receiveMessage(
+            SOURCE_CHAIN,
+            keccak256("recv_msg"),
+            address(target),
+            calldata_,
+            0
+        );
 
         assertEq(target.lastValue(), 77);
     }
 
     function test_receiveMessage_fromCounterpart() public {
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 88);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            88
+        );
 
         vm.deal(counterpart, 1 ether);
         vm.prank(counterpart);
         messenger.receiveMessage(
-            SOURCE_CHAIN, keccak256("recv_msg2"), address(target), calldata_, 0
+            SOURCE_CHAIN,
+            keccak256("recv_msg2"),
+            address(target),
+            calldata_,
+            0
         );
 
         assertEq(target.lastValue(), 88);
@@ -384,20 +465,36 @@ contract SoulL2MessengerTest is Test {
     function test_receiveMessage_revertOnUnauthorized() public {
         vm.prank(user);
         vm.expectRevert(SoulL2Messenger.InvalidCounterpart.selector);
-        messenger.receiveMessage(SOURCE_CHAIN, keccak256("bad"), address(target), "", 0);
+        messenger.receiveMessage(
+            SOURCE_CHAIN,
+            keccak256("bad"),
+            address(target),
+            "",
+            0
+        );
     }
 
     function test_receiveMessage_failedExecution() public {
         target.setShouldRevert(true);
-        bytes memory calldata_ = abi.encodeWithSelector(MockTarget.setData.selector, 1);
+        bytes memory calldata_ = abi.encodeWithSelector(
+            MockTarget.setData.selector,
+            1
+        );
 
         vm.deal(proofHub, 1 ether);
         vm.prank(proofHub);
         // Should not revert, just emit PrivacyMessageFailed
         vm.expectEmit(true, false, false, false);
-        emit SoulL2Messenger.PrivacyMessageFailed(keccak256("fail_recv"), "Execution failed");
+        emit SoulL2Messenger.PrivacyMessageFailed(
+            keccak256("fail_recv"),
+            "Execution failed"
+        );
         messenger.receiveMessage(
-            SOURCE_CHAIN, keccak256("fail_recv"), address(target), calldata_, 0
+            SOURCE_CHAIN,
+            keccak256("fail_recv"),
+            address(target),
+            calldata_,
+            0
         );
     }
 
@@ -407,7 +504,7 @@ contract SoulL2MessengerTest is Test {
 
     function test_registerFulfiller() public {
         vm.prank(fulfiller2);
-        messenger.registerFulfiller{ value: 0.1 ether }();
+        messenger.registerFulfiller{value: 0.1 ether}();
 
         assertEq(messenger.fulfillerBonds(fulfiller2), 0.1 ether);
         assertTrue(messenger.hasRole(messenger.FULFILLER_ROLE(), fulfiller2));
@@ -417,12 +514,12 @@ contract SoulL2MessengerTest is Test {
         vm.deal(address(0xEE), 0.01 ether);
         vm.prank(address(0xEE));
         vm.expectRevert(SoulL2Messenger.InsufficientBond.selector);
-        messenger.registerFulfiller{ value: 0.01 ether }();
+        messenger.registerFulfiller{value: 0.01 ether}();
     }
 
     function test_withdrawBond_full() public {
         vm.prank(fulfiller2);
-        messenger.registerFulfiller{ value: 0.2 ether }();
+        messenger.registerFulfiller{value: 0.2 ether}();
 
         uint256 balBefore = fulfiller2.balance;
         vm.prank(fulfiller2);
@@ -434,7 +531,7 @@ contract SoulL2MessengerTest is Test {
 
     function test_withdrawBond_partial_keepRole() public {
         vm.prank(fulfiller2);
-        messenger.registerFulfiller{ value: 0.2 ether }();
+        messenger.registerFulfiller{value: 0.2 ether}();
 
         vm.prank(fulfiller2);
         messenger.withdrawBond(0.1 ether);
@@ -488,11 +585,17 @@ contract SoulL2MessengerTest is Test {
     function test_verifyKeystoreWallet_noPrecompile() public view {
         // Without L1SLOAD precompile, readL1State returns 0, so this should return false
         // unless expectedKeyHash is also 0
-        bool valid = messenger.verifyKeystoreWallet(address(0x1), bytes32(uint256(1)));
+        bool valid = messenger.verifyKeystoreWallet(
+            address(0x1),
+            bytes32(uint256(1))
+        );
         assertFalse(valid);
 
         // With zero expectedKeyHash, returns true since L1 returns zero
-        bool validZero = messenger.verifyKeystoreWallet(address(0x1), bytes32(0));
+        bool validZero = messenger.verifyKeystoreWallet(
+            address(0x1),
+            bytes32(0)
+        );
         assertTrue(validZero);
     }
 }

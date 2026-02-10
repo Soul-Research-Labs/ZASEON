@@ -8,9 +8,7 @@ import "../../contracts/crosschain/CrossChainMessageRelay.sol";
 contract MockTarget {
     uint256 public lastValue;
 
-    function doStuff(
-        uint256 val
-    ) external payable {
+    function doStuff(uint256 val) external payable {
         lastValue = val;
     }
 
@@ -18,7 +16,7 @@ contract MockTarget {
         revert("MockTarget: always reverts");
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }
 
 contract CrossChainMessageRelayTest is Test {
@@ -63,7 +61,7 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_sendMessage_basic() public {
         vm.prank(user);
-        bytes32 msgId = relay.sendMessage{ value: 0.1 ether }(
+        bytes32 msgId = relay.sendMessage{value: 0.1 ether}(
             TARGET_CHAIN,
             address(target),
             abi.encodeWithSelector(MockTarget.doStuff.selector, 42),
@@ -73,27 +71,47 @@ contract CrossChainMessageRelayTest is Test {
         assertNotEq(msgId, bytes32(0));
         assertEq(relay.totalMessagesSent(), 1);
 
-        CrossChainMessageRelay.MessageStatus status = relay.messageStatus(msgId);
-        assertEq(uint256(status), uint256(CrossChainMessageRelay.MessageStatus.PENDING));
+        CrossChainMessageRelay.MessageStatus status = relay.messageStatus(
+            msgId
+        );
+        assertEq(
+            uint256(status),
+            uint256(CrossChainMessageRelay.MessageStatus.PENDING)
+        );
     }
 
     function test_sendMessage_incrementsNonce() public {
         vm.startPrank(user);
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(target), "", 100_000);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            "",
+            100_000
+        );
         assertEq(relay.outboundNonces(TARGET_CHAIN), 1);
 
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(target), "", 100_000);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            "",
+            100_000
+        );
         assertEq(relay.outboundNonces(TARGET_CHAIN), 2);
         vm.stopPrank();
     }
 
     function test_sendMessage_storesMessage() public {
         vm.prank(user);
-        bytes32 msgId = relay.sendMessage{ value: 0.1 ether }(
-            TARGET_CHAIN, address(target), abi.encode(42), 200_000
+        bytes32 msgId = relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            abi.encode(42),
+            200_000
         );
 
-        CrossChainMessageRelay.CrossChainMessage memory msg_ = relay.getMessage(msgId);
+        CrossChainMessageRelay.CrossChainMessage memory msg_ = relay.getMessage(
+            msgId
+        );
         assertEq(msg_.messageId, msgId);
         assertEq(msg_.sender, user);
         assertEq(msg_.target, address(target));
@@ -103,22 +121,40 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_sendMessage_revertOnChainZero() public {
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(CrossChainMessageRelay.InvalidChainId.selector, 0));
-        relay.sendMessage{ value: 0.1 ether }(0, address(target), "", 100_000);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrossChainMessageRelay.InvalidChainId.selector,
+                0
+            )
+        );
+        relay.sendMessage{value: 0.1 ether}(0, address(target), "", 100_000);
     }
 
     function test_sendMessage_revertOnSameChain() public {
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(CrossChainMessageRelay.InvalidChainId.selector, block.chainid)
+            abi.encodeWithSelector(
+                CrossChainMessageRelay.InvalidChainId.selector,
+                block.chainid
+            )
         );
-        relay.sendMessage{ value: 0.1 ether }(block.chainid, address(target), "", 100_000);
+        relay.sendMessage{value: 0.1 ether}(
+            block.chainid,
+            address(target),
+            "",
+            100_000
+        );
     }
 
     function test_sendMessage_revertOnZeroTarget() public {
         vm.prank(user);
         vm.expectRevert(CrossChainMessageRelay.ZeroAddress.selector);
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(0), "", 100_000);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(0),
+            "",
+            100_000
+        );
     }
 
     function test_sendMessage_revertOnGasTooLow() public {
@@ -131,7 +167,12 @@ contract CrossChainMessageRelayTest is Test {
                 relay.maxGasLimit()
             )
         );
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(target), "", 100);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            "",
+            100
+        );
     }
 
     function test_sendMessage_revertOnGasTooHigh() public {
@@ -144,7 +185,12 @@ contract CrossChainMessageRelayTest is Test {
                 relay.maxGasLimit()
             )
         );
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(target), "", 50_000_001);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            "",
+            50_000_001
+        );
     }
 
     // =========================================================================
@@ -153,8 +199,12 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_sendMessageWithValue_basic() public {
         vm.prank(user);
-        bytes32 msgId = relay.sendMessageWithValue{ value: 1 ether }(
-            TARGET_CHAIN, address(target), 0.5 ether, "", 200_000
+        bytes32 msgId = relay.sendMessageWithValue{value: 1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            0.5 ether,
+            "",
+            200_000
         );
         assertNotEq(msgId, bytes32(0));
     }
@@ -162,8 +212,12 @@ contract CrossChainMessageRelayTest is Test {
     function test_sendMessageWithValue_revertOnInsufficientValue() public {
         vm.prank(user);
         vm.expectRevert(CrossChainMessageRelay.InsufficientValue.selector);
-        relay.sendMessageWithValue{ value: 0.1 ether }(
-            TARGET_CHAIN, address(target), 1 ether, "", 200_000
+        relay.sendMessageWithValue{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            1 ether,
+            "",
+            200_000
         );
     }
 
@@ -190,7 +244,9 @@ contract CrossChainMessageRelayTest is Test {
             )
         );
 
-        bytes32 ethSignedHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        bytes32 ethSignedHash = MessageHashUtils.toEthSignedMessageHash(
+            messageHash
+        );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(trustedKey, ethSignedHash);
         return abi.encodePacked(r, s, v);
     }
@@ -198,7 +254,11 @@ contract CrossChainMessageRelayTest is Test {
     function _createInboundMessage(
         bytes memory data,
         uint256 gasLimit
-    ) internal view returns (CrossChainMessageRelay.CrossChainMessage memory message) {
+    )
+        internal
+        view
+        returns (CrossChainMessageRelay.CrossChainMessage memory message)
+    {
         message = CrossChainMessageRelay.CrossChainMessage({
             messageId: keccak256(abi.encode(block.timestamp, "msg")),
             sourceChainId: SOURCE_CHAIN,
@@ -215,9 +275,11 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_receiveMessage_basic() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ = _createInboundMessage(
-            abi.encodeWithSelector(MockTarget.doStuff.selector, 42), 500_000
-        );
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 42),
+                500_000
+            );
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(relayer);
@@ -231,8 +293,11 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_receiveMessage_revertOnAlreadyProcessed() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ =
-            _createInboundMessage(abi.encodeWithSelector(MockTarget.doStuff.selector, 1), 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 1),
+                500_000
+            );
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(relayer);
@@ -241,15 +306,19 @@ contract CrossChainMessageRelayTest is Test {
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainMessageRelay.MessageAlreadyProcessed.selector, msg_.messageId
+                CrossChainMessageRelay.MessageAlreadyProcessed.selector,
+                msg_.messageId
             )
         );
         relay.receiveMessage(msg_, proof);
     }
 
     function test_receiveMessage_revertOnUntrustedRemote() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ =
-            _createInboundMessage(abi.encodeWithSelector(MockTarget.doStuff.selector, 1), 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 1),
+                500_000
+            );
         msg_.sourceChainId = 99_999; // No trusted remote set
 
         bytes memory proof = _signMessage(msg_);
@@ -257,15 +326,20 @@ contract CrossChainMessageRelayTest is Test {
         vm.prank(relayer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainMessageRelay.UntrustedRemote.selector, 99_999, msg_.sender
+                CrossChainMessageRelay.UntrustedRemote.selector,
+                99_999,
+                msg_.sender
             )
         );
         relay.receiveMessage(msg_, proof);
     }
 
     function test_receiveMessage_revertOnExpired() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ =
-            _createInboundMessage(abi.encodeWithSelector(MockTarget.doStuff.selector, 1), 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 1),
+                500_000
+            );
         msg_.deadline = block.timestamp + 1; // Almost expired
 
         bytes memory proof = _signMessage(msg_);
@@ -274,13 +348,17 @@ contract CrossChainMessageRelayTest is Test {
 
         vm.prank(relayer);
         vm.expectRevert(
-            abi.encodeWithSelector(CrossChainMessageRelay.MessageExpired.selector, msg_.messageId)
+            abi.encodeWithSelector(
+                CrossChainMessageRelay.MessageExpired.selector,
+                msg_.messageId
+            )
         );
         relay.receiveMessage(msg_, proof);
     }
 
     function test_receiveMessage_accessControl() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ = _createInboundMessage("", 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage("", 500_000);
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(user); // Not a relayer
@@ -289,8 +367,11 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_receiveMessage_crossChainReplay() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ =
-            _createInboundMessage(abi.encodeWithSelector(MockTarget.doStuff.selector, 1), 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 1),
+                500_000
+            );
         msg_.targetChainId = 999; // Wrong target chain
 
         bytes memory proof = _signMessage(msg_);
@@ -301,9 +382,11 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_receiveMessage_failedExecution() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ = _createInboundMessage(
-            abi.encodeWithSelector(MockTarget.alwaysRevert.selector), 500_000
-        );
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.alwaysRevert.selector),
+                500_000
+            );
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(relayer);
@@ -313,8 +396,8 @@ contract CrossChainMessageRelayTest is Test {
             uint256(relay.messageStatus(msg_.messageId)),
             uint256(CrossChainMessageRelay.MessageStatus.FAILED)
         );
-        CrossChainMessageRelay.ExecutionResult memory result =
-            relay.getExecutionResult(msg_.messageId);
+        CrossChainMessageRelay.ExecutionResult memory result = relay
+            .getExecutionResult(msg_.messageId);
         assertFalse(result.success);
     }
 
@@ -324,9 +407,11 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_retryMessage() public {
         // First, receive a message that fails
-        CrossChainMessageRelay.CrossChainMessage memory msg_ = _createInboundMessage(
-            abi.encodeWithSelector(MockTarget.alwaysRevert.selector), 500_000
-        );
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.alwaysRevert.selector),
+                500_000
+            );
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(relayer);
@@ -351,8 +436,11 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_retryMessage_revertOnNotFailed() public {
-        CrossChainMessageRelay.CrossChainMessage memory msg_ =
-            _createInboundMessage(abi.encodeWithSelector(MockTarget.doStuff.selector, 1), 500_000);
+        CrossChainMessageRelay.CrossChainMessage
+            memory msg_ = _createInboundMessage(
+                abi.encodeWithSelector(MockTarget.doStuff.selector, 1),
+                500_000
+            );
         bytes memory proof = _signMessage(msg_);
 
         vm.prank(relayer);
@@ -371,8 +459,8 @@ contract CrossChainMessageRelayTest is Test {
     // =========================================================================
 
     function test_receiveBatch() public {
-        CrossChainMessageRelay.CrossChainMessage[] memory msgs =
-            new CrossChainMessageRelay.CrossChainMessage[](2);
+        CrossChainMessageRelay.CrossChainMessage[]
+            memory msgs = new CrossChainMessageRelay.CrossChainMessage[](2);
         bytes[] memory proofs = new bytes[](2);
 
         msgs[0] = CrossChainMessageRelay.CrossChainMessage({
@@ -410,7 +498,13 @@ contract CrossChainMessageRelayTest is Test {
         msgIds[1] = msgs[1].messageId;
 
         vm.prank(relayer);
-        relay.receiveBatch(msgIds, keccak256("merkleRoot"), SOURCE_CHAIN, msgs, proofs);
+        relay.receiveBatch(
+            msgIds,
+            keccak256("merkleRoot"),
+            SOURCE_CHAIN,
+            msgs,
+            proofs
+        );
 
         // Both messages should be RELAYED
         assertEq(
@@ -425,21 +519,25 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_receiveBatch_revertOnTooLarge() public {
         bytes32[] memory msgIds = new bytes32[](51);
-        CrossChainMessageRelay.CrossChainMessage[] memory msgs =
-            new CrossChainMessageRelay.CrossChainMessage[](51);
+        CrossChainMessageRelay.CrossChainMessage[]
+            memory msgs = new CrossChainMessageRelay.CrossChainMessage[](51);
         bytes[] memory proofs = new bytes[](51);
 
         vm.prank(relayer);
         vm.expectRevert(
-            abi.encodeWithSelector(CrossChainMessageRelay.BatchTooLarge.selector, 51, 50)
+            abi.encodeWithSelector(
+                CrossChainMessageRelay.BatchTooLarge.selector,
+                51,
+                50
+            )
         );
         relay.receiveBatch(msgIds, bytes32(0), SOURCE_CHAIN, msgs, proofs);
     }
 
     function test_executeBatch() public {
         // First receive a batch
-        CrossChainMessageRelay.CrossChainMessage[] memory msgs =
-            new CrossChainMessageRelay.CrossChainMessage[](1);
+        CrossChainMessageRelay.CrossChainMessage[]
+            memory msgs = new CrossChainMessageRelay.CrossChainMessage[](1);
         bytes[] memory proofs = new bytes[](1);
 
         msgs[0] = CrossChainMessageRelay.CrossChainMessage({
@@ -461,11 +559,18 @@ contract CrossChainMessageRelayTest is Test {
         msgIds[0] = msgs[0].messageId;
 
         vm.prank(relayer);
-        relay.receiveBatch(msgIds, keccak256("root"), SOURCE_CHAIN, msgs, proofs);
+        relay.receiveBatch(
+            msgIds,
+            keccak256("root"),
+            SOURCE_CHAIN,
+            msgs,
+            proofs
+        );
 
         // Now get batchId
-        bytes32 batchId =
-            keccak256(abi.encodePacked(keccak256("root"), SOURCE_CHAIN, block.timestamp));
+        bytes32 batchId = keccak256(
+            abi.encodePacked(keccak256("root"), SOURCE_CHAIN, block.timestamp)
+        );
 
         relay.executeBatch(batchId);
 
@@ -486,7 +591,12 @@ contract CrossChainMessageRelayTest is Test {
     }
 
     function test_setTrustedRemote_revertOnChainZero() public {
-        vm.expectRevert(abi.encodeWithSelector(CrossChainMessageRelay.InvalidChainId.selector, 0));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrossChainMessageRelay.InvalidChainId.selector,
+                0
+            )
+        );
         relay.setTrustedRemote(0, address(0xDEAD));
     }
 
@@ -577,7 +687,12 @@ contract CrossChainMessageRelayTest is Test {
 
         vm.prank(user);
         vm.expectRevert();
-        relay.sendMessage{ value: 0.1 ether }(TARGET_CHAIN, address(target), "", 100_000);
+        relay.sendMessage{value: 0.1 ether}(
+            TARGET_CHAIN,
+            address(target),
+            "",
+            100_000
+        );
     }
 
     function test_unpause() public {
@@ -597,14 +712,23 @@ contract CrossChainMessageRelayTest is Test {
     // =========================================================================
 
     function test_computeMessageId() public view {
-        bytes32 id = relay.computeMessageId(1, 2, address(0xA), address(0xB), 100, "", 0, 1000);
+        bytes32 id = relay.computeMessageId(
+            1,
+            2,
+            address(0xA),
+            address(0xB),
+            100,
+            "",
+            0,
+            1000
+        );
         assertNotEq(id, bytes32(0));
     }
 
     function test_receiveETH() public {
         vm.deal(user, 1 ether);
         vm.prank(user);
-        (bool sent,) = address(relay).call{ value: 0.5 ether }("");
+        (bool sent, ) = address(relay).call{value: 0.5 ether}("");
         assertTrue(sent);
     }
 }

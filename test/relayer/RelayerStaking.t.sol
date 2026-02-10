@@ -11,10 +11,7 @@ contract MockSoulToken is ERC20 {
         _mint(msg.sender, 1_000_000 ether);
     }
 
-    function mint(
-        address to,
-        uint256 amount
-    ) external {
+    function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
 }
@@ -69,7 +66,9 @@ contract RelayerStakingTest is Test {
         vm.prank(relayerA);
         staking.stake(200 ether);
 
-        (uint256 stakedAmount,,,,,, bool isActive,) = staking.relayers(relayerA);
+        (uint256 stakedAmount, , , , , , bool isActive, ) = staking.relayers(
+            relayerA
+        );
         assertEq(stakedAmount, 200 ether);
         assertTrue(isActive);
         assertEq(staking.totalStaked(), 200 ether);
@@ -93,7 +92,9 @@ contract RelayerStakingTest is Test {
         vm.prank(relayerA);
         staking.stake(50 ether);
 
-        (uint256 stakedAmount,,,,,, bool isActive,) = staking.relayers(relayerA);
+        (uint256 stakedAmount, , , , , , bool isActive, ) = staking.relayers(
+            relayerA
+        );
         assertEq(stakedAmount, 50 ether);
         assertFalse(isActive);
         assertEq(staking.getActiveRelayerCount(), 0);
@@ -151,8 +152,16 @@ contract RelayerStakingTest is Test {
         vm.prank(relayerA);
         staking.requestUnstake(100 ether);
 
-        (uint256 stakedAmount, uint256 pendingUnstake, uint256 unstakeRequestTime,,,,,) =
-            staking.relayers(relayerA);
+        (
+            uint256 stakedAmount,
+            uint256 pendingUnstake,
+            uint256 unstakeRequestTime,
+            ,
+            ,
+            ,
+            ,
+
+        ) = staking.relayers(relayerA);
         assertEq(stakedAmount, 100 ether);
         assertEq(pendingUnstake, 100 ether);
         assertGt(unstakeRequestTime, 0);
@@ -219,7 +228,16 @@ contract RelayerStakingTest is Test {
         staking.completeUnstake();
 
         assertEq(token.balanceOf(relayerA), balBefore + 100 ether);
-        (, uint256 pendingUnstake, uint256 unstakeRequestTime,,,,,) = staking.relayers(relayerA);
+        (
+            ,
+            uint256 pendingUnstake,
+            uint256 unstakeRequestTime,
+            ,
+            ,
+            ,
+            ,
+
+        ) = staking.relayers(relayerA);
         assertEq(pendingUnstake, 0);
         assertEq(unstakeRequestTime, 0);
     }
@@ -288,7 +306,8 @@ contract RelayerStakingTest is Test {
         staking.slash(relayerA, "misbehavior");
 
         // 10% of 200 = 20 slashed
-        (uint256 stakedAmount,,,,, uint256 failedRelays,,) = staking.relayers(relayerA);
+        (uint256 stakedAmount, , , , , uint256 failedRelays, , ) = staking
+            .relayers(relayerA);
         assertEq(stakedAmount, 180 ether);
         assertEq(failedRelays, 1);
         assertEq(staking.totalStaked(), 180 ether);
@@ -438,7 +457,7 @@ contract RelayerStakingTest is Test {
         staking.stake(200 ether);
 
         staking.recordSuccessfulRelay(relayerA);
-        (,,,, uint256 successfulRelays,,,) = staking.relayers(relayerA);
+        (, , , , uint256 successfulRelays, , , ) = staking.relayers(relayerA);
         assertEq(successfulRelays, 1);
     }
 
@@ -486,7 +505,7 @@ contract RelayerStakingTest is Test {
     function test_updateMetadata() public {
         vm.prank(relayerA);
         staking.updateMetadata("ipfs://QmTest");
-        (,,,,,,, string memory metadata) = staking.relayers(relayerA);
+        (, , , , , , , string memory metadata) = staking.relayers(relayerA);
         assertEq(metadata, "ipfs://QmTest");
     }
 
@@ -542,9 +561,7 @@ contract RelayerStakingTest is Test {
     // FUZZ TESTS
     // =========================================================================
 
-    function testFuzz_stake(
-        uint256 amount
-    ) public {
+    function testFuzz_stake(uint256 amount) public {
         amount = bound(amount, 1, 500 ether);
         token.mint(relayerA, amount);
         vm.startPrank(relayerA);
@@ -552,13 +569,11 @@ contract RelayerStakingTest is Test {
         staking.stake(amount);
         vm.stopPrank();
 
-        (uint256 stakedAmount,,,,,,,) = staking.relayers(relayerA);
+        (uint256 stakedAmount, , , , , , , ) = staking.relayers(relayerA);
         assertEq(stakedAmount, amount);
     }
 
-    function testFuzz_slashPercentage(
-        uint256 percentage
-    ) public {
+    function testFuzz_slashPercentage(uint256 percentage) public {
         percentage = bound(percentage, 0, 5000);
         staking.setSlashingPercentage(percentage);
         assertEq(staking.slashingPercentage(), percentage);
