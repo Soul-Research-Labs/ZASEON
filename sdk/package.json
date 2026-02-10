@@ -79,6 +79,9 @@
     "poseidon-lite": "^0.3.0",
     "viem": "^2.30.0"
   },
+  "optionalDependencies": {
+    "@aztec/bb.js": "^0.82.0"
+  },
   "devDependencies": {
     "@types/chai": "^4.3.0",
     "@types/mocha": "^10.0.0",
