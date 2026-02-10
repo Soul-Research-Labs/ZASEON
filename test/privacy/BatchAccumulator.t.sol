@@ -10,15 +10,11 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 contract MockProofVerifier {
     bool public shouldReturn;
 
-    constructor(
-        bool _shouldReturn
-    ) {
+    constructor(bool _shouldReturn) {
         shouldReturn = _shouldReturn;
     }
 
-    function setShouldReturn(
-        bool _val
-    ) external {
+    function setShouldReturn(bool _val) external {
         shouldReturn = _val;
     }
 
@@ -58,7 +54,10 @@ contract BatchAccumulatorTest is Test {
     );
 
     event TransactionAdded(
-        bytes32 indexed batchId, bytes32 indexed commitment, uint256 batchSize, uint256 remaining
+        bytes32 indexed batchId,
+        bytes32 indexed commitment,
+        uint256 batchSize,
+        uint256 remaining
     );
 
     event BatchReady(bytes32 indexed batchId, uint256 size, string reason);
@@ -66,12 +65,18 @@ contract BatchAccumulatorTest is Test {
     event BatchProcessing(bytes32 indexed batchId, address indexed relayer);
 
     event BatchCompleted(
-        bytes32 indexed batchId, bytes32 aggregateProofHash, uint256 processedCount
+        bytes32 indexed batchId,
+        bytes32 aggregateProofHash,
+        uint256 processedCount
     );
 
     event BatchFailed(bytes32 indexed batchId, string reason);
 
-    event RouteConfigured(bytes32 indexed routeHash, uint256 minBatchSize, uint256 maxWaitTime);
+    event RouteConfigured(
+        bytes32 indexed routeHash,
+        uint256 minBatchSize,
+        uint256 maxWaitTime
+    );
 
     // ========================================================================
     // SETUP
@@ -82,7 +87,8 @@ contract BatchAccumulatorTest is Test {
 
         BatchAccumulator impl = new BatchAccumulator();
         bytes memory initData = abi.encodeCall(
-            BatchAccumulator.initialize, (admin, address(verifier), crossChainHub)
+            BatchAccumulator.initialize,
+            (admin, address(verifier), crossChainHub)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         accumulator = BatchAccumulator(address(proxy));
@@ -111,7 +117,10 @@ contract BatchAccumulatorTest is Test {
     ) internal returns (bytes32 batchId) {
         vm.prank(submitter);
         batchId = accumulator.submitToBatch(
-            commitment, nullifier, abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            commitment,
+            nullifier,
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
     }
 
@@ -120,7 +129,9 @@ contract BatchAccumulatorTest is Test {
         uint256 startSeed
     ) internal returns (bytes32 batchId) {
         for (uint256 i = 0; i < count; i++) {
-            bytes32 commitment = keccak256(abi.encodePacked("c", startSeed + i));
+            bytes32 commitment = keccak256(
+                abi.encodePacked("c", startSeed + i)
+            );
             bytes32 nullifier = keccak256(abi.encodePacked("n", startSeed + i));
             batchId = _submitTx(commitment, nullifier, user1);
         }
@@ -131,7 +142,9 @@ contract BatchAccumulatorTest is Test {
     // ========================================================================
 
     function test_initialize_setsAdmin() public view {
-        assertTrue(accumulator.hasRole(accumulator.DEFAULT_ADMIN_ROLE(), admin));
+        assertTrue(
+            accumulator.hasRole(accumulator.DEFAULT_ADMIN_ROLE(), admin)
+        );
     }
 
     function test_initialize_setsOperatorRole() public view {
@@ -156,7 +169,8 @@ contract BatchAccumulatorTest is Test {
         new ERC1967Proxy(
             address(impl2),
             abi.encodeCall(
-                BatchAccumulator.initialize, (address(0), address(verifier), crossChainHub)
+                BatchAccumulator.initialize,
+                (address(0), address(verifier), crossChainHub)
             )
         );
     }
@@ -166,7 +180,10 @@ contract BatchAccumulatorTest is Test {
         vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl2),
-            abi.encodeCall(BatchAccumulator.initialize, (admin, address(0), crossChainHub))
+            abi.encodeCall(
+                BatchAccumulator.initialize,
+                (admin, address(0), crossChainHub)
+            )
         );
     }
 
@@ -175,7 +192,10 @@ contract BatchAccumulatorTest is Test {
         vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl2),
-            abi.encodeCall(BatchAccumulator.initialize, (admin, address(verifier), address(0)))
+            abi.encodeCall(
+                BatchAccumulator.initialize,
+                (admin, address(verifier), address(0))
+            )
         );
     }
 
@@ -189,7 +209,9 @@ contract BatchAccumulatorTest is Test {
     // ========================================================================
 
     function test_configureRoute_success() public {
-        bytes32 routeHash = keccak256(abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN));
+        bytes32 routeHash = keccak256(
+            abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN)
+        );
 
         vm.expectEmit(true, false, false, true);
         emit RouteConfigured(routeHash, 8, 10 minutes);
@@ -197,8 +219,8 @@ contract BatchAccumulatorTest is Test {
         vm.prank(operator);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, 10 minutes);
 
-        (uint256 minBatchSize, uint256 maxWaitTime, bool isActive) =
-            accumulator.routeConfigs(routeHash);
+        (uint256 minBatchSize, uint256 maxWaitTime, bool isActive) = accumulator
+            .routeConfigs(routeHash);
         assertEq(minBatchSize, 8);
         assertEq(maxWaitTime, 10 minutes);
         assertTrue(isActive);
@@ -249,12 +271,14 @@ contract BatchAccumulatorTest is Test {
     function test_deactivateRoute_success() public {
         _configureDefaultRoute();
 
-        bytes32 routeHash = keccak256(abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN));
+        bytes32 routeHash = keccak256(
+            abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN)
+        );
 
         vm.prank(operator);
         accumulator.deactivateRoute(SOURCE_CHAIN, TARGET_CHAIN);
 
-        (,, bool isActive) = accumulator.routeConfigs(routeHash);
+        (, , bool isActive) = accumulator.routeConfigs(routeHash);
         assertFalse(isActive);
     }
 
@@ -276,7 +300,10 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(user1);
         bytes32 batchId = accumulator.submitToBatch(
-            commitment, nullifier, abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            commitment,
+            nullifier,
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
 
         assertNotEq(batchId, bytes32(0));
@@ -292,7 +319,10 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(user1);
         bytes32 batchId = accumulator.submitToBatch(
-            commitment, nullifier, abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            commitment,
+            nullifier,
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
 
         // Second submission to verify event parameters
@@ -304,7 +334,10 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(user2);
         accumulator.submitToBatch(
-            commitment2, nullifier2, abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            commitment2,
+            nullifier2,
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
     }
 
@@ -321,7 +354,12 @@ contract BatchAccumulatorTest is Test {
     function test_submitToBatch_revertsOnZeroTargetChain() public {
         vm.prank(user1);
         vm.expectRevert(BatchAccumulator.InvalidChainId.selector);
-        accumulator.submitToBatch(keccak256("c"), keccak256("n"), abi.encodePacked(bytes32(0)), 0);
+        accumulator.submitToBatch(
+            keccak256("c"),
+            keccak256("n"),
+            abi.encodePacked(bytes32(0)),
+            0
+        );
     }
 
     function test_submitToBatch_revertsOnDuplicateCommitment() public {
@@ -333,7 +371,10 @@ contract BatchAccumulatorTest is Test {
         vm.prank(user2);
         vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(
-            commitment, keccak256("n2"), abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            commitment,
+            keccak256("n2"),
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
     }
 
@@ -346,7 +387,10 @@ contract BatchAccumulatorTest is Test {
         vm.prank(user2);
         vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
-            keccak256("c2"), nullifier, abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            keccak256("c2"),
+            nullifier,
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
     }
 
@@ -357,11 +401,16 @@ contract BatchAccumulatorTest is Test {
         vm.prank(user1);
         vm.expectRevert();
         accumulator.submitToBatch(
-            keccak256("c"), keccak256("n"), abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            keccak256("c"),
+            keccak256("n"),
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
     }
 
-    function test_submitToBatch_usesDefaultConfigWhenRouteNotConfigured() public {
+    function test_submitToBatch_usesDefaultConfigWhenRouteNotConfigured()
+        public
+    {
         // Submit without configuring route – contract auto-creates defaults
         bytes32 batchId = _submitTx(keccak256("c1"), keccak256("n1"), user1);
         assertNotEq(batchId, bytes32(0));
@@ -373,8 +422,13 @@ contract BatchAccumulatorTest is Test {
 
         bytes32 batchId = _fillBatch(8, 100);
 
-        (uint256 size,, BatchAccumulator.BatchStatus status, bool isReady,) =
-            accumulator.getBatchInfo(batchId);
+        (
+            uint256 size,
+            ,
+            BatchAccumulator.BatchStatus status,
+            bool isReady,
+
+        ) = accumulator.getBatchInfo(batchId);
 
         assertEq(size, 8);
         assertTrue(isReady);
@@ -389,10 +443,17 @@ contract BatchAccumulatorTest is Test {
         bytes memory smallPayload = hex"aabbcc";
 
         vm.prank(user1);
-        bytes32 batchId =
-            accumulator.submitToBatch(commitment, nullifier, smallPayload, TARGET_CHAIN);
+        bytes32 batchId = accumulator.submitToBatch(
+            commitment,
+            nullifier,
+            smallPayload,
+            TARGET_CHAIN
+        );
 
-        (,, bytes memory paddedPayload,,,) = accumulator.batchTransactions(batchId, 0);
+        (, , bytes memory paddedPayload, , , ) = accumulator.batchTransactions(
+            batchId,
+            0
+        );
 
         assertEq(paddedPayload.length, accumulator.FIXED_PAYLOAD_SIZE());
     }
@@ -414,7 +475,8 @@ contract BatchAccumulatorTest is Test {
 
         accumulator.releaseBatch(batchId);
 
-        (,, BatchAccumulator.BatchStatus status, bool isReady,) = accumulator.getBatchInfo(batchId);
+        (, , BatchAccumulator.BatchStatus status, bool isReady, ) = accumulator
+            .getBatchInfo(batchId);
         assertTrue(isReady);
         assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.READY));
     }
@@ -430,7 +492,10 @@ contract BatchAccumulatorTest is Test {
 
         // Start processing
         vm.prank(relayer);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
 
         vm.expectRevert(BatchAccumulator.BatchAlreadyProcessing.selector);
         accumulator.releaseBatch(batchId);
@@ -447,7 +512,8 @@ contract BatchAccumulatorTest is Test {
         vm.prank(operator);
         accumulator.forceReleaseBatch(batchId);
 
-        (,, BatchAccumulator.BatchStatus status,,) = accumulator.getBatchInfo(batchId);
+        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+            .getBatchInfo(batchId);
         assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.READY));
     }
 
@@ -482,8 +548,12 @@ contract BatchAccumulatorTest is Test {
         vm.prank(relayer);
         accumulator.processBatch(batchId, proof);
 
-        (,, BatchAccumulator.BatchStatus status,,) = accumulator.getBatchInfo(batchId);
-        assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.COMPLETED));
+        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+            .getBatchInfo(batchId);
+        assertEq(
+            uint256(status),
+            uint256(BatchAccumulator.BatchStatus.COMPLETED)
+        );
     }
 
     function test_processBatch_setsAggregateProofHash() public {
@@ -495,7 +565,9 @@ contract BatchAccumulatorTest is Test {
         accumulator.processBatch(batchId, proof);
 
         // Auto-generated getter skips dynamic array (commitments), returns 8 fields
-        (,,,,,, bytes32 aggregateProofHash,) = accumulator.batches(batchId);
+        (, , , , , , bytes32 aggregateProofHash, ) = accumulator.batches(
+            batchId
+        );
         assertEq(aggregateProofHash, keccak256(proof));
     }
 
@@ -504,10 +576,16 @@ contract BatchAccumulatorTest is Test {
         bytes32 batchId = _fillBatch(8, 500);
 
         vm.prank(relayer);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
 
         for (uint256 i = 0; i < 8; i++) {
-            (,,,,, bool processed) = accumulator.batchTransactions(batchId, i);
+            (, , , , , bool processed) = accumulator.batchTransactions(
+                batchId,
+                i
+            );
             assertTrue(processed);
         }
     }
@@ -517,9 +595,14 @@ contract BatchAccumulatorTest is Test {
         bytes32 batchId = _fillBatch(8, 600);
 
         vm.prank(relayer);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
 
-        bytes32 routeHash = keccak256(abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN));
+        bytes32 routeHash = keccak256(
+            abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN)
+        );
         assertEq(accumulator.activeBatches(routeHash), bytes32(0));
     }
 
@@ -529,13 +612,19 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(nobody);
         vm.expectRevert();
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
     }
 
     function test_processBatch_revertsIfBatchNotFound() public {
         vm.prank(relayer);
         vm.expectRevert(BatchAccumulator.BatchNotFound.selector);
-        accumulator.processBatch(keccak256("nonexistent"), abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            keccak256("nonexistent"),
+            abi.encodePacked(bytes32(uint256(1)))
+        );
     }
 
     function test_processBatch_revertsIfStillAccumulating() public {
@@ -544,7 +633,10 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(relayer);
         vm.expectRevert(BatchAccumulator.BatchNotReady.selector);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
     }
 
     function test_processBatch_revertsIfAlreadyCompleted() public {
@@ -552,11 +644,17 @@ contract BatchAccumulatorTest is Test {
         bytes32 batchId = _fillBatch(8, 800);
 
         vm.prank(relayer);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
 
         vm.prank(relayer);
         vm.expectRevert(BatchAccumulator.BatchAlreadyCompleted.selector);
-        accumulator.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
+        accumulator.processBatch(
+            batchId,
+            abi.encodePacked(bytes32(uint256(1)))
+        );
     }
 
     function test_processBatch_revertsOnInvalidProof() public {
@@ -566,7 +664,8 @@ contract BatchAccumulatorTest is Test {
         ERC1967Proxy proxy2 = new ERC1967Proxy(
             address(impl2),
             abi.encodeCall(
-                BatchAccumulator.initialize, (admin, address(rejectVerifier), crossChainHub)
+                BatchAccumulator.initialize,
+                (admin, address(rejectVerifier), crossChainHub)
             )
         );
         BatchAccumulator acc2 = BatchAccumulator(address(proxy2));
@@ -582,11 +681,17 @@ contract BatchAccumulatorTest is Test {
         // Fill batch with 2 txns
         vm.prank(user1);
         acc2.submitToBatch(
-            keccak256("c1"), keccak256("n1"), abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            keccak256("c1"),
+            keccak256("n1"),
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
         vm.prank(user1);
         bytes32 batchId = acc2.submitToBatch(
-            keccak256("c2"), keccak256("n2"), abi.encodePacked(bytes32(0)), TARGET_CHAIN
+            keccak256("c2"),
+            keccak256("n2"),
+            abi.encodePacked(bytes32(0)),
+            TARGET_CHAIN
         );
 
         vm.prank(relayer);
@@ -626,7 +731,10 @@ contract BatchAccumulatorTest is Test {
 
         assertEq(size, 3);
         assertGe(age, 0);
-        assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.ACCUMULATING));
+        assertEq(
+            uint256(status),
+            uint256(BatchAccumulator.BatchStatus.ACCUMULATING)
+        );
         assertFalse(isReady);
         assertEq(targetChain, TARGET_CHAIN);
     }
@@ -635,8 +743,12 @@ contract BatchAccumulatorTest is Test {
         _configureDefaultRoute();
         bytes32 batchId = _fillBatch(3, 1100);
 
-        (bytes32 activeBatchId, uint256 currentSize, uint256 minSize, uint256 timeRemaining) =
-            accumulator.getActiveBatch(SOURCE_CHAIN, TARGET_CHAIN);
+        (
+            bytes32 activeBatchId,
+            uint256 currentSize,
+            uint256 minSize,
+            uint256 timeRemaining
+        ) = accumulator.getActiveBatch(SOURCE_CHAIN, TARGET_CHAIN);
 
         assertEq(activeBatchId, batchId);
         assertEq(currentSize, 3);
@@ -645,7 +757,10 @@ contract BatchAccumulatorTest is Test {
     }
 
     function test_getActiveBatch_returnsZeroForUnknownRoute() public view {
-        (bytes32 batchId, uint256 currentSize,,) = accumulator.getActiveBatch(999, 888);
+        (bytes32 batchId, uint256 currentSize, , ) = accumulator.getActiveBatch(
+            999,
+            888
+        );
 
         assertEq(batchId, bytes32(0));
         assertEq(currentSize, 0);
@@ -666,7 +781,10 @@ contract BatchAccumulatorTest is Test {
         assertNotEq(batchId, bytes32(0));
         assertEq(submittedAt, block.timestamp);
         assertFalse(processed);
-        assertEq(uint256(batchStatus), uint256(BatchAccumulator.BatchStatus.ACCUMULATING));
+        assertEq(
+            uint256(batchStatus),
+            uint256(BatchAccumulator.BatchStatus.ACCUMULATING)
+        );
     }
 
     function test_getAnonymitySet_returnsCorrectSize() public {
@@ -679,7 +797,10 @@ contract BatchAccumulatorTest is Test {
         assertEq(anonSet, 2);
     }
 
-    function test_getAnonymitySet_returnsZeroForUnknownCommitment() public view {
+    function test_getAnonymitySet_returnsZeroForUnknownCommitment()
+        public
+        view
+    {
         uint256 anonSet = accumulator.getAnonymitySet(keccak256("unknown"));
         assertEq(anonSet, 0);
     }
@@ -768,34 +889,44 @@ contract BatchAccumulatorTest is Test {
     // FUZZ TESTS
     // ========================================================================
 
-    function testFuzz_configureRoute_batchSize(
-        uint256 batchSize
-    ) public {
+    function testFuzz_configureRoute_batchSize(uint256 batchSize) public {
         // Valid range is [2, 64]
         if (batchSize >= 2 && batchSize <= 64) {
             vm.prank(operator);
-            accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, batchSize, 10 minutes);
+            accumulator.configureRoute(
+                SOURCE_CHAIN,
+                TARGET_CHAIN,
+                batchSize,
+                10 minutes
+            );
 
-            bytes32 routeHash = keccak256(abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN));
-            (uint256 minBatchSize,,) = accumulator.routeConfigs(routeHash);
+            bytes32 routeHash = keccak256(
+                abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN)
+            );
+            (uint256 minBatchSize, , ) = accumulator.routeConfigs(routeHash);
             assertEq(minBatchSize, batchSize);
         } else {
             vm.prank(operator);
             vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
-            accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, batchSize, 10 minutes);
+            accumulator.configureRoute(
+                SOURCE_CHAIN,
+                TARGET_CHAIN,
+                batchSize,
+                10 minutes
+            );
         }
     }
 
-    function testFuzz_configureRoute_waitTime(
-        uint256 waitTime
-    ) public {
+    function testFuzz_configureRoute_waitTime(uint256 waitTime) public {
         // Valid range is [1 min, 1 hour]
         if (waitTime >= 1 minutes && waitTime <= 1 hours) {
             vm.prank(operator);
             accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, waitTime);
 
-            bytes32 routeHash = keccak256(abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN));
-            (, uint256 maxWaitTime,) = accumulator.routeConfigs(routeHash);
+            bytes32 routeHash = keccak256(
+                abi.encodePacked(SOURCE_CHAIN, TARGET_CHAIN)
+            );
+            (, uint256 maxWaitTime, ) = accumulator.routeConfigs(routeHash);
             assertEq(maxWaitTime, waitTime);
         } else {
             vm.prank(operator);
@@ -814,7 +945,10 @@ contract BatchAccumulatorTest is Test {
 
         vm.prank(user1);
         bytes32 batchId = accumulator.submitToBatch(
-            commitment, nullifier, abi.encodePacked(seed), TARGET_CHAIN
+            commitment,
+            nullifier,
+            abi.encodePacked(seed),
+            TARGET_CHAIN
         );
 
         assertNotEq(batchId, bytes32(0));
@@ -831,11 +965,16 @@ contract BatchAccumulatorTest is Test {
 
         // Fill first batch
         bytes32 batch1 = _fillBatch(8, 2000);
-        (,, BatchAccumulator.BatchStatus status1,,) = accumulator.getBatchInfo(batch1);
+        (, , BatchAccumulator.BatchStatus status1, , ) = accumulator
+            .getBatchInfo(batch1);
         assertEq(uint256(status1), uint256(BatchAccumulator.BatchStatus.READY));
 
         // Next submission should create a new batch
-        bytes32 batch2 = _submitTx(keccak256("new_batch_c"), keccak256("new_batch_n"), user1);
+        bytes32 batch2 = _submitTx(
+            keccak256("new_batch_c"),
+            keccak256("new_batch_n"),
+            user1
+        );
 
         assertNotEq(batch1, batch2);
         assertEq(accumulator.totalBatches(), 2);

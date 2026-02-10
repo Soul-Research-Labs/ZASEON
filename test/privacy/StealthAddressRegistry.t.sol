@@ -12,15 +12,11 @@ contract MockDerivationVerifier is IDerivationVerifier {
     bool public returnValue = true;
     bool public shouldRevert = false;
 
-    function setReturnValue(
-        bool _val
-    ) external {
+    function setReturnValue(bool _val) external {
         returnValue = _val;
     }
 
-    function setRevert(
-        bool _val
-    ) external {
+    function setRevert(bool _val) external {
         shouldRevert = _val;
     }
 
@@ -76,8 +72,10 @@ contract StealthAddressRegistryTest is Test {
 
         // Deploy implementation and proxy
         StealthAddressRegistry impl = new StealthAddressRegistry();
-        bytes memory initData =
-            abi.encodeWithSelector(StealthAddressRegistry.initialize.selector, admin);
+        bytes memory initData = abi.encodeWithSelector(
+            StealthAddressRegistry.initialize.selector,
+            admin
+        );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         registry = StealthAddressRegistry(address(proxy));
 
@@ -115,7 +113,10 @@ contract StealthAddressRegistryTest is Test {
     function _registerAlice() internal {
         vm.prank(alice);
         registry.registerMetaAddress(
-            secp256k1Key33, secp256k1Key33, StealthAddressRegistry.CurveType.SECP256K1, 1
+            secp256k1Key33,
+            secp256k1Key33,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
     }
 
@@ -124,12 +125,24 @@ contract StealthAddressRegistryTest is Test {
         bytes32 sourceKey,
         uint256 destChainId
     ) internal pure returns (bytes memory) {
-        bytes32 proofCommitment = keccak256(abi.encodePacked("proof_commitment", sourceKey));
+        bytes32 proofCommitment = keccak256(
+            abi.encodePacked("proof_commitment", sourceKey)
+        );
         bytes32 expectedDerivation = keccak256(
-            abi.encodePacked(sourceKey, destChainId, STEALTH_DOMAIN, "CROSS_CHAIN_DERIVATION")
+            abi.encodePacked(
+                sourceKey,
+                destChainId,
+                STEALTH_DOMAIN,
+                "CROSS_CHAIN_DERIVATION"
+            )
         );
         // Pad to at least 192 bytes (MIN_DERIVATION_PROOF_LENGTH)
-        return abi.encodePacked(proofCommitment, expectedDerivation, new bytes(128));
+        return
+            abi.encodePacked(
+                proofCommitment,
+                expectedDerivation,
+                new bytes(128)
+            );
     }
 
     // ================================================================
@@ -159,7 +172,10 @@ contract StealthAddressRegistryTest is Test {
     function test_SetDerivationVerifier_Success() public {
         vm.prank(admin);
         vm.expectEmit(true, true, false, false);
-        emit StealthAddressRegistry.DerivationVerifierUpdated(address(0), address(verifier));
+        emit StealthAddressRegistry.DerivationVerifierUpdated(
+            address(0),
+            address(verifier)
+        );
         registry.setDerivationVerifier(address(verifier));
 
         assertEq(address(registry.derivationVerifier()), address(verifier));
@@ -179,32 +195,56 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(alice);
         vm.expectEmit(true, false, false, true);
         emit StealthAddressRegistry.MetaAddressRegistered(
-            alice, secp256k1Key33, secp256k1Key33, StealthAddressRegistry.CurveType.SECP256K1, 1
+            alice,
+            secp256k1Key33,
+            secp256k1Key33,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
         registry.registerMetaAddress(
-            secp256k1Key33, secp256k1Key33, StealthAddressRegistry.CurveType.SECP256K1, 1
+            secp256k1Key33,
+            secp256k1Key33,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
 
-        StealthAddressRegistry.StealthMetaAddress memory meta = registry.getMetaAddress(alice);
-        assertEq(uint8(meta.status), uint8(StealthAddressRegistry.KeyStatus.ACTIVE));
+        StealthAddressRegistry.StealthMetaAddress memory meta = registry
+            .getMetaAddress(alice);
+        assertEq(
+            uint8(meta.status),
+            uint8(StealthAddressRegistry.KeyStatus.ACTIVE)
+        );
         assertEq(meta.schemeId, 1);
-        assertEq(uint8(meta.curveType), uint8(StealthAddressRegistry.CurveType.SECP256K1));
+        assertEq(
+            uint8(meta.curveType),
+            uint8(StealthAddressRegistry.CurveType.SECP256K1)
+        );
     }
 
     function test_RegisterMetaAddress_Secp256k1_Uncompressed() public {
         vm.prank(alice);
         registry.registerMetaAddress(
-            secp256k1Key65, secp256k1Key65, StealthAddressRegistry.CurveType.SECP256K1, 1
+            secp256k1Key65,
+            secp256k1Key65,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
 
-        StealthAddressRegistry.StealthMetaAddress memory meta = registry.getMetaAddress(alice);
-        assertEq(uint8(meta.status), uint8(StealthAddressRegistry.KeyStatus.ACTIVE));
+        StealthAddressRegistry.StealthMetaAddress memory meta = registry
+            .getMetaAddress(alice);
+        assertEq(
+            uint8(meta.status),
+            uint8(StealthAddressRegistry.KeyStatus.ACTIVE)
+        );
     }
 
     function test_RegisterMetaAddress_Ed25519() public {
         vm.prank(alice);
         registry.registerMetaAddress(
-            ed25519Key, ed25519Key, StealthAddressRegistry.CurveType.ED25519, 2
+            ed25519Key,
+            ed25519Key,
+            StealthAddressRegistry.CurveType.ED25519,
+            2
         );
 
         assertEq(
@@ -216,7 +256,10 @@ contract StealthAddressRegistryTest is Test {
     function test_RegisterMetaAddress_BLS12_381() public {
         vm.prank(alice);
         registry.registerMetaAddress(
-            blsKey48, blsKey48, StealthAddressRegistry.CurveType.BLS12_381, 3
+            blsKey48,
+            blsKey48,
+            StealthAddressRegistry.CurveType.BLS12_381,
+            3
         );
 
         assertEq(
@@ -228,7 +271,10 @@ contract StealthAddressRegistryTest is Test {
     function test_RegisterMetaAddress_BN254() public {
         vm.prank(alice);
         registry.registerMetaAddress(
-            bn254Key32, bn254Key32, StealthAddressRegistry.CurveType.BN254, 4
+            bn254Key32,
+            bn254Key32,
+            StealthAddressRegistry.CurveType.BN254,
+            4
         );
 
         assertEq(
@@ -241,7 +287,10 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidPubKey.selector);
         registry.registerMetaAddress(
-            "", secp256k1Key33, StealthAddressRegistry.CurveType.SECP256K1, 1
+            "",
+            secp256k1Key33,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
     }
 
@@ -249,7 +298,10 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidPubKey.selector);
         registry.registerMetaAddress(
-            secp256k1Key33, "", StealthAddressRegistry.CurveType.SECP256K1, 1
+            secp256k1Key33,
+            "",
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
     }
 
@@ -257,9 +309,14 @@ contract StealthAddressRegistryTest is Test {
         _registerAlice();
 
         vm.prank(alice);
-        vm.expectRevert(StealthAddressRegistry.MetaAddressAlreadyExists.selector);
+        vm.expectRevert(
+            StealthAddressRegistry.MetaAddressAlreadyExists.selector
+        );
         registry.registerMetaAddress(
-            secp256k1Key33, secp256k1Key33, StealthAddressRegistry.CurveType.SECP256K1, 1
+            secp256k1Key33,
+            secp256k1Key33,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
     }
 
@@ -267,28 +324,48 @@ contract StealthAddressRegistryTest is Test {
         bytes memory badKey = _fillBytes(34, 0x01);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidSecp256k1Key.selector);
-        registry.registerMetaAddress(badKey, badKey, StealthAddressRegistry.CurveType.SECP256K1, 1);
+        registry.registerMetaAddress(
+            badKey,
+            badKey,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
+        );
     }
 
     function test_RegisterMetaAddress_RevertInvalidEd25519KeyLength() public {
         bytes memory badKey = _fillBytes(33, 0x01);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidEd25519Key.selector);
-        registry.registerMetaAddress(badKey, badKey, StealthAddressRegistry.CurveType.ED25519, 1);
+        registry.registerMetaAddress(
+            badKey,
+            badKey,
+            StealthAddressRegistry.CurveType.ED25519,
+            1
+        );
     }
 
     function test_RegisterMetaAddress_RevertInvalidBLSKeyLength() public {
         bytes memory badKey = _fillBytes(49, 0x01);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidBLSKey.selector);
-        registry.registerMetaAddress(badKey, badKey, StealthAddressRegistry.CurveType.BLS12_381, 1);
+        registry.registerMetaAddress(
+            badKey,
+            badKey,
+            StealthAddressRegistry.CurveType.BLS12_381,
+            1
+        );
     }
 
     function test_RegisterMetaAddress_RevertInvalidBN254KeyLength() public {
         bytes memory badKey = _fillBytes(33, 0x01);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InvalidBN254Key.selector);
-        registry.registerMetaAddress(badKey, badKey, StealthAddressRegistry.CurveType.BN254, 1);
+        registry.registerMetaAddress(
+            badKey,
+            badKey,
+            StealthAddressRegistry.CurveType.BN254,
+            1
+        );
     }
 
     function test_RegisterMetaAddress_IncrementsRegisteredAddresses() public {
@@ -307,15 +384,20 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(alice);
         vm.expectEmit(true, false, false, true);
         emit StealthAddressRegistry.MetaAddressUpdated(
-            alice, StealthAddressRegistry.KeyStatus.INACTIVE
+            alice,
+            StealthAddressRegistry.KeyStatus.INACTIVE
         );
-        registry.updateMetaAddressStatus(StealthAddressRegistry.KeyStatus.INACTIVE);
+        registry.updateMetaAddressStatus(
+            StealthAddressRegistry.KeyStatus.INACTIVE
+        );
     }
 
     function test_UpdateMetaAddressStatus_RevertIfInactive() public {
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.MetaAddressNotFound.selector);
-        registry.updateMetaAddressStatus(StealthAddressRegistry.KeyStatus.ACTIVE);
+        registry.updateMetaAddressStatus(
+            StealthAddressRegistry.KeyStatus.ACTIVE
+        );
     }
 
     function test_UpdateMetaAddressStatus_RevertIfRevoked() public {
@@ -326,7 +408,9 @@ contract StealthAddressRegistryTest is Test {
 
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.MetaAddressRevoked.selector);
-        registry.updateMetaAddressStatus(StealthAddressRegistry.KeyStatus.ACTIVE);
+        registry.updateMetaAddressStatus(
+            StealthAddressRegistry.KeyStatus.ACTIVE
+        );
     }
 
     function test_RevokeMetaAddress_Success() public {
@@ -335,7 +419,8 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(alice);
         vm.expectEmit(true, false, false, true);
         emit StealthAddressRegistry.MetaAddressUpdated(
-            alice, StealthAddressRegistry.KeyStatus.REVOKED
+            alice,
+            StealthAddressRegistry.KeyStatus.REVOKED
         );
         registry.revokeMetaAddress();
 
@@ -361,12 +446,16 @@ contract StealthAddressRegistryTest is Test {
         bytes32 sharedSecretHash = keccak256("shared_secret");
         bytes memory ephemeralPubKey = secp256k1Key33;
 
-        (address stealthAddr, bytes1 viewTag) =
-            registry.deriveStealthAddress(alice, ephemeralPubKey, sharedSecretHash);
+        (address stealthAddr, bytes1 viewTag) = registry.deriveStealthAddress(
+            alice,
+            ephemeralPubKey,
+            sharedSecretHash
+        );
 
         // Verify deterministic result
-        bytes32 expectedHash =
-            keccak256(abi.encodePacked(STEALTH_DOMAIN, secp256k1Key33, sharedSecretHash));
+        bytes32 expectedHash = keccak256(
+            abi.encodePacked(STEALTH_DOMAIN, secp256k1Key33, sharedSecretHash)
+        );
         address expectedAddr = address(uint160(uint256(expectedHash)));
         assertEq(stealthAddr, expectedAddr);
         assertEq(viewTag, bytes1(sharedSecretHash));
@@ -399,15 +488,25 @@ contract StealthAddressRegistryTest is Test {
         uint256 chainId = 42_161;
 
         vm.expectEmit(false, false, false, false);
-        emit StealthAddressRegistry.DualKeyStealthGenerated(bytes32(0), address(0), chainId);
-        (bytes32 stealthHash, address derivedAddr) =
-            registry.computeDualKeyStealth(spendingHash, viewingHash, ephemeralHash, chainId);
+        emit StealthAddressRegistry.DualKeyStealthGenerated(
+            bytes32(0),
+            address(0),
+            chainId
+        );
+        (bytes32 stealthHash, address derivedAddr) = registry
+            .computeDualKeyStealth(
+                spendingHash,
+                viewingHash,
+                ephemeralHash,
+                chainId
+            );
 
         assertTrue(stealthHash != bytes32(0));
         assertTrue(derivedAddr != address(0));
 
         // Verify stored record
-        StealthAddressRegistry.DualKeyStealth memory record = registry.getDualKeyRecord(stealthHash);
+        StealthAddressRegistry.DualKeyStealth memory record = registry
+            .getDualKeyRecord(stealthHash);
         assertEq(record.spendingPubKeyHash, spendingHash);
         assertEq(record.viewingPubKeyHash, viewingHash);
         assertEq(record.derivedAddress, derivedAddr);
@@ -419,18 +518,31 @@ contract StealthAddressRegistryTest is Test {
         bytes32 viewingHash = keccak256("viewing");
         bytes32 ephemeralHash = keccak256("ephemeral");
 
-        (bytes32 hash1, address addr1) =
-            registry.computeDualKeyStealth(spendingHash, viewingHash, ephemeralHash, 1);
+        (bytes32 hash1, address addr1) = registry.computeDualKeyStealth(
+            spendingHash,
+            viewingHash,
+            ephemeralHash,
+            1
+        );
 
         // Re-deploy to get clean state — same inputs should produce same derived values
         StealthAddressRegistry impl2 = new StealthAddressRegistry();
         ERC1967Proxy proxy2 = new ERC1967Proxy(
             address(impl2),
-            abi.encodeWithSelector(StealthAddressRegistry.initialize.selector, admin)
+            abi.encodeWithSelector(
+                StealthAddressRegistry.initialize.selector,
+                admin
+            )
         );
-        StealthAddressRegistry registry2 = StealthAddressRegistry(address(proxy2));
-        (bytes32 hash2, address addr2) =
-            registry2.computeDualKeyStealth(spendingHash, viewingHash, ephemeralHash, 1);
+        StealthAddressRegistry registry2 = StealthAddressRegistry(
+            address(proxy2)
+        );
+        (bytes32 hash2, address addr2) = registry2.computeDualKeyStealth(
+            spendingHash,
+            viewingHash,
+            ephemeralHash,
+            1
+        );
 
         assertEq(hash1, hash2);
         assertEq(addr1, addr2);
@@ -449,14 +561,20 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(announcer);
         vm.expectEmit(true, true, true, true);
         emit StealthAddressRegistry.StealthAnnouncement(
-            bytes32(uint256(1)), stealthAddr, announcer, ephKey, viewTag, metadata
+            bytes32(uint256(1)),
+            stealthAddr,
+            announcer,
+            ephKey,
+            viewTag,
+            metadata
         );
         registry.announce(1, stealthAddr, ephKey, viewTag, metadata);
 
         assertEq(registry.totalAnnouncements(), 1);
 
         // Verify stored announcement
-        StealthAddressRegistry.Announcement memory ann = registry.getAnnouncement(stealthAddr);
+        StealthAddressRegistry.Announcement memory ann = registry
+            .getAnnouncement(stealthAddr);
         assertEq(ann.stealthAddress, stealthAddr);
     }
 
@@ -485,7 +603,9 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(announcer);
         registry.announce(1, stealthAddr, secp256k1Key33, viewTag, "");
 
-        address[] memory found = registry.getAnnouncementsByViewTag(bytes1(0x42));
+        address[] memory found = registry.getAnnouncementsByViewTag(
+            bytes1(0x42)
+        );
         assertEq(found.length, 1);
         assertEq(found[0], stealthAddr);
     }
@@ -500,7 +620,13 @@ contract StealthAddressRegistryTest is Test {
 
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        registry.announcePrivate{ value: 0.0001 ether }(1, stealthAddr, ephKey, "", "");
+        registry.announcePrivate{value: 0.0001 ether}(
+            1,
+            stealthAddr,
+            ephKey,
+            "",
+            ""
+        );
 
         assertEq(registry.totalAnnouncements(), 1);
     }
@@ -509,8 +635,12 @@ contract StealthAddressRegistryTest is Test {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.InsufficientFee.selector);
-        registry.announcePrivate{ value: 0.000_09 ether }(
-            1, makeAddr("stealth"), secp256k1Key33, "", ""
+        registry.announcePrivate{value: 0.000_09 ether}(
+            1,
+            makeAddr("stealth"),
+            secp256k1Key33,
+            "",
+            ""
         );
     }
 
@@ -518,7 +648,13 @@ contract StealthAddressRegistryTest is Test {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(StealthAddressRegistry.ZeroAddress.selector);
-        registry.announcePrivate{ value: 0.0001 ether }(1, address(0), secp256k1Key33, "", "");
+        registry.announcePrivate{value: 0.0001 ether}(
+            1,
+            address(0),
+            secp256k1Key33,
+            "",
+            ""
+        );
     }
 
     // ================================================================
@@ -526,8 +662,11 @@ contract StealthAddressRegistryTest is Test {
     // ================================================================
 
     function test_CheckStealthOwnership_ReturnsFalse_NoAnnouncement() public {
-        bool result =
-            registry.checkStealthOwnership(makeAddr("random"), keccak256("vk"), keccak256("sk"));
+        bool result = registry.checkStealthOwnership(
+            makeAddr("random"),
+            keccak256("vk"),
+            keccak256("sk")
+        );
         assertFalse(result);
     }
 
@@ -536,7 +675,11 @@ contract StealthAddressRegistryTest is Test {
         candidates[0] = makeAddr("a");
         candidates[1] = makeAddr("b");
 
-        address[] memory owned = registry.batchScan(keccak256("vk"), keccak256("sk"), candidates);
+        address[] memory owned = registry.batchScan(
+            keccak256("vk"),
+            keccak256("sk"),
+            candidates
+        );
         assertEq(owned.length, 0);
     }
 
@@ -555,19 +698,25 @@ contract StealthAddressRegistryTest is Test {
 
         verifier.setReturnValue(true);
 
-        bytes32 destKey = registry.deriveCrossChainStealth(sourceKey, destChainId, proof);
+        bytes32 destKey = registry.deriveCrossChainStealth(
+            sourceKey,
+            destChainId,
+            proof
+        );
         assertTrue(destKey != bytes32(0));
         assertEq(registry.totalCrossChainDerivations(), 1);
 
         // Verify binding stored
-        StealthAddressRegistry.CrossChainStealth memory binding =
-            registry.getCrossChainBinding(sourceKey, destKey);
+        StealthAddressRegistry.CrossChainStealth memory binding = registry
+            .getCrossChainBinding(sourceKey, destKey);
         assertEq(binding.sourceStealthKey, sourceKey);
         assertEq(binding.destStealthKey, destKey);
         assertEq(binding.destChainId, destChainId);
     }
 
-    function test_DeriveCrossChainStealth_RevertInvalidProof_VerifierReturnsFalse() public {
+    function test_DeriveCrossChainStealth_RevertInvalidProof_VerifierReturnsFalse()
+        public
+    {
         vm.prank(admin);
         registry.setDerivationVerifier(address(verifier));
 
@@ -580,7 +729,9 @@ contract StealthAddressRegistryTest is Test {
         registry.deriveCrossChainStealth(sourceKey, 42_161, proof);
     }
 
-    function test_DeriveCrossChainStealth_RevertInvalidProof_VerifierReverts() public {
+    function test_DeriveCrossChainStealth_RevertInvalidProof_VerifierReverts()
+        public
+    {
         vm.prank(admin);
         registry.setDerivationVerifier(address(verifier));
 
@@ -597,27 +748,48 @@ contract StealthAddressRegistryTest is Test {
         // No verifier set, non-mainnet chain => testnet fallback
         bytes32 sourceKey = keccak256("sourceStealthKey");
         uint256 destChainId = 42_161;
-        bytes memory proof = _buildTestnetDerivationProof(sourceKey, destChainId);
-
-        vm.expectEmit(true, true, false, true);
-        bytes32 expectedDestKey =
-            keccak256(abi.encodePacked(sourceKey, destChainId, STEALTH_DOMAIN, "CROSS_CHAIN"));
-        emit StealthAddressRegistry.CrossChainStealthDerived(
-            sourceKey, expectedDestKey, block.chainid, destChainId
+        bytes memory proof = _buildTestnetDerivationProof(
+            sourceKey,
+            destChainId
         );
 
-        bytes32 destKey = registry.deriveCrossChainStealth(sourceKey, destChainId, proof);
+        vm.expectEmit(true, true, false, true);
+        bytes32 expectedDestKey = keccak256(
+            abi.encodePacked(
+                sourceKey,
+                destChainId,
+                STEALTH_DOMAIN,
+                "CROSS_CHAIN"
+            )
+        );
+        emit StealthAddressRegistry.CrossChainStealthDerived(
+            sourceKey,
+            expectedDestKey,
+            block.chainid,
+            destChainId
+        );
+
+        bytes32 destKey = registry.deriveCrossChainStealth(
+            sourceKey,
+            destChainId,
+            proof
+        );
         assertEq(destKey, expectedDestKey);
     }
 
     function test_DeriveCrossChainStealth_RevertDuplicateBinding() public {
         bytes32 sourceKey = keccak256("sourceStealthKey");
         uint256 destChainId = 42_161;
-        bytes memory proof = _buildTestnetDerivationProof(sourceKey, destChainId);
+        bytes memory proof = _buildTestnetDerivationProof(
+            sourceKey,
+            destChainId
+        );
 
         registry.deriveCrossChainStealth(sourceKey, destChainId, proof);
 
-        vm.expectRevert(StealthAddressRegistry.CrossChainBindingExists.selector);
+        vm.expectRevert(
+            StealthAddressRegistry.CrossChainBindingExists.selector
+        );
         registry.deriveCrossChainStealth(sourceKey, destChainId, proof);
     }
 
@@ -649,7 +821,8 @@ contract StealthAddressRegistryTest is Test {
     // ================================================================
 
     function test_GetStats_InitialValues() public view {
-        (uint256 regCount, uint256 annCount, uint256 ccCount) = registry.getStats();
+        (uint256 regCount, uint256 annCount, uint256 ccCount) = registry
+            .getStats();
         assertEq(regCount, 0);
         assertEq(annCount, 0);
         assertEq(ccCount, 0);
@@ -663,21 +836,22 @@ contract StealthAddressRegistryTest is Test {
         vm.prank(announcer);
         registry.announce(1, makeAddr("stealth"), secp256k1Key33, "", "");
 
-        (uint256 regCount, uint256 annCount, uint256 ccCount) = registry.getStats();
+        (uint256 regCount, uint256 annCount, uint256 ccCount) = registry
+            .getStats();
         assertEq(regCount, 1);
         assertEq(annCount, 1);
         assertEq(ccCount, 0);
     }
 
     function test_GetAnnouncement_NotFound() public {
-        StealthAddressRegistry.Announcement memory ann =
-            registry.getAnnouncement(makeAddr("nonexistent"));
+        StealthAddressRegistry.Announcement memory ann = registry
+            .getAnnouncement(makeAddr("nonexistent"));
         assertEq(ann.stealthAddress, address(0));
     }
 
     function test_GetCrossChainBinding_NotFound() public {
-        StealthAddressRegistry.CrossChainStealth memory binding =
-            registry.getCrossChainBinding(keccak256("a"), keccak256("b"));
+        StealthAddressRegistry.CrossChainStealth memory binding = registry
+            .getCrossChainBinding(keccak256("a"), keccak256("b"));
         assertEq(binding.timestamp, 0);
     }
 
@@ -689,8 +863,12 @@ contract StealthAddressRegistryTest is Test {
         // Fund contract via announcePrivate
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        registry.announcePrivate{ value: 0.001 ether }(
-            1, makeAddr("stealth"), secp256k1Key33, "", ""
+        registry.announcePrivate{value: 0.001 ether}(
+            1,
+            makeAddr("stealth"),
+            secp256k1Key33,
+            "",
+            ""
         );
 
         address payable recipient = payable(makeAddr("feeRecipient"));
@@ -706,8 +884,12 @@ contract StealthAddressRegistryTest is Test {
     function test_WithdrawFees_PartialAmount() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        registry.announcePrivate{ value: 0.01 ether }(
-            1, makeAddr("stealth"), secp256k1Key33, "", ""
+        registry.announcePrivate{value: 0.01 ether}(
+            1,
+            makeAddr("stealth"),
+            secp256k1Key33,
+            "",
+            ""
         );
 
         address payable recipient = payable(makeAddr("feeRecipient"));
@@ -740,9 +922,7 @@ contract StealthAddressRegistryTest is Test {
     // FUZZ TESTS
     // ================================================================
 
-    function testFuzz_RegisterMetaAddress_Secp256k1(
-        bytes32 seed
-    ) public {
+    function testFuzz_RegisterMetaAddress_Secp256k1(bytes32 seed) public {
         // Build deterministic 33-byte key from seed
         bytes memory spendKey = abi.encodePacked(bytes1(0x02), seed);
         bytes memory viewKey = abi.encodePacked(bytes1(0x03), seed);
@@ -752,11 +932,18 @@ contract StealthAddressRegistryTest is Test {
 
         vm.prank(user);
         registry.registerMetaAddress(
-            spendKey, viewKey, StealthAddressRegistry.CurveType.SECP256K1, 1
+            spendKey,
+            viewKey,
+            StealthAddressRegistry.CurveType.SECP256K1,
+            1
         );
 
-        StealthAddressRegistry.StealthMetaAddress memory meta = registry.getMetaAddress(user);
-        assertEq(uint8(meta.status), uint8(StealthAddressRegistry.KeyStatus.ACTIVE));
+        StealthAddressRegistry.StealthMetaAddress memory meta = registry
+            .getMetaAddress(user);
+        assertEq(
+            uint8(meta.status),
+            uint8(StealthAddressRegistry.KeyStatus.ACTIVE)
+        );
         assertEq(keccak256(meta.spendingPubKey), keccak256(spendKey));
         assertEq(keccak256(meta.viewingPubKey), keccak256(viewKey));
     }
@@ -766,10 +953,16 @@ contract StealthAddressRegistryTest is Test {
     ) public {
         _registerAlice();
 
-        (address addr1, bytes1 tag1) =
-            registry.deriveStealthAddress(alice, secp256k1Key33, sharedSecret);
-        (address addr2, bytes1 tag2) =
-            registry.deriveStealthAddress(alice, secp256k1Key33, sharedSecret);
+        (address addr1, bytes1 tag1) = registry.deriveStealthAddress(
+            alice,
+            secp256k1Key33,
+            sharedSecret
+        );
+        (address addr2, bytes1 tag2) = registry.deriveStealthAddress(
+            alice,
+            secp256k1Key33,
+            sharedSecret
+        );
 
         assertEq(addr1, addr2);
         assertEq(tag1, tag2);
@@ -786,20 +979,33 @@ contract StealthAddressRegistryTest is Test {
         bytes32 viewing = keccak256("viewing");
         bytes32 ephemeral = keccak256("ephemeral");
 
-        (bytes32 hash1, address addr1) =
-            registry.computeDualKeyStealth(spending, viewing, ephemeral, chainId);
+        (bytes32 hash1, address addr1) = registry.computeDualKeyStealth(
+            spending,
+            viewing,
+            ephemeral,
+            chainId
+        );
 
         // Deploy fresh registry for a different chain ID computation
         StealthAddressRegistry freshImpl = new StealthAddressRegistry();
         ERC1967Proxy freshProxy = new ERC1967Proxy(
             address(freshImpl),
-            abi.encodeWithSelector(StealthAddressRegistry.initialize.selector, admin)
+            abi.encodeWithSelector(
+                StealthAddressRegistry.initialize.selector,
+                admin
+            )
         );
-        StealthAddressRegistry fresh = StealthAddressRegistry(address(freshProxy));
+        StealthAddressRegistry fresh = StealthAddressRegistry(
+            address(freshProxy)
+        );
 
         uint256 otherChainId = chainId == 1 ? 2 : 1;
-        (bytes32 hash2, address addr2) =
-            fresh.computeDualKeyStealth(spending, viewing, ephemeral, otherChainId);
+        (bytes32 hash2, address addr2) = fresh.computeDualKeyStealth(
+            spending,
+            viewing,
+            ephemeral,
+            otherChainId
+        );
 
         // Same spending/viewing/ephemeral but different chainId => same stealth hash
         // because chainId is NOT part of the stealthHash computation (only stored in record).

@@ -210,7 +210,9 @@ contract SoulBridgeFuzz is Test {
         uint8 signaturesProvided
     ) public pure {
         totalGuardians = uint8(bound(uint256(totalGuardians), 1, 19));
-        signaturesProvided = uint8(bound(uint256(signaturesProvided), 0, totalGuardians));
+        signaturesProvided = uint8(
+            bound(uint256(signaturesProvided), 0, totalGuardians)
+        );
 
         // Quorum is 2/3 + 1
         uint256 quorum = (uint256(totalGuardians) * 2) / 3 + 1;
