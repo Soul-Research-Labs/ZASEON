@@ -18,7 +18,10 @@ contract EncryptedStealthAnnouncementsTest is Test {
     uint256 public constant ANNOUNCEMENT_FEE = 0.001 ether;
 
     function setUp() public {
-        announcements = new EncryptedStealthAnnouncements(ANNOUNCEMENT_FEE, feeRecipient);
+        announcements = new EncryptedStealthAnnouncements(
+            ANNOUNCEMENT_FEE,
+            feeRecipient
+        );
         scanner = new StealthAnnouncementScanner(address(announcements));
 
         announcements.grantRole(announcements.OPERATOR_ROLE(), operator);
@@ -31,7 +34,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
     // ======== Constructor ========
 
     function test_constructor() public view {
-        assertTrue(announcements.hasRole(announcements.DEFAULT_ADMIN_ROLE(), admin));
+        assertTrue(
+            announcements.hasRole(announcements.DEFAULT_ADMIN_ROLE(), admin)
+        );
         assertTrue(announcements.hasRole(announcements.OPERATOR_ROLE(), admin));
         assertTrue(announcements.hasRole(announcements.PAUSER_ROLE(), admin));
         assertEq(announcements.getAnnouncementCount(), 0);
@@ -50,7 +55,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.prank(user1);
         uint256 id = announcements.announce{value: ANNOUNCEMENT_FEE}(
-            ephemeralPubKey, payload, viewTagCommitment
+            ephemeralPubKey,
+            payload,
+            viewTagCommitment
         );
 
         assertEq(id, 0);
@@ -69,7 +76,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
         vm.prank(user1);
         vm.expectRevert();
         announcements.announce{value: ANNOUNCEMENT_FEE - 1}(
-            ephemeralPubKey, payload, viewTagCommitment
+            ephemeralPubKey,
+            payload,
+            viewTagCommitment
         );
     }
 
@@ -81,7 +90,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
         vm.prank(user1);
         vm.expectRevert();
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            ephemeralPubKey, tooSmall, viewTagCommitment
+            ephemeralPubKey,
+            tooSmall,
+            viewTagCommitment
         );
     }
 
@@ -95,7 +106,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
         vm.prank(user1);
         vm.expectRevert();
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            bytes32(0), payload, keccak256("viewtag")
+            bytes32(0),
+            payload,
+            keccak256("viewtag")
         );
     }
 
@@ -116,15 +129,17 @@ contract EncryptedStealthAnnouncementsTest is Test {
             viewTagCommitments[i] = keccak256(abi.encodePacked("vtag", i));
         }
 
-        EncryptedStealthAnnouncements.BatchAnnouncement memory batch = EncryptedStealthAnnouncements
-            .BatchAnnouncement({
-            ephemeralPubKeys: ephemeralKeys,
-            encryptedPayloads: payloads,
-            viewTagCommitments: viewTagCommitments
-        });
+        EncryptedStealthAnnouncements.BatchAnnouncement
+            memory batch = EncryptedStealthAnnouncements.BatchAnnouncement({
+                ephemeralPubKeys: ephemeralKeys,
+                encryptedPayloads: payloads,
+                viewTagCommitments: viewTagCommitments
+            });
 
         vm.prank(user1);
-        uint256 startId = announcements.announceBatch{value: ANNOUNCEMENT_FEE * 3}(batch);
+        uint256 startId = announcements.announceBatch{
+            value: ANNOUNCEMENT_FEE * 3
+        }(batch);
 
         assertEq(startId, 0);
         assertEq(announcements.getAnnouncementCount(), 3);
@@ -142,10 +157,14 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.startPrank(user1);
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            keccak256("eph1"), payload, viewTag
+            keccak256("eph1"),
+            payload,
+            viewTag
         );
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            keccak256("eph2"), payload, viewTag
+            keccak256("eph2"),
+            payload,
+            viewTag
         );
         vm.stopPrank();
 
@@ -166,10 +185,13 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.prank(user1);
         uint256 id = announcements.announce{value: ANNOUNCEMENT_FEE}(
-            ephKey, payload, viewTag
+            ephKey,
+            payload,
+            viewTag
         );
 
-        EncryptedStealthAnnouncements.EncryptedAnnouncement memory ann = announcements.getAnnouncement(id);
+        EncryptedStealthAnnouncements.EncryptedAnnouncement
+            memory ann = announcements.getAnnouncement(id);
         assertEq(ann.ephemeralPubKey, ephKey);
         assertEq(ann.viewTagCommitment, viewTag);
         assertEq(ann.announcer, user1);
@@ -210,7 +232,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.prank(user1);
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            keccak256("eph"), payload, keccak256("vtag")
+            keccak256("eph"),
+            payload,
+            keccak256("vtag")
         );
 
         uint256 balBefore = feeRecipient.balance;
@@ -234,7 +258,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
         vm.prank(user1);
         vm.expectRevert();
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            keccak256("eph"), payload, keccak256("vtag")
+            keccak256("eph"),
+            payload,
+            keccak256("vtag")
         );
 
         vm.prank(pauser);
@@ -242,19 +268,27 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.prank(user1);
         announcements.announce{value: ANNOUNCEMENT_FEE}(
-            keccak256("eph"), payload, keccak256("vtag")
+            keccak256("eph"),
+            payload,
+            keccak256("vtag")
         );
     }
 
     // ======== Scanner ========
 
     function test_scanner_computeViewTagCommitment() public view {
-        bytes32 result = scanner.computeViewTagCommitment(1, keccak256("shared_secret"));
+        bytes32 result = scanner.computeViewTagCommitment(
+            1,
+            keccak256("shared_secret")
+        );
         assertTrue(result != bytes32(0));
     }
 
     function test_scanner_computeSharedSecret() public view {
-        bytes32 result = scanner.computeSharedSecret(keccak256("a"), keccak256("b"));
+        bytes32 result = scanner.computeSharedSecret(
+            keccak256("a"),
+            keccak256("b")
+        );
         assertTrue(result != bytes32(0));
     }
 
@@ -275,7 +309,9 @@ contract EncryptedStealthAnnouncementsTest is Test {
 
         vm.prank(user1);
         announcements.announce{value: ANNOUNCEMENT_FEE + extraFee}(
-            keccak256("eph"), payload, keccak256("vtag")
+            keccak256("eph"),
+            payload,
+            keccak256("vtag")
         );
         assertEq(announcements.getAnnouncementCount(), 1);
     }

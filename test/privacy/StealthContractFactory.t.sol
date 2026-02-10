@@ -16,7 +16,10 @@ contract StealthContractFactoryTest is Test {
         impl = new StealthContractFactory();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(impl),
-            abi.encodeWithSelector(StealthContractFactory.initialize.selector, admin)
+            abi.encodeWithSelector(
+                StealthContractFactory.initialize.selector,
+                admin
+            )
         );
         factory = StealthContractFactory(address(proxy));
 
@@ -44,10 +47,14 @@ contract StealthContractFactoryTest is Test {
         bytes memory spendingKey = _pubKey(1);
         bytes memory viewingKey = _pubKey(2);
 
-        bytes32 recipientId = factory.registerRecipient(spendingKey, viewingKey);
+        bytes32 recipientId = factory.registerRecipient(
+            spendingKey,
+            viewingKey
+        );
         assertTrue(recipientId != bytes32(0));
 
-        StealthContractFactory.StealthKeys memory keys = factory.getRecipientKeys(recipientId);
+        StealthContractFactory.StealthKeys memory keys = factory
+            .getRecipientKeys(recipientId);
         assertTrue(keys.isActive);
         assertEq(keys.spendingPubKey, spendingKey);
         assertEq(keys.viewingPubKey, viewingKey);
@@ -59,7 +66,11 @@ contract StealthContractFactoryTest is Test {
 
         // Just check that event is emitted (don't match indexed params)
         vm.expectEmit(false, false, false, false);
-        emit StealthContractFactory.RecipientRegistered(bytes32(0), spendKey, viewKey);
+        emit StealthContractFactory.RecipientRegistered(
+            bytes32(0),
+            spendKey,
+            viewKey
+        );
         factory.registerRecipient(spendKey, viewKey);
     }
 
@@ -76,7 +87,8 @@ contract StealthContractFactoryTest is Test {
 
         factory.deactivateRecipient(recipientId);
 
-        StealthContractFactory.StealthKeys memory keys = factory.getRecipientKeys(recipientId);
+        StealthContractFactory.StealthKeys memory keys = factory
+            .getRecipientKeys(recipientId);
         assertFalse(keys.isActive);
     }
 
@@ -94,12 +106,16 @@ contract StealthContractFactoryTest is Test {
         bytes memory ephKey = _pubKey(10);
         bytes memory metadata = abi.encodePacked(keccak256("metadata"));
 
-        address stealth = factory.deployStealthContract{value: 0.01 ether}(ephKey, metadata);
+        address stealth = factory.deployStealthContract{value: 0.01 ether}(
+            ephKey,
+            metadata
+        );
         assertTrue(stealth != address(0));
         assertEq(factory.totalDeployments(), 1);
         assertEq(factory.deploymentNonce(), 1);
 
-        StealthContractFactory.StealthDeployment memory d = factory.getDeployment(stealth);
+        StealthContractFactory.StealthDeployment memory d = factory
+            .getDeployment(stealth);
         assertEq(d.contractAddress, stealth);
         assertEq(d.value, 0.01 ether);
         assertFalse(d.isWithdrawn);
@@ -111,7 +127,13 @@ contract StealthContractFactoryTest is Test {
 
         // Just check that StealthContractDeployed event is emitted (don't match params)
         vm.expectEmit(false, false, false, false);
-        emit StealthContractFactory.StealthContractDeployed(address(0), bytes32(0), ephKey, 0, 0);
+        emit StealthContractFactory.StealthContractDeployed(
+            address(0),
+            bytes32(0),
+            ephKey,
+            0,
+            0
+        );
         factory.deployStealthContract{value: 0.01 ether}(ephKey, metadata);
     }
 
@@ -128,8 +150,14 @@ contract StealthContractFactoryTest is Test {
         bytes memory ephKey2 = _pubKey(11);
         bytes memory metadata = abi.encodePacked(keccak256("meta"));
 
-        address s1 = factory.deployStealthContract{value: 0.01 ether}(ephKey1, metadata);
-        address s2 = factory.deployStealthContract{value: 0.01 ether}(ephKey2, metadata);
+        address s1 = factory.deployStealthContract{value: 0.01 ether}(
+            ephKey1,
+            metadata
+        );
+        address s2 = factory.deployStealthContract{value: 0.01 ether}(
+            ephKey2,
+            metadata
+        );
 
         assertTrue(s1 != s2);
         assertEq(factory.totalDeployments(), 2);
@@ -150,7 +178,10 @@ contract StealthContractFactoryTest is Test {
         bytes memory metadata = abi.encodePacked(keccak256("meta"));
 
         address predicted = factory.computeStealthAddress(ephKey, metadata, 0);
-        address deployed = factory.deployStealthContract{value: 0.01 ether}(ephKey, metadata);
+        address deployed = factory.deployStealthContract{value: 0.01 ether}(
+            ephKey,
+            metadata
+        );
         assertEq(predicted, deployed);
     }
 
@@ -160,7 +191,10 @@ contract StealthContractFactoryTest is Test {
         bytes memory ephKey = _pubKey(10);
         bytes memory metadata = abi.encodePacked(keccak256("meta"));
 
-        address stealth = factory.deployStealthContract{value: 1 ether}(ephKey, metadata);
+        address stealth = factory.deployStealthContract{value: 1 ether}(
+            ephKey,
+            metadata
+        );
 
         address recipient = makeAddr("recipient");
         // Build signature (65 bytes needed for validation)
@@ -172,14 +206,16 @@ contract StealthContractFactoryTest is Test {
         uint256 balBefore = recipient.balance;
         factory.withdrawFromStealth(stealth, recipient, sig, zkProof);
 
-        StealthContractFactory.StealthDeployment memory d = factory.getDeployment(stealth);
+        StealthContractFactory.StealthDeployment memory d = factory
+            .getDeployment(stealth);
         assertTrue(d.isWithdrawn);
     }
 
     function test_withdrawFromStealth_revert_alreadyWithdrawn() public {
         bytes memory ephKey = _pubKey(10);
         address stealth = factory.deployStealthContract{value: 1 ether}(
-            ephKey, abi.encodePacked(keccak256("meta"))
+            ephKey,
+            abi.encodePacked(keccak256("meta"))
         );
 
         bytes memory sig = new bytes(65);
@@ -214,7 +250,8 @@ contract StealthContractFactoryTest is Test {
 
         // Verify both are withdrawn
         for (uint256 i = 0; i < 2; i++) {
-            StealthContractFactory.StealthDeployment memory d = factory.getDeployment(contracts[i]);
+            StealthContractFactory.StealthDeployment memory d = factory
+                .getDeployment(contracts[i]);
             assertTrue(d.isWithdrawn);
         }
     }
@@ -229,8 +266,11 @@ contract StealthContractFactoryTest is Test {
             );
         }
 
-        (address[] memory addrs, bytes32[] memory hashes, uint256[] memory timestamps) =
-            factory.getDeployedContracts(0, 10);
+        (
+            address[] memory addrs,
+            bytes32[] memory hashes,
+            uint256[] memory timestamps
+        ) = factory.getDeployedContracts(0, 10);
         assertEq(addrs.length, 3);
         assertEq(hashes.length, 3);
         assertEq(timestamps.length, 3);
@@ -244,8 +284,8 @@ contract StealthContractFactoryTest is Test {
             );
         }
 
-        (address[] memory page1,,) = factory.getDeployedContracts(0, 2);
-        (address[] memory page2,,) = factory.getDeployedContracts(2, 2);
+        (address[] memory page1, , ) = factory.getDeployedContracts(0, 2);
+        (address[] memory page2, , ) = factory.getDeployedContracts(2, 2);
 
         assertEq(page1.length, 2);
         assertEq(page2.length, 2);
@@ -267,7 +307,7 @@ contract StealthContractFactoryTest is Test {
             abi.encodePacked(keccak256("m2"))
         );
 
-        (address[] memory addrs,) = factory.getDeploymentsSince(ts2);
+        (address[] memory addrs, ) = factory.getDeploymentsSince(ts2);
         assertEq(addrs.length, 1);
     }
 
@@ -312,7 +352,8 @@ contract StealthContractFactoryTest is Test {
         );
         assertTrue(stealth != address(0));
 
-        StealthContractFactory.StealthDeployment memory d = factory.getDeployment(stealth);
+        StealthContractFactory.StealthDeployment memory d = factory
+            .getDeployment(stealth);
         assertEq(d.value, value);
     }
 

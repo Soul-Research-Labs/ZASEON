@@ -23,7 +23,12 @@ contract PrivateRelayerNetworkTest is Test {
         impl = new PrivateRelayerNetwork();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(impl),
-            abi.encodeWithSelector(PrivateRelayerNetwork.initialize.selector, admin, feeRecipient, PROTOCOL_FEE_BPS)
+            abi.encodeWithSelector(
+                PrivateRelayerNetwork.initialize.selector,
+                admin,
+                feeRecipient,
+                PROTOCOL_FEE_BPS
+            )
         );
         network = PrivateRelayerNetwork(payable(address(proxy)));
 
@@ -62,7 +67,9 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(relayer1);
         network.registerRelayer{value: 1 ether}(stealthMeta, vrfKey);
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertEq(r.relayerAddress, relayer1);
         assertEq(r.stake, 1 ether);
         assertTrue(r.status == PrivateRelayerNetwork.RelayerStatus.ACTIVE);
@@ -73,22 +80,34 @@ contract PrivateRelayerNetworkTest is Test {
         bytes memory stealthMeta = _stealthMeta(relayer1);
         vm.prank(relayer1);
         vm.expectEmit(true, false, false, true);
-        emit PrivateRelayerNetwork.RelayerRegistered(relayer1, 1 ether, stealthMeta);
+        emit PrivateRelayerNetwork.RelayerRegistered(
+            relayer1,
+            1 ether,
+            stealthMeta
+        );
         network.registerRelayer{value: 1 ether}(stealthMeta, keccak256("vrf"));
     }
 
     function test_registerRelayer_revert_insufficientStake() public {
         vm.prank(relayer1);
         vm.expectRevert(PrivateRelayerNetwork.InsufficientStake.selector);
-        network.registerRelayer{value: 0.5 ether}(_stealthMeta(relayer1), keccak256("vrf"));
+        network.registerRelayer{value: 0.5 ether}(
+            _stealthMeta(relayer1),
+            keccak256("vrf")
+        );
     }
 
     function test_registerRelayer_revert_alreadyRegistered() public {
         _registerRelayer(relayer1);
 
         vm.prank(relayer1);
-        vm.expectRevert(PrivateRelayerNetwork.RelayerAlreadyRegistered.selector);
-        network.registerRelayer{value: 1 ether}(_stealthMeta(relayer1), keccak256("vrf"));
+        vm.expectRevert(
+            PrivateRelayerNetwork.RelayerAlreadyRegistered.selector
+        );
+        network.registerRelayer{value: 1 ether}(
+            _stealthMeta(relayer1),
+            keccak256("vrf")
+        );
     }
 
     // ─── Add Stake ──────────────────────────────────────────
@@ -99,7 +118,9 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(relayer1);
         network.addStake{value: 2 ether}();
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertEq(r.stake, 3 ether);
     }
 
@@ -117,7 +138,9 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(relayer1);
         network.requestExit();
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertTrue(r.status == PrivateRelayerNetwork.RelayerStatus.EXITING);
         assertTrue(r.exitRequestedAt > 0);
     }
@@ -161,9 +184,13 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(relayer1);
         network.submitCommitment(commitHash);
 
-        PrivateRelayerNetwork.Commitment memory c = network.getCommitment(commitHash);
+        PrivateRelayerNetwork.Commitment memory c = network.getCommitment(
+            commitHash
+        );
         assertEq(c.relayer, relayer1);
-        assertTrue(c.status == PrivateRelayerNetwork.CommitmentStatus.COMMITTED);
+        assertTrue(
+            c.status == PrivateRelayerNetwork.CommitmentStatus.COMMITTED
+        );
     }
 
     function test_revealIntent() public {
@@ -243,7 +270,12 @@ contract PrivateRelayerNetworkTest is Test {
         bytes memory ephKey = abi.encodePacked(keccak256("ephemeral"));
 
         vm.deal(address(this), 1 ether);
-        network.payStealthFee{value: 0.1 ether}(relayer1, stealthAddr, ephKey, keccak256("transfer1"));
+        network.payStealthFee{value: 0.1 ether}(
+            relayer1,
+            stealthAddr,
+            ephKey,
+            keccak256("transfer1")
+        );
     }
 
     // ─── Slashing ───────────────────────────────────────────
@@ -254,7 +286,9 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(slasher);
         network.slashRelayer(relayer1, "misbehavior");
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertTrue(r.status == PrivateRelayerNetwork.RelayerStatus.JAILED);
         assertTrue(r.slashedAmount > 0);
     }
@@ -279,7 +313,9 @@ contract PrivateRelayerNetworkTest is Test {
         vm.prank(relayer1);
         network.unjailRelayer();
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertTrue(r.status == PrivateRelayerNetwork.RelayerStatus.ACTIVE);
     }
 
@@ -300,7 +336,7 @@ contract PrivateRelayerNetworkTest is Test {
     // ─── Receive ETH ────────────────────────────────────────
 
     function test_receiveETH() public {
-        (bool ok,) = address(network).call{value: 1 ether}("");
+        (bool ok, ) = address(network).call{value: 1 ether}("");
         assertTrue(ok);
     }
 
@@ -310,9 +346,14 @@ contract PrivateRelayerNetworkTest is Test {
         stake = bound(stake, 1 ether, 100 ether);
         vm.deal(relayer1, stake);
         vm.prank(relayer1);
-        network.registerRelayer{value: stake}(_stealthMeta(relayer1), keccak256("vrf"));
+        network.registerRelayer{value: stake}(
+            _stealthMeta(relayer1),
+            keccak256("vrf")
+        );
 
-        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(relayer1);
+        PrivateRelayerNetwork.Relayer memory r = network.getRelayerInfo(
+            relayer1
+        );
         assertEq(r.stake, stake);
     }
 

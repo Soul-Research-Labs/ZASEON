@@ -8,63 +8,118 @@ import "../../contracts/privacy/ConstantTimeOperations.sol";
 contract ConstantTimeOpsHarness {
     using ConstantTimeOperations for *;
 
-    function constantTimeEquals(bytes32 a, bytes32 b) external pure returns (bool) {
+    function constantTimeEquals(
+        bytes32 a,
+        bytes32 b
+    ) external pure returns (bool) {
         return ConstantTimeOperations.constantTimeEquals(a, b);
     }
 
-    function constantTimeEqualsUint(uint256 a, uint256 b) external pure returns (bool) {
+    function constantTimeEqualsUint(
+        uint256 a,
+        uint256 b
+    ) external pure returns (bool) {
         return ConstantTimeOperations.constantTimeEqualsUint(a, b);
     }
 
-    function constantTimeEqualsBytes(bytes memory a, bytes memory b) external pure returns (bool) {
+    function constantTimeEqualsBytes(
+        bytes memory a,
+        bytes memory b
+    ) external pure returns (bool) {
         return ConstantTimeOperations.constantTimeEqualsBytes(a, b);
     }
 
-    function constantTimeSelect(bool condition, bytes32 a, bytes32 b) external pure returns (bytes32) {
+    function constantTimeSelect(
+        bool condition,
+        bytes32 a,
+        bytes32 b
+    ) external pure returns (bytes32) {
         return ConstantTimeOperations.constantTimeSelect(condition, a, b);
     }
 
-    function constantTimeSelectUint(bool condition, uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeSelectUint(
+        bool condition,
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeSelectUint(condition, a, b);
     }
 
-    function constantTimeSelectAddress(bool condition, address a, address b) external pure returns (address) {
-        return ConstantTimeOperations.constantTimeSelectAddress(condition, a, b);
+    function constantTimeSelectAddress(
+        bool condition,
+        address a,
+        address b
+    ) external pure returns (address) {
+        return
+            ConstantTimeOperations.constantTimeSelectAddress(condition, a, b);
     }
 
-    function constantTimeLessThan(uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeLessThan(
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeLessThan(a, b);
     }
 
-    function constantTimeGreaterThan(uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeGreaterThan(
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeGreaterThan(a, b);
     }
 
-    function constantTimeMin(uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeMin(
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeMin(a, b);
     }
 
-    function constantTimeMax(uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeMax(
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeMax(a, b);
     }
 
-    function constantTimeAbsDiff(uint256 a, uint256 b) external pure returns (uint256) {
+    function constantTimeAbsDiff(
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeAbsDiff(a, b);
     }
 
-    function constantTimeGetBit(uint256 value, uint8 position) external pure returns (uint256) {
+    function constantTimeGetBit(
+        uint256 value,
+        uint8 position
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimeGetBit(value, position);
     }
 
-    function constantTimeSetBit(uint256 value, uint8 position, bool bitValue) external pure returns (uint256) {
-        return ConstantTimeOperations.constantTimeSetBit(value, position, bitValue);
+    function constantTimeSetBit(
+        uint256 value,
+        uint8 position,
+        bool bitValue
+    ) external pure returns (uint256) {
+        return
+            ConstantTimeOperations.constantTimeSetBit(
+                value,
+                position,
+                bitValue
+            );
     }
 
-    function constantTimePopCount(uint256 value) external pure returns (uint256) {
+    function constantTimePopCount(
+        uint256 value
+    ) external pure returns (uint256) {
         return ConstantTimeOperations.constantTimePopCount(value);
     }
 
-    function constantTimeInRange(uint256 value, uint256 min, uint256 max) external pure returns (bool) {
+    function constantTimeInRange(
+        uint256 value,
+        uint256 min,
+        uint256 max
+    ) external pure returns (bool) {
         return ConstantTimeOperations.constantTimeInRange(value, min, max);
     }
 
@@ -72,48 +127,68 @@ contract ConstantTimeOpsHarness {
         return ConstantTimeOperations.constantTimeIsNonZero(value);
     }
 
-    function constantTimeIsPowerOf2(uint256 value) external pure returns (bool) {
+    function constantTimeIsPowerOf2(
+        uint256 value
+    ) external pure returns (bool) {
         return ConstantTimeOperations.constantTimeIsPowerOf2(value);
     }
 
-    function constantTimeSwap(bool condition, uint256 a, uint256 b) external pure returns (uint256, uint256) {
+    function constantTimeSwap(
+        bool condition,
+        uint256 a,
+        uint256 b
+    ) external pure returns (uint256, uint256) {
         return ConstantTimeOperations.constantTimeSwap(condition, a, b);
     }
 
-    function constantTimeCopy(bytes memory dest, bytes memory src, uint256 length) external pure returns (bytes memory) {
+    function constantTimeCopy(
+        bytes memory dest,
+        bytes memory src,
+        uint256 length
+    ) external pure returns (bytes memory) {
         ConstantTimeOperations.constantTimeCopy(dest, src, length);
         return dest;
     }
 
-    function constantTimeZero(bytes memory data) external pure returns (bytes memory) {
+    function constantTimeZero(
+        bytes memory data
+    ) external pure returns (bytes memory) {
         ConstantTimeOperations.constantTimeZero(data);
         return data;
     }
 }
 
 contract ConstantTimePrivacyHarness {
-    function constantTimeNullifierLookup(bytes32 target, bytes32[] memory nullifiers)
-        external
-        pure
-        returns (bool found, uint256 index)
-    {
-        return ConstantTimePrivacy.constantTimeNullifierLookup(target, nullifiers);
+    function constantTimeNullifierLookup(
+        bytes32 target,
+        bytes32[] memory nullifiers
+    ) external pure returns (bool found, uint256 index) {
+        return
+            ConstantTimePrivacy.constantTimeNullifierLookup(target, nullifiers);
     }
 
-    function constantTimeKeyImageLookup(bytes32 keyImage, bytes32[] memory usedKeyImages)
-        external
-        pure
-        returns (bool used)
-    {
-        return ConstantTimePrivacy.constantTimeKeyImageLookup(keyImage, usedKeyImages);
+    function constantTimeKeyImageLookup(
+        bytes32 keyImage,
+        bytes32[] memory usedKeyImages
+    ) external pure returns (bool used) {
+        return
+            ConstantTimePrivacy.constantTimeKeyImageLookup(
+                keyImage,
+                usedKeyImages
+            );
     }
 
-    function constantTimeDecoySelect(uint256 realIndex, uint256 ringSize, uint256 randomSeed)
-        external
-        pure
-        returns (uint256[] memory)
-    {
-        return ConstantTimePrivacy.constantTimeDecoySelect(realIndex, ringSize, randomSeed);
+    function constantTimeDecoySelect(
+        uint256 realIndex,
+        uint256 ringSize,
+        uint256 randomSeed
+    ) external pure returns (uint256[] memory) {
+        return
+            ConstantTimePrivacy.constantTimeDecoySelect(
+                realIndex,
+                ringSize,
+                randomSeed
+            );
     }
 
     function constantTimeCommitmentVerify(
@@ -122,7 +197,13 @@ contract ConstantTimePrivacyHarness {
         bytes32 blinding,
         bytes32 expectedCommitment
     ) external pure returns (bool) {
-        return ConstantTimePrivacy.constantTimeCommitmentVerify(commitment, value, blinding, expectedCommitment);
+        return
+            ConstantTimePrivacy.constantTimeCommitmentVerify(
+                commitment,
+                value,
+                blinding,
+                expectedCommitment
+            );
     }
 }
 
@@ -324,7 +405,10 @@ contract ConstantTimeOperationsTest is Test {
         nullifiers[1] = keccak256("b");
         nullifiers[2] = keccak256("c");
 
-        (bool found, uint256 index) = privacy.constantTimeNullifierLookup(keccak256("b"), nullifiers);
+        (bool found, uint256 index) = privacy.constantTimeNullifierLookup(
+            keccak256("b"),
+            nullifiers
+        );
         assertTrue(found);
         assertEq(index, 1);
     }
@@ -334,7 +418,10 @@ contract ConstantTimeOperationsTest is Test {
         nullifiers[0] = keccak256("a");
         nullifiers[1] = keccak256("b");
 
-        (bool found,) = privacy.constantTimeNullifierLookup(keccak256("c"), nullifiers);
+        (bool found, ) = privacy.constantTimeNullifierLookup(
+            keccak256("c"),
+            nullifiers
+        );
         assertFalse(found);
     }
 
@@ -343,8 +430,12 @@ contract ConstantTimeOperationsTest is Test {
         usedImages[0] = keccak256("img1");
         usedImages[1] = keccak256("img2");
 
-        assertTrue(privacy.constantTimeKeyImageLookup(keccak256("img1"), usedImages));
-        assertFalse(privacy.constantTimeKeyImageLookup(keccak256("img3"), usedImages));
+        assertTrue(
+            privacy.constantTimeKeyImageLookup(keccak256("img1"), usedImages)
+        );
+        assertFalse(
+            privacy.constantTimeKeyImageLookup(keccak256("img3"), usedImages)
+        );
     }
 
     function test_decoySelect() public view {
@@ -359,16 +450,28 @@ contract ConstantTimeOperationsTest is Test {
     }
 
     function test_commitmentVerify() public view {
-        bytes32 commitment = keccak256(abi.encodePacked(uint256(100), keccak256("blinding")));
-        bool valid =
-            privacy.constantTimeCommitmentVerify(commitment, 100, keccak256("blinding"), commitment);
+        bytes32 commitment = keccak256(
+            abi.encodePacked(uint256(100), keccak256("blinding"))
+        );
+        bool valid = privacy.constantTimeCommitmentVerify(
+            commitment,
+            100,
+            keccak256("blinding"),
+            commitment
+        );
         assertTrue(valid);
     }
 
     function test_commitmentVerify_invalid() public view {
-        bytes32 commitment = keccak256(abi.encodePacked(uint256(100), keccak256("blinding")));
-        bool valid =
-            privacy.constantTimeCommitmentVerify(commitment, 200, keccak256("blinding"), commitment);
+        bytes32 commitment = keccak256(
+            abi.encodePacked(uint256(100), keccak256("blinding"))
+        );
+        bool valid = privacy.constantTimeCommitmentVerify(
+            commitment,
+            200,
+            keccak256("blinding"),
+            commitment
+        );
         assertFalse(valid);
     }
 }

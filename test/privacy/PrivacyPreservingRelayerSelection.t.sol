@@ -31,7 +31,8 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         vm.prank(relayer1);
         selector.registerRelayer{value: 1 ether}(keccak256("pk1"));
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertEq(r.relayerAddress, relayer1);
         assertEq(r.stake, 1 ether);
         assertTrue(r.active);
@@ -40,14 +41,20 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
 
     function test_registerRelayer_revert_insufficientStake() public {
         vm.prank(relayer1);
-        vm.expectRevert(PrivacyPreservingRelayerSelection.InsufficientStake.selector);
+        vm.expectRevert(
+            PrivacyPreservingRelayerSelection.InsufficientStake.selector
+        );
         selector.registerRelayer{value: 0.5 ether}(keccak256("pk1"));
     }
 
     function test_registerRelayer_emitsEvent() public {
         vm.prank(relayer1);
         vm.expectEmit(true, false, false, true);
-        emit PrivacyPreservingRelayerSelection.RelayerRegistered(relayer1, 1 ether, keccak256("pk1"));
+        emit PrivacyPreservingRelayerSelection.RelayerRegistered(
+            relayer1,
+            1 ether,
+            keccak256("pk1")
+        );
         selector.registerRelayer{value: 1 ether}(keccak256("pk1"));
     }
 
@@ -59,7 +66,8 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         vm.prank(relayer1);
         selector.addStake{value: 2 ether}();
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertEq(r.stake, 3 ether);
     }
 
@@ -79,7 +87,8 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         vm.prank(relayer1);
         selector.deactivateRelayer();
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertFalse(r.active);
         assertEq(r.stake, 0);
         assertGe(relayer1.balance, balBefore + 2 ether - 1); // Allow rounding
@@ -90,7 +99,10 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
 
         vm.prank(relayer1);
         vm.expectEmit(true, false, false, true);
-        emit PrivacyPreservingRelayerSelection.RelayerDeactivated(relayer1, 1 ether);
+        emit PrivacyPreservingRelayerSelection.RelayerDeactivated(
+            relayer1,
+            1 ether
+        );
         selector.deactivateRelayer();
     }
 
@@ -108,12 +120,16 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
     function test_requestSelection_revert_tooManyRelayers() public {
         _registerRelayer(relayer1, 1 ether);
 
-        vm.expectRevert(PrivacyPreservingRelayerSelection.TooManyRelayers.selector);
+        vm.expectRevert(
+            PrivacyPreservingRelayerSelection.TooManyRelayers.selector
+        );
         selector.requestSelection(keccak256("c"), 5); // Only 1 active
     }
 
     function test_requestSelection_revert_noActiveRelayers() public {
-        vm.expectRevert(PrivacyPreservingRelayerSelection.NoActiveRelayers.selector);
+        vm.expectRevert(
+            PrivacyPreservingRelayerSelection.NoActiveRelayers.selector
+        );
         selector.requestSelection(keccak256("c"), 1);
     }
 
@@ -148,13 +164,19 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         PrivacyPreservingRelayerSelection.SelectionPreferences memory prefs;
         bytes32 commitmentHash = keccak256(
             abi.encodePacked(
-                address(this), keccak256("real"), prefs.minReputation, prefs.maxLatency,
-                keccak256(abi.encodePacked(prefs.excludedRelayers)), prefs.feeBudget
+                address(this),
+                keccak256("real"),
+                prefs.minReputation,
+                prefs.maxLatency,
+                keccak256(abi.encodePacked(prefs.excludedRelayers)),
+                prefs.feeBudget
             )
         );
         bytes32 requestId = selector.requestSelection(commitmentHash, 1);
 
-        vm.expectRevert(PrivacyPreservingRelayerSelection.InvalidCommitment.selector);
+        vm.expectRevert(
+            PrivacyPreservingRelayerSelection.InvalidCommitment.selector
+        );
         selector.revealSelection(requestId, keccak256("wrong_random"), prefs);
     }
 
@@ -165,15 +187,21 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         PrivacyPreservingRelayerSelection.SelectionPreferences memory prefs;
         bytes32 commitmentHash = keccak256(
             abi.encodePacked(
-                address(this), randomness, prefs.minReputation, prefs.maxLatency,
-                keccak256(abi.encodePacked(prefs.excludedRelayers)), prefs.feeBudget
+                address(this),
+                randomness,
+                prefs.minReputation,
+                prefs.maxLatency,
+                keccak256(abi.encodePacked(prefs.excludedRelayers)),
+                prefs.feeBudget
             )
         );
         bytes32 requestId = selector.requestSelection(commitmentHash, 1);
 
         selector.revealSelection(requestId, randomness, prefs);
 
-        vm.expectRevert(PrivacyPreservingRelayerSelection.AlreadyRevealed.selector);
+        vm.expectRevert(
+            PrivacyPreservingRelayerSelection.AlreadyRevealed.selector
+        );
         selector.revealSelection(requestId, randomness, prefs);
     }
 
@@ -186,8 +214,12 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         PrivacyPreservingRelayerSelection.SelectionPreferences memory prefs;
         bytes32 commitmentHash = keccak256(
             abi.encodePacked(
-                address(this), randomness, prefs.minReputation, prefs.maxLatency,
-                keccak256(abi.encodePacked(prefs.excludedRelayers)), prefs.feeBudget
+                address(this),
+                randomness,
+                prefs.minReputation,
+                prefs.maxLatency,
+                keccak256(abi.encodePacked(prefs.excludedRelayers)),
+                prefs.feeBudget
             )
         );
         bytes32 requestId = selector.requestSelection(commitmentHash, 2);
@@ -196,9 +228,7 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
 
         // The seed stored is keccak256(randomness, blockhash(requestBlock))
         // In forge tests, blockhash(block.number) = bytes32(0) since we're in the same block
-        bytes32 vrfSeed = keccak256(
-            abi.encodePacked(randomness, bytes32(0))
-        );
+        bytes32 vrfSeed = keccak256(abi.encodePacked(randomness, bytes32(0)));
 
         PrivacyPreservingRelayerSelection.VRFProof memory proof;
         proof.c = keccak256("c");
@@ -222,8 +252,12 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         PrivacyPreservingRelayerSelection.SelectionPreferences memory prefs;
         bytes32 commitmentHash = keccak256(
             abi.encodePacked(
-                address(this), randomness, prefs.minReputation, prefs.maxLatency,
-                keccak256(abi.encodePacked(prefs.excludedRelayers)), prefs.feeBudget
+                address(this),
+                randomness,
+                prefs.minReputation,
+                prefs.maxLatency,
+                keccak256(abi.encodePacked(prefs.excludedRelayers)),
+                prefs.feeBudget
             )
         );
         bytes32 requestId = selector.requestSelection(commitmentHash, 1);
@@ -243,7 +277,8 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         vm.prank(oracle);
         selector.reportRelayCompletion(relayer1, requestId, true);
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertEq(r.successfulRelays, 1);
     }
 
@@ -253,7 +288,8 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
         vm.prank(oracle);
         selector.reportRelayCompletion(relayer1, keccak256("req1"), false);
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertEq(r.failedRelays, 1);
     }
 
@@ -299,13 +335,16 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
 
     // ─── Fuzz ───────────────────────────────────────────────
 
-    function testFuzz_registerRelayer_stakeAboveMin(uint256 stakeAmount) public {
+    function testFuzz_registerRelayer_stakeAboveMin(
+        uint256 stakeAmount
+    ) public {
         stakeAmount = bound(stakeAmount, 1 ether, 50 ether);
         vm.deal(relayer1, stakeAmount);
         vm.prank(relayer1);
         selector.registerRelayer{value: stakeAmount}(keccak256("pk"));
 
-        PrivacyPreservingRelayerSelection.Relayer memory r = selector.getRelayerInfo(relayer1);
+        PrivacyPreservingRelayerSelection.Relayer memory r = selector
+            .getRelayerInfo(relayer1);
         assertEq(r.stake, stakeAmount);
     }
 
@@ -313,7 +352,9 @@ contract PrivacyPreservingRelayerSelectionTest is Test {
 
     function _registerRelayer(address relayer, uint256 stake) internal {
         vm.prank(relayer);
-        selector.registerRelayer{value: stake}(keccak256(abi.encodePacked(relayer)));
+        selector.registerRelayer{value: stake}(
+            keccak256(abi.encodePacked(relayer))
+        );
     }
 
     function _registerThreeRelayers() internal {

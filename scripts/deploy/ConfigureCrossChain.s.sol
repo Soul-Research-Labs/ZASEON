@@ -145,10 +145,14 @@ contract ConfigureCrossChain is Script {
         console.log("=== Next Steps ===");
         console.log("1. Fund relayer wallets on each L2 testnet");
         console.log("2. Submit a test proof via SDK:");
-        console.log("     npx soul-cli submit-proof --network arbitrum-sepolia");
+        console.log(
+            "     npx soul-cli submit-proof --network arbitrum-sepolia"
+        );
         console.log("3. Verify cross-chain nullifier sync:");
         console.log("     npx soul-cli check-nullifier --all-chains");
         console.log("4. Run e2e integration test suite:");
-        console.log("     npx hardhat test test/integration/ --network arbitrum-sepolia");
+        console.log(
+            "     npx hardhat test test/integration/ --network arbitrum-sepolia"
+        );
     }
 }

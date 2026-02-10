@@ -113,11 +113,11 @@ contract DeployL2Testnet is Script {
 
     function _validateChainId() internal view {
         require(
-            block.chainid == ARBITRUM_SEPOLIA
-                || block.chainid == BASE_SEPOLIA
-                || block.chainid == OPTIMISM_SEPOLIA
-                || block.chainid == SCROLL_SEPOLIA
-                || block.chainid == LINEA_SEPOLIA,
+            block.chainid == ARBITRUM_SEPOLIA ||
+                block.chainid == BASE_SEPOLIA ||
+                block.chainid == OPTIMISM_SEPOLIA ||
+                block.chainid == SCROLL_SEPOLIA ||
+                block.chainid == LINEA_SEPOLIA,
             string.concat(
                 "Unsupported testnet chain ID: ",
                 vm.toString(block.chainid)
@@ -145,8 +145,7 @@ contract DeployL2Testnet is Script {
 
     function _deployBridgeAdapter(address admin, address deployer) internal {
         if (
-            block.chainid == OPTIMISM_SEPOLIA
-                || block.chainid == BASE_SEPOLIA
+            block.chainid == OPTIMISM_SEPOLIA || block.chainid == BASE_SEPOLIA
         ) {
             // OP Stack chains (Optimism Sepolia, Base Sepolia) use OptimismBridgeAdapter
             OptimismBridgeAdapter adapter = new OptimismBridgeAdapter(deployer);
@@ -272,26 +271,40 @@ contract DeployL2Testnet is Script {
         );
         console.log("  3. Fund relayer addresses with testnet ETH");
         console.log("  4. Run integration tests against live deployment");
-        console.log(
-            "  5. Update deployments/<network>.json with addresses"
-        );
+        console.log("  5. Update deployments/<network>.json with addresses");
     }
 
     function _writeDeploymentJson() internal {
         string memory network = _networkName();
         string memory json = string.concat(
-            '{\n',
-            '  "network": "', network, '",\n',
-            '  "chainId": ', vm.toString(block.chainid), ',\n',
-            '  "deployer": "', vm.toString(msg.sender), '",\n',
+            "{\n",
+            '  "network": "',
+            network,
+            '",\n',
+            '  "chainId": ',
+            vm.toString(block.chainid),
+            ",\n",
+            '  "deployer": "',
+            vm.toString(msg.sender),
+            '",\n',
             '  "contracts": {\n',
-            '    "NullifierRegistryV3": "', vm.toString(address(nullifierRegistry)), '",\n',
-            '    "BridgeCircuitBreaker": "', vm.toString(address(circuitBreaker)), '",\n',
-            '    "BridgeRateLimiter": "', vm.toString(address(rateLimiter)), '",\n',
-            '    "StealthAddressRegistry": "', vm.toString(address(stealthRegistry)), '",\n',
-            '    "BridgeAdapter": "', vm.toString(bridgeAdapter), '"\n',
-            '  }\n',
-            '}'
+            '    "NullifierRegistryV3": "',
+            vm.toString(address(nullifierRegistry)),
+            '",\n',
+            '    "BridgeCircuitBreaker": "',
+            vm.toString(address(circuitBreaker)),
+            '",\n',
+            '    "BridgeRateLimiter": "',
+            vm.toString(address(rateLimiter)),
+            '",\n',
+            '    "StealthAddressRegistry": "',
+            vm.toString(address(stealthRegistry)),
+            '",\n',
+            '    "BridgeAdapter": "',
+            vm.toString(bridgeAdapter),
+            '"\n',
+            "  }\n",
+            "}"
         );
         string memory path = string.concat(
             "deployments/",

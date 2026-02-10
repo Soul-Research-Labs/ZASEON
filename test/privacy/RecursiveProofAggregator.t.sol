@@ -18,7 +18,10 @@ contract RecursiveProofAggregatorTest is Test {
         impl = new RecursiveProofAggregator();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(impl),
-            abi.encodeWithSelector(RecursiveProofAggregator.initialize.selector, admin)
+            abi.encodeWithSelector(
+                RecursiveProofAggregator.initialize.selector,
+                admin
+            )
         );
         aggregator = RecursiveProofAggregator(address(proxy));
 
@@ -55,7 +58,8 @@ contract RecursiveProofAggregatorTest is Test {
         assertTrue(proofId != bytes32(0));
         assertEq(aggregator.totalProofsSubmitted(), 1);
 
-        RecursiveProofAggregator.ProofSubmission memory p = aggregator.getProofSubmission(proofId);
+        RecursiveProofAggregator.ProofSubmission memory p = aggregator
+            .getProofSubmission(proofId);
         assertEq(p.commitmentHash, keccak256("commitment"));
         assertEq(p.publicInputHash, keccak256("publicInput"));
         assertEq(p.chainId, 1);
@@ -69,7 +73,8 @@ contract RecursiveProofAggregatorTest is Test {
             keccak256("pi2"),
             42161
         );
-        RecursiveProofAggregator.ProofSubmission memory p = aggregator.getProofSubmission(proofId);
+        RecursiveProofAggregator.ProofSubmission memory p = aggregator
+            .getProofSubmission(proofId);
         assertTrue(p.system == RecursiveProofAggregator.ProofSystem.PLONK);
     }
 
@@ -77,15 +82,21 @@ contract RecursiveProofAggregatorTest is Test {
         // Submit enough proofs to test batch
         bytes32 proofId1 = aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c1"), keccak256("p1"), 1
+            keccak256("c1"),
+            keccak256("p1"),
+            1
         );
         bytes32 proofId2 = aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c2"), keccak256("p2"), 1
+            keccak256("c2"),
+            keccak256("p2"),
+            1
         );
 
-        RecursiveProofAggregator.ProofSubmission memory p1 = aggregator.getProofSubmission(proofId1);
-        RecursiveProofAggregator.ProofSubmission memory p2 = aggregator.getProofSubmission(proofId2);
+        RecursiveProofAggregator.ProofSubmission memory p1 = aggregator
+            .getProofSubmission(proofId1);
+        RecursiveProofAggregator.ProofSubmission memory p2 = aggregator
+            .getProofSubmission(proofId2);
 
         // Both should be in the same batch (same proof system)
         assertEq(p1.batchId, p2.batchId);
@@ -94,15 +105,21 @@ contract RecursiveProofAggregatorTest is Test {
     function test_submitProof_differentSystemsDifferentBatches() public {
         bytes32 pid1 = aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c1"), keccak256("p1"), 1
+            keccak256("c1"),
+            keccak256("p1"),
+            1
         );
         bytes32 pid2 = aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.PLONK,
-            keccak256("c2"), keccak256("p2"), 1
+            keccak256("c2"),
+            keccak256("p2"),
+            1
         );
 
-        RecursiveProofAggregator.ProofSubmission memory p1 = aggregator.getProofSubmission(pid1);
-        RecursiveProofAggregator.ProofSubmission memory p2 = aggregator.getProofSubmission(pid2);
+        RecursiveProofAggregator.ProofSubmission memory p1 = aggregator
+            .getProofSubmission(pid1);
+        RecursiveProofAggregator.ProofSubmission memory p2 = aggregator
+            .getProofSubmission(pid2);
         assertTrue(p1.batchId != p2.batchId);
     }
 
@@ -119,27 +136,40 @@ contract RecursiveProofAggregatorTest is Test {
             );
         }
 
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.GROTH16);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.GROTH16
+        );
 
         vm.prank(aggRole);
         aggregator.triggerAggregation(batchId);
 
-        RecursiveProofAggregator.AggregationBatch memory batch = aggregator.getBatch(batchId);
-        assertTrue(batch.state == RecursiveProofAggregator.BatchState.AGGREGATING);
+        RecursiveProofAggregator.AggregationBatch memory batch = aggregator
+            .getBatch(batchId);
+        assertTrue(
+            batch.state == RecursiveProofAggregator.BatchState.AGGREGATING
+        );
     }
 
     function test_triggerAggregation_revert_batchTooSmall() public {
         // Only submit 1 proof (need MIN_BATCH_SIZE = 2)
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c"), keccak256("p"), 1
+            keccak256("c"),
+            keccak256("p"),
+            1
         );
 
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.GROTH16);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.GROTH16
+        );
 
         vm.prank(aggRole);
         vm.expectRevert(
-            abi.encodeWithSelector(RecursiveProofAggregator.BatchTooSmall.selector, 1, 2)
+            abi.encodeWithSelector(
+                RecursiveProofAggregator.BatchTooSmall.selector,
+                1,
+                2
+            )
         );
         aggregator.triggerAggregation(batchId);
     }
@@ -153,7 +183,9 @@ contract RecursiveProofAggregatorTest is Test {
                 1
             );
         }
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.GROTH16);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.GROTH16
+        );
 
         vm.prank(makeAddr("random"));
         vm.expectRevert();
@@ -170,7 +202,9 @@ contract RecursiveProofAggregatorTest is Test {
                 1
             );
         }
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.GROTH16);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.GROTH16
+        );
 
         vm.prank(aggRole);
         aggregator.triggerAggregation(batchId);
@@ -181,7 +215,8 @@ contract RecursiveProofAggregatorTest is Test {
         vm.prank(aggRole);
         aggregator.finalizeBatchAggregation(batchId, aggProofHash, merkleRoot);
 
-        RecursiveProofAggregator.AggregationBatch memory batch = aggregator.getBatch(batchId);
+        RecursiveProofAggregator.AggregationBatch memory batch = aggregator
+            .getBatch(batchId);
         assertEq(batch.aggregatedProofHash, aggProofHash);
         assertEq(batch.merkleRoot, merkleRoot);
     }
@@ -192,14 +227,20 @@ contract RecursiveProofAggregatorTest is Test {
         // Submit a NOVA proof
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.NOVA,
-            keccak256("c1"), keccak256("p1"), 1
+            keccak256("c1"),
+            keccak256("p1"),
+            1
         );
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.NOVA,
-            keccak256("c2"), keccak256("p2"), 1
+            keccak256("c2"),
+            keccak256("p2"),
+            1
         );
 
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.NOVA);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.NOVA
+        );
 
         RecursiveProofAggregator.NovaProof memory novaProof;
         novaProof.U = keccak256("U");
@@ -213,7 +254,8 @@ contract RecursiveProofAggregatorTest is Test {
         vm.prank(aggRole);
         aggregator.submitNovaFolding(batchId, novaProof);
 
-        RecursiveProofAggregator.NovaProof memory stored = aggregator.getNovaState(batchId);
+        RecursiveProofAggregator.NovaProof memory stored = aggregator
+            .getNovaState(batchId);
         assertEq(stored.step, 1);
         assertEq(stored.U, keccak256("U"));
     }
@@ -221,9 +263,13 @@ contract RecursiveProofAggregatorTest is Test {
     function test_submitNovaFolding_revert_notAggregator() public {
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.NOVA,
-            keccak256("c"), keccak256("p"), 1
+            keccak256("c"),
+            keccak256("p"),
+            1
         );
-        bytes32 batchId = aggregator.activeBatches(RecursiveProofAggregator.ProofSystem.NOVA);
+        bytes32 batchId = aggregator.activeBatches(
+            RecursiveProofAggregator.ProofSystem.NOVA
+        );
 
         RecursiveProofAggregator.NovaProof memory novaProof;
         novaProof.U = keccak256("U");
@@ -252,11 +298,14 @@ contract RecursiveProofAggregatorTest is Test {
         proofRoots[2] = keccak256("root3");
 
         vm.prank(aggRole);
-        bytes32 bundleId = aggregator.createCrossChainBundle(chainIds, proofRoots);
+        bytes32 bundleId = aggregator.createCrossChainBundle(
+            chainIds,
+            proofRoots
+        );
         assertTrue(bundleId != bytes32(0));
 
-        RecursiveProofAggregator.CrossChainProofBundle memory bundle =
-            aggregator.getCrossChainBundle(bundleId);
+        RecursiveProofAggregator.CrossChainProofBundle
+            memory bundle = aggregator.getCrossChainBundle(bundleId);
         assertEq(bundle.chainIds.length, 3);
         assertEq(bundle.proofRoots.length, 3);
         assertFalse(bundle.verified);
@@ -272,7 +321,10 @@ contract RecursiveProofAggregatorTest is Test {
         proofRoots[1] = keccak256("root2");
 
         vm.prank(aggRole);
-        bytes32 bundleId = aggregator.createCrossChainBundle(chainIds, proofRoots);
+        bytes32 bundleId = aggregator.createCrossChainBundle(
+            chainIds,
+            proofRoots
+        );
 
         bytes32 aggRoot = keccak256("aggRoot");
         bytes memory aggProof = "aggregated_proof_bytes";
@@ -280,8 +332,8 @@ contract RecursiveProofAggregatorTest is Test {
         vm.prank(aggRole);
         aggregator.finalizeCrossChainBundle(bundleId, aggRoot, aggProof);
 
-        RecursiveProofAggregator.CrossChainProofBundle memory bundle =
-            aggregator.getCrossChainBundle(bundleId);
+        RecursiveProofAggregator.CrossChainProofBundle
+            memory bundle = aggregator.getCrossChainBundle(bundleId);
         assertTrue(bundle.verified);
         assertEq(bundle.aggregatedRoot, aggRoot);
     }
@@ -291,15 +343,24 @@ contract RecursiveProofAggregatorTest is Test {
     function test_setVerifier() public {
         address verifier = makeAddr("groth16_verifier");
         vm.prank(admin);
-        aggregator.setVerifier(RecursiveProofAggregator.ProofSystem.GROTH16, verifier);
+        aggregator.setVerifier(
+            RecursiveProofAggregator.ProofSystem.GROTH16,
+            verifier
+        );
 
-        assertEq(aggregator.verifiers(RecursiveProofAggregator.ProofSystem.GROTH16), verifier);
+        assertEq(
+            aggregator.verifiers(RecursiveProofAggregator.ProofSystem.GROTH16),
+            verifier
+        );
     }
 
     function test_setVerifier_revert_notAdmin() public {
         vm.prank(makeAddr("random"));
         vm.expectRevert();
-        aggregator.setVerifier(RecursiveProofAggregator.ProofSystem.GROTH16, makeAddr("v"));
+        aggregator.setVerifier(
+            RecursiveProofAggregator.ProofSystem.GROTH16,
+            makeAddr("v")
+        );
     }
 
     // ─── Pause / Unpause ────────────────────────────────────
@@ -311,7 +372,9 @@ contract RecursiveProofAggregatorTest is Test {
         vm.expectRevert();
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c"), keccak256("p"), 1
+            keccak256("c"),
+            keccak256("p"),
+            1
         );
     }
 
@@ -325,7 +388,9 @@ contract RecursiveProofAggregatorTest is Test {
         // Should work now
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c"), keccak256("p"), 1
+            keccak256("c"),
+            keccak256("p"),
+            1
         );
     }
 
@@ -338,8 +403,8 @@ contract RecursiveProofAggregatorTest is Test {
     // ─── View Functions ─────────────────────────────────────
 
     function test_getBatch_nonexistent() public {
-        RecursiveProofAggregator.AggregationBatch memory batch =
-            aggregator.getBatch(keccak256("nonexistent"));
+        RecursiveProofAggregator.AggregationBatch memory batch = aggregator
+            .getBatch(keccak256("nonexistent"));
         assertEq(batch.proofCount, 0);
     }
 
@@ -354,7 +419,9 @@ contract RecursiveProofAggregatorTest is Test {
 
         aggregator.submitProof(
             RecursiveProofAggregator.ProofSystem.GROTH16,
-            keccak256("c"), keccak256("p"), 1
+            keccak256("c"),
+            keccak256("p"),
+            1
         );
         assertEq(aggregator.totalProofsSubmitted(), 1);
         assertGe(aggregator.totalBatches(), 1);
@@ -364,14 +431,20 @@ contract RecursiveProofAggregatorTest is Test {
 
     function testFuzz_submitProof_systemTypes(uint8 systemRaw) public {
         // Only valid systems
-        vm.assume(systemRaw <= uint8(RecursiveProofAggregator.ProofSystem.HALO2));
-        RecursiveProofAggregator.ProofSystem system =
-            RecursiveProofAggregator.ProofSystem(systemRaw);
+        vm.assume(
+            systemRaw <= uint8(RecursiveProofAggregator.ProofSystem.HALO2)
+        );
+        RecursiveProofAggregator.ProofSystem system = RecursiveProofAggregator
+            .ProofSystem(systemRaw);
 
         bytes32 proofId = aggregator.submitProof(
-            system, keccak256(abi.encodePacked(systemRaw)), keccak256("p"), 1
+            system,
+            keccak256(abi.encodePacked(systemRaw)),
+            keccak256("p"),
+            1
         );
-        RecursiveProofAggregator.ProofSubmission memory p = aggregator.getProofSubmission(proofId);
+        RecursiveProofAggregator.ProofSubmission memory p = aggregator
+            .getProofSubmission(proofId);
         assertTrue(p.system == system);
     }
 
@@ -383,7 +456,8 @@ contract RecursiveProofAggregatorTest is Test {
             keccak256("p"),
             chainId
         );
-        RecursiveProofAggregator.ProofSubmission memory p = aggregator.getProofSubmission(proofId);
+        RecursiveProofAggregator.ProofSubmission memory p = aggregator
+            .getProofSubmission(proofId);
         assertEq(p.chainId, chainId);
     }
 }

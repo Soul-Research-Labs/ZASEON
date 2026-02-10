@@ -25,8 +25,8 @@ contract GasOptimizedStealthRegistryTest is Test {
     }
 
     function test_generateStealthAddress_uniquePerEphemeral() public {
-        (address s1,) = registry.generateStealthAddress(1, 2, 3, 4, 5, 6);
-        (address s2,) = registry.generateStealthAddress(7, 8, 3, 4, 5, 6);
+        (address s1, ) = registry.generateStealthAddress(1, 2, 3, 4, 5, 6);
+        (address s2, ) = registry.generateStealthAddress(7, 8, 3, 4, 5, 6);
         assertTrue(s1 != s2);
     }
 
@@ -35,7 +35,10 @@ contract GasOptimizedStealthRegistryTest is Test {
         uint256[4][] memory recipientKeys = new uint256[4][](3);
 
         for (uint256 i = 0; i < 3; i++) {
-            ephemeralKeys[i] = [uint256(keccak256(abi.encodePacked("ex", i))), uint256(keccak256(abi.encodePacked("ey", i)))];
+            ephemeralKeys[i] = [
+                uint256(keccak256(abi.encodePacked("ex", i))),
+                uint256(keccak256(abi.encodePacked("ey", i)))
+            ];
             recipientKeys[i] = [
                 uint256(keccak256(abi.encodePacked("sx", i))),
                 uint256(keccak256(abi.encodePacked("sy", i))),
@@ -44,8 +47,8 @@ contract GasOptimizedStealthRegistryTest is Test {
             ];
         }
 
-        (address[] memory addresses, uint8[] memory viewTags) =
-            registry.batchGenerateStealthAddresses(ephemeralKeys, recipientKeys);
+        (address[] memory addresses, uint8[] memory viewTags) = registry
+            .batchGenerateStealthAddresses(ephemeralKeys, recipientKeys);
         assertEq(addresses.length, 3);
         assertEq(viewTags.length, 3);
     }
@@ -62,9 +65,30 @@ contract GasOptimizedStealthRegistryTest is Test {
 
     function test_scanByViewTag() public {
         // Generate a few stealth addresses
-        (address s1, uint8 tag1) = registry.generateStealthAddress(1, 2, 3, 4, 5, 6);
-        (address s2, uint8 tag2) = registry.generateStealthAddress(7, 8, 9, 10, 11, 12);
-        (address s3,) = registry.generateStealthAddress(13, 14, 15, 16, 17, 18);
+        (address s1, uint8 tag1) = registry.generateStealthAddress(
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        );
+        (address s2, uint8 tag2) = registry.generateStealthAddress(
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+        );
+        (address s3, ) = registry.generateStealthAddress(
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+        );
 
         address[] memory candidates = new address[](3);
         candidates[0] = s1;
@@ -80,7 +104,14 @@ contract GasOptimizedStealthRegistryTest is Test {
         ephx = bound(ephx, 1, type(uint128).max);
         ephy = bound(ephy, 1, type(uint128).max);
 
-        (address stealth,) = registry.generateStealthAddress(ephx, ephy, 100, 200, 300, 400);
+        (address stealth, ) = registry.generateStealthAddress(
+            ephx,
+            ephy,
+            100,
+            200,
+            300,
+            400
+        );
         assertTrue(stealth != address(0));
     }
 }
@@ -138,7 +169,11 @@ contract GasOptimizedNullifierManagerTest is Test {
         bytes32 sourceDomain = keccak256("domA");
         bytes32 targetDomain = keccak256("domB");
 
-        bytes32 derived = manager.deriveCrossDomainNullifier(source, sourceDomain, targetDomain);
+        bytes32 derived = manager.deriveCrossDomainNullifier(
+            source,
+            sourceDomain,
+            targetDomain
+        );
         assertTrue(derived != source);
         assertTrue(derived != bytes32(0));
     }
@@ -204,7 +239,13 @@ contract GasOptimizedRingCTTest is Test {
 
         // Ring size < MIN_RING_SIZE (2)
         vm.expectRevert();
-        ringCT.processRingCT(inputs, outputs, keyImages, "", keccak256("pseudo"));
+        ringCT.processRingCT(
+            inputs,
+            outputs,
+            keyImages,
+            "",
+            keccak256("pseudo")
+        );
     }
 
     function test_batchVerifyRingCT() public {
