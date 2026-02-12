@@ -21,18 +21,11 @@ const CONFIG = {
     treasury: process.env.MULTISIG_TREASURY || "0x0000000000000000000000000000000000000000",
   },
   
-  // Timelock delays
+  // Timelock delays (for future governance deployment)
   timelock: {
     minDelay: 48 * 60 * 60, // 48 hours
     emergencyDelay: 6 * 60 * 60, // 6 hours
     gracePeriod: 7 * 24 * 60 * 60, // 7 days
-  },
-  
-  // Token configuration
-  token: {
-    name: "Soul Token",
-    symbol: "Soul",
-    initialSupply: ethers.parseEther("5000000"), // 5M for liquidity
   },
   
   // Deployment order matters for dependencies
@@ -43,9 +36,7 @@ const CONFIG = {
     "ExecutionAgnosticStateCommitments",
     "CrossDomainNullifierAlgebra",
     "Soulv2Orchestrator",
-    "SoulTimelock",
-    "SoulToken",
-    "SoulGovernance",
+    // TODO: Add SoulGovernor deployment once governance token + timelock contracts are implemented
   ],
 };
 
@@ -97,19 +88,10 @@ async function main() {
     deployedAddresses.CrossDomainNullifierAlgebra,
   ]);
   
-  // 4. Deploy Timelock
-  await deployContract("SoulTimelock", [
-    CONFIG.timelock.minDelay,
-    [], // proposers - will be set via multi-sig
-    [], // executors - will be set via multi-sig
-    deployer.address, // admin (transferred to multi-sig later)
-  ]);
-  
-  // 5. Deploy Token
-  await deployContract("SoulToken", [deployer.address]);
-  
-  // 6. Deploy Governance
-  await deployContract("SoulGovernance", [deployedAddresses.SoulToken]);
+  // TODO: Deploy governance stack once SoulToken + SoulTimelock contracts are implemented
+  // - Deploy SoulToken (ERC-5805 voting token)
+  // - Deploy SoulTimelock (TimelockController)
+  // - Deploy SoulGovernor(token, timelock, votingDelay, votingPeriod, proposalThreshold, quorumPercentage)
   
   // Post-deployment configuration
   console.log("\n⚙️  Post-Deployment Configuration...\n");

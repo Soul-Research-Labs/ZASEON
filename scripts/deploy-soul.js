@@ -13,13 +13,9 @@ const path = require("path");
  * - ExecutionAgnosticStateCommitments (EASC)
  * - CrossDomainNullifierAlgebra (CDNA)
  * - Soulv2Orchestrator (Integration layer)
- * - SoulTimelock (Time-locked admin)
- * - TimelockAdmin (Admin wrapper)
  */
 
 const DEPLOYMENT_LOG_DIR = "./deployments";
-const TIMELOCK_MIN_DELAY = 48 * 3600; // 48 hours
-const TIMELOCK_EMERGENCY_DELAY = 6 * 3600; // 6 hours
 
 async function main() {
     console.log("\n" + "=".repeat(80));
@@ -64,30 +60,6 @@ async function main() {
         await groth16Verifier.waitForDeployment();
         deployed.contracts.groth16VerifierBN254 = await groth16Verifier.getAddress();
         console.log("   ✅ Groth16VerifierBN254:", deployed.contracts.groth16VerifierBN254);
-
-        // 2b. Deploy PLONKVerifier
-        console.log("\n2️⃣b Deploying PLONKVerifier...");
-        const PLONKVerifier = await ethers.getContractFactory("PLONKVerifier");
-        const plonkVerifier = await PLONKVerifier.deploy();
-        await plonkVerifier.waitForDeployment();
-        deployed.contracts.plonkVerifier = await plonkVerifier.getAddress();
-        console.log("   ✅ PLONKVerifier:", deployed.contracts.plonkVerifier);
-
-        // 2c. Deploy FRIVerifier
-        console.log("\n2️⃣c Deploying FRIVerifier...");
-        const FRIVerifier = await ethers.getContractFactory("FRIVerifier");
-        const friVerifier = await FRIVerifier.deploy();
-        await friVerifier.waitForDeployment();
-        deployed.contracts.friVerifier = await friVerifier.getAddress();
-        console.log("   ✅ FRIVerifier:", deployed.contracts.friVerifier);
-
-        // 2d. Deploy TEEAttestation
-        console.log("\n2️⃣d Deploying TEEAttestation...");
-        const TEEAttestation = await ethers.getContractFactory("TEEAttestation");
-        const teeAttestation = await TEEAttestation.deploy();
-        await teeAttestation.waitForDeployment();
-        deployed.contracts.teeAttestation = await teeAttestation.getAddress();
-        console.log("   ✅ TEEAttestation:", deployed.contracts.teeAttestation);
 
         // ============================================
         // PHASE 2: Soul v2 Primitives
@@ -145,48 +117,9 @@ async function main() {
         console.log("   ✅ Soulv2Orchestrator:", deployed.contracts.soulv2Orchestrator);
 
         // ============================================
-        // PHASE 4: Security (Timelock)
+        // PHASE 4: Configuration
         // ============================================
-        console.log("\n📦 PHASE 4: Security (Timelock)\n");
-
-        // Get proposer/executor addresses (use deployer for testnet)
-        const proposerAddr = proposer ? proposer.address : deployer.address;
-        const executorAddr = executor ? executor.address : deployer.address;
-
-        // 8. Deploy SoulTimelock
-        console.log("8️⃣  Deploying SoulTimelock...");
-        const SoulTimelock = await ethers.getContractFactory("SoulTimelock");
-        const timelock = await SoulTimelock.deploy(
-            TIMELOCK_MIN_DELAY,        // minDelay
-            TIMELOCK_EMERGENCY_DELAY,  // emergencyDelay
-            1,                         // requiredConfirmations (1 for testnet)
-            [proposerAddr],            // proposers
-            [executorAddr],            // executors
-            deployer.address           // admin
-        );
-        await timelock.waitForDeployment();
-        deployed.contracts.soulTimelock = await timelock.getAddress();
-        console.log("   ✅ SoulTimelock:", deployed.contracts.soulTimelock);
-        console.log("      Min Delay:", TIMELOCK_MIN_DELAY / 3600, "hours");
-
-        // 9. Deploy TimelockAdmin
-        console.log("\n9️⃣  Deploying TimelockAdmin...");
-        const TimelockAdmin = await ethers.getContractFactory("TimelockAdmin");
-        const timelockAdmin = await TimelockAdmin.deploy(
-            deployed.contracts.pilTimelock,
-            deployed.contracts.proofCarryingContainer,
-            deployed.contracts.policyBoundProofs,
-            deployed.contracts.executionAgnosticStateCommitments,
-            deployed.contracts.crossDomainNullifierAlgebra
-        );
-        await timelockAdmin.waitForDeployment();
-        deployed.contracts.timelockAdmin = await timelockAdmin.getAddress();
-        console.log("   ✅ TimelockAdmin:", deployed.contracts.timelockAdmin);
-
-        // ============================================
-        // PHASE 5: Configuration
-        // ============================================
-        console.log("\n📦 PHASE 5: Configuration\n");
+        console.log("\n📦 PHASE 4: Configuration\n");
 
         // Configure VerifierRegistry - register the BN254 verifier
         console.log("🔧 Configuring VerifierRegistry...");
@@ -212,9 +145,9 @@ async function main() {
         console.log("   ✅ Orchestrator granted VERIFIER_ROLE");
 
         // ============================================
-        // PHASE 6: Verification
+        // PHASE 5: Contract Verification
         // ============================================
-        console.log("\n📦 PHASE 6: Contract Verification\n");
+        console.log("\n📦 PHASE 5: Contract Verification\n");
 
         if (network.name !== "hardhat" && network.name !== "localhost") {
             console.log("⏳ Waiting for block confirmations before verification...");
@@ -235,23 +168,6 @@ async function main() {
                         deployed.contracts.policyBoundProofs,
                         deployed.contracts.executionAgnosticStateCommitments,
                         deployed.contracts.crossDomainNullifierAlgebra
-                    ]
-                },
-                {
-                    address: deployed.contracts.soulTimelock,
-                    name: "SoulTimelock",
-                    args: [TIMELOCK_MIN_DELAY, [proposerAddr], [executorAddr], deployer.address]
-                },
-                {
-                    address: deployed.contracts.timelockAdmin,
-                    name: "TimelockAdmin",
-                    args: [
-                        deployed.contracts.soulTimelock,
-                        deployed.contracts.proofCarryingContainer,
-                        deployed.contracts.policyBoundProofs,
-                        deployed.contracts.executionAgnosticStateCommitments,
-                        deployed.contracts.crossDomainNullifierAlgebra,
-                        deployed.contracts.soulv2Orchestrator
                     ]
                 }
             ];
@@ -277,9 +193,9 @@ async function main() {
         }
 
         // ============================================
-        // PHASE 7: Save Deployment
+        // PHASE 6: Save Deployment
         // ============================================
-        console.log("\n📦 PHASE 7: Save Deployment\n");
+        console.log("\n📦 PHASE 6: Save Deployment\n");
 
         // Ensure deployments directory exists
         if (!fs.existsSync(DEPLOYMENT_LOG_DIR)) {
