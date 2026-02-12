@@ -265,8 +265,9 @@ contracts/           # Production Solidity contracts
 
 noir/                # Noir ZK circuits (shielded_pool, nullifiers, transfers, etc.)
 sdk/                 # TypeScript SDK (viem-based clients)
+sdk/experimental/    # Experimental modules (fhe, pqc, mpc, recursive, zkSystems)
 certora/             # Formal verification specs (CVL)
-test/                # Foundry + Hardhat tests
+test/                # Foundry + Hardhat tests (2298 passing)
 scripts/             # Deployment scripts
 ```
 
@@ -295,6 +296,7 @@ npx hardhat run scripts/deploy.js --network localhost
 | `ProofCarryingContainer` | PC³ - Self-authenticating containers with embedded proofs |
 | `ZKBoundStateLocks` | Cross-chain state locks unlocked by ZK proofs |
 | `CrossDomainNullifierAlgebra` | Domain-separated nullifiers with composability |
+| `VerifierRegistryV2` | Multi-circuit verifier registry with versioned adapters |
 
 ### Privacy Middleware
 
@@ -357,13 +359,25 @@ Soul provides adapters for major cross-chain messaging:
 | `SecurityModule.sol` | Core security primitives |
 
 
-### Verification
+### Testing & Verification
+
+**2298 tests passing** across unit, integration, fuzz, and property-based testing.
 
 ```bash
-npm run certora      # Formal verification
-npm run security:all # Full security suite
-npm run security:mutation # Mutation testing
+forge test -vv                              # All tests (2298 passing)
+forge test --match-path "test/fuzz/*"        # Fuzz tests
+forge test --match-path "test/verifiers/*"   # Verifier registry + adapter tests
+forge test --match-path "test/upgradeable/*" # UUPS proxy tests
+npm run certora                              # Formal verification (Certora CVL)
 ```
+
+| Tool | Purpose |
+|------|--------|
+| Foundry fuzz | Property-based fuzzing (10k+ runs per test) |
+| Certora CVL | Formal verification specs for core contracts |
+| Halmos | Symbolic execution for formal tests |
+| Echidna | Stateful property testing |
+| Gambit | Mutation testing |
 
 ## SDK
 
@@ -468,6 +482,8 @@ await feeMarket.submitRelayRequest(1, 42161, proofData, deadline, fee);
 | Sepolia | 11155111 | ✅ Live |
 | Arbitrum Sepolia | 421614 | 🔄 Planned |
 | Base Sepolia | 84532 | 🔄 Planned |
+
+> **Note:** Experimental modules (`fhe`, `pqc`, `mpc`, `recursive`, `zkSystems`) have been moved to `@soul/sdk/experimental`. Import from `@soul/sdk/experimental` to use them. See [sdk/experimental/README.md](sdk/experimental/README.md) for details.
 
 See [sdk/README.md](sdk/README.md) for full documentation.
 

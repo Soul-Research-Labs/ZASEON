@@ -144,3 +144,4 @@ storybook-static/
 temp_cache/
 tools/
 reports/
+nohup.out
