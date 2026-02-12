@@ -33,14 +33,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * │                           │                                             │
  * │  ┌────────────────────────┼────────────────────────────────────────┐   │
  * │  │                   Bridge Adapters                                │   │
- * │  │                                                                  │   │
- * │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │   │
- * │  │  │ Monero  │ │  Zcash  │ │ Secret  │ │  Oasis  │ │ Railgun │  │   │
- * │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │   │
- * │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │   │
- * │  │  │Tornado  │ │Midnight │ │ Canton  │ │ Brevis  │ │  Aztec  │  │   │
- * │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │   │
- * │  │  ... (30+ more adapters)                                      │   │
+ * │  │  Arbitrum · Optimism · Base · LayerZero · Hyperlane             │   │
  * │  └──────────────────────────────────────────────────────────────┘   │
  * └─────────────────────────────────────────────────────────────────────────┘
  *
@@ -48,16 +41,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * 1. Stealth Addresses - One-time addresses for each transfer
  * 2. Ring Confidential Transactions - Amount hiding with decoys
  * 3. Cross-Domain Nullifiers - Double-spend prevention across chains
- * 4. ZK Proof Verification - Multiple proof systems supported
- * 5. Encrypted Metadata - TEE support
- *
- * SUPPORTED CHAINS (41+):
- * - Privacy Chains: Monero, Zcash, Secret, Oasis, Railgun, Tornado, Midnight
- * - L2 Rollups: Arbitrum, Optimism, Base, zkSync, Scroll, Linea, Polygon zkEVM
- * - Alt L1s: Solana, Avalanche, Cosmos, Polkadot, NEAR, Cardano, Sui, Aptos, Sei
- * - Bitcoin Ecosystem: Bitcoin, Alpen (BitVM), Lightning
- * - Enterprise: Canton, Provenance, Hyperliquid
- * - Data Availability: Celestia
+ * 4. ZK Proof Verification - Groth16, Noir UltraHonk
+ * 5. Encrypted Metadata - Privacy-preserving proofs
  */
 contract CrossChainPrivacyHub is
     Initializable,
@@ -265,37 +250,6 @@ contract CrossChainPrivacyHub is
     mapping(ProofSystem => address) public proofVerifiers;
 
     // =========================================================================
-    // PRIVACY MODULE INTEGRATIONS
-    // =========================================================================
-
-    /// @notice Soul Protocol Hub for component discovery
-    address public soulProtocolHub;
-
-    /// @notice MLSAG ring signature module
-    address public mlsagSignatures;
-
-    /// @notice Ring Confidential Transactions module
-    address public ringConfidentialTransactions;
-
-    /// @notice Mixnet node registry for onion routing
-    address public mixnetNodeRegistry;
-
-    /// @notice Decoy traffic generator for metadata resistance
-    address public decoyTrafficGenerator;
-
-    /// @notice Gas normalizer for constant gas transactions
-    address public gasNormalizer;
-
-    /// @notice Stealth address registry for private receiving addresses
-    address public stealthRegistry;
-
-    /// @notice Private relayer network for transaction submission
-    address public privateRelayerNetwork;
-
-    /// @notice Compliance module for policy checking
-    address public complianceModule;
-
-    // =========================================================================
     // EVENTS
     // =========================================================================
 
@@ -495,107 +449,6 @@ contract CrossChainPrivacyHub is
         config.dailyLimit = dailyLimit;
 
         emit AdapterUpdated(chainId, config.adapter, isActive);
-    }
-
-    // =========================================================================
-    // PRIVACY MODULE SETTERS
-    // =========================================================================
-
-    /**
-     * @notice Set Soul Protocol Hub address
-     * @param _hub The SoulProtocolHub address
-     */
-    function setSoulProtocolHub(address _hub) external onlyRole(OPERATOR_ROLE) {
-        if (_hub == address(0)) revert ZeroAddress();
-        soulProtocolHub = _hub;
-    }
-
-    /**
-     * @notice Set MLSAG signatures module
-     * @param _module The MLSAGSignatures contract address
-     */
-    function setMLSAGSignatures(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_module == address(0)) revert ZeroAddress();
-        mlsagSignatures = _module;
-    }
-
-    /**
-     * @notice Set Ring Confidential Transactions module
-     * @param _module The RingConfidentialTransactions contract address
-     */
-    function setRingConfidentialTransactions(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_module == address(0)) revert ZeroAddress();
-        ringConfidentialTransactions = _module;
-    }
-
-    /**
-     * @notice Set Mixnet Node Registry
-     * @param _registry The MixnetNodeRegistry contract address
-     */
-    function setMixnetNodeRegistry(
-        address _registry
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_registry == address(0)) revert ZeroAddress();
-        mixnetNodeRegistry = _registry;
-    }
-
-    /**
-     * @notice Set Decoy Traffic Generator
-     * @param _generator The DecoyTrafficGenerator contract address
-     */
-    function setDecoyTrafficGenerator(
-        address _generator
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_generator == address(0)) revert ZeroAddress();
-        decoyTrafficGenerator = _generator;
-    }
-
-    /**
-     * @notice Set Gas Normalizer for constant gas transactions
-     * @param _normalizer The GasNormalizer contract address
-     */
-    function setGasNormalizer(
-        address _normalizer
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_normalizer == address(0)) revert ZeroAddress();
-        gasNormalizer = _normalizer;
-    }
-
-    /**
-     * @notice Set Stealth Address Registry
-     * @param _registry The StealthAddressRegistry contract address
-     */
-    function setStealthRegistry(
-        address _registry
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_registry == address(0)) revert ZeroAddress();
-        stealthRegistry = _registry;
-    }
-
-    /**
-     * @notice Set Private Relayer Network
-     * @param _network The PrivateRelayerNetwork contract address
-     */
-    function setPrivateRelayerNetwork(
-        address _network
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_network == address(0)) revert ZeroAddress();
-        privateRelayerNetwork = _network;
-    }
-
-    /**
-     * @notice Set Compliance Module
-     * @param _module The compliance module contract address
-     */
-    function setComplianceModule(
-        address _module
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_module == address(0)) revert ZeroAddress();
-        complianceModule = _module;
     }
 
     // =========================================================================
