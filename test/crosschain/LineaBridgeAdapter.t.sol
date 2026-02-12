@@ -16,10 +16,7 @@ contract MockLineaMessageService {
         lastFee = fee;
     }
 
-    function claimMessage(
-        uint256,
-        bytes32[] calldata
-    ) external {
+    function claimMessage(uint256, bytes32[] calldata) external {
         // success
     }
 }
@@ -28,9 +25,7 @@ contract MockLineaMessageService {
 contract MockLineaRollup {
     uint256 public currentL2BlockNumber;
 
-    constructor(
-        uint256 _block
-    ) {
+    constructor(uint256 _block) {
         currentL2BlockNumber = _block;
     }
 }
@@ -61,7 +56,12 @@ contract LineaBridgeAdapterTest is Test {
         msgService = new MockLineaMessageService();
         rollup = new MockLineaRollup(12_345);
 
-        adapter = new LineaBridgeAdapter(address(msgService), tokenBridge, address(rollup), admin);
+        adapter = new LineaBridgeAdapter(
+            address(msgService),
+            tokenBridge,
+            address(rollup),
+            admin
+        );
 
         vm.startPrank(admin);
         adapter.grantRole(OPERATOR_ROLE, operator);
@@ -87,7 +87,12 @@ contract LineaBridgeAdapterTest is Test {
 
     function test_constructor_revert_zeroAdmin() public {
         vm.expectRevert("Invalid admin");
-        new LineaBridgeAdapter(address(msgService), tokenBridge, address(rollup), address(0));
+        new LineaBridgeAdapter(
+            address(msgService),
+            tokenBridge,
+            address(rollup),
+            address(0)
+        );
     }
 
     function test_constructor_revert_zeroMessageService() public {
@@ -150,8 +155,16 @@ contract LineaBridgeAdapterTest is Test {
     function test_configureLineaBridge_emitsEvent() public {
         vm.prank(operator);
         vm.expectEmit(false, false, false, true);
-        emit LineaBridgeAdapter.BridgeConfigured(makeAddr("s"), makeAddr("t"), makeAddr("r"));
-        adapter.configureLineaBridge(makeAddr("s"), makeAddr("t"), makeAddr("r"));
+        emit LineaBridgeAdapter.BridgeConfigured(
+            makeAddr("s"),
+            makeAddr("t"),
+            makeAddr("r")
+        );
+        adapter.configureLineaBridge(
+            makeAddr("s"),
+            makeAddr("t"),
+            makeAddr("r")
+        );
     }
 
     function test_configureLineaBridge_revert_zeroMessageService() public {
@@ -163,7 +176,11 @@ contract LineaBridgeAdapterTest is Test {
     function test_configureLineaBridge_revert_notOperator() public {
         vm.prank(relayer);
         vm.expectRevert();
-        adapter.configureLineaBridge(makeAddr("s"), makeAddr("t"), makeAddr("r"));
+        adapter.configureLineaBridge(
+            makeAddr("s"),
+            makeAddr("t"),
+            makeAddr("r")
+        );
     }
 
     function test_setSoulHubL2() public {
@@ -199,7 +216,11 @@ contract LineaBridgeAdapterTest is Test {
 
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(target, data, 0.001 ether);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            target,
+            data,
+            0.001 ether
+        );
 
         assertTrue(msgHash != bytes32(0));
         assertEq(adapter.messageNonce(), 1);
@@ -208,7 +229,7 @@ contract LineaBridgeAdapterTest is Test {
     function test_sendMessage_defaultFee() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"aa", 0);
         // fee defaults to DEFAULT_MESSAGE_FEE = 0.001 ether
         assertEq(msgService.lastFee(), 0.001 ether);
     }
@@ -216,7 +237,11 @@ contract LineaBridgeAdapterTest is Test {
     function test_sendMessage_customFee() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        adapter.sendMessage{ value: 0.05 ether }(makeAddr("t"), hex"aa", 0.005 ether);
+        adapter.sendMessage{value: 0.05 ether}(
+            makeAddr("t"),
+            hex"aa",
+            0.005 ether
+        );
         assertEq(msgService.lastFee(), 0.005 ether);
     }
 
@@ -224,7 +249,11 @@ contract LineaBridgeAdapterTest is Test {
         address target = makeAddr("target");
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(target, hex"aabb", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            target,
+            hex"aabb",
+            0
+        );
 
         (
             LineaBridgeAdapter.MessageStatus status,
@@ -243,8 +272,8 @@ contract LineaBridgeAdapterTest is Test {
     function test_sendMessage_incrementsNonce() public {
         vm.deal(operator, 10 ether);
         vm.startPrank(operator);
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"bb", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"bb", 0);
         vm.stopPrank();
         assertEq(adapter.messageNonce(), 2);
     }
@@ -253,7 +282,7 @@ contract LineaBridgeAdapterTest is Test {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
         vm.expectRevert("Invalid target");
-        adapter.sendMessage{ value: 0.01 ether }(address(0), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(address(0), hex"aa", 0);
     }
 
     function test_sendMessage_revert_dataTooLarge() public {
@@ -261,21 +290,25 @@ contract LineaBridgeAdapterTest is Test {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
         vm.expectRevert("Data too large");
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), bigData, 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), bigData, 0);
     }
 
     function test_sendMessage_revert_insufficientFee() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
         vm.expectRevert("Insufficient fee");
-        adapter.sendMessage{ value: 0.0001 ether }(makeAddr("t"), hex"aa", 0.01 ether);
+        adapter.sendMessage{value: 0.0001 ether}(
+            makeAddr("t"),
+            hex"aa",
+            0.01 ether
+        );
     }
 
     function test_sendMessage_revert_notOperator() public {
         vm.deal(relayer, 1 ether);
         vm.prank(relayer);
         vm.expectRevert();
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"aa", 0);
     }
 
     function test_sendMessage_revert_whenPaused() public {
@@ -285,18 +318,22 @@ contract LineaBridgeAdapterTest is Test {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
         vm.expectRevert();
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"aa", 0);
     }
 
     function test_sendMessage_revert_serviceFailure() public {
         FailingMessageService failSvc = new FailingMessageService();
         vm.prank(operator);
-        adapter.configureLineaBridge(address(failSvc), tokenBridge, address(rollup));
+        adapter.configureLineaBridge(
+            address(failSvc),
+            tokenBridge,
+            address(rollup)
+        );
 
         vm.deal(operator, 1 ether);
         vm.prank(operator);
         vm.expectRevert("MessageService call failed");
-        adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
+        adapter.sendMessage{value: 0.01 ether}(makeAddr("t"), hex"aa", 0);
     }
 
     // ── claimMessage
@@ -306,31 +343,47 @@ contract LineaBridgeAdapterTest is Test {
         // Send first
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aabb", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"aabb",
+            0
+        );
 
         // Claim
         bytes32[] memory merkle = new bytes32[](1);
         merkle[0] = bytes32(uint256(42));
-        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter.ClaimProof({
-            messageNumber: 100, leafIndex: 0, merkleProof: merkle
-        });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({
+                messageNumber: 100,
+                leafIndex: 0,
+                merkleProof: merkle
+            });
 
         vm.prank(relayer);
         adapter.claimMessage(msgHash, proof);
 
-        (LineaBridgeAdapter.MessageStatus status,,,,) = adapter.messages(msgHash);
-        assertEq(uint8(status), uint8(LineaBridgeAdapter.MessageStatus.CLAIMED));
+        (LineaBridgeAdapter.MessageStatus status, , , , ) = adapter.messages(
+            msgHash
+        );
+        assertEq(
+            uint8(status),
+            uint8(LineaBridgeAdapter.MessageStatus.CLAIMED)
+        );
         assertTrue(adapter.processedMessages(100));
     }
 
     function test_claimMessage_emitsEvent() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aabb", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"aabb",
+            0
+        );
 
         bytes32[] memory merkle = new bytes32[](0);
-        LineaBridgeAdapter.ClaimProof memory proof =
-            LineaBridgeAdapter.ClaimProof({ messageNumber: 50, leafIndex: 0, merkleProof: merkle });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({messageNumber: 50, leafIndex: 0, merkleProof: merkle});
 
         vm.prank(relayer);
         vm.expectEmit(true, true, false, true);
@@ -340,8 +393,8 @@ contract LineaBridgeAdapterTest is Test {
 
     function test_claimMessage_revert_invalidState() public {
         bytes32[] memory merkle = new bytes32[](0);
-        LineaBridgeAdapter.ClaimProof memory proof =
-            LineaBridgeAdapter.ClaimProof({ messageNumber: 1, leafIndex: 0, merkleProof: merkle });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({messageNumber: 1, leafIndex: 0, merkleProof: merkle});
 
         vm.prank(relayer);
         vm.expectRevert("Invalid message state");
@@ -351,18 +404,26 @@ contract LineaBridgeAdapterTest is Test {
     function test_claimMessage_revert_alreadyClaimed() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aabb", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"aabb",
+            0
+        );
 
         bytes32[] memory merkle = new bytes32[](0);
-        LineaBridgeAdapter.ClaimProof memory proof =
-            LineaBridgeAdapter.ClaimProof({ messageNumber: 10, leafIndex: 0, merkleProof: merkle });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({messageNumber: 10, leafIndex: 0, merkleProof: merkle});
 
         vm.prank(relayer);
         adapter.claimMessage(msgHash, proof);
 
         // re-send same messageNumber with different msgHash
         vm.prank(operator);
-        bytes32 msgHash2 = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"ccdd", 0);
+        bytes32 msgHash2 = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"ccdd",
+            0
+        );
         vm.prank(relayer);
         vm.expectRevert("Already claimed");
         adapter.claimMessage(msgHash2, proof);
@@ -371,11 +432,15 @@ contract LineaBridgeAdapterTest is Test {
     function test_claimMessage_revert_notRelayer() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aa", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"aa",
+            0
+        );
 
         bytes32[] memory merkle = new bytes32[](0);
-        LineaBridgeAdapter.ClaimProof memory proof =
-            LineaBridgeAdapter.ClaimProof({ messageNumber: 1, leafIndex: 0, merkleProof: merkle });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({messageNumber: 1, leafIndex: 0, merkleProof: merkle});
 
         vm.prank(operator);
         vm.expectRevert();
@@ -392,11 +457,15 @@ contract LineaBridgeAdapterTest is Test {
     function test_verifyMessage_claimedMessage() public {
         vm.deal(operator, 1 ether);
         vm.prank(operator);
-        bytes32 msgHash = adapter.sendMessage{ value: 0.01 ether }(makeAddr("t"), hex"aabb", 0);
+        bytes32 msgHash = adapter.sendMessage{value: 0.01 ether}(
+            makeAddr("t"),
+            hex"aabb",
+            0
+        );
 
         bytes32[] memory merkle = new bytes32[](0);
-        LineaBridgeAdapter.ClaimProof memory proof =
-            LineaBridgeAdapter.ClaimProof({ messageNumber: 5, leafIndex: 0, merkleProof: merkle });
+        LineaBridgeAdapter.ClaimProof memory proof = LineaBridgeAdapter
+            .ClaimProof({messageNumber: 5, leafIndex: 0, merkleProof: merkle});
         vm.prank(relayer);
         adapter.claimMessage(msgHash, proof);
 
@@ -411,8 +480,12 @@ contract LineaBridgeAdapterTest is Test {
     }
 
     function test_getLastFinalizedBlock_zeroRollup() public {
-        LineaBridgeAdapter a2 =
-            new LineaBridgeAdapter(address(msgService), tokenBridge, address(0), admin);
+        LineaBridgeAdapter a2 = new LineaBridgeAdapter(
+            address(msgService),
+            tokenBridge,
+            address(0),
+            admin
+        );
         assertEq(a2.getLastFinalizedBlock(), 0);
     }
 
@@ -461,7 +534,7 @@ contract LineaBridgeAdapterTest is Test {
     function test_receiveETH() public {
         vm.deal(admin, 1 ether);
         vm.prank(admin);
-        (bool ok,) = address(adapter).call{ value: 0.5 ether }("");
+        (bool ok, ) = address(adapter).call{value: 0.5 ether}("");
         assertTrue(ok);
         assertEq(address(adapter).balance, 0.5 ether);
     }
@@ -469,13 +542,15 @@ contract LineaBridgeAdapterTest is Test {
     // ── Fuzz
     // ─────────────────────────────────────────────────────
 
-    function testFuzz_sendMessage_fees(
-        uint256 fee
-    ) public {
+    function testFuzz_sendMessage_fees(uint256 fee) public {
         fee = bound(fee, 0.001 ether, 1 ether);
         vm.deal(operator, 10 ether);
         vm.prank(operator);
-        bytes32 hash = adapter.sendMessage{ value: fee }(makeAddr("t"), hex"aa", fee);
+        bytes32 hash = adapter.sendMessage{value: fee}(
+            makeAddr("t"),
+            hex"aa",
+            fee
+        );
         assertTrue(hash != bytes32(0));
     }
 }

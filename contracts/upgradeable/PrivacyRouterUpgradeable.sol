@@ -10,6 +10,21 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
+/// @notice Minimal interface for SoulProtocolHub address resolution
+interface ISoulProtocolHubUpgradeable {
+    function shieldedPool() external view returns (address);
+
+    function crossChainPrivacyHub() external view returns (address);
+
+    function stealthAddressRegistry() external view returns (address);
+
+    function nullifierManager() external view returns (address);
+
+    function complianceOracle() external view returns (address);
+
+    function proofTranslator() external view returns (address);
+}
+
 /**
  * @title PrivacyRouterUpgradeable
  * @author Soul Protocol
@@ -44,6 +59,20 @@ contract PrivacyRouterUpgradeable is
     bytes32 public constant EMERGENCY_ROLE =
         0xbf233dd2aafeb4d50879c4aa5c81e96d92f6e6945c906a58f9f2d1c1631b4b26;
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    /*//////////////////////////////////////////////////////////////
+                      PRE-COMPUTED NAME HASHES
+    //////////////////////////////////////////////////////////////*/
+
+    bytes32 private constant _SHIELDED_POOL_HASH = keccak256("shieldedPool");
+    bytes32 private constant _CROSS_CHAIN_HUB_HASH = keccak256("crossChainHub");
+    bytes32 private constant _STEALTH_REGISTRY_HASH =
+        keccak256("stealthRegistry");
+    bytes32 private constant _NULLIFIER_MANAGER_HASH =
+        keccak256("nullifierManager");
+    bytes32 private constant _COMPLIANCE_HASH = keccak256("compliance");
+    bytes32 private constant _PROOF_TRANSLATOR_HASH =
+        keccak256("proofTranslator");
 
     /*//////////////////////////////////////////////////////////////
                                 TYPES
@@ -155,6 +184,9 @@ contract PrivacyRouterUpgradeable is
 
     event ComponentUpdated(string name, address newAddress);
     event ComplianceToggled(bool enabled);
+    event MinimumKYCTierUpdated(uint8 oldTier, uint8 newTier);
+    event ETHWithdrawn(address indexed to, uint256 amount);
+    event SyncedFromHub(address indexed hub);
     event ContractUpgraded(
         uint256 indexed oldVersion,
         uint256 indexed newVersion
@@ -193,6 +225,12 @@ contract PrivacyRouterUpgradeable is
         address _proofTranslator
     ) external initializer {
         if (_admin == address(0)) revert ZeroAddress();
+        if (_shieldedPool == address(0)) revert ZeroAddress();
+        if (_crossChainHub == address(0)) revert ZeroAddress();
+        if (_stealthRegistry == address(0)) revert ZeroAddress();
+        if (_nullifierManager == address(0)) revert ZeroAddress();
+        if (_compliance == address(0)) revert ZeroAddress();
+        if (_proofTranslator == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
         __ReentrancyGuard_init();
@@ -470,18 +508,38 @@ contract PrivacyRouterUpgradeable is
         if (addr == address(0)) revert ZeroAddress();
 
         bytes32 nameHash = keccak256(bytes(name));
-        if (nameHash == keccak256("shieldedPool")) shieldedPool = addr;
-        else if (nameHash == keccak256("crossChainHub")) crossChainHub = addr;
-        else if (nameHash == keccak256("stealthRegistry"))
-            stealthRegistry = addr;
-        else if (nameHash == keccak256("nullifierManager"))
-            nullifierManager = addr;
-        else if (nameHash == keccak256("compliance")) compliance = addr;
-        else if (nameHash == keccak256("proofTranslator"))
-            proofTranslator = addr;
+        if (nameHash == _SHIELDED_POOL_HASH) shieldedPool = addr;
+        else if (nameHash == _CROSS_CHAIN_HUB_HASH) crossChainHub = addr;
+        else if (nameHash == _STEALTH_REGISTRY_HASH) stealthRegistry = addr;
+        else if (nameHash == _NULLIFIER_MANAGER_HASH) nullifierManager = addr;
+        else if (nameHash == _COMPLIANCE_HASH) compliance = addr;
+        else if (nameHash == _PROOF_TRANSLATOR_HASH) proofTranslator = addr;
         else revert InvalidParams();
 
         emit ComponentUpdated(name, addr);
+    }
+
+    /// @notice Sync all component addresses from SoulProtocolHub
+    function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
+        if (hub == address(0)) revert ZeroAddress();
+        ISoulProtocolHubUpgradeable h = ISoulProtocolHubUpgradeable(hub);
+
+        address _shieldedPool = h.shieldedPool();
+        address _crossChainHub = h.crossChainPrivacyHub();
+        address _stealthRegistry = h.stealthAddressRegistry();
+        address _nullifierManager = h.nullifierManager();
+        address _compliance = h.complianceOracle();
+        address _proofTranslator = h.proofTranslator();
+
+        if (_shieldedPool != address(0)) shieldedPool = _shieldedPool;
+        if (_crossChainHub != address(0)) crossChainHub = _crossChainHub;
+        if (_stealthRegistry != address(0)) stealthRegistry = _stealthRegistry;
+        if (_nullifierManager != address(0))
+            nullifierManager = _nullifierManager;
+        if (_compliance != address(0)) compliance = _compliance;
+        if (_proofTranslator != address(0)) proofTranslator = _proofTranslator;
+
+        emit SyncedFromHub(hub);
     }
 
     function setComplianceEnabled(
@@ -492,7 +550,21 @@ contract PrivacyRouterUpgradeable is
     }
 
     function setMinimumKYCTier(uint8 tier) external onlyRole(OPERATOR_ROLE) {
+        uint8 oldTier = minimumKYCTier;
         minimumKYCTier = tier;
+        emit MinimumKYCTierUpdated(oldTier, tier);
+    }
+
+    /// @notice Withdraw ETH accidentally sent to this contract
+    function withdrawETH(
+        address payable to
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert ZeroAddress();
+        uint256 balance = address(this).balance;
+        if (balance == 0) revert ZeroAmount();
+        (bool success, ) = to.call{value: balance}("");
+        if (!success) revert OperationFailed("ETH withdrawal failed");
+        emit ETHWithdrawn(to, balance);
     }
 
     function pause() external onlyRole(EMERGENCY_ROLE) {

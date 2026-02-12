@@ -51,10 +51,9 @@ This report documents the comprehensive security audit performed on the Soul Pro
 | SoulUpgradeTimelock | `contracts/governance/SoulUpgradeTimelock.sol` | ~600 | High |
 | BridgeWatchtower | `contracts/security/BridgeWatchtower.sol` | ~650 | High |
 | SoulProtocolHub | `contracts/core/SoulProtocolHub.sol` | ~1,005 | High |
-| SoulIntentResolver | `contracts/crosschain/SoulIntentResolver.sol` | ~480 | Medium |
 | SoulL2Messenger | `contracts/crosschain/SoulL2Messenger.sol` | ~520 | Medium |
 
-> **Note:** `SoulMultiSigGovernance`, `SoulPreconfirmationHandler`, `ConfidentialDataAvailability`, and `MPCGateway` were removed during Q1 2026 cleanup. MPC functionality was replaced by threshold signature support in `SoulProtocolHub`.
+> **Note:** `SoulMultiSigGovernance`, `SoulPreconfirmationHandler`, `SoulIntentResolver`, `ConfidentialDataAvailability`, and `MPCGateway` were removed during Q1 2026 cleanup. MPC functionality was replaced by threshold signature support in `SoulProtocolHub`.
 
 ---
 
@@ -324,7 +323,7 @@ Added `ReentrancyGuard` inheritance and `nonReentrant` modifier to both function
 ### High Vulnerabilities (4)
 
 #### P2-H-1 to P2-H-3: Deprecated `.transfer()` Usage
-**Contracts:** SoulPreconfirmationHandler, SoulIntentResolver, SoulL2Messenger  
+**Contracts:** SoulL2Messenger (SoulPreconfirmationHandler, SoulIntentResolver removed)  
 **Severity:** High  
 **Status:** ✅ Fixed
 

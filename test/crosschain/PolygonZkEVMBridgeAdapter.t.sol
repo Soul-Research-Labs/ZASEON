@@ -21,8 +21,13 @@ contract PolygonZkEVMBridgeAdapterTest is Test {
     bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     function setUp() public {
-        adapter =
-            new PolygonZkEVMBridgeAdapter(bridge, globalExitRoot, polygonZkEVM, networkId, admin);
+        adapter = new PolygonZkEVMBridgeAdapter(
+            bridge,
+            globalExitRoot,
+            polygonZkEVM,
+            networkId,
+            admin
+        );
     }
 
     // ── Constructor
@@ -68,7 +73,11 @@ contract PolygonZkEVMBridgeAdapterTest is Test {
 
     function test_isConfigured_zeroBridge() public {
         PolygonZkEVMBridgeAdapter a2 = new PolygonZkEVMBridgeAdapter(
-            address(0), globalExitRoot, polygonZkEVM, networkId, admin
+            address(0),
+            globalExitRoot,
+            polygonZkEVM,
+            networkId,
+            admin
         );
         assertFalse(a2.isConfigured());
     }

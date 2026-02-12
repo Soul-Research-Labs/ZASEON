@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IProofVerifier.sol";
-import "../verifiers/VerifierRegistry.sol";
+import "../verifiers/VerifierRegistryV2.sol";
 
 /// @title ProofCarryingContainerUpgradeable (PC³)
 /// @author Soul Protocol - Soul v2
@@ -101,8 +101,8 @@ contract ProofCarryingContainerUpgradeable is
     /// @notice Minimum proof size for validity
     uint256 public constant MIN_PROOF_SIZE = 256;
 
-    /// @notice Verifier registry for proof verification
-    VerifierRegistry public verifierRegistry;
+    /// @notice Verifier registry for proof verification (V2 with CircuitType enum)
+    VerifierRegistryV2 public verifierRegistry;
 
     /// @notice Whether to use real verification
     bool public useRealVerification;
@@ -337,24 +337,26 @@ contract ProofCarryingContainerUpgradeable is
             result.validityValid = _verifyWithRegistry(
                 proofs.validityProof,
                 container.stateCommitment,
-                verifierRegistry.VALIDITY_PROOF()
+                VerifierRegistryV2.CircuitType.STATE_TRANSFER
             );
             result.policyValid =
                 container.policyHash == bytes32(0) ||
                 _verifyWithRegistry(
                     proofs.policyProof,
                     container.policyHash,
-                    verifierRegistry.POLICY_PROOF()
+                    VerifierRegistryV2.CircuitType.POLICY
                 );
             result.nullifierValid = _verifyWithRegistry(
                 proofs.nullifierProof,
                 container.nullifier,
-                verifierRegistry.NULLIFIER_PROOF()
+                VerifierRegistryV2.CircuitType.NULLIFIER
             );
         } else {
             // No real verification configured — reject all proofs
             // Call setRealVerification(true) and setVerifierRegistry() to enable
-            revert("Real verification not enabled: configure VerifierRegistry");
+            revert(
+                "Real verification not enabled: configure VerifierRegistryV2"
+            );
         }
 
         if (!result.validityValid) {
@@ -405,13 +407,13 @@ contract ProofCarryingContainerUpgradeable is
     function _verifyWithRegistry(
         bytes memory proof,
         bytes32 publicInput,
-        bytes32 proofType
+        VerifierRegistryV2.CircuitType circuitType
     ) internal view returns (bool valid) {
         try
-            verifierRegistry.verifySingleInput(
-                proofType,
+            verifierRegistry.verify(
+                circuitType,
                 proof,
-                uint256(publicInput)
+                abi.encode(uint256(publicInput))
             )
         returns (bool result) {
             return result;
@@ -483,7 +485,7 @@ contract ProofCarryingContainerUpgradeable is
         address _registry
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         address oldRegistry = address(verifierRegistry);
-        verifierRegistry = VerifierRegistry(_registry);
+        verifierRegistry = VerifierRegistryV2(_registry);
         emit VerifierRegistryUpdated(oldRegistry, _registry);
     }
 

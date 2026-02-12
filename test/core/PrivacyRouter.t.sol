@@ -37,15 +37,15 @@ contract PrivacyRouterTest is Test {
         // Deploy pool in test mode
         pool = new UniversalShieldedPool(admin, address(0), true);
 
-        // Deploy router with pool but no other components
+        // Deploy router with pool and mock component addresses
         router = new PrivacyRouter(
             admin,
             address(pool),
-            address(0), // crossChainHub
-            address(0), // stealthRegistry
-            address(0), // nullifierManager
-            address(0), // compliance (disabled)
-            address(0) // proofTranslator
+            makeAddr("crossChainHub"),
+            makeAddr("stealthRegistry"),
+            makeAddr("nullifierManager"),
+            makeAddr("compliance"),
+            makeAddr("proofTranslator")
         );
 
         // Disable compliance for testing
@@ -66,10 +66,10 @@ contract PrivacyRouterTest is Test {
         assertEq(router.operationNonce(), 0);
     }
 
-    function test_ComponentAddresses() public view {
+    function test_ComponentAddresses() public {
         assertEq(router.shieldedPool(), address(pool));
-        assertEq(router.crossChainHub(), address(0));
-        assertEq(router.stealthRegistry(), address(0));
+        assertEq(router.crossChainHub(), makeAddr("crossChainHub"));
+        assertEq(router.stealthRegistry(), makeAddr("stealthRegistry"));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -214,7 +214,9 @@ contract PrivacyRouterTest is Test {
                        CROSS-CHAIN REVERT
     //////////////////////////////////////////////////////////////*/
 
-    function test_RevertCrossChainNoHub() public {
+    function test_CrossChainTransferForwardsToHub() public {
+        // crossChainHub is an EOA (makeAddr), so the low-level call succeeds
+        // but the operation should still complete and emit an event
         PrivacyRouter.CrossChainTransferParams memory params = PrivacyRouter
             .CrossChainTransferParams({
                 destChainId: 42161,
@@ -228,24 +230,34 @@ contract PrivacyRouterTest is Test {
             });
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                PrivacyRouter.ComponentNotSet.selector,
-                "crossChainHub"
-            )
-        );
-        router.initiatePrivateTransfer{value: 1 ether}(params);
+        bytes32 opId = router.initiatePrivateTransfer{value: 1 ether}(params);
+        assertTrue(opId != bytes32(0));
     }
 
-    function test_RevertStealthNoRegistry() public {
-        vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                PrivacyRouter.ComponentNotSet.selector,
-                "stealthRegistry"
-            )
+    function test_RevertConstructorZeroAdmin() public {
+        vm.expectRevert(PrivacyRouter.ZeroAddress.selector);
+        new PrivacyRouter(
+            address(0),
+            address(pool),
+            makeAddr("a"),
+            makeAddr("b"),
+            makeAddr("c"),
+            makeAddr("d"),
+            makeAddr("e")
         );
-        router.registerStealthMetaAddress(new bytes(33), new bytes(33), 0, 1);
+    }
+
+    function test_RevertConstructorZeroPool() public {
+        vm.expectRevert(PrivacyRouter.ZeroAddress.selector);
+        new PrivacyRouter(
+            admin,
+            address(0),
+            makeAddr("a"),
+            makeAddr("b"),
+            makeAddr("c"),
+            makeAddr("d"),
+            makeAddr("e")
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

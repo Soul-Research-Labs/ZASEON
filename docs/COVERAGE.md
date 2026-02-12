@@ -1,6 +1,6 @@
 # Soul Protocol - Coverage Tracking
 
-> **Last Updated:** June 2025  
+> **Last Updated:** February 2026  
 > **Coverage Tool:** Forge + Python Stub System
 
 ---

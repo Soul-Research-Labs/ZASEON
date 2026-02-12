@@ -10,7 +10,7 @@ import {IPrivacyIntegration} from "../interfaces/IPrivacyIntegration.sol";
  * @title CorePrivacyIntegration
  * @author Soul Protocol
  * @notice Core implementation of IPrivacyIntegration unifying stealth addresses, ring signatures, and nullifiers
- * @dev Integrates with StealthAddressRegistry, RingConfidentialTransactions, and UnifiedNullifierManager
+ * @dev Integrates with StealthAddressRegistry, ring signature verification, and UnifiedNullifierManager
  *
  * ARCHITECTURE:
  * ┌─────────────────────────────────────────────────────────────────────────────────┐

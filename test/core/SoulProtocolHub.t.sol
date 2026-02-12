@@ -283,6 +283,42 @@ contract SoulProtocolHubTest is Test {
         hub.setStealthAddressRegistry(address(0));
     }
 
+    function test_SetShieldedPool() public {
+        address pool = makeAddr("shieldedPool");
+        vm.prank(operator);
+        hub.setShieldedPool(pool);
+        assertEq(hub.shieldedPool(), pool);
+    }
+
+    function test_SetNullifierManager() public {
+        address mgr = makeAddr("nullifierManager");
+        vm.prank(operator);
+        hub.setNullifierManager(mgr);
+        assertEq(hub.nullifierManager(), mgr);
+    }
+
+    function test_SetComplianceOracle() public {
+        address oracle = makeAddr("complianceOracle");
+        vm.prank(operator);
+        hub.setComplianceOracle(oracle);
+        assertEq(hub.complianceOracle(), oracle);
+    }
+
+    function test_SetProofTranslator() public {
+        address translator = makeAddr("proofTranslator");
+        vm.prank(operator);
+        hub.setProofTranslator(translator);
+        assertEq(hub.proofTranslator(), translator);
+    }
+
+    function test_RevertShieldedPoolZeroAddress() public {
+        vm.prank(operator);
+        vm.expectRevert(
+            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+        );
+        hub.setShieldedPool(address(0));
+    }
+
     /*//////////////////////////////////////////////////////////////
                     SECURITY MODULE REGISTRATION
     //////////////////////////////////////////////////////////////*/

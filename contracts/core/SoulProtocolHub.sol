@@ -150,6 +150,10 @@ contract SoulProtocolHub is AccessControl, Pausable {
     address public stealthAddressRegistry;
     address public privateRelayerNetwork;
     address public viewKeyRegistry;
+    address public shieldedPool;
+    address public nullifierManager;
+    address public complianceOracle;
+    address public proofTranslator;
 
     // ============ Security ============
 
@@ -502,6 +506,48 @@ contract SoulProtocolHub is AccessControl, Pausable {
         if (_module == address(0)) revert ZeroAddress();
         viewKeyRegistry = _module;
         emit PrivacyModuleRegistered("VIEW_KEY_REGISTRY", _module);
+    }
+
+    /**
+     * @notice Set Shielded Pool
+     */
+    function setShieldedPool(address _module) external onlyRole(OPERATOR_ROLE) {
+        if (_module == address(0)) revert ZeroAddress();
+        shieldedPool = _module;
+        emit PrivacyModuleRegistered("SHIELDED_POOL", _module);
+    }
+
+    /**
+     * @notice Set Nullifier Manager
+     */
+    function setNullifierManager(
+        address _module
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_module == address(0)) revert ZeroAddress();
+        nullifierManager = _module;
+        emit PrivacyModuleRegistered("NULLIFIER_MANAGER", _module);
+    }
+
+    /**
+     * @notice Set Compliance Oracle
+     */
+    function setComplianceOracle(
+        address _module
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_module == address(0)) revert ZeroAddress();
+        complianceOracle = _module;
+        emit PrivacyModuleRegistered("COMPLIANCE_ORACLE", _module);
+    }
+
+    /**
+     * @notice Set Proof Translator
+     */
+    function setProofTranslator(
+        address _module
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_module == address(0)) revert ZeroAddress();
+        proofTranslator = _module;
+        emit PrivacyModuleRegistered("PROOF_TRANSLATOR", _module);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -83,7 +83,6 @@ This document provides a comprehensive threat model for the Soul Protocol (Soul)
 - `SoulUpgradeTimelock.sol`
 - `BridgeWatchtower.sol`
 - `SoulProtocolHub.sol`
-- `SoulIntentResolver.sol`
 - `SoulL2Messenger.sol`
 
 **Mitigations**:
@@ -188,7 +187,7 @@ bytes32 nullifier = keccak256(abi.encodePacked(
 
 **Mitigations**:
 - ✅ User-provided entropy required in ZK-SLocks
-- ✅ VDF-based randomness beacon (SoulVDF)
+- ✅ VDF-based randomness beacon (planned)
 - ✅ Commit-reveal schemes for sensitive operations
 
 ### 4.3 Cross-Chain Attacks
@@ -320,7 +319,7 @@ Emergency Action → Guardian Signatures (M of N) → Timelock (24-72h) → Exec
 | Control | Implementation | Coverage |
 |---------|---------------|----------|
 | Event Logging | Comprehensive events | All state changes |
-| Monitoring | NetworkHealthMonitor | System-wide |
+| Monitoring | Event logging + OZ Defender | System-wide |
 | Static Analysis | Slither | All contracts |
 | Fuzzing | Echidna harnesses | Core contracts |
 
@@ -375,8 +374,8 @@ The following conditions should trigger immediate incident response:
 
 | Component | Description | Severity | Status |
 |-----------|-------------|----------|--------|
-| Ring Signature Verifier | `GasOptimizedPrivacy.sol` ring signature verification (line ~652) uses a placeholder verifier that always reverts with `"Ring signature verification not yet implemented"`. This is a **feature gap**, not a vulnerability — no funds are at risk since the function cannot succeed. | Low | Tracked — pending Noir circuit toolchain upgrade (nargo 1.0 incompatibility with poseidon crate) |
-| Noir Circuit Compilation | All 20 Noir circuits fail to compile with nargo 1.0.0-beta.18 due to `poseidon` crate incompatibility. Existing 8 generated Solidity verifiers (created with older nargo) remain valid and functional. | Informational | Blocked on toolchain — see `noir/README.md` |
+| Ring Signature Verifier | `GasOptimizedPrivacy.sol` ring signature verification (line ~652) uses a placeholder verifier that always reverts with `"Ring signature verification not yet implemented"`. This is a **feature gap**, not a vulnerability — no funds are at risk since the function cannot succeed. | Low | Tracked — pending dedicated Noir ring signature circuit |
+| Noir Circuit Compilation | All 20 Noir circuits compile successfully after February 2026 migration from external `poseidon` crate to `std::hash::poseidon::bn254`. Existing 8 generated Solidity verifiers remain valid. | Informational | Resolved — see `noir/README.md` |
 
 ---
 
@@ -387,8 +386,8 @@ The following conditions should trigger immediate incident response:
 | Tool | Findings | Critical | High | Medium | Low |
 |------|----------|----------|------|--------|-----|
 | Slither | 9 | 0 | 0 | 2 | 7 |
-| Hardhat Tests | 59/59 | N/A | N/A | N/A | N/A |
-| Fuzzing Tests | 14/14 | N/A | N/A | N/A | N/A |
+| Foundry Tests | 2243/2243 | N/A | N/A | N/A | N/A |
+| Fuzz Tests | 150+ | N/A | N/A | N/A | N/A |
 
 ### 9.2 Contact Information
 

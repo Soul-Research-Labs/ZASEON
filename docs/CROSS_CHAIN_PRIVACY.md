@@ -76,7 +76,6 @@ contracts/crosschain/
 ├── LayerZeroAdapter.sol           # LayerZero V2 OApp
 ├── DirectL2Messenger.sol          # Direct L2-to-L2 messaging
 ├── EthereumL1Bridge.sol           # L1 state commitments
-├── SoulIntentResolver.sol         # ERC-7683 cross-chain intents
 ├── SoulL2Messenger.sol            # RIP-7755 L2 messaging
 └── L2ChainAdapter.sol             # Generic L2 chain adapter
 
@@ -186,7 +185,9 @@ interface IStealthAddressRegistry {
 }
 ```
 
-### 3. RingConfidentialTransactions
+### 3. RingConfidentialTransactions (Experimental)
+
+> **Note:** RingCT is in the research phase. The interface below shows the target API. Implementation uses Groth16 proofs for production privacy.
 
 Monero-style RingCT with CLSAG signatures.
 

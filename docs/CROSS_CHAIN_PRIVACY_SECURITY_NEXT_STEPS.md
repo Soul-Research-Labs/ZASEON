@@ -32,8 +32,8 @@ This document consolidates ALL next steps for cross-chain privacy and security i
 
 | Item | File | Description |
 |------|------|-------------|
-| Homomorphic Balance Verifier | `contracts/privacy/HomomorphicBalanceVerifier.sol` | Pedersen commitments with Bulletproof+ |
-| MLSAG Signatures | `contracts/privacy/MLSAGSignatures.sol` | Multi-layered ring signatures |
+| Homomorphic Balance Verifier | `contracts/privacy/HomomorphicBalanceVerifier.sol` | Pedersen commitments with Bulletproof+ (research-tier, not yet deployed) |
+| MLSAG Signatures | `contracts/privacy/MLSAGSignatures.sol` | Multi-layered ring signatures (research-tier, not yet deployed) |
 | Recursive Proof Aggregator | `contracts/experimental/privacy/RecursiveProofAggregator.sol` | Nova/Groth16/PLONK aggregation (experimental) |
 | Private Relayer Network | `contracts/experimental/privacy/PrivateRelayerNetwork.sol` | Stake-based privacy relayers (experimental) |
 | View Key Registry | `contracts/privacy/ViewKeyRegistry.sol` | Selective disclosure management |
@@ -69,9 +69,9 @@ This document consolidates ALL next steps for cross-chain privacy and security i
 
 All privacy contracts have been hardened with:
 - View tag validation in StealthAddressRegistry
-- Range proof length checks in RingConfidentialTransactions
+- Range proof length checks in RingConfidentialTransactions (experimental)
 - Domain salt and registration checks in UnifiedNullifierManager
-- Additional validation in HomomorphicBalanceVerifier and MLSAGSignatures
+- Additional validation in HomomorphicBalanceVerifier and MLSAGSignatures (research-tier)
 
 ### Priority 3: Missing Test Coverage ✅ COMPLETED
 

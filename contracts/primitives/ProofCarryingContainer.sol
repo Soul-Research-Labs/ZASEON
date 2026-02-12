@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "../interfaces/IProofVerifier.sol";
-import "../verifiers/VerifierRegistry.sol";
+import "../verifiers/VerifierRegistryV2.sol";
 
 /// @title ProofCarryingContainer (PC³)
 /// @author Soul Protocol - Soul v2
@@ -114,8 +114,8 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Minimum proof size for validity
     uint256 public constant MIN_PROOF_SIZE = 256;
 
-    /// @notice Verifier registry for proof verification
-    VerifierRegistry public verifierRegistry;
+    /// @notice Verifier registry for proof verification (V2 with CircuitType enum)
+    VerifierRegistryV2 public verifierRegistry;
 
     /// @notice Whether to use real verification (true = production mode, false = testing only)
     /// @dev SECURITY: Defaults to true. Only set to false in test environments.
@@ -345,19 +345,19 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
             result.validityValid = _verifyWithRegistry(
                 proofs.validityProof,
                 container.stateCommitment,
-                verifierRegistry.VALIDITY_PROOF()
+                VerifierRegistryV2.CircuitType.STATE_TRANSFER
             );
             result.policyValid =
                 container.policyHash == bytes32(0) ||
                 _verifyWithRegistry(
                     proofs.policyProof,
                     container.policyHash,
-                    verifierRegistry.POLICY_PROOF()
+                    VerifierRegistryV2.CircuitType.POLICY
                 );
             result.nullifierValid = _verifyWithRegistry(
                 proofs.nullifierProof,
                 container.nullifier,
-                verifierRegistry.NULLIFIER_PROOF()
+                VerifierRegistryV2.CircuitType.NULLIFIER
             );
         } else {
             // Test mode: validate proof format only (non-empty proofs)
@@ -446,7 +446,7 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
             bool sourceValid = _verifyWithRegistry(
                 sourceChainProof,
                 sourceHash,
-                verifierRegistry.VALIDITY_PROOF()
+                VerifierRegistryV2.CircuitType.STATE_TRANSFER
             );
             if (!sourceValid) {
                 revert InvalidProofBundle();
@@ -553,21 +553,21 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
         return keccak256(abi.encodePacked(stateCommitment, nullifier, chainId));
     }
 
-    /// @notice Verify a proof using the verifier registry
+    /// @notice Verify a proof using the verifier registry V2
     /// @param proof The proof bytes
     /// @param publicInput The public input (as bytes32)
-    /// @param proofType The type of proof being verified (bytes32 constant)
+    /// @param circuitType The circuit type for verification
     /// @return valid Whether the proof is valid
     function _verifyWithRegistry(
         bytes memory proof,
         bytes32 publicInput,
-        bytes32 proofType
+        VerifierRegistryV2.CircuitType circuitType
     ) internal view returns (bool valid) {
         try
-            verifierRegistry.verifySingleInput(
-                proofType,
+            verifierRegistry.verify(
+                circuitType,
                 proof,
-                uint256(publicInput)
+                abi.encode(uint256(publicInput))
             )
         returns (bool result) {
             return result;
@@ -578,7 +578,7 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     }
 
     // NOTE: _validateProofStructure was removed in Phase 3.
-    // All verification now requires real SNARK verifiers via VerifierRegistry
+    // All verification now requires real SNARK verifiers via VerifierRegistryV2
     // or uses MIN_PROOF_SIZE length checks when useRealVerification == false.
 
     /*//////////////////////////////////////////////////////////////
@@ -648,13 +648,13 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
         proofValidityWindow = window;
     }
 
-    /// @notice Set the verifier registry
+    /// @notice Set the verifier registry (V2)
     /// @param _registry The new verifier registry address
     function setVerifierRegistry(
         address _registry
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         address oldRegistry = address(verifierRegistry);
-        verifierRegistry = VerifierRegistry(_registry);
+        verifierRegistry = VerifierRegistryV2(_registry);
         emit VerifierRegistryUpdated(oldRegistry, _registry);
     }
 
