@@ -33,6 +33,10 @@
       "import": "./dist/esm/cli/index.js",
       "require": "./dist/cli/index.js",
       "types": "./dist/cli/index.d.ts"
+    },
+    "./experimental": {
+      "import": "../experimental/index.ts",
+      "types": "../experimental/index.ts"
     }
   },
   "scripts": {

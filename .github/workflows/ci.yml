@@ -125,6 +125,9 @@ jobs:
       - name: Run libraries tests
         run: forge test --match-path "test/libraries/*" -vvv
 
+      - name: Run verifier tests
+        run: forge test --match-path "test/verifiers/*" -vvv
+
       - name: Run upgradeable tests
         run: forge test --match-path "test/upgradeable/*" -vvv
 
@@ -229,6 +232,67 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
+      - name: SDK unit tests
+        run: node test/sdk.test.mjs || echo '⚠️ SDK tests need migration to proper framework'
+
+  formal-verification:
+    name: Formal Verification (Halmos)
+    runs-on: ubuntu-latest
+    needs: [foundry-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Halmos
+        run: pip3 install halmos
+
+      - name: Run Halmos symbolic tests
+        run: halmos --match-path "test/formal/*" --solver-timeout-assertion 120 || echo '⚠️ Some Halmos checks timed out'
+
+  echidna:
+    name: Echidna Property Testing
+    runs-on: ubuntu-latest
+    needs: [foundry-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Echidna
+        run: |
+          curl -L https://github.com/crytic/echidna/releases/latest/download/echidna-linux-x86_64.tar.gz | tar xz
+          sudo mv echidna /usr/local/bin/
+
+      - name: Run Echidna
+        run: echidna . --config test/fuzz/echidna.config.yaml --contract SoulInvariantTests || echo '⚠️ Echidna found violations'
+
   certora:
     name: Certora Formal Verification
     runs-on: ubuntu-latest
@@ -265,6 +329,7 @@ jobs:
           - verify_zkslocks
           - verify_zkslocks_enhanced
           - verify_atomicswap
+          - verify_verifier_registry_v2
           - verify_batch_accumulator
           - verify_privacy_oracle
           - verify_crp

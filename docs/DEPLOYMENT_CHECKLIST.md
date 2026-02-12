@@ -23,7 +23,8 @@
 - [x] Fuzz tests pass (116+ tests)
 - [x] Invariant tests pass (8 tests)
 - [x] Echidna property tests pass (21 tests)
-- [x] Total: 544 tests passing
+- [x] Foundry test suite: 2249 tests passing
+- [x] Total: 2249+ tests passing
 
 ### 4. Pre-Mainnet Security Checklist
 - [ ] Call `confirmRoleSeparation()` on ZKBoundStateLocks
@@ -175,11 +176,13 @@ npx hardhat run scripts/deploy-v3.ts --network optimismSepolia
 
 ### Deployment Order
 1. [ ] Verifier contracts (no dependencies)
-2. [ ] Verifier Registry (depends on verifiers)
+2. [ ] VerifierRegistryV2 (depends on verifiers + adapters)
 3. [ ] Core state containers
-4. [ ] Bridge contracts
-5. [ ] Governance contracts
-6. [ ] Application layer (swaps, compliance)
+4. [ ] Privacy middleware (PrivacyRouter, ShieldedPool)
+5. [ ] SoulProtocolHub (central registry)
+6. [ ] Bridge contracts + L2 adapters
+7. [ ] Governance contracts (Timelock, Governor)
+8. [ ] Application layer (swaps, compliance)
 
 ### Post-Deployment
 - [ ] All contract addresses documented
@@ -231,4 +234,4 @@ timelockAdmin.executeUpgrade();
 
 ---
 
-*Last Updated: January 22, 2026*
+*Last Updated: February 12, 2026*

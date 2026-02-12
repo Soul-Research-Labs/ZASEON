@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use `SoulProtocolClient` from `./SoulProtocolClient` instead.
+ * This client is retained for backward compatibility and will be removed in v2.0.
+ * SoulProtocolClient provides a superset of SoulClient functionality including
+ * ZK locks, cross-chain transfers, and Noir prover integration.
+ */
 import { 
     PublicClient, 
     WalletClient, 

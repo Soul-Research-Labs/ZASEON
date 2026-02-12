@@ -1,6 +1,11 @@
 /**
  * Soul Privacy SDK — Unified Client
  *
+ * @deprecated This class is orphaned and duplicates functionality already provided
+ * by the individually-exported `PrivacyRouterClient`, `ShieldedPoolClient`, and
+ * `RelayerFeeMarketClient`. Use those clients instead, or use `SoulProtocolClient`
+ * as the single main entry point. This file will be removed in v2.0.
+ *
  * Combines all privacy middleware clients (ShieldedPool, PrivacyRouter,
  * RelayerFeeMarket) into a single developer-facing SDK.
  *

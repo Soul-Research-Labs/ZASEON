@@ -89,9 +89,13 @@ export function createCrossChainOrchestrator(
 
 /**
  * Default contract addresses for different networks
+ *
+ * ⚠️ WARNING: Mainnet and testnet addresses are placeholders (zero addresses).
+ * They must be populated after deployment using scripts/deploy/populate-sdk-addresses.ts.
+ * Use `verifyAddressesConfigured()` from `@soul/sdk` to validate before production use.
  */
 export const NETWORK_CONFIGS: Record<string, PrivacyHubConfig> = {
-    // Mainnet (placeholder addresses)
+    // Mainnet (NOT DEPLOYED — zero addresses)
     mainnet: {
         hubAddress: '0x0000000000000000000000000000000000000000',
         stealthRegistryAddress: '0x0000000000000000000000000000000000000000',
