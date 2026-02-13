@@ -503,15 +503,14 @@ contract ZKSLockIntegrationTest is Test {
         vm.expectEmit(true, true, false, true);
         emit NullifierBound(lockIdVal, NULLIFIER, DOMAIN_ID);
 
-        (bytes32 lockId, bytes32 nullifier) = integration
-            .createCrossDomainLock(
-                STATE_COMMITMENT,
-                TRANSITION_HASH,
-                DOMAIN_ID,
-                COMMITMENT_HASH,
-                POLICY_HASH,
-                USER_ENTROPY
-            );
+        (bytes32 lockId, bytes32 nullifier) = integration.createCrossDomainLock(
+            STATE_COMMITMENT,
+            TRANSITION_HASH,
+            DOMAIN_ID,
+            COMMITMENT_HASH,
+            POLICY_HASH,
+            USER_ENTROPY
+        );
 
         assertEq(lockId, lockIdVal);
         assertEq(nullifier, NULLIFIER);
@@ -570,8 +569,8 @@ contract ZKSLockIntegrationTest is Test {
         mockZkSlocks.queueLockId(lockIdVal);
         mockZkSlocks.setNextNullifier(NULLIFIER);
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -597,8 +596,8 @@ contract ZKSLockIntegrationTest is Test {
         mockZkSlocks.queueLockId(lockIdVal);
         mockZkSlocks.setNextNullifier(NULLIFIER);
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -633,8 +632,8 @@ contract ZKSLockIntegrationTest is Test {
             NULLIFIER
         );
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -651,8 +650,8 @@ contract ZKSLockIntegrationTest is Test {
     function test_createAtomicLock_revert_integrationDisabled() public {
         integration.setIntegrationEnabled(false);
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -668,8 +667,8 @@ contract ZKSLockIntegrationTest is Test {
     }
 
     function test_createAtomicLock_revert_zeroEntropy() public {
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -699,8 +698,8 @@ contract ZKSLockIntegrationTest is Test {
             NULLIFIER
         );
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -718,8 +717,8 @@ contract ZKSLockIntegrationTest is Test {
         mockZkSlocks.queueLockId(keccak256("noCdna"));
         mockZkSlocks.setNextNullifier(NULLIFIER);
 
-        ZKSLockIntegration.AtomicLockParams
-            memory params = ZKSLockIntegration.AtomicLockParams({
+        ZKSLockIntegration.AtomicLockParams memory params = ZKSLockIntegration
+            .AtomicLockParams({
                 stateCommitment: STATE_COMMITMENT,
                 transitionPredicateHash: TRANSITION_HASH,
                 policyBinding: POLICY_HASH,
@@ -831,12 +830,8 @@ contract ZKSLockIntegrationTest is Test {
             0
         );
 
-        (
-            ,
-            bytes32 containerId,
-            bytes32 nullifier,
-            bool isLocked
-        ) = integration.getLockInfo(expectedId);
+        (, bytes32 containerId, bytes32 nullifier, bool isLocked) = integration
+            .getLockInfo(expectedId);
 
         assertEq(containerId, CONTAINER_ID);
         assertEq(nullifier, bytes32(0)); // no nullifier for container lock
@@ -938,24 +933,23 @@ contract ZKSLockIntegrationTest is Test {
         assertEq(integration.containerToLock(containerId), lockId);
     }
 
-    function testFuzz_createCrossDomainLock(
-        bytes32 entropy
-    ) public {
+    function testFuzz_createCrossDomainLock(bytes32 entropy) public {
         vm.assume(entropy != bytes32(0));
 
         bytes32 lockIdVal = keccak256(abi.encode("fuzzLock", entropy));
         mockZkSlocks.queueLockId(lockIdVal);
-        mockZkSlocks.setNextNullifier(keccak256(abi.encode("fuzzNull", entropy)));
+        mockZkSlocks.setNextNullifier(
+            keccak256(abi.encode("fuzzNull", entropy))
+        );
 
-        (bytes32 lockId, bytes32 nullifier) = integration
-            .createCrossDomainLock(
-                STATE_COMMITMENT,
-                TRANSITION_HASH,
-                DOMAIN_ID,
-                COMMITMENT_HASH,
-                POLICY_HASH,
-                entropy
-            );
+        (bytes32 lockId, bytes32 nullifier) = integration.createCrossDomainLock(
+            STATE_COMMITMENT,
+            TRANSITION_HASH,
+            DOMAIN_ID,
+            COMMITMENT_HASH,
+            POLICY_HASH,
+            entropy
+        );
 
         assertEq(lockId, lockIdVal);
         assertEq(integration.lockToNullifier(lockId), nullifier);
