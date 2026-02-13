@@ -25,12 +25,18 @@ contract GeneratedVerifiersTest is Test {
     address public shieldedAddr;
     address public swapAddr;
 
+    // Full UltraHonk verifiers (deployed via vm.getCode to avoid identifier collision)
+    address public privateTransferAddr;
+    address public crossDomainNullifierAddr;
+
     // verify(bytes,bytes32[]) selector
     bytes4 constant VERIFY_SEL = bytes4(keccak256("verify(bytes,bytes32[])"));
     // StubVerifierNotDeployed() error selector
     bytes4 constant STUB_ERROR = bytes4(keccak256("StubVerifierNotDeployed()"));
 
-    function _deployContract(string memory path) internal returns (address addr) {
+    function _deployContract(
+        string memory path
+    ) internal returns (address addr) {
         bytes memory code = vm.getCode(path);
         assembly {
             addr := create(0, add(code, 0x20), mload(code))
@@ -40,16 +46,42 @@ contract GeneratedVerifiersTest is Test {
 
     function setUp() public {
         accredited = new AccreditedInvestorVerifier();
-        aggregatorAddr = _deployContract("AggregatorVerifier.sol:AggregatorVerifier");
-        balanceAddr = _deployContract("BalanceProofVerifier.sol:BalanceProofVerifier");
-        complianceAddr = _deployContract("ComplianceProofVerifier.sol:ComplianceProofVerifier");
-        encryptedAddr = _deployContract("EncryptedTransferVerifier.sol:EncryptedTransferVerifier");
-        merkleAddr = _deployContract("MerkleProofVerifier.sol:MerkleProofVerifier");
-        pedersenAddr = _deployContract("PedersenCommitmentVerifier.sol:PedersenCommitmentVerifier");
-        policyBoundAddr = _deployContract("PolicyBoundProofVerifier.sol:PolicyBoundProofVerifier");
-        sanctionsAddr = _deployContract("SanctionsCheckVerifier.sol:SanctionsCheckVerifier");
-        shieldedAddr = _deployContract("ShieldedPoolVerifier.sol:ShieldedPoolVerifier");
+        aggregatorAddr = _deployContract(
+            "AggregatorVerifier.sol:AggregatorVerifier"
+        );
+        balanceAddr = _deployContract(
+            "BalanceProofVerifier.sol:BalanceProofVerifier"
+        );
+        complianceAddr = _deployContract(
+            "ComplianceProofVerifier.sol:ComplianceProofVerifier"
+        );
+        encryptedAddr = _deployContract(
+            "EncryptedTransferVerifier.sol:EncryptedTransferVerifier"
+        );
+        merkleAddr = _deployContract(
+            "MerkleProofVerifier.sol:MerkleProofVerifier"
+        );
+        pedersenAddr = _deployContract(
+            "PedersenCommitmentVerifier.sol:PedersenCommitmentVerifier"
+        );
+        policyBoundAddr = _deployContract(
+            "PolicyBoundProofVerifier.sol:PolicyBoundProofVerifier"
+        );
+        sanctionsAddr = _deployContract(
+            "SanctionsCheckVerifier.sol:SanctionsCheckVerifier"
+        );
+        shieldedAddr = _deployContract(
+            "ShieldedPoolVerifier.sol:ShieldedPoolVerifier"
+        );
         swapAddr = _deployContract("SwapProofVerifier.sol:SwapProofVerifier");
+
+        // Full UltraHonk verifiers
+        privateTransferAddr = _deployContract(
+            "PrivateTransferVerifier.sol:PrivateTransferVerifier"
+        );
+        crossDomainNullifierAddr = _deployContract(
+            "CrossDomainNullifierVerifier.sol:CrossDomainNullifierVerifier"
+        );
     }
 
     /* ──── Deployment ──── */
@@ -68,11 +100,18 @@ contract GeneratedVerifiersTest is Test {
         assertTrue(swapAddr != address(0));
     }
 
+    function test_honkVerifiers_deployable() public view {
+        assertTrue(privateTransferAddr != address(0));
+        assertTrue(crossDomainNullifierAddr != address(0));
+    }
+
     /* ──── Stub Reverts (direct import) ──── */
 
     function test_accreditedInvestor_stubReverts() public {
         bytes32[] memory inputs = new bytes32[](0);
-        vm.expectRevert(AccreditedInvestorVerifier.StubVerifierNotDeployed.selector);
+        vm.expectRevert(
+            AccreditedInvestorVerifier.StubVerifierNotDeployed.selector
+        );
         accredited.verify("", inputs);
     }
 
@@ -89,7 +128,9 @@ contract GeneratedVerifiersTest is Test {
         // Check custom error selector
         assertGe(returnData.length, 4);
         bytes4 errorSel;
-        assembly { errorSel := mload(add(returnData, 32)) }
+        assembly {
+            errorSel := mload(add(returnData, 32))
+        }
         assertEq(errorSel, STUB_ERROR, "Wrong error selector");
     }
 
@@ -139,7 +180,60 @@ contract GeneratedVerifiersTest is Test {
         bytes32[] memory inputs = new bytes32[](1);
         inputs[0] = keccak256(proof);
 
-        vm.expectRevert(AccreditedInvestorVerifier.StubVerifierNotDeployed.selector);
+        vm.expectRevert(
+            AccreditedInvestorVerifier.StubVerifierNotDeployed.selector
+        );
         accredited.verify(proof, inputs);
+    }
+
+    /* ──── Full UltraHonk verifiers: reject empty/invalid proofs ──── */
+
+    function test_privateTransfer_rejectsEmptyProof() public {
+        bytes32[] memory inputs = new bytes32[](32); // NUMBER_OF_PUBLIC_INPUTS = 32
+        for (uint256 i = 0; i < 32; i++) inputs[i] = bytes32(uint256(i + 1));
+
+        // Call verify — should revert or return false (proof too short)
+        (bool ok, bytes memory ret) = privateTransferAddr.call(
+            abi.encodeWithSelector(VERIFY_SEL, hex"dead", inputs)
+        );
+        // Either reverts or returns false
+        if (ok) {
+            bool verified = abi.decode(ret, (bool));
+            assertFalse(verified, "Should not verify invalid proof");
+        }
+        // If !ok, it reverted which is also acceptable
+    }
+
+    function test_crossDomainNullifier_rejectsEmptyProof() public {
+        bytes32[] memory inputs = new bytes32[](26); // NUMBER_OF_PUBLIC_INPUTS = 26
+        for (uint256 i = 0; i < 26; i++) inputs[i] = bytes32(uint256(i + 1));
+
+        (bool ok, bytes memory ret) = crossDomainNullifierAddr.call(
+            abi.encodeWithSelector(VERIFY_SEL, hex"dead", inputs)
+        );
+        if (ok) {
+            bool verified = abi.decode(ret, (bool));
+            assertFalse(verified, "Should not verify invalid proof");
+        }
+    }
+
+    function test_privateTransfer_rejectsWrongInputCount() public {
+        bytes32[] memory inputs = new bytes32[](1); // Wrong count (expects 32)
+        inputs[0] = bytes32(uint256(1));
+
+        (bool ok, ) = privateTransferAddr.call(
+            abi.encodeWithSelector(VERIFY_SEL, hex"", inputs)
+        );
+        assertFalse(ok, "Should revert with wrong input count");
+    }
+
+    function test_crossDomainNullifier_rejectsWrongInputCount() public {
+        bytes32[] memory inputs = new bytes32[](1); // Wrong count (expects 26)
+        inputs[0] = bytes32(uint256(1));
+
+        (bool ok, ) = crossDomainNullifierAddr.call(
+            abi.encodeWithSelector(VERIFY_SEL, hex"", inputs)
+        );
+        assertFalse(ok, "Should revert with wrong input count");
     }
 }

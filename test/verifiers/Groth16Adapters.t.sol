@@ -30,9 +30,24 @@ contract Groth16AdapterTest is Test {
 
         // Set up a minimal verification key so verifier is initialized
         uint256[2] memory alpha = [uint256(1), uint256(2)];
-        uint256[4] memory beta = [uint256(1), uint256(2), uint256(3), uint256(4)];
-        uint256[4] memory gamma = [uint256(1), uint256(2), uint256(3), uint256(4)];
-        uint256[4] memory delta = [uint256(1), uint256(2), uint256(3), uint256(4)];
+        uint256[4] memory beta = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
+        uint256[4] memory gamma = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
+        uint256[4] memory delta = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
 
         // IC needs (numInputs + 1) points for Groth16
         uint256[2][] memory ic = new uint256[2][](4);
@@ -101,9 +116,24 @@ contract Groth16AdapterTest is Test {
 
     function test_groth16_setVK_revertNotOwner() public {
         uint256[2] memory alpha = [uint256(1), uint256(2)];
-        uint256[4] memory beta = [uint256(1), uint256(2), uint256(3), uint256(4)];
-        uint256[4] memory gamma = [uint256(1), uint256(2), uint256(3), uint256(4)];
-        uint256[4] memory delta = [uint256(1), uint256(2), uint256(3), uint256(4)];
+        uint256[4] memory beta = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
+        uint256[4] memory gamma = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
+        uint256[4] memory delta = [
+            uint256(1),
+            uint256(2),
+            uint256(3),
+            uint256(4)
+        ];
         uint256[2][] memory ic = new uint256[2][](2);
 
         vm.prank(address(0xBEEF));
@@ -114,9 +144,24 @@ contract Groth16AdapterTest is Test {
     function test_groth16_setVK_canResetByOwner() public {
         // M-7 fix allows key rotation by owner
         uint256[2] memory alpha = [uint256(10), uint256(20)];
-        uint256[4] memory beta = [uint256(10), uint256(20), uint256(30), uint256(40)];
-        uint256[4] memory gamma = [uint256(10), uint256(20), uint256(30), uint256(40)];
-        uint256[4] memory delta = [uint256(10), uint256(20), uint256(30), uint256(40)];
+        uint256[4] memory beta = [
+            uint256(10),
+            uint256(20),
+            uint256(30),
+            uint256(40)
+        ];
+        uint256[4] memory gamma = [
+            uint256(10),
+            uint256(20),
+            uint256(30),
+            uint256(40)
+        ];
+        uint256[4] memory delta = [
+            uint256(10),
+            uint256(20),
+            uint256(30),
+            uint256(40)
+        ];
         uint256[2][] memory ic = new uint256[2][](3);
         ic[0] = [uint256(10), uint256(20)];
         ic[1] = [uint256(30), uint256(40)];
@@ -189,12 +234,7 @@ contract Groth16AdapterTest is Test {
         // verify(proof, balance, minRequired, commitment) should pack 3 inputs
         // With invalid proof, will reach pairing check and fail
         vm.expectRevert();
-        balanceAdapter.verify(
-            dummyProof,
-            1000,
-            500,
-            keccak256("commitment")
-        );
+        balanceAdapter.verify(dummyProof, 1000, 500, keccak256("commitment"));
     }
 
     /* ========================================================
