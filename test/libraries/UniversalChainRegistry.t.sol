@@ -20,26 +20,62 @@ contract UniversalChainRegistryHarness {
         return UniversalChainRegistry.getDefaultProofSystem(vm);
     }
 
-    function computeEVMChainId(uint256 evmChainId) external pure returns (bytes32) {
+    function computeEVMChainId(
+        uint256 evmChainId
+    ) external pure returns (bytes32) {
         return UniversalChainRegistry.computeEVMChainId(evmChainId);
     }
 
-    function computeNonEVMChainId(string memory chainName) external pure returns (bytes32) {
+    function computeNonEVMChainId(
+        string memory chainName
+    ) external pure returns (bytes32) {
         return UniversalChainRegistry.computeNonEVMChainId(chainName);
     }
 
     // Expose constants
-    function ETHEREUM_MAINNET() external pure returns (bytes32) { return UniversalChainRegistry.ETHEREUM_MAINNET; }
-    function ARBITRUM_ONE() external pure returns (bytes32) { return UniversalChainRegistry.ARBITRUM_ONE; }
-    function OPTIMISM() external pure returns (bytes32) { return UniversalChainRegistry.OPTIMISM; }
-    function BASE() external pure returns (bytes32) { return UniversalChainRegistry.BASE; }
-    function ZKSYNC_ERA() external pure returns (bytes32) { return UniversalChainRegistry.ZKSYNC_ERA; }
-    function SCROLL() external pure returns (bytes32) { return UniversalChainRegistry.SCROLL; }
-    function LINEA() external pure returns (bytes32) { return UniversalChainRegistry.LINEA; }
-    function POLYGON_ZKEVM() external pure returns (bytes32) { return UniversalChainRegistry.POLYGON_ZKEVM; }
-    function SOLANA() external pure returns (bytes32) { return UniversalChainRegistry.SOLANA; }
-    function BITCOIN() external pure returns (bytes32) { return UniversalChainRegistry.BITCOIN; }
-    function AZTEC() external pure returns (bytes32) { return UniversalChainRegistry.AZTEC; }
+    function ETHEREUM_MAINNET() external pure returns (bytes32) {
+        return UniversalChainRegistry.ETHEREUM_MAINNET;
+    }
+
+    function ARBITRUM_ONE() external pure returns (bytes32) {
+        return UniversalChainRegistry.ARBITRUM_ONE;
+    }
+
+    function OPTIMISM() external pure returns (bytes32) {
+        return UniversalChainRegistry.OPTIMISM;
+    }
+
+    function BASE() external pure returns (bytes32) {
+        return UniversalChainRegistry.BASE;
+    }
+
+    function ZKSYNC_ERA() external pure returns (bytes32) {
+        return UniversalChainRegistry.ZKSYNC_ERA;
+    }
+
+    function SCROLL() external pure returns (bytes32) {
+        return UniversalChainRegistry.SCROLL;
+    }
+
+    function LINEA() external pure returns (bytes32) {
+        return UniversalChainRegistry.LINEA;
+    }
+
+    function POLYGON_ZKEVM() external pure returns (bytes32) {
+        return UniversalChainRegistry.POLYGON_ZKEVM;
+    }
+
+    function SOLANA() external pure returns (bytes32) {
+        return UniversalChainRegistry.SOLANA;
+    }
+
+    function BITCOIN() external pure returns (bytes32) {
+        return UniversalChainRegistry.BITCOIN;
+    }
+
+    function AZTEC() external pure returns (bytes32) {
+        return UniversalChainRegistry.AZTEC;
+    }
 }
 
 contract UniversalChainRegistryTest is Test {
@@ -105,12 +141,19 @@ contract UniversalChainRegistryTest is Test {
     }
 
     function test_computeEVMChainId_matchesKeccak() public view {
-        bytes32 expected = keccak256(abi.encodePacked("SOUL_CHAIN", uint256(1)));
+        bytes32 expected = keccak256(
+            abi.encodePacked("SOUL_CHAIN", uint256(1))
+        );
         assertEq(lib.computeEVMChainId(1), expected);
     }
 
-    function testFuzz_computeEVMChainId_deterministic(uint256 chainId) public view {
-        assertEq(lib.computeEVMChainId(chainId), lib.computeEVMChainId(chainId));
+    function testFuzz_computeEVMChainId_deterministic(
+        uint256 chainId
+    ) public view {
+        assertEq(
+            lib.computeEVMChainId(chainId),
+            lib.computeEVMChainId(chainId)
+        );
     }
 
     /* ══════════════════════════════════════════════════
@@ -140,47 +183,63 @@ contract UniversalChainRegistryTest is Test {
        ══════════════════════════════════════════════════ */
 
     function test_proofSystemsCompatible_sameSystem() public view {
-        assertTrue(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.GROTH16,
-            IUniversalChainAdapter.ProofSystem.GROTH16
-        ));
-        assertTrue(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.STARK,
-            IUniversalChainAdapter.ProofSystem.STARK
-        ));
+        assertTrue(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.GROTH16,
+                IUniversalChainAdapter.ProofSystem.GROTH16
+            )
+        );
+        assertTrue(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.STARK,
+                IUniversalChainAdapter.ProofSystem.STARK
+            )
+        );
     }
 
     function test_proofSystemsCompatible_plonkFamily() public view {
         // PLONK <-> ULTRAPLONK
-        assertTrue(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.PLONK,
-            IUniversalChainAdapter.ProofSystem.ULTRAPLONK
-        ));
+        assertTrue(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.PLONK,
+                IUniversalChainAdapter.ProofSystem.ULTRAPLONK
+            )
+        );
         // ULTRAPLONK <-> HONK
-        assertTrue(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.ULTRAPLONK,
-            IUniversalChainAdapter.ProofSystem.HONK
-        ));
+        assertTrue(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.ULTRAPLONK,
+                IUniversalChainAdapter.ProofSystem.HONK
+            )
+        );
         // PLONK <-> HONK
-        assertTrue(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.PLONK,
-            IUniversalChainAdapter.ProofSystem.HONK
-        ));
+        assertTrue(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.PLONK,
+                IUniversalChainAdapter.ProofSystem.HONK
+            )
+        );
     }
 
     function test_proofSystemsCompatible_incompatibleSystems() public view {
-        assertFalse(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.GROTH16,
-            IUniversalChainAdapter.ProofSystem.STARK
-        ));
-        assertFalse(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.GROTH16,
-            IUniversalChainAdapter.ProofSystem.PLONK
-        ));
-        assertFalse(lib.areProofSystemsCompatible(
-            IUniversalChainAdapter.ProofSystem.BULLETPROOFS,
-            IUniversalChainAdapter.ProofSystem.HALO2
-        ));
+        assertFalse(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.GROTH16,
+                IUniversalChainAdapter.ProofSystem.STARK
+            )
+        );
+        assertFalse(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.GROTH16,
+                IUniversalChainAdapter.ProofSystem.PLONK
+            )
+        );
+        assertFalse(
+            lib.areProofSystemsCompatible(
+                IUniversalChainAdapter.ProofSystem.BULLETPROOFS,
+                IUniversalChainAdapter.ProofSystem.HALO2
+            )
+        );
     }
 
     /* ══════════════════════════════════════════════════
@@ -189,49 +248,69 @@ contract UniversalChainRegistryTest is Test {
 
     function test_defaultProofSystem_EVM() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.EVM)),
+            uint256(
+                lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.EVM)
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.GROTH16)
         );
     }
 
     function test_defaultProofSystem_Cairo() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.CAIRO)),
+            uint256(
+                lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.CAIRO)
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.STARK)
         );
     }
 
     function test_defaultProofSystem_NoirAztec() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.NOIR_AZTEC)),
+            uint256(
+                lib.getDefaultProofSystem(
+                    IUniversalChainAdapter.ChainVM.NOIR_AZTEC
+                )
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.HONK)
         );
     }
 
     function test_defaultProofSystem_Zcash() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.ZCASH)),
+            uint256(
+                lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.ZCASH)
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.HALO2)
         );
     }
 
     function test_defaultProofSystem_SVM() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.SVM)),
+            uint256(
+                lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.SVM)
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.GROTH16)
         );
     }
 
     function test_defaultProofSystem_MoveAptos() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.MOVE_APTOS)),
+            uint256(
+                lib.getDefaultProofSystem(
+                    IUniversalChainAdapter.ChainVM.MOVE_APTOS
+                )
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.GROTH16)
         );
     }
 
     function test_defaultProofSystem_MoveSui() public view {
         assertEq(
-            uint256(lib.getDefaultProofSystem(IUniversalChainAdapter.ChainVM.MOVE_SUI)),
+            uint256(
+                lib.getDefaultProofSystem(
+                    IUniversalChainAdapter.ChainVM.MOVE_SUI
+                )
+            ),
             uint256(IUniversalChainAdapter.ProofSystem.GROTH16)
         );
     }

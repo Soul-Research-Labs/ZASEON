@@ -9,7 +9,9 @@ contract MockNoirVerifier {
     bool public result;
     uint256 public lastCallSignalCount;
 
-    constructor(bool _result) { result = _result; }
+    constructor(bool _result) {
+        result = _result;
+    }
 
     function verify(
         bytes calldata,
@@ -18,16 +20,19 @@ contract MockNoirVerifier {
         return result;
     }
 
-    function setResult(bool _v) external { result = _v; }
+    function setResult(bool _v) external {
+        result = _v;
+    }
 }
 
 /// @dev Concrete adapter for testing
 contract TestNoirAdapter is NoirVerifierAdapter {
     uint256 private _inputCount;
 
-    constructor(address _noirVerifier, uint256 inputCount_)
-        NoirVerifierAdapter(_noirVerifier)
-    {
+    constructor(
+        address _noirVerifier,
+        uint256 inputCount_
+    ) NoirVerifierAdapter(_noirVerifier) {
         _inputCount = inputCount_;
     }
 
@@ -59,7 +64,7 @@ contract NoirVerifierAdapterTest is Test {
     address alice = address(0xBEEF);
 
     function setUp() public {
-        noirV   = new MockNoirVerifier(true);
+        noirV = new MockNoirVerifier(true);
         adapter = new TestNoirAdapter(address(noirV), 2);
     }
 
@@ -128,7 +133,11 @@ contract NoirVerifierAdapterTest is Test {
 
     function test_verifyProof_success() public view {
         // Encode 2 signals as bytes
-        bytes memory pubInputs = abi.encode(uint256(2), bytes32(uint256(10)), bytes32(uint256(20)));
+        bytes memory pubInputs = abi.encode(
+            uint256(2),
+            bytes32(uint256(10)),
+            bytes32(uint256(20))
+        );
 
         bool valid = adapter.verifyProof(bytes("proof"), pubInputs);
         assertTrue(valid);
@@ -137,9 +146,17 @@ contract NoirVerifierAdapterTest is Test {
     // ──────── verify(bytes32, bytes, bytes) — circuit hash variant ────────
 
     function test_verifyCircuitHash_success() public view {
-        bytes memory pubInputs = abi.encode(uint256(2), bytes32(uint256(100)), bytes32(uint256(200)));
+        bytes memory pubInputs = abi.encode(
+            uint256(2),
+            bytes32(uint256(100)),
+            bytes32(uint256(200))
+        );
 
-        bool valid = adapter.verify(bytes32(uint256(1)), bytes("proof"), pubInputs);
+        bool valid = adapter.verify(
+            bytes32(uint256(1)),
+            bytes("proof"),
+            pubInputs
+        );
         assertTrue(valid);
     }
 
@@ -150,7 +167,10 @@ contract NoirVerifierAdapterTest is Test {
         uint256 FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
         // Create an adapter with 1 input to avoid count mismatch
-        TestNoirAdapter adapterOverflow = new TestNoirAdapter(address(noirV), 1);
+        TestNoirAdapter adapterOverflow = new TestNoirAdapter(
+            address(noirV),
+            1
+        );
 
         // Encode a value >= FIELD_SIZE
         bytes memory pubInputs = abi.encode(uint256(1), bytes32(FIELD_SIZE));
@@ -163,7 +183,10 @@ contract NoirVerifierAdapterTest is Test {
         uint256 FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
         TestNoirAdapter adapterBelow = new TestNoirAdapter(address(noirV), 1);
-        bytes memory pubInputs = abi.encode(uint256(1), bytes32(FIELD_SIZE - 1));
+        bytes memory pubInputs = abi.encode(
+            uint256(1),
+            bytes32(FIELD_SIZE - 1)
+        );
 
         bytes32[] memory signals = adapterBelow.exposePrepareSignals(pubInputs);
         assertEq(signals.length, 1);
@@ -179,7 +202,10 @@ contract NoirVerifierAdapterTest is Test {
 
     // ──────── Fuzz ────────
 
-    function testFuzz_verifyUint256_validInputs(uint256 a, uint256 b) public view {
+    function testFuzz_verifyUint256_validInputs(
+        uint256 a,
+        uint256 b
+    ) public view {
         uint256 FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
         a = bound(a, 0, FIELD_SIZE - 1);
         b = bound(b, 0, FIELD_SIZE - 1);

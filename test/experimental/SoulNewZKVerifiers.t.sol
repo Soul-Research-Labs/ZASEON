@@ -7,8 +7,18 @@ import "../../contracts/experimental/verifiers/SoulNewZKVerifiers.sol";
 /// @dev Mock SP1 Gateway
 contract MockSP1Gateway {
     bool public result;
-    constructor(bool _result) { result = _result; }
-    function verifyProof(bytes32, bytes calldata, bytes calldata) external view returns (bool) { return result; }
+
+    constructor(bool _result) {
+        result = _result;
+    }
+
+    function verifyProof(
+        bytes32,
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
+        return result;
+    }
 }
 
 contract SoulNewZKVerifiersTest is Test {
@@ -31,10 +41,10 @@ contract SoulNewZKVerifiersTest is Test {
         gateway = new MockSP1Gateway(true);
 
         vm.startPrank(owner);
-        sp1     = new SoulSP1Verifier(address(gateway));
+        sp1 = new SoulSP1Verifier(address(gateway));
         plonky3 = new SoulPlonky3Verifier();
-        jolt    = new SoulJoltVerifier();
-        binius  = new SoulBiniusVerifier();
+        jolt = new SoulJoltVerifier();
+        binius = new SoulBiniusVerifier();
         vm.stopPrank();
     }
 
@@ -50,7 +60,8 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         sp1.registerVKey(VKEY, PROGRAM_HASH);
 
-        (bytes32 vkHash, bytes32 progHash, bool active,) = sp1.verificationKeys(VKEY);
+        (bytes32 vkHash, bytes32 progHash, bool active, ) = sp1
+            .verificationKeys(VKEY);
         assertEq(vkHash, VKEY);
         assertEq(progHash, PROGRAM_HASH);
         assertTrue(active);
@@ -76,7 +87,7 @@ contract SoulNewZKVerifiersTest is Test {
         sp1.deactivateVKey(VKEY);
         vm.stopPrank();
 
-        (,, bool active,) = sp1.verificationKeys(VKEY);
+        (, , bool active, ) = sp1.verificationKeys(VKEY);
         assertFalse(active);
     }
 
@@ -132,7 +143,12 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         plonky3.registerCircuit(CIRCUIT_HASH, 3, 1024);
 
-        (bytes32 circHash, uint256 numInputs, uint256 degree, bool active) = plonky3.circuits(CIRCUIT_HASH);
+        (
+            bytes32 circHash,
+            uint256 numInputs,
+            uint256 degree,
+            bool active
+        ) = plonky3.circuits(CIRCUIT_HASH);
         assertEq(circHash, CIRCUIT_HASH);
         assertEq(numInputs, 3);
         assertEq(degree, 1024);
@@ -153,12 +169,13 @@ contract SoulNewZKVerifiersTest is Test {
         inputs[0] = bytes32(uint256(1));
         inputs[1] = bytes32(uint256(2));
 
-        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier.Plonky3Proof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputs: inputs,
-            commitmentHash: keccak256("commitment"),
-            openingProof: bytes("opening_proof")
-        });
+        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier
+            .Plonky3Proof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputs: inputs,
+                commitmentHash: keccak256("commitment"),
+                openingProof: bytes("opening_proof")
+            });
 
         bool valid = plonky3.verify(proof);
         assertTrue(valid);
@@ -173,12 +190,13 @@ contract SoulNewZKVerifiersTest is Test {
         inputs[0] = bytes32(uint256(1));
         inputs[1] = bytes32(uint256(2));
 
-        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier.Plonky3Proof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputs: inputs,
-            commitmentHash: keccak256("c"),
-            openingProof: bytes("p")
-        });
+        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier
+            .Plonky3Proof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputs: inputs,
+                commitmentHash: keccak256("c"),
+                openingProof: bytes("p")
+            });
 
         vm.expectRevert();
         plonky3.verify(proof);
@@ -191,12 +209,13 @@ contract SoulNewZKVerifiersTest is Test {
         bytes32[] memory inputs = new bytes32[](1);
         inputs[0] = bytes32(uint256(1));
 
-        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier.Plonky3Proof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputs: inputs,
-            commitmentHash: keccak256("c"),
-            openingProof: bytes("") // empty
-        });
+        SoulPlonky3Verifier.Plonky3Proof memory proof = SoulPlonky3Verifier
+            .Plonky3Proof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputs: inputs,
+                commitmentHash: keccak256("c"),
+                openingProof: bytes("") // empty
+            });
 
         vm.expectRevert();
         plonky3.verify(proof);
@@ -213,7 +232,9 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         jolt.registerProgram(PROGRAM_HASH, 1_000_000);
 
-        (bytes32 progHash, uint256 maxCycles, bool active) = jolt.programs(PROGRAM_HASH);
+        (bytes32 progHash, uint256 maxCycles, bool active) = jolt.programs(
+            PROGRAM_HASH
+        );
         assertEq(progHash, PROGRAM_HASH);
         assertEq(maxCycles, 1_000_000);
         assertTrue(active);
@@ -331,13 +352,14 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         binius.registerCircuit(CIRCUIT_HASH);
 
-        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier.BiniusProof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputHash: keccak256("inputs"),
-            oracleCommitment: keccak256("oracle"),
-            sumcheckProof: bytes("sumcheck"),
-            foldingProof: bytes("folding")
-        });
+        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier
+            .BiniusProof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputHash: keccak256("inputs"),
+                oracleCommitment: keccak256("oracle"),
+                sumcheckProof: bytes("sumcheck"),
+                foldingProof: bytes("folding")
+            });
 
         bool valid = binius.verify(proof);
         assertTrue(valid);
@@ -348,13 +370,14 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         binius.registerCircuit(CIRCUIT_HASH);
 
-        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier.BiniusProof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputHash: keccak256("i"),
-            oracleCommitment: keccak256("o"),
-            sumcheckProof: bytes(""),
-            foldingProof: bytes("f")
-        });
+        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier
+            .BiniusProof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputHash: keccak256("i"),
+                oracleCommitment: keccak256("o"),
+                sumcheckProof: bytes(""),
+                foldingProof: bytes("f")
+            });
 
         vm.expectRevert();
         binius.verify(proof);
@@ -364,26 +387,28 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         binius.registerCircuit(CIRCUIT_HASH);
 
-        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier.BiniusProof({
-            circuitHash: CIRCUIT_HASH,
-            publicInputHash: keccak256("i"),
-            oracleCommitment: keccak256("o"),
-            sumcheckProof: bytes("s"),
-            foldingProof: bytes("")
-        });
+        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier
+            .BiniusProof({
+                circuitHash: CIRCUIT_HASH,
+                publicInputHash: keccak256("i"),
+                oracleCommitment: keccak256("o"),
+                sumcheckProof: bytes("s"),
+                foldingProof: bytes("")
+            });
 
         vm.expectRevert();
         binius.verify(proof);
     }
 
     function test_binius_verify_unregisteredReverts() public {
-        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier.BiniusProof({
-            circuitHash: keccak256("unknown"),
-            publicInputHash: keccak256("i"),
-            oracleCommitment: keccak256("o"),
-            sumcheckProof: bytes("s"),
-            foldingProof: bytes("f")
-        });
+        SoulBiniusVerifier.BiniusProof memory proof = SoulBiniusVerifier
+            .BiniusProof({
+                circuitHash: keccak256("unknown"),
+                publicInputHash: keccak256("i"),
+                oracleCommitment: keccak256("o"),
+                sumcheckProof: bytes("s"),
+                foldingProof: bytes("f")
+            });
 
         vm.expectRevert();
         binius.verify(proof);
@@ -398,19 +423,22 @@ contract SoulNewZKVerifiersTest is Test {
         vm.prank(owner);
         sp1.registerVKey(vkey, progHash);
 
-        (bytes32 vkHash,, bool active,) = sp1.verificationKeys(vkey);
+        (bytes32 vkHash, , bool active, ) = sp1.verificationKeys(vkey);
         assertEq(vkHash, vkey);
         assertTrue(active);
     }
 
-    function testFuzz_jolt_registerProgram(bytes32 hash, uint256 cycles) public {
+    function testFuzz_jolt_registerProgram(
+        bytes32 hash,
+        uint256 cycles
+    ) public {
         vm.assume(hash != bytes32(0));
         cycles = bound(cycles, 1, 10_000_000);
 
         vm.prank(owner);
         jolt.registerProgram(hash, cycles);
 
-        (, uint256 maxCycles,) = jolt.programs(hash);
+        (, uint256 maxCycles, ) = jolt.programs(hash);
         assertEq(maxCycles, cycles);
     }
 }

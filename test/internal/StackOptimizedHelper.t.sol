@@ -10,7 +10,8 @@ contract StackOptimizedHarness {
         bytes32 domainSeparator,
         bytes32 structHash
     ) external pure returns (bytes32) {
-        return StackOptimizedHelper.computeDomainHash(domainSeparator, structHash);
+        return
+            StackOptimizedHelper.computeDomainHash(domainSeparator, structHash);
     }
 
     function computeLockId(
@@ -20,9 +21,14 @@ contract StackOptimizedHarness {
         address creator,
         uint256 nonce
     ) external pure returns (bytes32) {
-        return StackOptimizedHelper.computeLockId(
-            stateCommitment, predicateHash, domainSeparator, creator, nonce
-        );
+        return
+            StackOptimizedHelper.computeLockId(
+                stateCommitment,
+                predicateHash,
+                domainSeparator,
+                creator,
+                nonce
+            );
     }
 
     function computeNullifier(
@@ -30,7 +36,12 @@ contract StackOptimizedHarness {
         bytes32 domainSeparator,
         bytes32 transitionId
     ) external pure returns (bytes32) {
-        return StackOptimizedHelper.computeNullifier(secret, domainSeparator, transitionId);
+        return
+            StackOptimizedHelper.computeNullifier(
+                secret,
+                domainSeparator,
+                transitionId
+            );
     }
 
     function validateProofStructure(
@@ -38,7 +49,12 @@ contract StackOptimizedHarness {
         uint256 minLength,
         uint256 maxLength
     ) external pure returns (bool) {
-        return StackOptimizedHelper.validateProofStructure(proofData, minLength, maxLength);
+        return
+            StackOptimizedHelper.validateProofStructure(
+                proofData,
+                minLength,
+                maxLength
+            );
     }
 
     function isTimestampValid(
@@ -46,7 +62,8 @@ contract StackOptimizedHarness {
         uint256 minTime,
         uint256 maxTime
     ) external pure returns (bool) {
-        return StackOptimizedHelper.isTimestampValid(timestamp, minTime, maxTime);
+        return
+            StackOptimizedHelper.isTimestampValid(timestamp, minTime, maxTime);
     }
 
     function isDeadlineExpired(
@@ -56,15 +73,23 @@ contract StackOptimizedHarness {
         return StackOptimizedHelper.isDeadlineExpired(deadline, buffer);
     }
 
-    function packUint128(uint128 high, uint128 low) external pure returns (uint256) {
+    function packUint128(
+        uint128 high,
+        uint128 low
+    ) external pure returns (uint256) {
         return StackOptimizedHelper.packUint128(high, low);
     }
 
-    function unpackUint128(uint256 packed) external pure returns (uint128, uint128) {
+    function unpackUint128(
+        uint256 packed
+    ) external pure returns (uint128, uint128) {
         return StackOptimizedHelper.unpackUint128(packed);
     }
 
-    function packAddressUint96(address addr, uint96 value) external pure returns (uint256) {
+    function packAddressUint96(
+        address addr,
+        uint96 value
+    ) external pure returns (uint256) {
         return StackOptimizedHelper.packAddressUint96(addr, value);
     }
 
@@ -76,7 +101,10 @@ contract StackOptimizedHarness {
         return StackOptimizedHelper.computeMerkleRoot(leaf, path, indices);
     }
 
-    function safeGet(bytes32[] memory arr, uint256 index) external pure returns (bytes32) {
+    function safeGet(
+        bytes32[] memory arr,
+        uint256 index
+    ) external pure returns (bytes32) {
         return StackOptimizedHelper.safeGet(arr, index);
     }
 }
@@ -104,7 +132,9 @@ contract StackOptimizedHelperTest is Test {
     function test_computeDomainHash_followsEIP712() public view {
         bytes32 domain = bytes32(uint256(0xAABB));
         bytes32 structH = bytes32(uint256(0xCCDD));
-        bytes32 expected = keccak256(abi.encodePacked("\x19\x01", domain, structH));
+        bytes32 expected = keccak256(
+            abi.encodePacked("\x19\x01", domain, structH)
+        );
         assertEq(lib.computeDomainHash(domain, structH), expected);
     }
 
@@ -148,8 +178,13 @@ contract StackOptimizedHelperTest is Test {
         bytes32 domain = bytes32(uint256(3));
         address creator = address(0xBEEF);
         uint256 nonce = 42;
-        bytes32 expected = keccak256(abi.encodePacked(state, pred, domain, creator, nonce));
-        assertEq(lib.computeLockId(state, pred, domain, creator, nonce), expected);
+        bytes32 expected = keccak256(
+            abi.encodePacked(state, pred, domain, creator, nonce)
+        );
+        assertEq(
+            lib.computeLockId(state, pred, domain, creator, nonce),
+            expected
+        );
     }
 
     /* ══════════════════════════════════════════════════
@@ -170,11 +205,17 @@ contract StackOptimizedHelperTest is Test {
         bytes32 secret = bytes32(uint256(0xAA));
         bytes32 domain = bytes32(uint256(0xBB));
         bytes32 transition = bytes32(uint256(0xCC));
-        bytes32 expected = keccak256(abi.encodePacked(secret, domain, transition));
+        bytes32 expected = keccak256(
+            abi.encodePacked(secret, domain, transition)
+        );
         assertEq(lib.computeNullifier(secret, domain, transition), expected);
     }
 
-    function testFuzz_computeNullifier(bytes32 s, bytes32 d, bytes32 t) public view {
+    function testFuzz_computeNullifier(
+        bytes32 s,
+        bytes32 d,
+        bytes32 t
+    ) public view {
         bytes32 expected = keccak256(abi.encodePacked(s, d, t));
         assertEq(lib.computeNullifier(s, d, t), expected);
     }

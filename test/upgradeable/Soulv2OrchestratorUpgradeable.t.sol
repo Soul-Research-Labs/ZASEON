@@ -72,25 +72,32 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
               EXECUTE PRIVATE TRANSFER
        ══════════════════════════════════════════════════ */
 
-    function _validRequest() internal view returns (Soulv2OrchestratorUpgradeable.OperationRequest memory) {
-        return Soulv2OrchestratorUpgradeable.OperationRequest({
-            stateCommitment: bytes32(uint256(1)),
-            nullifier: bytes32(uint256(2)),
-            validityProof: new bytes(256),
-            policyProof: new bytes(0),
-            nullifierProof: new bytes(0),
-            proofHash: bytes32(0),
-            policyId: bytes32(0),
-            recipient: user1,
-            amount: 1 ether,
-            timestamp: block.timestamp
-        });
+    function _validRequest()
+        internal
+        view
+        returns (Soulv2OrchestratorUpgradeable.OperationRequest memory)
+    {
+        return
+            Soulv2OrchestratorUpgradeable.OperationRequest({
+                stateCommitment: bytes32(uint256(1)),
+                nullifier: bytes32(uint256(2)),
+                validityProof: new bytes(256),
+                policyProof: new bytes(0),
+                nullifierProof: new bytes(0),
+                proofHash: bytes32(0),
+                policyId: bytes32(0),
+                recipient: user1,
+                amount: 1 ether,
+                timestamp: block.timestamp
+            });
     }
 
     function test_executePrivateTransfer_success() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         vm.prank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch
+            .executePrivateTransfer(req);
 
         assertTrue(result.success);
         assertNotEq(result.operationId, bytes32(0));
@@ -100,39 +107,47 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
     }
 
     function test_executePrivateTransfer_incrementsUserCount() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         vm.prank(user1);
         orch.executePrivateTransfer(req);
         assertEq(orch.getUserOperationCount(user1), 1);
     }
 
     function test_executePrivateTransfer_failsZeroCommitment() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         req.stateCommitment = bytes32(0);
         vm.prank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch
+            .executePrivateTransfer(req);
         assertFalse(result.success);
         assertEq(orch.failedOperations(), 1);
     }
 
     function test_executePrivateTransfer_failsZeroNullifier() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         req.nullifier = bytes32(0);
         vm.prank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch
+            .executePrivateTransfer(req);
         assertFalse(result.success);
     }
 
     function test_executePrivateTransfer_failsZeroRecipient() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         req.recipient = address(0);
         vm.prank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch
+            .executePrivateTransfer(req);
         assertFalse(result.success);
     }
 
     function test_executePrivateTransfer_revertsShortProof() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         req.validityProof = new bytes(100); // too short
         vm.prank(user1);
         vm.expectRevert("Validity proof too short");
@@ -140,10 +155,13 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
     }
 
     function test_executePrivateTransfer_uniqueOperationIds() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         vm.startPrank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory r1 = orch.executePrivateTransfer(req);
-        Soulv2OrchestratorUpgradeable.OperationResult memory r2 = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory r1 = orch
+            .executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory r2 = orch
+            .executePrivateTransfer(req);
         vm.stopPrank();
         assertNotEq(r1.operationId, r2.operationId);
     }
@@ -162,10 +180,12 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
         vm.stopPrank();
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(
-            Soulv2OrchestratorUpgradeable.PrimitiveNotActive.selector,
-            PC3_PRIM
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Soulv2OrchestratorUpgradeable.PrimitiveNotActive.selector,
+                PC3_PRIM
+            )
+        );
         orch.executePrivateTransfer(_validRequest());
     }
 
@@ -174,7 +194,8 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
        ══════════════════════════════════════════════════ */
 
     function test_getSystemStatus() public view {
-        Soulv2OrchestratorUpgradeable.SystemStatus memory status = orch.getSystemStatus();
+        Soulv2OrchestratorUpgradeable.SystemStatus memory status = orch
+            .getSystemStatus();
         assertTrue(status.pc3Active);
         assertTrue(status.pbpActive);
         assertTrue(status.eascActive);
@@ -183,17 +204,23 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
     }
 
     function test_getOperationResult() public {
-        Soulv2OrchestratorUpgradeable.OperationRequest memory req = _validRequest();
+        Soulv2OrchestratorUpgradeable.OperationRequest
+            memory req = _validRequest();
         vm.prank(user1);
-        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch.executePrivateTransfer(req);
+        Soulv2OrchestratorUpgradeable.OperationResult memory result = orch
+            .executePrivateTransfer(req);
 
-        Soulv2OrchestratorUpgradeable.OperationResult memory stored = orch.getOperationResult(result.operationId);
+        Soulv2OrchestratorUpgradeable.OperationResult memory stored = orch
+            .getOperationResult(result.operationId);
         assertEq(stored.operationId, result.operationId);
         assertTrue(stored.success);
     }
 
     function test_getImplementationVersion() public view {
-        assertEq(keccak256(bytes(orch.getImplementationVersion())), keccak256("1.0.0"));
+        assertEq(
+            keccak256(bytes(orch.getImplementationVersion())),
+            keccak256("1.0.0")
+        );
     }
 
     /* ══════════════════════════════════════════════════
@@ -221,7 +248,9 @@ contract Soulv2OrchestratorUpgradeableTest is Test {
 
     function test_updatePrimitive_revertsInvalidId() public {
         vm.prank(admin);
-        vm.expectRevert(Soulv2OrchestratorUpgradeable.InvalidOperation.selector);
+        vm.expectRevert(
+            Soulv2OrchestratorUpgradeable.InvalidOperation.selector
+        );
         orch.updatePrimitive(bytes32(uint256(999)), address(0x99));
     }
 

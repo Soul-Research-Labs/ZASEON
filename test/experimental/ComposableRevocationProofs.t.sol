@@ -48,7 +48,8 @@ contract ComposableRevocationProofsTest is Test {
         assertNotEq(accId, bytes32(0));
         assertEq(crp.totalAccumulators(), 1);
 
-        ComposableRevocationProofs.RevocationAccumulator memory acc = crp.getAccumulator(accId);
+        ComposableRevocationProofs.RevocationAccumulator memory acc = crp
+            .getAccumulator(accId);
         assertEq(acc.currentValue, bytes32(uint256(0x1234)));
         assertEq(acc.version, 1);
         assertEq(acc.elementCount, 0);
@@ -94,13 +95,19 @@ contract ComposableRevocationProofsTest is Test {
         bytes32 witness = bytes32(uint256(0xBEEF));
 
         vm.prank(manager);
-        bytes32 entryId = crp.revokeCredential(accId, credHash, witness, "policy violation");
+        bytes32 entryId = crp.revokeCredential(
+            accId,
+            credHash,
+            witness,
+            "policy violation"
+        );
 
         assertNotEq(entryId, bytes32(0));
         assertTrue(crp.isCredentialRevoked(accId, credHash));
         assertEq(crp.totalRevocations(), 1);
 
-        ComposableRevocationProofs.RevocationAccumulator memory acc = crp.getAccumulator(accId);
+        ComposableRevocationProofs.RevocationAccumulator memory acc = crp
+            .getAccumulator(accId);
         assertEq(acc.version, 2);
         assertEq(acc.elementCount, 1);
     }
@@ -119,8 +126,15 @@ contract ComposableRevocationProofsTest is Test {
 
     function test_revokeCredential_revertsAccumulatorNotFound() public {
         vm.prank(manager);
-        vm.expectRevert(ComposableRevocationProofs.AccumulatorNotFound.selector);
-        crp.revokeCredential(bytes32(uint256(999)), bytes32(uint256(1)), bytes32(0), "");
+        vm.expectRevert(
+            ComposableRevocationProofs.AccumulatorNotFound.selector
+        );
+        crp.revokeCredential(
+            bytes32(uint256(999)),
+            bytes32(uint256(1)),
+            bytes32(0),
+            ""
+        );
     }
 
     function test_revokeCredential_revertsInactive() public {
@@ -129,7 +143,9 @@ contract ComposableRevocationProofsTest is Test {
         crp.deactivateAccumulator(accId);
 
         vm.prank(manager);
-        vm.expectRevert(ComposableRevocationProofs.AccumulatorInactive.selector);
+        vm.expectRevert(
+            ComposableRevocationProofs.AccumulatorInactive.selector
+        );
         crp.revokeCredential(accId, bytes32(uint256(1)), bytes32(0), "");
     }
 
@@ -192,7 +208,8 @@ contract ComposableRevocationProofsTest is Test {
 
         assertTrue(crp.isCredentialRevoked(accId, creds[1]));
         // elementCount: 1 from single + 1 from batch (skipped dup)
-        ComposableRevocationProofs.RevocationAccumulator memory acc = crp.getAccumulator(accId);
+        ComposableRevocationProofs.RevocationAccumulator memory acc = crp
+            .getAccumulator(accId);
         assertEq(acc.elementCount, 2);
     }
 
@@ -230,12 +247,18 @@ contract ComposableRevocationProofsTest is Test {
         bytes memory proof = abi.encode("zk-proof-data");
 
         vm.prank(user1);
-        bytes32 proofId = crp.submitNonMembershipProof(accId, credHash, proof, 3600);
+        bytes32 proofId = crp.submitNonMembershipProof(
+            accId,
+            credHash,
+            proof,
+            3600
+        );
 
         assertNotEq(proofId, bytes32(0));
         assertEq(crp.totalProofs(), 1);
 
-        ComposableRevocationProofs.NonMembershipProof memory p = crp.getNonMembershipProof(proofId);
+        ComposableRevocationProofs.NonMembershipProof memory p = crp
+            .getNonMembershipProof(proofId);
         assertEq(p.accumulatorId, accId);
         assertEq(p.credentialHash, credHash);
         assertFalse(p.isVerified);
@@ -243,8 +266,15 @@ contract ComposableRevocationProofsTest is Test {
 
     function test_submitNonMembershipProof_revertsAccNotFound() public {
         vm.prank(user1);
-        vm.expectRevert(ComposableRevocationProofs.AccumulatorNotFound.selector);
-        crp.submitNonMembershipProof(bytes32(uint256(999)), bytes32(0), "", 3600);
+        vm.expectRevert(
+            ComposableRevocationProofs.AccumulatorNotFound.selector
+        );
+        crp.submitNonMembershipProof(
+            bytes32(uint256(999)),
+            bytes32(0),
+            "",
+            3600
+        );
     }
 
     /* ══════════════════════════════════════════════════
@@ -262,10 +292,18 @@ contract ComposableRevocationProofsTest is Test {
         added[0] = bytes32(uint256(1));
 
         vm.prank(operator);
-        bytes32 updateId = crp.publishDeltaUpdate(accId, 1, 2, added, bytes32(uint256(0xDEAD)));
+        bytes32 updateId = crp.publishDeltaUpdate(
+            accId,
+            1,
+            2,
+            added,
+            bytes32(uint256(0xDEAD))
+        );
 
         assertNotEq(updateId, bytes32(0));
-        ComposableRevocationProofs.DeltaUpdate memory du = crp.getDeltaUpdate(updateId);
+        ComposableRevocationProofs.DeltaUpdate memory du = crp.getDeltaUpdate(
+            updateId
+        );
         assertEq(du.fromVersion, 1);
         assertEq(du.toVersion, 2);
     }
@@ -288,7 +326,10 @@ contract ComposableRevocationProofsTest is Test {
 
         vm.prank(user1);
         bytes32 proofId = crp.submitNonMembershipProof(
-            accId, bytes32(uint256(0xCAFE)), "proof", 3600
+            accId,
+            bytes32(uint256(0xCAFE)),
+            "proof",
+            3600
         );
 
         bytes32[] memory additional = new bytes32[](1);
@@ -298,7 +339,8 @@ contract ComposableRevocationProofsTest is Test {
         bytes32 compId = crp.createComposableProof(proofId, additional);
         assertNotEq(compId, bytes32(0));
 
-        ComposableRevocationProofs.ComposableProof memory cp = crp.getComposableProof(compId);
+        ComposableRevocationProofs.ComposableProof memory cp = crp
+            .getComposableProof(compId);
         assertEq(cp.nonMembershipProofId, proofId);
         assertFalse(cp.isValid);
     }
@@ -320,7 +362,8 @@ contract ComposableRevocationProofsTest is Test {
         vm.prank(admin);
         crp.deactivateAccumulator(accId);
 
-        ComposableRevocationProofs.RevocationAccumulator memory acc = crp.getAccumulator(accId);
+        ComposableRevocationProofs.RevocationAccumulator memory acc = crp
+            .getAccumulator(accId);
         assertFalse(acc.isActive);
     }
 
@@ -365,10 +408,14 @@ contract ComposableRevocationProofsTest is Test {
         bytes32 accId = _createAccumulator();
         vm.prank(manager);
         bytes32 entryId = crp.revokeCredential(
-            accId, bytes32(uint256(0xCAFE)), bytes32(uint256(0xBEEF)), "violation"
+            accId,
+            bytes32(uint256(0xCAFE)),
+            bytes32(uint256(0xBEEF)),
+            "violation"
         );
 
-        ComposableRevocationProofs.RevocationEntry memory entry = crp.getRevocationEntry(entryId);
+        ComposableRevocationProofs.RevocationEntry memory entry = crp
+            .getRevocationEntry(entryId);
         assertEq(entry.accumulatorId, accId);
         assertEq(entry.credentialHash, bytes32(uint256(0xCAFE)));
         assertEq(entry.witness, bytes32(uint256(0xBEEF)));

@@ -7,17 +7,41 @@ import "../../contracts/experimental/verifiers/SoulRecursiveVerifier.sol";
 /// @dev Mock aggregated verifier
 contract MockAggVerifier {
     bool public result;
-    constructor(bool _result) { result = _result; }
-    function verify(bytes calldata, bytes calldata) external view returns (bool) { return result; }
-    function setResult(bool _v) external { result = _v; }
+
+    constructor(bool _result) {
+        result = _result;
+    }
+
+    function verify(
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
+        return result;
+    }
+
+    function setResult(bool _v) external {
+        result = _v;
+    }
 }
 
 /// @dev Mock single verifier
 contract MockSingleVerifier {
     bool public result;
-    constructor(bool _result) { result = _result; }
-    function verify(bytes calldata, bytes calldata) external view returns (bool) { return result; }
-    function setResult(bool _v) external { result = _v; }
+
+    constructor(bool _result) {
+        result = _result;
+    }
+
+    function verify(
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
+        return result;
+    }
+
+    function setResult(bool _v) external {
+        result = _v;
+    }
 }
 
 contract SoulRecursiveVerifierTest is Test {
@@ -30,7 +54,7 @@ contract SoulRecursiveVerifierTest is Test {
 
     function setUp() public {
         vm.warp(10_000);
-        aggV    = new MockAggVerifier(true);
+        aggV = new MockAggVerifier(true);
         singleV = new MockSingleVerifier(true);
 
         vm.prank(owner);
@@ -57,7 +81,9 @@ contract SoulRecursiveVerifierTest is Test {
 
     // ──────── Aggregated Proof Verification ────────
 
-    function _makeTransferIds(uint256 count) internal pure returns (bytes32[] memory) {
+    function _makeTransferIds(
+        uint256 count
+    ) internal pure returns (bytes32[] memory) {
         bytes32[] memory ids = new bytes32[](count);
         for (uint256 i = 0; i < count; i++) {
             ids[i] = keccak256(abi.encode("transfer", i));
@@ -65,7 +91,9 @@ contract SoulRecursiveVerifierTest is Test {
         return ids;
     }
 
-    function _makeNullifiers(uint256 count) internal pure returns (bytes32[] memory) {
+    function _makeNullifiers(
+        uint256 count
+    ) internal pure returns (bytes32[] memory) {
         bytes32[] memory ns = new bytes32[](count);
         for (uint256 i = 0; i < count; i++) {
             ns[i] = keccak256(abi.encode("nullifier", i));
@@ -78,16 +106,22 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 100
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 100
+            });
 
-        bytes32 batchId = rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
+        bytes32 batchId = rv.verifyAggregatedProof(
+            bytes("proof"),
+            data,
+            tids,
+            nulls
+        );
         assertTrue(batchId != bytes32(0));
 
         assertEq(rv.totalBatchesVerified(), 1);
@@ -111,17 +145,24 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 50
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 50
+            });
 
         vm.expectEmit(false, false, false, false);
-        emit SoulRecursiveVerifier.BatchVerified(bytes32(0), count, keccak256("init"), keccak256("final"), 0);
+        emit SoulRecursiveVerifier.BatchVerified(
+            bytes32(0),
+            count,
+            keccak256("init"),
+            keccak256("final"),
+            0
+        );
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
     }
 
@@ -130,14 +171,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -152,14 +194,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -170,14 +213,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count + 1); // mismatch
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -188,14 +232,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count + 1); // mismatch
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -206,14 +251,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         // First batch succeeds
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -225,14 +271,15 @@ contract SoulRecursiveVerifierTest is Test {
             tids2[i] = keccak256(abi.encode("transfer2", i));
         }
 
-        SoulRecursiveVerifier.AggregatedProofData memory data2 = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init2"),
-            finalStateHash: keccak256("final2"),
-            accumulatedInstanceHash: keccak256("acc2"),
-            nullifierBatchRoot: keccak256("nullRoot2"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data2 = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init2"),
+                finalStateHash: keccak256("final2"),
+                accumulatedInstanceHash: keccak256("acc2"),
+                nullifierBatchRoot: keccak256("nullRoot2"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof2"), data2, tids2, nulls);
@@ -245,14 +292,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("bad_proof"), data, tids, nulls);
@@ -266,14 +314,15 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
         vm.expectRevert();
         rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
@@ -288,7 +337,12 @@ contract SoulRecursiveVerifierTest is Test {
         inputs[0] = keccak256("in0");
         inputs[1] = keccak256("in1");
 
-        bytes32 proofId = rv.verifySingleProof(bytes("single_proof"), nullifier, commitment, inputs);
+        bytes32 proofId = rv.verifySingleProof(
+            bytes("single_proof"),
+            nullifier,
+            commitment,
+            inputs
+        );
         assertTrue(proofId != bytes32(0));
         assertTrue(rv.isNullifierUsed(nullifier));
         assertEq(rv.totalProofsVerified(), 1);
@@ -312,7 +366,12 @@ contract SoulRecursiveVerifierTest is Test {
         inputs[0] = keccak256("in0");
 
         vm.expectRevert();
-        rv.verifySingleProof(bytes("bad"), keccak256("n"), keccak256("c"), inputs);
+        rv.verifySingleProof(
+            bytes("bad"),
+            keccak256("n"),
+            keccak256("c"),
+            inputs
+        );
     }
 
     // ──────── Admin ────────
@@ -368,7 +427,10 @@ contract SoulRecursiveVerifierTest is Test {
     // ──────── Gas Savings Calculator ────────
 
     function test_calculateGasSavings() public view {
-        (uint256 savings, uint256 savingsPercent) = rv.calculateGasSavings(10, 500_000);
+        (uint256 savings, uint256 savingsPercent) = rv.calculateGasSavings(
+            10,
+            500_000
+        );
         // Individual would cost 10 * 350_000 = 3_500_000
         // savings = 3_500_000 - 500_000 = 3_000_000
         assertTrue(savings > 0);
@@ -382,18 +444,26 @@ contract SoulRecursiveVerifierTest is Test {
         bytes32[] memory tids = _makeTransferIds(count);
         bytes32[] memory nulls = _makeNullifiers(count);
 
-        SoulRecursiveVerifier.AggregatedProofData memory data = SoulRecursiveVerifier.AggregatedProofData({
-            proofCount: count,
-            initialStateHash: keccak256("init"),
-            finalStateHash: keccak256("final"),
-            accumulatedInstanceHash: keccak256("acc"),
-            nullifierBatchRoot: keccak256("nullRoot"),
-            batchVolume: 10
-        });
+        SoulRecursiveVerifier.AggregatedProofData
+            memory data = SoulRecursiveVerifier.AggregatedProofData({
+                proofCount: count,
+                initialStateHash: keccak256("init"),
+                finalStateHash: keccak256("final"),
+                accumulatedInstanceHash: keccak256("acc"),
+                nullifierBatchRoot: keccak256("nullRoot"),
+                batchVolume: 10
+            });
 
-        bytes32 batchId = rv.verifyAggregatedProof(bytes("proof"), data, tids, nulls);
+        bytes32 batchId = rv.verifyAggregatedProof(
+            bytes("proof"),
+            data,
+            tids,
+            nulls
+        );
 
-        SoulRecursiveVerifier.VerificationResult memory res = rv.getBatchResult(batchId);
+        SoulRecursiveVerifier.VerificationResult memory res = rv.getBatchResult(
+            batchId
+        );
         assertTrue(res.valid);
         assertEq(res.batchId, batchId);
         assertEq(res.timestamp, block.timestamp);

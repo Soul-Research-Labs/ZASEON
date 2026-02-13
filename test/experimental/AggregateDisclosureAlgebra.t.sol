@@ -7,9 +7,18 @@ import "../../contracts/experimental/primitives/AggregateDisclosureAlgebra.sol";
 /// @dev Mock disclosure proof verifier
 contract MockDisclosureVerifier {
     bool public result;
-    constructor(bool _result) { result = _result; }
-    function verify(bytes calldata) external view returns (bool) { return result; }
-    function setResult(bool _v) external { result = _v; }
+
+    constructor(bool _result) {
+        result = _result;
+    }
+
+    function verify(bytes calldata) external view returns (bool) {
+        return result;
+    }
+
+    function setResult(bool _v) external {
+        result = _v;
+    }
 }
 
 contract AggregateDisclosureAlgebraTest is Test {
@@ -17,17 +26,17 @@ contract AggregateDisclosureAlgebraTest is Test {
     MockDisclosureVerifier public goodVerifier;
     MockDisclosureVerifier public badVerifier;
 
-    address admin   = address(0xAD01);
-    address issuer  = address(0xBE01);
+    address admin = address(0xAD01);
+    address issuer = address(0xBE01);
     address subject = address(0xCE01);
     address verifier_ = address(0xDE01);
-    address alice   = address(0xEE01);
+    address alice = address(0xEE01);
 
     bytes32 DISCLOSURE_ADMIN_ROLE;
     bytes32 VERIFIER_ROLE;
     bytes32 ISSUER_ROLE;
 
-    bytes32 constant ATTR_AGE  = keccak256("age");
+    bytes32 constant ATTR_AGE = keccak256("age");
     bytes32 constant ATTR_NAME = keccak256("name");
 
     function setUp() public {
@@ -38,14 +47,14 @@ contract AggregateDisclosureAlgebraTest is Test {
 
         DISCLOSURE_ADMIN_ROLE = ada.DISCLOSURE_ADMIN_ROLE();
         VERIFIER_ROLE = ada.VERIFIER_ROLE();
-        ISSUER_ROLE   = ada.ISSUER_ROLE();
+        ISSUER_ROLE = ada.ISSUER_ROLE();
 
         ada.grantRole(ISSUER_ROLE, issuer);
         ada.grantRole(VERIFIER_ROLE, verifier_);
         ada.grantRole(DISCLOSURE_ADMIN_ROLE, admin);
 
         goodVerifier = new MockDisclosureVerifier(true);
-        badVerifier  = new MockDisclosureVerifier(false);
+        badVerifier = new MockDisclosureVerifier(false);
         ada.setDisclosureProofVerifier(address(goodVerifier));
         vm.stopPrank();
     }
@@ -100,7 +109,8 @@ contract AggregateDisclosureAlgebraTest is Test {
         assertTrue(credId != bytes32(0));
         assertEq(ada.totalCredentials(), 1);
 
-        AggregateDisclosureAlgebra.AttributeCredential memory cred = ada.getCredential(credId);
+        AggregateDisclosureAlgebra.AttributeCredential memory cred = ada
+            .getCredential(credId);
         assertEq(cred.issuer, issuer);
         assertEq(cred.subject, subject);
         assertFalse(cred.isRevoked);
@@ -112,7 +122,12 @@ contract AggregateDisclosureAlgebraTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
-        ada.issueCredential(subject, attrHash, keccak256("val"), uint64(block.timestamp + 1 days));
+        ada.issueCredential(
+            subject,
+            attrHash,
+            keccak256("val"),
+            uint64(block.timestamp + 1 days)
+        );
     }
 
     function test_issueCredential_whenPausedReverts() public {
@@ -124,7 +139,12 @@ contract AggregateDisclosureAlgebraTest is Test {
 
         vm.prank(issuer);
         vm.expectRevert();
-        ada.issueCredential(subject, attrHash, keccak256("v"), uint64(block.timestamp + 1 hours));
+        ada.issueCredential(
+            subject,
+            attrHash,
+            keccak256("v"),
+            uint64(block.timestamp + 1 hours)
+        );
     }
 
     // ──────── Credential Revocation ────────
@@ -135,7 +155,8 @@ contract AggregateDisclosureAlgebraTest is Test {
         vm.prank(issuer);
         ada.revokeCredential(credId);
 
-        AggregateDisclosureAlgebra.AttributeCredential memory cred = ada.getCredential(credId);
+        AggregateDisclosureAlgebra.AttributeCredential memory cred = ada
+            .getCredential(credId);
         assertTrue(cred.isRevoked);
         assertFalse(ada.isCredentialValid(credId));
     }
@@ -178,7 +199,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         vm.prank(alice); // not the subject
         vm.expectRevert();
         ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
     }
 
@@ -192,7 +218,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         vm.prank(subject);
         vm.expectRevert();
         ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
     }
 
@@ -204,7 +235,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 dId = ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("proof"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("proof"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
 
         vm.prank(verifier_);
@@ -218,7 +254,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 dId = ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("proof"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("proof"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
 
         vm.prank(verifier_);
@@ -238,10 +279,20 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.startPrank(subject);
         bytes32 d1 = ada.createSelectiveDisclosure(
-            credId, keccak256("r1"), hidden, bytes("p1"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r1"),
+            hidden,
+            bytes("p1"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
         bytes32 d2 = ada.createSelectiveDisclosure(
-            credId, keccak256("r2"), hidden, bytes("p2"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r2"),
+            hidden,
+            bytes("p2"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
         vm.stopPrank();
 
@@ -266,7 +317,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 d1 = ada.createSelectiveDisclosure(
-            credId, keccak256("r1"), hidden, bytes("p1"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r1"),
+            hidden,
+            bytes("p1"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
 
         bytes32[] memory dIds = new bytes32[](1);
@@ -287,10 +343,20 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.startPrank(subject);
         bytes32 d1 = ada.createSelectiveDisclosure(
-            credId, keccak256("r1"), hidden, bytes("p1"), address(0), uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r1"),
+            hidden,
+            bytes("p1"),
+            address(0),
+            uint64(block.timestamp + 1 hours)
         );
         bytes32 d2 = ada.createSelectiveDisclosure(
-            credId, keccak256("r2"), hidden, bytes("p2"), address(0), uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r2"),
+            hidden,
+            bytes("p2"),
+            address(0),
+            uint64(block.timestamp + 1 hours)
         );
         vm.stopPrank();
 
@@ -316,7 +382,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 d1 = ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), address(0), uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            address(0),
+            uint64(block.timestamp + 1 hours)
         );
 
         bytes32[] memory dIds = new bytes32[](1);
@@ -343,11 +414,19 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 dId = ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
 
         vm.prank(subject);
-        bytes32 condId = ada.createTimeCondition(dId, block.timestamp + 1 hours);
+        bytes32 condId = ada.createTimeCondition(
+            dId,
+            block.timestamp + 1 hours
+        );
         assertTrue(condId != bytes32(0));
     }
 
@@ -357,11 +436,19 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         bytes32 dId = ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), verifier_, uint64(block.timestamp + 2 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            verifier_,
+            uint64(block.timestamp + 2 hours)
         );
 
         vm.prank(subject);
-        bytes32 condId = ada.createTimeCondition(dId, block.timestamp + 1 hours);
+        bytes32 condId = ada.createTimeCondition(
+            dId,
+            block.timestamp + 1 hours
+        );
 
         // Before unlock time
         assertFalse(ada.checkCondition(condId));
@@ -403,7 +490,12 @@ contract AggregateDisclosureAlgebraTest is Test {
         bytes32[] memory hidden = new bytes32[](0);
         vm.prank(subject);
         ada.createSelectiveDisclosure(
-            credId, keccak256("r"), hidden, bytes("p"), verifier_, uint64(block.timestamp + 1 hours)
+            credId,
+            keccak256("r"),
+            hidden,
+            bytes("p"),
+            verifier_,
+            uint64(block.timestamp + 1 hours)
         );
 
         bytes32[] memory discs = ada.getSubjectDisclosures(subject);
@@ -430,13 +522,20 @@ contract AggregateDisclosureAlgebraTest is Test {
     // ──────── Fuzz ────────
 
     function testFuzz_issueCredential_anyExpiry(uint64 expiry) public {
-        expiry = uint64(bound(uint256(expiry), block.timestamp + 1, type(uint64).max));
+        expiry = uint64(
+            bound(uint256(expiry), block.timestamp + 1, type(uint64).max)
+        );
 
         vm.prank(admin);
         bytes32 attrHash = ada.registerAttribute("fuzz_attr", false, false);
 
         vm.prank(issuer);
-        bytes32 credId = ada.issueCredential(subject, attrHash, keccak256("fuzz"), expiry);
+        bytes32 credId = ada.issueCredential(
+            subject,
+            attrHash,
+            keccak256("fuzz"),
+            expiry
+        );
         assertTrue(credId != bytes32(0));
     }
 }

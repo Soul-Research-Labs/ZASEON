@@ -52,14 +52,12 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         });
     }
 
-    function _createTestContainer()
-        internal
-        returns (bytes32 containerId)
-    {
+    function _createTestContainer() internal returns (bytes32 containerId) {
         bytes memory payload = abi.encode("test payload");
         bytes32 stateCommitment = bytes32(uint256(1));
         bytes32 nullifier = bytes32(uint256(2));
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
 
         vm.prank(user1);
         containerId = pc3.createContainer(
@@ -104,7 +102,9 @@ contract ProofCarryingContainerUpgradeableTest is Test {
 
     function test_createContainer_storesData() public {
         bytes32 containerId = _createTestContainer();
-        ProofCarryingContainerUpgradeable.Container memory c = pc3.getContainer(containerId);
+        ProofCarryingContainerUpgradeable.Container memory c = pc3.getContainer(
+            containerId
+        );
         assertEq(c.stateCommitment, bytes32(uint256(1)));
         assertEq(c.nullifier, bytes32(uint256(2)));
         assertFalse(c.isVerified);
@@ -113,9 +113,12 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_createContainer_revertsEmptyPayload() public {
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
-        vm.expectRevert(ProofCarryingContainerUpgradeable.InvalidContainerData.selector);
+        vm.expectRevert(
+            ProofCarryingContainerUpgradeable.InvalidContainerData.selector
+        );
         pc3.createContainer(
             "",
             bytes32(uint256(1)),
@@ -126,9 +129,12 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_createContainer_revertsZeroCommitment() public {
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
-        vm.expectRevert(ProofCarryingContainerUpgradeable.InvalidContainerData.selector);
+        vm.expectRevert(
+            ProofCarryingContainerUpgradeable.InvalidContainerData.selector
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(0),
@@ -139,9 +145,12 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_createContainer_revertsZeroNullifier() public {
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
-        vm.expectRevert(ProofCarryingContainerUpgradeable.InvalidContainerData.selector);
+        vm.expectRevert(
+            ProofCarryingContainerUpgradeable.InvalidContainerData.selector
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(uint256(1)),
@@ -156,21 +165,24 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         bytes memory pp = new bytes(32);
         bytes memory np = new bytes(32);
 
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = ProofCarryingContainerUpgradeable.ProofBundle({
-            validityProof: shortValid,
-            policyProof: pp,
-            nullifierProof: np,
-            proofHash: keccak256(abi.encodePacked(shortValid, pp, np)),
-            proofTimestamp: block.timestamp,
-            proofExpiry: 0
-        });
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = ProofCarryingContainerUpgradeable.ProofBundle({
+                validityProof: shortValid,
+                policyProof: pp,
+                nullifierProof: np,
+                proofHash: keccak256(abi.encodePacked(shortValid, pp, np)),
+                proofTimestamp: block.timestamp,
+                proofExpiry: 0
+            });
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProofCarryingContainerUpgradeable.ProofTooSmall.selector,
-            100,
-            256
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProofCarryingContainerUpgradeable.ProofTooSmall.selector,
+                100,
+                256
+            )
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(uint256(1)),
@@ -181,11 +193,14 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_createContainer_revertsInvalidProofHash() public {
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         bundle.proofHash = bytes32(uint256(0xDEAD)); // tampered
 
         vm.prank(user1);
-        vm.expectRevert(ProofCarryingContainerUpgradeable.InvalidProofBundle.selector);
+        vm.expectRevert(
+            ProofCarryingContainerUpgradeable.InvalidProofBundle.selector
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(uint256(1)),
@@ -196,14 +211,17 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_createContainer_revertsUnsupportedPolicy() public {
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         bytes32 policy = bytes32(uint256(0xABC));
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProofCarryingContainerUpgradeable.UnsupportedPolicy.selector,
-            policy
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProofCarryingContainerUpgradeable.UnsupportedPolicy.selector,
+                policy
+            )
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(uint256(1)),
@@ -218,7 +236,8 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         vm.prank(admin);
         pc3.addPolicy(policy);
 
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
         bytes32 id = pc3.createContainer(
             abi.encode("data"),
@@ -237,12 +256,17 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         pc3.consumeContainer(id);
 
         // Try to create with same nullifier
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProofCarryingContainerUpgradeable.NullifierAlreadyConsumed.selector,
-            bytes32(uint256(2))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProofCarryingContainerUpgradeable
+                    .NullifierAlreadyConsumed
+                    .selector,
+                bytes32(uint256(2))
+            )
+        );
         pc3.createContainer(
             abi.encode("data"),
             bytes32(uint256(1)),
@@ -256,7 +280,8 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         vm.prank(admin);
         pc3.pause();
 
-        ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+        ProofCarryingContainerUpgradeable.ProofBundle
+            memory bundle = _validProofBundle();
         vm.prank(user1);
         vm.expectRevert();
         pc3.createContainer(
@@ -277,17 +302,21 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         vm.prank(verifier);
         pc3.consumeContainer(id);
 
-        ProofCarryingContainerUpgradeable.Container memory c = pc3.getContainer(id);
+        ProofCarryingContainerUpgradeable.Container memory c = pc3.getContainer(
+            id
+        );
         assertTrue(c.isConsumed);
         assertTrue(pc3.isNullifierConsumed(bytes32(uint256(2))));
     }
 
     function test_consumeContainer_revertsNotFound() public {
         vm.prank(verifier);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProofCarryingContainerUpgradeable.ContainerNotFound.selector,
-            bytes32(uint256(999))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProofCarryingContainerUpgradeable.ContainerNotFound.selector,
+                bytes32(uint256(999))
+            )
+        );
         pc3.consumeContainer(bytes32(uint256(999)));
     }
 
@@ -297,10 +326,14 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         pc3.consumeContainer(id);
 
         vm.prank(verifier);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProofCarryingContainerUpgradeable.ContainerAlreadyConsumed.selector,
-            id
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProofCarryingContainerUpgradeable
+                    .ContainerAlreadyConsumed
+                    .selector,
+                id
+            )
+        );
         pc3.consumeContainer(id);
     }
 
@@ -319,7 +352,8 @@ contract ProofCarryingContainerUpgradeableTest is Test {
         // Create 3 containers with unique nullifiers
         bytes memory payload = abi.encode("data");
         for (uint256 i = 1; i <= 3; i++) {
-            ProofCarryingContainerUpgradeable.ProofBundle memory bundle = _validProofBundle();
+            ProofCarryingContainerUpgradeable.ProofBundle
+                memory bundle = _validProofBundle();
             vm.prank(user1);
             pc3.createContainer(
                 payload,
@@ -345,7 +379,10 @@ contract ProofCarryingContainerUpgradeableTest is Test {
     }
 
     function test_getImplementationVersion() public view {
-        assertEq(keccak256(bytes(pc3.getImplementationVersion())), keccak256("1.0.0"));
+        assertEq(
+            keccak256(bytes(pc3.getImplementationVersion())),
+            keccak256("1.0.0")
+        );
     }
 
     /* ══════════════════════════════════════════════════
