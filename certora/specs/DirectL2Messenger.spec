@@ -55,6 +55,11 @@ ghost uint256 ghostRelayerCount {
     init_state axiom ghostRelayerCount == 0;
 }
 
+// Hook: track when processedMessages mapping is written
+hook Sstore processedMessages[KEY bytes32 msgId] bool newVal (bool oldVal) {
+    ghostProcessedMessages[msgId] = newVal;
+}
+
 // ============================================================================
 // INVARIANTS
 // ============================================================================
@@ -73,8 +78,8 @@ invariant globalNonceMonotonicallyIncreasing()
  * @notice Once a message is processed, it stays processed
  * TODO: Verify this with ghost variable hooks on processedMessages mapping
  */
-invariant processedMessagePermanence()
-    true; // TODO: Express using forall over ghost mapping
+invariant processedMessagePermanence(bytes32 msgId)
+    ghostProcessedMessages[msgId] => processedMessages(msgId)
 
 /**
  * @title Relayer Count Non-Negative

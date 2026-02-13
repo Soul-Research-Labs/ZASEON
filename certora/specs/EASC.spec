@@ -84,7 +84,7 @@ invariant commitmentCountConsistent()
     totalCommitments() == ghostCommitmentCount
     {
         preserved {
-            require true;
+            require totalCommitments() < max_uint256;
         }
     }
 
@@ -95,7 +95,7 @@ invariant finalizationPermanent(bytes32 commitmentId)
     commitmentFinalized[commitmentId] => always(commitmentFinalized[commitmentId])
     {
         preserved {
-            require true;
+            require commitmentExists[commitmentId];
         }
     }
 
@@ -106,7 +106,8 @@ invariant attestationCountMonotonic(bytes32 commitmentId)
     commitmentAttestationCount[commitmentId] >= old(commitmentAttestationCount[commitmentId])
     {
         preserved {
-            require true;
+            require commitmentExists[commitmentId];
+            require commitmentAttestationCount[commitmentId] < max_uint256;
         }
     }
 

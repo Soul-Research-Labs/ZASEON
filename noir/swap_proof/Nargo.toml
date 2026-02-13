@@ -5,3 +5,4 @@ authors = ["Soul Team"]
 description = "AMM swap proof circuit for Soul Exchange with constant product verification"
 
 [dependencies]
+poseidon = { tag = "v0.2.3", git = "https://github.com/noir-lang/poseidon" }

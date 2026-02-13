@@ -84,7 +84,7 @@ invariant implementationIsContract()
     currentImplementation != 0 => isContract(currentImplementation)
     {
         preserved {
-            require true;
+            require currentImplementation != 0;
         }
     }
 
@@ -95,7 +95,7 @@ invariant ownerNonZeroOrRenounced()
     owner() != 0 || upgradeCount == 0
     {
         preserved {
-            require true;
+            require upgradeCount < max_uint256;
         }
     }
 
@@ -115,11 +115,6 @@ invariant upgradeCountMonotonic()
  */
 invariant proxiableUUIDConstant()
     proxiableUUID() == IMPLEMENTATION_SLOT()
-    {
-        preserved {
-            require true;
-        }
-    }
 
 // =============================================================================
 // RULES

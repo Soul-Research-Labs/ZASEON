@@ -13,15 +13,24 @@ contract MockZKVerifier is IProofVerifier {
         shouldVerify = _val;
     }
 
-    function verify(bytes calldata, uint256[] calldata) external view returns (bool) {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
-    function verifyProof(bytes calldata, bytes calldata) external view returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
-    function verifySingle(bytes calldata, uint256) external view returns (bool) {
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
@@ -34,22 +43,34 @@ contract MockZKVerifier is IProofVerifier {
     }
 
     /// @dev Handles staticcall from ZKBoundStateLocks._verifyProof when using registered verifier
-    function verify(bytes calldata, bytes32[] calldata) external view returns (bool) {
+    function verify(
+        bytes calldata,
+        bytes32[] calldata
+    ) external view returns (bool) {
         return shouldVerify;
     }
 }
 
 /// @notice Mock verifier that always fails
 contract FailingZKVerifier is IProofVerifier {
-    function verify(bytes calldata, uint256[] calldata) external pure returns (bool) {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external pure returns (bool) {
         return false;
     }
 
-    function verifyProof(bytes calldata, bytes calldata) external pure returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure returns (bool) {
         return false;
     }
 
-    function verifySingle(bytes calldata, uint256) external pure returns (bool) {
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external pure returns (bool) {
         return false;
     }
 
@@ -61,7 +82,10 @@ contract FailingZKVerifier is IProofVerifier {
         return true;
     }
 
-    function verify(bytes calldata, bytes32[] calldata) external pure returns (bool) {
+    function verify(
+        bytes calldata,
+        bytes32[] calldata
+    ) external pure returns (bool) {
         return false;
     }
 }
@@ -123,29 +147,29 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_Constructor_RegistersDefaultDomains() public view {
         // Ethereum mainnet
-        (uint64 chainId,,,,, ) = zksl.domains(ethDomain);
+        (uint64 chainId, , , , , ) = zksl.domains(ethDomain);
         assertEq(chainId, 1);
 
         // Optimism
         bytes32 opDomain = zksl.generateDomainSeparator(10, 0, 0);
-        (chainId,,,,, ) = zksl.domains(opDomain);
+        (chainId, , , , , ) = zksl.domains(opDomain);
         assertEq(chainId, 10);
 
         // Polygon
         bytes32 polyDomain = zksl.generateDomainSeparator(137, 0, 0);
-        (chainId,,,,, ) = zksl.domains(polyDomain);
+        (chainId, , , , , ) = zksl.domains(polyDomain);
         assertEq(chainId, 137);
     }
 
     function test_Constructor_RegistersExtendedDomains() public view {
         // Arbitrum One (42161 > 65535 → extended)
         bytes32 arbDomain = zksl.generateDomainSeparatorExtended(42161, 0, 0);
-        (uint64 chainId,,,,, ) = zksl.domains(arbDomain);
+        (uint64 chainId, , , , , ) = zksl.domains(arbDomain);
         assertEq(chainId, 42161);
 
         // Base
         bytes32 baseDomain = zksl.generateDomainSeparatorExtended(8453, 0, 0);
-        (chainId,,,,, ) = zksl.domains(baseDomain);
+        (chainId, , , , , ) = zksl.domains(baseDomain);
         assertEq(chainId, 8453);
     }
 
@@ -156,7 +180,11 @@ contract ZKBoundStateLocksTest is Test {
     function test_CreateLock_Success() public {
         vm.prank(user1);
         bytes32 lockId = zksl.createLock(
-            STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
         );
 
         assertTrue(lockId != bytes32(0));
@@ -168,7 +196,11 @@ contract ZKBoundStateLocksTest is Test {
         uint64 deadline = uint64(block.timestamp + 1 days);
         vm.prank(user1);
         bytes32 lockId = zksl.createLock(
-            STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, deadline
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            deadline
         );
 
         ZKBoundStateLocks.ZKSLock memory lock = zksl.getLock(lockId);
@@ -183,34 +215,71 @@ contract ZKBoundStateLocksTest is Test {
         // createLock checks unlockDeadline <= block.timestamp → revert
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockExpired.selector, bytes32(0), pastDeadline)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockExpired.selector,
+                bytes32(0),
+                pastDeadline
+            )
         );
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, pastDeadline);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            pastDeadline
+        );
     }
 
     function test_CreateLock_RevertInvalidDomain() public {
         bytes32 badDomain = keccak256("nonexistent");
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.InvalidDomainSeparator.selector, badDomain)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.InvalidDomainSeparator.selector,
+                badDomain
+            )
         );
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, badDomain, 0);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            badDomain,
+            0
+        );
     }
 
     function test_CreateLock_RevertWhenPaused() public {
         zksl.pause();
         vm.prank(user1);
         vm.expectRevert();
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
     }
 
     function test_CreateLock_IncrementsTotalLocksCreated() public {
         vm.prank(user1);
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
         assertEq(zksl.totalLocksCreated(), 1);
 
         vm.prank(user2);
-        zksl.createLock(keccak256("state2"), TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        zksl.createLock(
+            keccak256("state2"),
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
         assertEq(zksl.totalLocksCreated(), 2);
     }
 
@@ -218,9 +287,21 @@ contract ZKBoundStateLocksTest is Test {
         vm.prank(user1);
         vm.expectEmit(false, true, true, false);
         emit ZKBoundStateLocks.LockCreated(
-            bytes32(0), STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, user1, 0
+            bytes32(0),
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            user1,
+            0
         );
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -229,18 +310,27 @@ contract ZKBoundStateLocksTest is Test {
 
     function _createDefaultLock() internal returns (bytes32 lockId) {
         vm.prank(user1);
-        lockId = zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        lockId = zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
     }
 
-    function _buildUnlockProof(bytes32 lockId) internal pure returns (ZKBoundStateLocks.UnlockProof memory) {
-        return ZKBoundStateLocks.UnlockProof({
-            lockId: lockId,
-            zkProof: hex"deadbeef",
-            newStateCommitment: keccak256("newState"),
-            nullifier: NULLIFIER,
-            verifierKeyHash: VK_HASH,
-            auxiliaryData: ""
-        });
+    function _buildUnlockProof(
+        bytes32 lockId
+    ) internal pure returns (ZKBoundStateLocks.UnlockProof memory) {
+        return
+            ZKBoundStateLocks.UnlockProof({
+                lockId: lockId,
+                zkProof: hex"deadbeef",
+                newStateCommitment: keccak256("newState"),
+                nullifier: NULLIFIER,
+                verifierKeyHash: VK_HASH,
+                auxiliaryData: ""
+            });
     }
 
     function test_Unlock_Success() public {
@@ -273,9 +363,14 @@ contract ZKBoundStateLocksTest is Test {
     }
 
     function test_Unlock_RevertNonExistentLock() public {
-        ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(keccak256("fake"));
+        ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(
+            keccak256("fake")
+        );
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockDoesNotExist.selector, bytes32(0))
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockDoesNotExist.selector,
+                bytes32(0)
+            )
         );
         zksl.unlock(proof);
     }
@@ -290,23 +385,39 @@ contract ZKBoundStateLocksTest is Test {
         proof2.nullifier = keccak256("nullifier2");
 
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockAlreadyUnlocked.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockAlreadyUnlocked.selector,
+                lockId
+            )
         );
         zksl.unlock(proof2);
     }
 
     function test_Unlock_RevertNullifierAlreadyUsed() public {
         bytes32 lockId1 = _createDefaultLock();
-        ZKBoundStateLocks.UnlockProof memory proof1 = _buildUnlockProof(lockId1);
+        ZKBoundStateLocks.UnlockProof memory proof1 = _buildUnlockProof(
+            lockId1
+        );
         zksl.unlock(proof1);
 
         // Create another lock, try same nullifier
         vm.prank(user1);
-        bytes32 lockId2 = zksl.createLock(keccak256("state2"), TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
-        ZKBoundStateLocks.UnlockProof memory proof2 = _buildUnlockProof(lockId2);
+        bytes32 lockId2 = zksl.createLock(
+            keccak256("state2"),
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
+        ZKBoundStateLocks.UnlockProof memory proof2 = _buildUnlockProof(
+            lockId2
+        );
 
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.NullifierAlreadyUsed.selector, NULLIFIER)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.NullifierAlreadyUsed.selector,
+                NULLIFIER
+            )
         );
         zksl.unlock(proof2);
     }
@@ -317,7 +428,10 @@ contract ZKBoundStateLocksTest is Test {
 
         ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(lockId);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.InvalidProof.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.InvalidProof.selector,
+                lockId
+            )
         );
         zksl.unlock(proof);
 
@@ -329,7 +443,11 @@ contract ZKBoundStateLocksTest is Test {
         uint64 deadline = uint64(block.timestamp + 1 hours);
         vm.prank(user1);
         bytes32 lockId = zksl.createLock(
-            STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, deadline
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            deadline
         );
 
         // Warp past deadline
@@ -337,7 +455,11 @@ contract ZKBoundStateLocksTest is Test {
 
         ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(lockId);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockExpired.selector, lockId, deadline)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockExpired.selector,
+                lockId,
+                deadline
+            )
         );
         zksl.unlock(proof);
     }
@@ -389,8 +511,16 @@ contract ZKBoundStateLocksTest is Test {
         vm.prank(user2);
         zksl.optimisticUnlock{value: 0.01 ether}(proof);
 
-        (address unlocker, uint64 unlockTime,, bytes32 proofHash,, bool disputed,,) =
-            zksl.optimisticUnlocks(lockId);
+        (
+            address unlocker,
+            uint64 unlockTime,
+            ,
+            bytes32 proofHash,
+            ,
+            bool disputed,
+            ,
+
+        ) = zksl.optimisticUnlocks(lockId);
 
         assertEq(unlocker, user2);
         assertGt(unlockTime, 0);
@@ -406,7 +536,9 @@ contract ZKBoundStateLocksTest is Test {
         vm.prank(user2);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ZKBoundStateLocks.InsufficientBond.selector, zksl.MIN_BOND_AMOUNT(), 0.001 ether
+                ZKBoundStateLocks.InsufficientBond.selector,
+                zksl.MIN_BOND_AMOUNT(),
+                0.001 ether
             )
         );
         zksl.optimisticUnlock{value: 0.001 ether}(proof);
@@ -451,7 +583,10 @@ contract ZKBoundStateLocksTest is Test {
     function test_FinalizeOptimisticUnlock_RevertNoOptimistic() public {
         bytes32 fakeLockId = keccak256("fake");
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.NoOptimisticUnlock.selector, fakeLockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.NoOptimisticUnlock.selector,
+                fakeLockId
+            )
         );
         zksl.finalizeOptimisticUnlock(fakeLockId);
     }
@@ -495,7 +630,10 @@ contract ZKBoundStateLocksTest is Test {
         // Now try finalize — should revert
         vm.warp(block.timestamp + zksl.DISPUTE_WINDOW() + 1);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.AlreadyDisputed.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.AlreadyDisputed.selector,
+                lockId
+            )
         );
         zksl.finalizeOptimisticUnlock(lockId);
     }
@@ -523,7 +661,10 @@ contract ZKBoundStateLocksTest is Test {
         zksl.challengeOptimisticUnlock{value: 0.01 ether}(lockId, proof);
 
         // Challenger gets bond + stake back
-        assertEq(challenger.balance, balBefore - 0.01 ether + 0.05 ether + 0.01 ether);
+        assertEq(
+            challenger.balance,
+            balBefore - 0.01 ether + 0.05 ether + 0.01 ether
+        );
         assertEq(zksl.totalDisputes(), 1);
     }
 
@@ -588,7 +729,10 @@ contract ZKBoundStateLocksTest is Test {
         vm.deal(challenger, 1 ether);
         vm.prank(challenger);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.ChallengeWindowClosed.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.ChallengeWindowClosed.selector,
+                lockId
+            )
         );
         zksl.challengeOptimisticUnlock{value: 0.01 ether}(lockId, proof);
     }
@@ -612,12 +756,17 @@ contract ZKBoundStateLocksTest is Test {
         vm.deal(challenger2, 1 ether);
         vm.prank(challenger2);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.AlreadyDisputed.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.AlreadyDisputed.selector,
+                lockId
+            )
         );
         zksl.challengeOptimisticUnlock{value: 0.01 ether}(lockId, proof);
     }
 
-    function test_ChallengeOptimisticUnlock_RevertInvalidConflictProof() public {
+    function test_ChallengeOptimisticUnlock_RevertInvalidConflictProof()
+        public
+    {
         bytes32 lockId = _createDefaultLock();
         ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(lockId);
 
@@ -633,7 +782,10 @@ contract ZKBoundStateLocksTest is Test {
         vm.deal(challenger, 1 ether);
         vm.prank(challenger);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.InvalidConflictProof.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.InvalidConflictProof.selector,
+                lockId
+            )
         );
         zksl.challengeOptimisticUnlock{value: 0.01 ether}(lockId, badEvidence);
     }
@@ -650,7 +802,10 @@ contract ZKBoundStateLocksTest is Test {
     function test_RegisterVerifier_RevertAlreadyRegistered() public {
         zksl.registerVerifier(VK_HASH, address(verifier));
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.VerifierAlreadyRegistered.selector, VK_HASH)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.VerifierAlreadyRegistered.selector,
+                VK_HASH
+            )
         );
         zksl.registerVerifier(VK_HASH, address(failVerifier));
     }
@@ -673,8 +828,14 @@ contract ZKBoundStateLocksTest is Test {
     function test_RegisterDomain_Success() public {
         bytes32 newDomain = zksl.registerDomain(99999, 1, 0, "TestChain");
 
-        (uint64 chainId, uint64 appId, uint32 epoch, string memory name, bool isActive, ) =
-            zksl.domains(newDomain);
+        (
+            uint64 chainId,
+            uint64 appId,
+            uint32 epoch,
+            string memory name,
+            bool isActive,
+
+        ) = zksl.domains(newDomain);
         assertEq(chainId, 99999);
         assertEq(appId, 1);
         assertEq(epoch, 0);
@@ -686,7 +847,10 @@ contract ZKBoundStateLocksTest is Test {
         zksl.registerDomain(99999, 1, 0, "TestChain");
         bytes32 domainSep = zksl.generateDomainSeparatorExtended(99999, 1, 0);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.DomainAlreadyExists.selector, domainSep)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.DomainAlreadyExists.selector,
+                domainSep
+            )
         );
         zksl.registerDomain(99999, 1, 0, "TestChain2");
     }
@@ -727,7 +891,10 @@ contract ZKBoundStateLocksTest is Test {
 
         vm.prank(recovery);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockAlreadyUnlocked.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockAlreadyUnlocked.selector,
+                lockId
+            )
         );
         zksl.recoverLock(lockId, recovery);
     }
@@ -747,7 +914,10 @@ contract ZKBoundStateLocksTest is Test {
 
         vm.prank(recovery);
         vm.expectRevert(
-            abi.encodeWithSelector(ZKBoundStateLocks.LockAlreadyUnlocked.selector, lockId)
+            abi.encodeWithSelector(
+                ZKBoundStateLocks.LockAlreadyUnlocked.selector,
+                lockId
+            )
         );
         zksl.recoverLock(lockId, recovery);
     }
@@ -784,8 +954,16 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_GenerateNullifier_DifferentSecrets() public view {
         bytes32 lockId = keccak256("lock1");
-        bytes32 n1 = zksl.generateNullifier(keccak256("secret1"), lockId, ethDomain);
-        bytes32 n2 = zksl.generateNullifier(keccak256("secret2"), lockId, ethDomain);
+        bytes32 n1 = zksl.generateNullifier(
+            keccak256("secret1"),
+            lockId,
+            ethDomain
+        );
+        bytes32 n2 = zksl.generateNullifier(
+            keccak256("secret2"),
+            lockId,
+            ethDomain
+        );
         assertTrue(n1 != n2);
     }
 
@@ -799,7 +977,10 @@ contract ZKBoundStateLocksTest is Test {
             vm.prank(user1);
             zksl.createLock(
                 keccak256(abi.encodePacked("state", i)),
-                TRANSITION_HASH, POLICY_HASH, ethDomain, 0
+                TRANSITION_HASH,
+                POLICY_HASH,
+                ethDomain,
+                0
             );
         }
 
@@ -815,7 +996,13 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_GetActiveLockIds_Unpaginated() public {
         vm.prank(user1);
-        zksl.createLock(STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, 0);
+        zksl.createLock(
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            0
+        );
 
         bytes32[] memory ids = zksl.getActiveLockIds();
         assertEq(ids.length, 1);
@@ -835,7 +1022,11 @@ contract ZKBoundStateLocksTest is Test {
         uint64 deadline = uint64(block.timestamp + 1 hours);
         vm.prank(user1);
         bytes32 lockId = zksl.createLock(
-            STATE_COMMIT, TRANSITION_HASH, POLICY_HASH, ethDomain, deadline
+            STATE_COMMIT,
+            TRANSITION_HASH,
+            POLICY_HASH,
+            ethDomain,
+            deadline
         );
 
         assertTrue(zksl.canUnlock(lockId));
@@ -858,8 +1049,13 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_GetStats() public {
         bytes32 lockId = _createDefaultLock();
-        (uint256 created, uint256 unlocked, uint256 active, uint256 optimistic, uint256 disputed) =
-            zksl.getStats();
+        (
+            uint256 created,
+            uint256 unlocked,
+            uint256 active,
+            uint256 optimistic,
+            uint256 disputed
+        ) = zksl.getStats();
         assertEq(created, 1);
         assertEq(unlocked, 0);
         assertEq(active, 1);
@@ -904,7 +1100,9 @@ contract ZKBoundStateLocksTest is Test {
         assertTrue(zksl.rolesSeparated());
     }
 
-    function test_ConfirmRoleSeparation_RevertIfAdminHoldsOperationalRoles() public {
+    function test_ConfirmRoleSeparation_RevertIfAdminHoldsOperationalRoles()
+        public
+    {
         // Admin still holds DISPUTE_RESOLVER_ROLE
         vm.expectRevert("Admin must not hold operational roles");
         zksl.confirmRoleSeparation();
@@ -921,7 +1119,11 @@ contract ZKBoundStateLocksTest is Test {
     ) public {
         vm.prank(user1);
         bytes32 lockId = zksl.createLock(
-            stateCommit, transitionHash, policyHash, ethDomain, 0
+            stateCommit,
+            transitionHash,
+            policyHash,
+            ethDomain,
+            0
         );
         assertTrue(lockId != bytes32(0));
         assertEq(zksl.getActiveLockCount(), 1);

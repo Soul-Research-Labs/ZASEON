@@ -13,15 +13,24 @@ contract MockPolicyVerifier is IProofVerifier {
         shouldVerify = val;
     }
 
-    function verify(bytes calldata, uint256[] calldata) external view returns (bool) {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
-    function verifyProof(bytes calldata, bytes calldata) external view returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
-    function verifySingle(bytes calldata, uint256) external view returns (bool) {
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external view returns (bool) {
         return shouldVerify;
     }
 
@@ -36,15 +45,24 @@ contract MockPolicyVerifier is IProofVerifier {
 
 /// @notice Mock verifier that always reverts
 contract RevertingVerifier is IProofVerifier {
-    function verify(bytes calldata, uint256[] calldata) external pure returns (bool) {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external pure returns (bool) {
         revert("boom");
     }
 
-    function verifyProof(bytes calldata, bytes calldata) external pure returns (bool) {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure returns (bool) {
         revert("boom");
     }
 
-    function verifySingle(bytes calldata, uint256) external pure returns (bool) {
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external pure returns (bool) {
         revert("boom");
     }
 
@@ -91,23 +109,24 @@ contract PolicyBoundProofsTest is Test {
         bytes32[] memory allowedAssets = new bytes32[](0);
         bytes32[] memory blockedCountries = new bytes32[](0);
 
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: POLICY_HASH,
-            name: "KYC Policy",
-            description: "Basic KYC compliance",
-            requiresIdentity: true,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: type(uint256).max,
-            allowedAssets: allowedAssets,
-            blockedCountries: blockedCountries,
-            createdAt: 0,
-            expiresAt: uint64(block.timestamp + 365 days),
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: POLICY_HASH,
+                name: "KYC Policy",
+                description: "Basic KYC compliance",
+                requiresIdentity: true,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: type(uint256).max,
+                allowedAssets: allowedAssets,
+                blockedCountries: blockedCountries,
+                createdAt: 0,
+                expiresAt: uint64(block.timestamp + 365 days),
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         policyId = pbp.registerPolicy(policy);
@@ -119,20 +138,22 @@ contract PolicyBoundProofsTest is Test {
         domainSep = pbp.bindVerificationKey(VK_HASH, POLICY_HASH);
     }
 
-    function _buildBoundProof(bytes32 policyHash, bytes32 domainSep) internal view
-        returns (PolicyBoundProofs.BoundProof memory)
-    {
+    function _buildBoundProof(
+        bytes32 policyHash,
+        bytes32 domainSep
+    ) internal view returns (PolicyBoundProofs.BoundProof memory) {
         bytes32[] memory publicInputs = new bytes32[](1);
         publicInputs[0] = policyHash; // Include policy commitment
 
-        return PolicyBoundProofs.BoundProof({
-            proof: hex"deadbeef",
-            policyHash: policyHash,
-            domainSeparator: domainSep,
-            publicInputs: publicInputs,
-            generatedAt: uint64(block.timestamp),
-            expiresAt: uint64(block.timestamp + 24 hours)
-        });
+        return
+            PolicyBoundProofs.BoundProof({
+                proof: hex"deadbeef",
+                policyHash: policyHash,
+                domainSeparator: domainSep,
+                publicInputs: publicInputs,
+                generatedAt: uint64(block.timestamp),
+                expiresAt: uint64(block.timestamp + 24 hours)
+            });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -169,23 +190,24 @@ contract PolicyBoundProofsTest is Test {
 
     function test_RegisterPolicy_RevertEmptyName() public {
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: POLICY_HASH,
-            name: "",
-            description: "desc",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: 0,
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: POLICY_HASH,
+                name: "",
+                description: "desc",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: 0,
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         vm.expectRevert(PolicyBoundProofs.EmptyPolicyName.selector);
@@ -194,23 +216,24 @@ contract PolicyBoundProofsTest is Test {
 
     function test_RegisterPolicy_RevertUnauthorized() public {
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: POLICY_HASH,
-            name: "Test",
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: 0,
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: POLICY_HASH,
+                name: "Test",
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: 0,
+                isActive: true
+            });
 
         vm.prank(user1);
         vm.expectRevert();
@@ -219,27 +242,32 @@ contract PolicyBoundProofsTest is Test {
 
     function test_RegisterPolicy_EmitsEvent() public {
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: POLICY_HASH,
-            name: "Test Policy",
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: 0,
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: POLICY_HASH,
+                name: "Test Policy",
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: 0,
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         vm.expectEmit(false, true, false, false);
-        emit PolicyBoundProofs.PolicyRegistered(bytes32(0), POLICY_HASH, "Test Policy");
+        emit PolicyBoundProofs.PolicyRegistered(
+            bytes32(0),
+            POLICY_HASH,
+            "Test Policy"
+        );
         pbp.registerPolicy(policy);
     }
 
@@ -260,7 +288,10 @@ contract PolicyBoundProofsTest is Test {
         bytes32 fakePolicyId = keccak256("fake");
         vm.prank(policyAdmin);
         vm.expectRevert(
-            abi.encodeWithSelector(PolicyBoundProofs.PolicyNotFound.selector, fakePolicyId)
+            abi.encodeWithSelector(
+                PolicyBoundProofs.PolicyNotFound.selector,
+                fakePolicyId
+            )
         );
         pbp.deactivatePolicy(fakePolicyId);
     }
@@ -275,7 +306,8 @@ contract PolicyBoundProofsTest is Test {
         assertTrue(domainSep != bytes32(0));
         assertEq(pbp.totalVerificationKeys(), 1);
 
-        PolicyBoundProofs.BoundVerificationKey memory vk = pbp.getVerificationKey(VK_HASH);
+        PolicyBoundProofs.BoundVerificationKey memory vk = pbp
+            .getVerificationKey(VK_HASH);
         assertEq(vk.vkHash, VK_HASH);
         assertEq(vk.policyHash, POLICY_HASH);
         assertEq(vk.domainSeparator, domainSep);
@@ -287,7 +319,10 @@ contract PolicyBoundProofsTest is Test {
 
         vm.prank(policyAdmin);
         vm.expectRevert(
-            abi.encodeWithSelector(PolicyBoundProofs.VerificationKeyAlreadyBound.selector, VK_HASH)
+            abi.encodeWithSelector(
+                PolicyBoundProofs.VerificationKeyAlreadyBound.selector,
+                VK_HASH
+            )
         );
         pbp.bindVerificationKey(VK_HASH, POLICY_HASH);
     }
@@ -297,7 +332,10 @@ contract PolicyBoundProofsTest is Test {
         vm.prank(policyAdmin);
         // Policy hash maps to zero policyId, which has createdAt == 0
         vm.expectRevert(
-            abi.encodeWithSelector(PolicyBoundProofs.PolicyNotFound.selector, bytes32(0))
+            abi.encodeWithSelector(
+                PolicyBoundProofs.PolicyNotFound.selector,
+                bytes32(0)
+            )
         );
         pbp.bindVerificationKey(VK_HASH, fakePolicyHash);
     }
@@ -312,7 +350,8 @@ contract PolicyBoundProofsTest is Test {
     function test_BindVerificationKey_DomainSeparatorConsistency() public {
         _bindDefaultVK();
         bytes32 expected = pbp.computeDomainSeparator(VK_HASH, POLICY_HASH);
-        PolicyBoundProofs.BoundVerificationKey memory vk = pbp.getVerificationKey(VK_HASH);
+        PolicyBoundProofs.BoundVerificationKey memory vk = pbp
+            .getVerificationKey(VK_HASH);
         assertEq(vk.domainSeparator, expected);
     }
 
@@ -322,9 +361,13 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyBoundProof_Success() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertTrue(result.proofValid);
         assertTrue(result.policyValid);
         assertTrue(result.withinScope);
@@ -333,10 +376,14 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyBoundProof_VkNotFound() public {
         bytes32 domainSep = keccak256(abi.encodePacked(VK_HASH, POLICY_HASH));
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
         bytes32 fakeVk = keccak256("noVk");
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, fakeVk);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, fakeVk);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Verification key not found");
     }
@@ -344,30 +391,42 @@ contract PolicyBoundProofsTest is Test {
     function test_VerifyBoundProof_PolicyMismatch() public {
         bytes32 domainSep = _bindDefaultVK();
         bytes32 wrongPolicyHash = keccak256("wrongPolicy");
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(wrongPolicyHash, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            wrongPolicyHash,
+            domainSep
+        );
 
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Proof out of policy scope");
     }
 
     function test_VerifyBoundProof_InvalidDomainSep() public {
         _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, keccak256("bad"));
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            keccak256("bad")
+        );
 
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Invalid domain separator");
     }
 
     function test_VerifyBoundProof_Expired() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
         // Warp forward so that a past expiresAt is > 0 and < block.timestamp
         vm.warp(1000);
         proof.expiresAt = uint64(block.timestamp - 1);
 
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Proof expired");
     }
@@ -382,8 +441,12 @@ contract PolicyBoundProofsTest is Test {
         vm.prank(policyAdmin);
         pbp.deactivatePolicy(policyId);
 
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Policy inactive");
     }
@@ -392,8 +455,12 @@ contract PolicyBoundProofsTest is Test {
         bytes32 domainSep = _bindDefaultVK();
         policyVerifier.setShouldVerify(false);
 
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "SNARK proof verification failed");
     }
@@ -403,8 +470,12 @@ contract PolicyBoundProofsTest is Test {
         // Switch to reverting verifier
         pbp.setPolicyVerifier(address(revertVerifier));
 
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Verifier call failed");
     }
@@ -416,18 +487,23 @@ contract PolicyBoundProofsTest is Test {
         bytes32[] memory publicInputs = new bytes32[](1);
         publicInputs[0] = keccak256("something_else");
 
-        PolicyBoundProofs.BoundProof memory proof = PolicyBoundProofs.BoundProof({
-            proof: hex"deadbeef",
-            policyHash: POLICY_HASH,
-            domainSeparator: domainSep,
-            publicInputs: publicInputs,
-            generatedAt: uint64(block.timestamp),
-            expiresAt: uint64(block.timestamp + 24 hours)
-        });
+        PolicyBoundProofs.BoundProof memory proof = PolicyBoundProofs
+            .BoundProof({
+                proof: hex"deadbeef",
+                policyHash: POLICY_HASH,
+                domainSeparator: domainSep,
+                publicInputs: publicInputs,
+                generatedAt: uint64(block.timestamp),
+                expiresAt: uint64(block.timestamp + 24 hours)
+            });
 
-        PolicyBoundProofs.VerificationResult memory result = pbp.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.VerificationResult memory result = pbp
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
-        assertEq(result.failureReason, "Policy commitment not in public inputs");
+        assertEq(
+            result.failureReason,
+            "Policy commitment not in public inputs"
+        );
     }
 
     function test_VerifyBoundProof_NoVerifierConfigured() public {
@@ -437,23 +513,24 @@ contract PolicyBoundProofsTest is Test {
 
         // Register policy and bind vk
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: POLICY_HASH,
-            name: "Test",
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: uint64(block.timestamp + 365 days),
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: POLICY_HASH,
+                name: "Test",
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: uint64(block.timestamp + 365 days),
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         pbp2.registerPolicy(policy);
@@ -461,8 +538,12 @@ contract PolicyBoundProofsTest is Test {
         vm.prank(policyAdmin);
         bytes32 domainSep = pbp2.bindVerificationKey(VK_HASH, POLICY_HASH);
 
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
-        PolicyBoundProofs.VerificationResult memory result = pbp2.verifyBoundProof(proof, VK_HASH);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
+        PolicyBoundProofs.VerificationResult memory result = pbp2
+            .verifyBoundProof(proof, VK_HASH);
         assertFalse(result.proofValid);
         assertEq(result.failureReason, "Policy verifier not configured");
     }
@@ -473,7 +554,10 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyAndConsumeProof_Success() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
         vm.prank(verifierRole);
         pbp.verifyAndConsumeProof(proof, VK_HASH);
@@ -483,7 +567,10 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyAndConsumeProof_RevertReplay() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
         vm.prank(verifierRole);
         pbp.verifyAndConsumeProof(proof, VK_HASH);
@@ -496,7 +583,10 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyAndConsumeProof_RevertUnauthorized() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
         vm.prank(user1);
         vm.expectRevert();
@@ -505,7 +595,10 @@ contract PolicyBoundProofsTest is Test {
 
     function test_VerifyAndConsumeProof_RevertWhenPaused() public {
         bytes32 domainSep = _bindDefaultVK();
-        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(POLICY_HASH, domainSep);
+        PolicyBoundProofs.BoundProof memory proof = _buildBoundProof(
+            POLICY_HASH,
+            domainSep
+        );
 
         pbp.pause();
 
@@ -553,23 +646,24 @@ contract PolicyBoundProofsTest is Test {
 
     function test_IsPolicyValid_Expired() public {
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: keccak256("expiring"),
-            name: "Expiring Policy",
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: uint64(block.timestamp + 1 hours),
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: keccak256("expiring"),
+                name: "Expiring Policy",
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: uint64(block.timestamp + 1 hours),
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         bytes32 policyId = pbp.registerPolicy(policy);
@@ -588,23 +682,24 @@ contract PolicyBoundProofsTest is Test {
 
         // Register another policy
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy2 = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: keccak256("policy2"),
-            name: "Policy 2",
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: 0,
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy2 = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: keccak256("policy2"),
+                name: "Policy 2",
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: 0,
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         pbp.registerPolicy(policy2);
@@ -694,23 +789,24 @@ contract PolicyBoundProofsTest is Test {
     function testFuzz_PolicyRegistration(string calldata name) public {
         vm.assume(bytes(name).length > 0 && bytes(name).length < 256);
         bytes32[] memory empty = new bytes32[](0);
-        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs.DisclosurePolicy({
-            policyId: bytes32(0),
-            policyHash: keccak256(abi.encodePacked(name)),
-            name: name,
-            description: "",
-            requiresIdentity: false,
-            requiresJurisdiction: false,
-            requiresAmount: false,
-            requiresCounterparty: false,
-            minAmount: 0,
-            maxAmount: 0,
-            allowedAssets: empty,
-            blockedCountries: empty,
-            createdAt: 0,
-            expiresAt: 0,
-            isActive: true
-        });
+        PolicyBoundProofs.DisclosurePolicy memory policy = PolicyBoundProofs
+            .DisclosurePolicy({
+                policyId: bytes32(0),
+                policyHash: keccak256(abi.encodePacked(name)),
+                name: name,
+                description: "",
+                requiresIdentity: false,
+                requiresJurisdiction: false,
+                requiresAmount: false,
+                requiresCounterparty: false,
+                minAmount: 0,
+                maxAmount: 0,
+                allowedAssets: empty,
+                blockedCountries: empty,
+                createdAt: 0,
+                expiresAt: 0,
+                isActive: true
+            });
 
         vm.prank(policyAdmin);
         bytes32 policyId = pbp.registerPolicy(policy);

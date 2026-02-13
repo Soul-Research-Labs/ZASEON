@@ -54,6 +54,13 @@ ghost mapping(bytes32 => bool) ghostVerifiedRoots {
     init_state axiom forall bytes32 r. !ghostVerifiedRoots[r];
 }
 
+// Hook: track when verifiedRoots mapping is written
+hook Sstore verifiedRoots[KEY bytes32 root] bool newVal (bool oldVal) {
+    if (newVal) {
+        ghostVerifiedRoots[root] = true;
+    }
+}
+
 // ============================================================================
 // INVARIANTS
 // ============================================================================
@@ -84,8 +91,8 @@ invariant aggregatedNeverExceedsSubmitted()
  * @notice Once a root is verified, it stays verified
  * TODO: Express with ghost mapping hooks on verifiedRoots
  */
-invariant verifiedRootsPermanent()
-    true; // TODO: forall bytes32 r. ghostVerifiedRoots[r] => verifiedRoots(r)
+invariant verifiedRootsPermanent(bytes32 root)
+    ghostVerifiedRoots[root] => verifiedRoots(root)
 
 // ============================================================================
 // RULES

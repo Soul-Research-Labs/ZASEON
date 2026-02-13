@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol
  * @notice Central registry and router for all ZK proof verifiers
  * @dev Manages multiple circuit verifiers with versioning and upgrade support
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  */
 contract VerifierHub is AccessControl, Pausable {
     /*//////////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 use std::hash::pedersen_hash;
-use std::hash::poseidon::bn254;
+use poseidon::poseidon::bn254;
 
 /// @title PedersenStateCommitment
 /// @notice State commitment using Pedersen hash for hiding property

@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol
  * @notice Bridge adapter for Scroll zkEVM integration
  * @dev Enables cross-chain interoperability with Scroll L2
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  *
  * SCROLL INTEGRATION:
  * - zkEVM rollup with Type 2 EVM equivalence

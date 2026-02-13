@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title SoulSP1Verifier
  * @notice Verifier for SP1 RISC-V zkVM proofs
  * @dev Supports Succinct's SP1 proving system for Soul
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  */
 contract SoulSP1Verifier is Ownable {
     // ============================================

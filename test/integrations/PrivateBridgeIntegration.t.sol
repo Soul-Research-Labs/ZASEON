@@ -15,14 +15,21 @@ contract MockBridgeProofVerifier {
 
     // Called by _verifyInitiateProof
     function verifyInitiateProof(
-        bytes32, bytes32, uint256, uint256, bytes32, bytes calldata
+        bytes32,
+        bytes32,
+        uint256,
+        uint256,
+        bytes32,
+        bytes calldata
     ) external view returns (bool) {
         return shouldVerify;
     }
 
     // Called by _verifyRefundProof
     function verifyRefundProof(
-        bytes32, bytes32, bytes calldata
+        bytes32,
+        bytes32,
+        bytes calldata
     ) external view returns (bool) {
         return shouldVerify;
     }
@@ -37,13 +44,20 @@ contract MockMessageVerifier {
     }
 
     function verifyCrossChainProof(
-        bytes32, bytes32, uint256, uint256, bytes calldata
+        bytes32,
+        bytes32,
+        uint256,
+        uint256,
+        bytes calldata
     ) external view returns (bool) {
         return shouldVerify;
     }
 
     function verifyRelayerProof(
-        bytes32, bytes32, uint256, bytes calldata
+        bytes32,
+        bytes32,
+        uint256,
+        bytes calldata
     ) external view returns (bool) {
         return shouldVerify;
     }
@@ -59,7 +73,10 @@ contract MockBridgeAdapter {
         shouldSucceed = val;
     }
 
-    function sendMessage(uint256 destChain, bytes calldata message) external payable {
+    function sendMessage(
+        uint256 destChain,
+        bytes calldata message
+    ) external payable {
         if (!shouldSucceed) revert("adapter failed");
         lastDestChain = destChain;
         lastMessage = message;
@@ -101,7 +118,8 @@ contract PrivateBridgeIntegrationTest is Test {
     bytes32 constant STEALTH_RECIPIENT = bytes32(uint256(uint160(0xBEEF)));
 
     // Cache NATIVE_TOKEN to avoid external call consuming vm.prank/vm.expectRevert
-    address constant NATIVE = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    address constant NATIVE =
+        address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     function setUp() public {
         proofVerifier = new MockBridgeProofVerifier();
@@ -121,7 +139,13 @@ contract PrivateBridgeIntegrationTest is Test {
 
         // Configure destination chain
         vm.prank(operator);
-        bridge.setChainConfig(DEST_CHAIN, address(adapter), 12, 100 ether, 1000 ether);
+        bridge.setChainConfig(
+            DEST_CHAIN,
+            address(adapter),
+            12,
+            100 ether,
+            1000 ether
+        );
 
         // Authorize relayer
         vm.prank(operator);
@@ -165,7 +189,8 @@ contract PrivateBridgeIntegrationTest is Test {
         vm.prank(operator);
         bridge.setChainConfig(10, address(adapter), 6, 50 ether, 500 ether);
 
-        PrivateBridgeIntegration.ChainConfig memory config = bridge.getChainConfig(10);
+        PrivateBridgeIntegration.ChainConfig memory config = bridge
+            .getChainConfig(10);
         assertTrue(config.isSupported);
         assertEq(config.bridgeAdapter, address(adapter));
         assertEq(config.minConfirmations, 6);
@@ -182,14 +207,27 @@ contract PrivateBridgeIntegrationTest is Test {
     function test_SetChainConfig_RevertSameChain() public {
         vm.prank(operator);
         vm.expectRevert(PrivateBridgeIntegration.InvalidChainId.selector);
-        bridge.setChainConfig(THIS_CHAIN, address(adapter), 6, 50 ether, 500 ether);
+        bridge.setChainConfig(
+            THIS_CHAIN,
+            address(adapter),
+            6,
+            50 ether,
+            500 ether
+        );
     }
 
     function test_SetChainConfig_UpdateExisting() public {
         vm.prank(operator);
-        bridge.setChainConfig(DEST_CHAIN, makeAddr("newAdapter"), 24, 200 ether, 2000 ether);
+        bridge.setChainConfig(
+            DEST_CHAIN,
+            makeAddr("newAdapter"),
+            24,
+            200 ether,
+            2000 ether
+        );
 
-        PrivateBridgeIntegration.ChainConfig memory config = bridge.getChainConfig(DEST_CHAIN);
+        PrivateBridgeIntegration.ChainConfig memory config = bridge
+            .getChainConfig(DEST_CHAIN);
         assertEq(config.bridgeAdapter, makeAddr("newAdapter"));
         assertEq(config.minConfirmations, 24);
     }
@@ -224,19 +262,25 @@ contract PrivateBridgeIntegrationTest is Test {
                    INITIATE PRIVATE TRANSFER
     //////////////////////////////////////////////////////////////*/
 
-    function _buildMessage() internal pure returns (PrivateBridgeIntegration.PrivateBridgeMessage memory) {
-        return PrivateBridgeIntegration.PrivateBridgeMessage({
-            commitment: COMMITMENT,
-            nullifierHash: NULLIFIER_HASH,
-            sourceChain: THIS_CHAIN,
-            destChain: DEST_CHAIN,
-            destRecipient: STEALTH_RECIPIENT,
-            proof: hex"aabbccdd"
-        });
+    function _buildMessage()
+        internal
+        pure
+        returns (PrivateBridgeIntegration.PrivateBridgeMessage memory)
+    {
+        return
+            PrivateBridgeIntegration.PrivateBridgeMessage({
+                commitment: COMMITMENT,
+                nullifierHash: NULLIFIER_HASH,
+                sourceChain: THIS_CHAIN,
+                destChain: DEST_CHAIN,
+                destRecipient: STEALTH_RECIPIENT,
+                proof: hex"aabbccdd"
+            });
     }
 
     function test_InitiatePrivateTransfer_Success() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
 
         vm.deal(user1, 1 ether);
         vm.prank(user1);
@@ -251,7 +295,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertZeroCommitment() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         msg_.commitment = bytes32(0);
 
         vm.deal(user1, 1 ether);
@@ -261,7 +306,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertZeroNullifier() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         msg_.nullifierHash = bytes32(0);
 
         vm.deal(user1, 1 ether);
@@ -271,7 +317,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertZeroRecipient() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         msg_.destRecipient = bytes32(0);
 
         vm.deal(user1, 1 ether);
@@ -281,7 +328,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertWrongSourceChain() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         msg_.sourceChain = 999;
 
         vm.deal(user1, 1 ether);
@@ -291,7 +339,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertUnsupportedChain() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         msg_.destChain = 999; // Not configured
 
         vm.deal(user1, 1 ether);
@@ -301,7 +350,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_RevertNullifierAlreadyUsed() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
 
         vm.deal(user1, 2 ether);
         vm.prank(user1);
@@ -316,7 +366,8 @@ contract PrivateBridgeIntegrationTest is Test {
     function test_InitiatePrivateTransfer_RevertInvalidProof() public {
         proofVerifier.setShouldVerify(false);
 
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
 
         vm.deal(user1, 1 ether);
         vm.prank(user1);
@@ -328,7 +379,8 @@ contract PrivateBridgeIntegrationTest is Test {
         vm.prank(guardian);
         bridge.pause();
 
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         vm.expectRevert();
@@ -336,13 +388,18 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_InitiatePrivateTransfer_EmitsEvent() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
 
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         vm.expectEmit(false, true, false, false);
         emit PrivateBridgeIntegration.PrivateTransferInitiated(
-            bytes32(0), COMMITMENT, THIS_CHAIN, DEST_CHAIN, block.timestamp
+            bytes32(0),
+            COMMITMENT,
+            THIS_CHAIN,
+            DEST_CHAIN,
+            block.timestamp
         );
         bridge.initiatePrivateTransfer{value: 0.1 ether}(msg_);
     }
@@ -353,12 +410,12 @@ contract PrivateBridgeIntegrationTest is Test {
 
     function test_CompletePrivateTransfer_Success() public {
         // Build message for destination chain
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = PrivateBridgeIntegration
+            .PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN, // Source is the OTHER chain
-                destChain: THIS_CHAIN,   // Dest is THIS chain
+                destChain: THIS_CHAIN, // Dest is THIS chain
                 destRecipient: STEALTH_RECIPIENT,
                 proof: hex"aabbccdd"
             });
@@ -371,8 +428,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_CompletePrivateTransfer_RevertUnauthorizedRelayer() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = PrivateBridgeIntegration.PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN,
@@ -387,8 +444,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_CompletePrivateTransfer_RevertWrongDestChain() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = PrivateBridgeIntegration
+            .PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN,
@@ -403,8 +460,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_CompletePrivateTransfer_RevertNullifierAlreadyUsed() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = PrivateBridgeIntegration.PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN,
@@ -422,11 +479,13 @@ contract PrivateBridgeIntegrationTest is Test {
         bridge.completePrivateTransfer(msg_, hex"aabb", hex"ccdd");
     }
 
-    function test_CompletePrivateTransfer_RevertCrossChainVerificationFailed() public {
+    function test_CompletePrivateTransfer_RevertCrossChainVerificationFailed()
+        public
+    {
         msgVerifier.setShouldVerify(false);
 
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = PrivateBridgeIntegration.PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN,
@@ -436,7 +495,9 @@ contract PrivateBridgeIntegrationTest is Test {
             });
 
         vm.prank(relayer);
-        vm.expectRevert(PrivateBridgeIntegration.CrossChainVerificationFailed.selector);
+        vm.expectRevert(
+            PrivateBridgeIntegration.CrossChainVerificationFailed.selector
+        );
         bridge.completePrivateTransfer(msg_, hex"aabb", hex"ccdd");
     }
 
@@ -445,13 +506,15 @@ contract PrivateBridgeIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_VerifyCrossChainNullifier_Unused() public view {
-        assertTrue(bridge.verifyCrossChainNullifier(NULLIFIER_HASH, DEST_CHAIN));
+        assertTrue(
+            bridge.verifyCrossChainNullifier(NULLIFIER_HASH, DEST_CHAIN)
+        );
     }
 
     function test_VerifyCrossChainNullifier_Used() public {
         // Complete a transfer to mark it
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = PrivateBridgeIntegration.PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: NULLIFIER_HASH,
                 sourceChain: DEST_CHAIN,
@@ -463,7 +526,9 @@ contract PrivateBridgeIntegrationTest is Test {
         vm.prank(relayer);
         bridge.completePrivateTransfer(msg_, hex"aabb", hex"ccdd");
 
-        assertFalse(bridge.verifyCrossChainNullifier(NULLIFIER_HASH, DEST_CHAIN));
+        assertFalse(
+            bridge.verifyCrossChainNullifier(NULLIFIER_HASH, DEST_CHAIN)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -472,7 +537,8 @@ contract PrivateBridgeIntegrationTest is Test {
 
     function test_RefundExpiredTransfer_Success() public {
         // Initiate transfer
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         bridge.initiatePrivateTransfer{value: 0.5 ether}(msg_);
@@ -487,7 +553,10 @@ contract PrivateBridgeIntegrationTest is Test {
         vm.warp(block.timestamp + bridge.TRANSFER_EXPIRY() + 1);
 
         // Build refund proof: first 20 bytes = refund recipient address
-        bytes memory refundProof = abi.encodePacked(user1, hex"aabbccddee1122334455");
+        bytes memory refundProof = abi.encodePacked(
+            user1,
+            hex"aabbccddee1122334455"
+        );
 
         uint256 balBefore = user1.balance;
         bridge.refundExpiredTransfer(transferId, refundProof);
@@ -496,7 +565,8 @@ contract PrivateBridgeIntegrationTest is Test {
     }
 
     function test_RefundExpiredTransfer_RevertNotExpired() public {
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ = _buildMessage();
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = _buildMessage();
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         bridge.initiatePrivateTransfer{value: 0.5 ether}(msg_);
@@ -519,7 +589,8 @@ contract PrivateBridgeIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetChainConfig() public view {
-        PrivateBridgeIntegration.ChainConfig memory config = bridge.getChainConfig(DEST_CHAIN);
+        PrivateBridgeIntegration.ChainConfig memory config = bridge
+            .getChainConfig(DEST_CHAIN);
         assertTrue(config.isSupported);
         assertEq(config.bridgeAdapter, address(adapter));
     }
@@ -606,16 +677,26 @@ contract PrivateBridgeIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testFuzz_SetChainConfig_UniqueChains(uint256 chainId) public {
-        vm.assume(chainId != THIS_CHAIN && chainId != DEST_CHAIN && chainId != 0);
+        vm.assume(
+            chainId != THIS_CHAIN && chainId != DEST_CHAIN && chainId != 0
+        );
         vm.prank(operator);
-        bridge.setChainConfig(chainId, address(adapter), 6, 50 ether, 500 ether);
+        bridge.setChainConfig(
+            chainId,
+            address(adapter),
+            6,
+            50 ether,
+            500 ether
+        );
         assertTrue(bridge.isChainSupported(chainId));
     }
 
-    function testFuzz_InitiateTransfer_UniqueNullifiers(bytes32 nullifier) public {
+    function testFuzz_InitiateTransfer_UniqueNullifiers(
+        bytes32 nullifier
+    ) public {
         vm.assume(nullifier != bytes32(0));
-        PrivateBridgeIntegration.PrivateBridgeMessage memory msg_ =
-            PrivateBridgeIntegration.PrivateBridgeMessage({
+        PrivateBridgeIntegration.PrivateBridgeMessage
+            memory msg_ = PrivateBridgeIntegration.PrivateBridgeMessage({
                 commitment: COMMITMENT,
                 nullifierHash: nullifier,
                 sourceChain: THIS_CHAIN,

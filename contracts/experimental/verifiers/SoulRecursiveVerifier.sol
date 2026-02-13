@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @title SoulRecursiveVerifier
  * @notice Verifies aggregated recursive proofs for Soul protocol
  * @dev Supports both single proofs (backward compatible) and aggregated proofs
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  */
 contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
     // ============================================

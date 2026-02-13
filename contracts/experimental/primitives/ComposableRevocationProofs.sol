@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol
  * @notice Research-grade implementation of Composable Revocation Proofs (CRP)
  * @dev Enables privacy-preserving credential revocation with composable proofs
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  *
  * Composable Revocation Proofs allow:
  * - Revocation without revealing credential identity

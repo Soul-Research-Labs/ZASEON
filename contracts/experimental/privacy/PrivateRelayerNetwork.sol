@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
  * @author Soul Protocol
  * @notice Privacy-preserving relayer network with commit-reveal MEV protection
  * @dev Implements stake-weighted VRF-based relayer selection and stealth fee payments
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  *
  * PRIVACY-PRESERVING RELAY PROTOCOL:
  * ┌─────────────────────────────────────────────────────────────────────────┐

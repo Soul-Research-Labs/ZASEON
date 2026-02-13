@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol
  * @notice Bridge adapter for Linea zkEVM integration
  * @dev Enables cross-chain interoperability with Linea L2
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  *
  * LINEA INTEGRATION:
  * - Type 2 zkEVM rollup by Consensys

@@ -16,6 +16,7 @@ import {IMixnetNodeRegistry} from "../interfaces/IMixnetNodeRegistry.sol";
  * @dev Referenced by CrossChainPrivacyHub and SoulProtocolHub for relay path construction.
  *      Implements layer-based node selection for mixnet topology (entry → middle → exit).
  *
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  * @custom:security-contact security@soul.network
  */
 contract MixnetNodeRegistry is

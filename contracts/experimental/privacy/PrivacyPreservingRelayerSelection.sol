@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /// @title PrivacyPreservingRelayerSelection
 /// @notice Enables privacy-preserving selection of relayers for transaction submission
 /// @dev Uses commitment schemes and VRF for unbiased, private relayer selection
+/// @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
 /// @custom:security-contact security@soulprotocol.io
 contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
     // =========================================================================

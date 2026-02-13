@@ -5,6 +5,7 @@ pragma solidity ^0.8.24;
  * @title CLSAGVerifier
  * @author Soul Protocol
  * @notice On-chain CLSAG-style ring signature verifier for Ring Confidential Transactions
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  * @dev Implements a Fiat-Shamir commitment-based ring signature scheme compatible with
  *      GasOptimizedRingCT.setRingSignatureVerifier().
  *

@@ -11,6 +11,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
  * @author Soul Protocol
  * @notice IVC-based Recursive Proof Aggregation for Cross-Chain Privacy
  * @dev Implements Nova/SuperNova-style folding for proof compression
+ * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
  *
  * ══════════════════════════════════════════════════════════════════════════════════════════════════════
  *                                    RECURSIVE PROOF AGGREGATION
