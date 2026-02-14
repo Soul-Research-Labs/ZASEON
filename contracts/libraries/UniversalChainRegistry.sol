@@ -187,8 +187,11 @@ library UniversalChainRegistry {
         }
     }
 
-    /// @notice Compute universal chain ID for an EVM chain
-    /// @dev Uses sha256 to match pre-computed constants (e.g. ETHEREUM_MAINNET)
+    /// @notice Compute universal chain ID for an EVM chain at runtime
+    /// @dev Produces sha256("SOUL_CHAIN_" || chainId). Note: pre-computed constants
+    ///      use descriptive names (e.g. ETHEREUM_MAINNET = sha256("SOUL_CHAIN_ETHEREUM_1"))
+    ///      and are NOT equal to this output. Use constants for known-chain lookups;
+    ///      use this function for dynamic/unknown chain identification.
     /// @param evmChainId The EVM chain ID (e.g. 1, 42161)
     /// @return universalId The deterministic universal chain ID
     function computeEVMChainId(
@@ -197,8 +200,10 @@ library UniversalChainRegistry {
         return sha256(abi.encodePacked("SOUL_CHAIN_", _uint2str(evmChainId)));
     }
 
-    /// @notice Compute universal chain ID for a non-EVM chain
-    /// @dev Uses sha256 to match pre-computed constants (e.g. SOLANA)
+    /// @notice Compute universal chain ID for a non-EVM chain at runtime
+    /// @dev Produces sha256("SOUL_CHAIN_" || chainName). For known non-EVM chains,
+    ///      the output matches the named constant when chainName matches exactly
+    ///      (e.g. computeNonEVMChainId("SOLANA") == SOLANA constant).
     /// @param chainName The canonical chain name (e.g. "SOLANA", "APTOS")
     /// @return universalId The deterministic universal chain ID
     function computeNonEVMChainId(
