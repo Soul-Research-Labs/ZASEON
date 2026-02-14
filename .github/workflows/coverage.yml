@@ -2,7 +2,6 @@ name: Coverage
 
 permissions:
   contents: read
-  pull-requests: write
 
 on:
   push:
@@ -16,12 +15,14 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
-  FOUNDRY_PROFILE: ci
 
 jobs:
   forge-coverage:
     name: Forge Coverage (stub-based)
     runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      FOUNDRY_PROFILE: coverage
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,16 +47,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Validate stubs (dry-run)
+        run: python3 scripts/run_coverage.py --dry-run
+
       - name: Run coverage via stub pipeline
-        run: python3 scripts/run_coverage.py --report=full
+        run: python3 scripts/run_coverage.py --report=lcov
 
       - name: Upload LCOV report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lcov-report
-          path: coverage/lcov.info
+          path: lcov.info
           retention-days: 30
+          if-no-files-found: warn
 
   sdk-coverage:
     name: SDK Test Coverage

@@ -28,9 +28,10 @@ forge-cache/
 broadcast/
 
 # Generated/Coverage files (regenerated on demand)
-coverage-stubs/
 contracts-generated/
 contracts-coverage/
+lcov.info
+.coverage-backup/
 
 # Noir (ZK circuits)
 noir/target/

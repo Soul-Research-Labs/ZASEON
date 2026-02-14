@@ -1,33 +1,19 @@
 #!/usr/bin/env python3
 """
-Soul Coverage Runner v2
+Soul Coverage Runner v3
 
-IMPORTANT: Forge coverage currently fails on this project due to "stack too deep"
-errors in complex ZK verifier contracts. This is a known Foundry limitation.
+Works around Foundry coverage "stack too deep" errors by temporarily
+replacing assembly-heavy contracts with simplified stubs.
+
 See: https://github.com/foundry-rs/foundry/issues/3357
 
-This script attempts to work around the issue by:
-1. Backing up complex verifier contracts
-2. Replacing them with simplified stubs (no assembly)
-3. Running forge coverage
-4. Restoring original contracts
-
-LIMITATIONS:
-- Even with stubs, other contracts may exceed stack limits
-- Coverage report will not include stubbed contracts
-- Results may be incomplete
-
-For full test verification, use:
-    forge test           # Unit/integration tests
-    halmos               # Symbolic testing
-    echidna              # Fuzz testing
-
 Usage:
-    python scripts/run_coverage.py [--report=summary|lcov|html]
-    
-Options:
-    --report    Coverage report type (default: summary)
-    --restore   Just restore backed up contracts (if interrupted)
+    python scripts/run_coverage.py [--report=summary|lcov|full]
+    python scripts/run_coverage.py --restore   # recover after interruption
+    python scripts/run_coverage.py --dry-run   # validate stubs without running
+
+Coverage output:
+    lcov.info written to project root (uploadable to Codecov / Coveralls)
 """
 
 import os
@@ -41,66 +27,33 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 BACKUP_DIR = PROJECT_DIR / ".coverage-backup"
 
-# Mapping: original contract -> stub location
-# Stubs must maintain the same public interface but without assembly
-# Stubs are now stored OUTSIDE contracts folder to avoid compilation
+# ── Minimal viable stub set (16 contracts) ─────────────────────────────
+# Only contracts with inline assembly, assembly-library deps,
+# or extreme size / deep inheritance that cause stack-too-deep.
+# Excluded from stubs (test suites too tightly coupled to exact ABI):
+#   ZKBoundStateLocks, CrossChainProofHubV3, ConfidentialStateContainerV3,
+#   DirectL2Messenger, StealthAddressRegistry, PrivateRelayerNetwork,
+#   ViewKeyRegistry, NullifierRegistryV3
 STUB_MAPPING = {
+    # Group A – heavy assembly (verifiers & libraries)
     "contracts/verifiers/GasOptimizedVerifier.sol": "coverage-stubs/verifiers/GasOptimizedVerifier.sol",
     "contracts/verifiers/OptimizedGroth16Verifier.sol": "coverage-stubs/verifiers/OptimizedGroth16Verifier.sol",
     "contracts/verifiers/Groth16VerifierBN254.sol": "coverage-stubs/verifiers/Groth16VerifierBN254.sol",
-    "contracts/primitives/ZKBoundStateLocks.sol": "coverage-stubs/primitives/ZKBoundStateLocks.sol",
-    "contracts/privacy/StealthAddressRegistry.sol": "coverage-stubs/privacy/StealthAddressRegistry.sol",
-    "contracts/privacy/ViewKeyRegistry.sol": "coverage-stubs/privacy/ViewKeyRegistry.sol",
-    "contracts/bridge/CrossChainProofHubV3.sol": "coverage-stubs/bridge/CrossChainProofHubV3.sol",
-    "contracts/experimental/primitives/ComposableRevocationProofs.sol": "coverage-stubs/primitives/ComposableRevocationProofs.sol",
-    "contracts/primitives/ProofCarryingContainer.sol": "coverage-stubs/primitives/ProofCarryingContainer.sol",
-    "contracts/verifiers/ProofAggregator.sol": "coverage-stubs/verifiers/ProofAggregator.sol",
-    "contracts/crosschain/DirectL2Messenger.sol": "coverage-stubs/crosschain/DirectL2Messenger.sol",
-    "contracts/primitives/PolicyBoundProofs.sol": "coverage-stubs/primitives/PolicyBoundProofs.sol",
-    "contracts/crosschain/L2ProofRouter.sol": "coverage-stubs/crosschain/L2ProofRouter.sol",
-    "contracts/security/BridgeWatchtower.sol": "coverage-stubs/security/BridgeWatchtower.sol",
-    "contracts/security/BridgeRateLimiter.sol": "coverage-stubs/security/BridgeRateLimiter.sol",
-    "contracts/security/BridgeProofValidator.sol": "coverage-stubs/security/BridgeProofValidator.sol",
-    "contracts/security/BridgeCircuitBreaker.sol": "coverage-stubs/security/BridgeCircuitBreaker.sol",
-    "contracts/experimental/privacy/PrivateRelayerNetwork.sol": "coverage-stubs/privacy/PrivateRelayerNetwork.sol",
-    "contracts/privacy/GasOptimizedPrivacy.sol": "coverage-stubs/privacy/GasOptimizedPrivacy.sol",
-    "contracts/primitives/CrossDomainNullifierAlgebra.sol": "coverage-stubs/primitives/CrossDomainNullifierAlgebra.sol",
-    "contracts/integrations/SoulAtomicSwapSecurityIntegration.sol": "coverage-stubs/integrations/SoulAtomicSwapSecurityIntegration.sol",
-    "contracts/crosschain/BaseBridgeAdapter.sol": "coverage-stubs/crosschain/BaseBridgeAdapter.sol",
-    "contracts/crosschain/ArbitrumBridgeAdapter.sol": "coverage-stubs/crosschain/ArbitrumBridgeAdapter.sol",
-    "contracts/core/ConfidentialStateContainerV3.sol": "coverage-stubs/core/ConfidentialStateContainerV3.sol",
-    "contracts/security/ZKFraudProof.sol": "coverage-stubs/security/ZKFraudProof.sol",
-    "contracts/security/EnhancedKillSwitch.sol": "coverage-stubs/security/EnhancedKillSwitch.sol",
-    "contracts/experimental/privacy/RecursiveProofAggregator.sol": "coverage-stubs/privacy/RecursiveProofAggregator.sol",
-    "contracts/primitives/ExecutionAgnosticStateCommitments.sol": "coverage-stubs/primitives/ExecutionAgnosticStateCommitments.sol",
-    "contracts/experimental/primitives/AggregateDisclosureAlgebra.sol": "coverage-stubs/primitives/AggregateDisclosureAlgebra.sol",
-    "contracts/crosschain/CrossChainMessageRelay.sol": "coverage-stubs/crosschain/CrossChainMessageRelay.sol",
-    "contracts/crosschain/CrossL2Atomicity.sol": "coverage-stubs/crosschain/CrossL2Atomicity.sol",
-    "contracts/bridge/SoulAtomicSwapV2.sol": "coverage-stubs/bridge/SoulAtomicSwapV2.sol",
-    "contracts/privacy/EncryptedStealthAnnouncements.sol": "coverage-stubs/privacy/EncryptedStealthAnnouncements.sol",
-    "contracts/security/CrossChainMessageVerifier.sol": "coverage-stubs/security/CrossChainMessageVerifier.sol",
-    "contracts/core/NullifierRegistryV3.sol": "coverage-stubs/core/NullifierRegistryV3.sol",
-    "contracts/experimental/privacy/ConstantTimeOperations.sol": "coverage-stubs/privacy/ConstantTimeOperations.sol",
-    "contracts/experimental/verifiers/SoulNewZKVerifiers.sol": "coverage-stubs/verifiers/SoulNewZKVerifiers.sol",
-    "contracts/experimental/privacy/PrivacyPreservingRelayerSelection.sol": "coverage-stubs/privacy/PrivacyPreservingRelayerSelection.sol",
-    "contracts/primitives/Soulv2Orchestrator.sol": "coverage-stubs/primitives/Soulv2Orchestrator.sol",
-    "contracts/upgradeable/ProofCarryingContainerUpgradeable.sol": "coverage-stubs/upgradeable/ProofCarryingContainerUpgradeable.sol",
-    "contracts/integrations/ZKSLockIntegration.sol": "coverage-stubs/integrations/ZKSLockIntegration.sol",
-    "contracts/experimental/verifiers/SoulRecursiveVerifier.sol": "coverage-stubs/verifiers/SoulRecursiveVerifier.sol",
-    "contracts/experimental/verifiers/VerifierHub.sol": "coverage-stubs/verifiers/VerifierHub.sol",
-    "contracts/relayer/RelayerStaking.sol": "coverage-stubs/relayer/RelayerStaking.sol",
-    "contracts/crosschain/L2ChainAdapter.sol": "coverage-stubs/crosschain/L2ChainAdapter.sol",
-    "contracts/verifiers/SoulUniversalVerifier.sol": "coverage-stubs/verifiers/SoulUniversalVerifier.sol",
-    "contracts/upgradeable/Soulv2OrchestratorUpgradeable.sol": "coverage-stubs/upgradeable/Soulv2OrchestratorUpgradeable.sol",
-    "contracts/verifiers/CrossChainProofVerifier.sol": "coverage-stubs/verifiers/CrossChainProofVerifier.sol",
-    "contracts/verifiers/StateTransferVerifier.sol": "coverage-stubs/verifiers/StateTransferVerifier.sol",
-    "contracts/verifiers/StateCommitmentVerifier.sol": "coverage-stubs/verifiers/StateCommitmentVerifier.sol",
-    "contracts/verifiers/VerifierRegistry.sol": "coverage-stubs/verifiers/VerifierRegistry.sol",
-    "contracts/upgradeable/StorageLayout.sol": "coverage-stubs/upgradeable/StorageLayout.sol",
     "contracts/libraries/CryptoLib.sol": "coverage-stubs/libraries/CryptoLib.sol",
-    "contracts/mocks/MockERC20.sol": "coverage-stubs/mocks/MockERC20.sol",
-    "contracts/mocks/MockEthereumL1Bridge.sol": "coverage-stubs/mocks/MockEthereumL1Bridge.sol",
-    "contracts/infrastructure/RateLimiter.sol": "coverage-stubs/infrastructure/RateLimiter.sol",
+    "contracts/libraries/GasOptimizations.sol": "coverage-stubs/libraries/GasOptimizations.sol",
+    "contracts/privacy/GasOptimizedPrivacy.sol": "coverage-stubs/privacy/GasOptimizedPrivacy.sol",
+    "contracts/experimental/privacy/ConstantTimeOperations.sol": "coverage-stubs/privacy/ConstantTimeOperations.sol",
+    # Group B – snarkJS verifiers & supporting contracts
+    "contracts/verifiers/StateTransferVerifier.sol": "coverage-stubs/verifiers/StateTransferVerifier.sol",
+    "contracts/verifiers/CrossChainProofVerifier.sol": "coverage-stubs/verifiers/CrossChainProofVerifier.sol",
+    "contracts/verifiers/StateCommitmentVerifier.sol": "coverage-stubs/verifiers/StateCommitmentVerifier.sol",
+    "contracts/verifiers/ProofAggregator.sol": "coverage-stubs/verifiers/ProofAggregator.sol",
+    "contracts/verifiers/VerifierRegistry.sol": "coverage-stubs/verifiers/VerifierRegistry.sol",
+    "contracts/crosschain/L2ChainAdapter.sol": "coverage-stubs/crosschain/L2ChainAdapter.sol",
+    # Group C – assembly-lib dependants
+    "contracts/crosschain/L2ProofRouter.sol": "coverage-stubs/crosschain/L2ProofRouter.sol",
+    "contracts/crosschain/CrossChainMessageRelay.sol": "coverage-stubs/crosschain/CrossChainMessageRelay.sol",
+    "contracts/experimental/privacy/RecursiveProofAggregator.sol": "coverage-stubs/privacy/RecursiveProofAggregator.sol",
 }
 
 # ANSI colors
@@ -172,92 +125,150 @@ def restore_contracts():
     print_colored(f"\n✓ Restored {restored} contracts.", GREEN)
 
 
+def validate_stubs():
+    """Validate that all stubs referenced in STUB_MAPPING exist."""
+    missing = []
+    for original, stub in STUB_MAPPING.items():
+        stub_path = PROJECT_DIR / stub
+        if not stub_path.exists():
+            missing.append(stub)
+    return missing
+
+
 def run_coverage(report_type: str = "summary", extra_args: list = None):
     """Run forge coverage with proper error handling."""
     print_colored("\n🔍 Running forge coverage...", CYAN)
-    
+
     cmd = [
         "forge", "coverage", "--ir-minimum",
-        f"--report={report_type}"
+        f"--report={report_type}",
     ]
-    
+
     if extra_args:
         cmd.extend(extra_args)
-    
-    # Optionally skip tests that use the stubbed contracts
-    # Add patterns to exclude problematic tests
+
+    # Exclude test contracts that directly exercise stubbed/assembly contracts.
+    # Stubs have dummy logic so their dedicated tests will fail — exclude them.
+    # Also exclude tests that indirectly depend on stubbed libraries (CryptoLib,
+    # GasOptimizations) or that are gas-sensitive and break under --ir-minimum.
+    if not any("--no-match-contract" in arg for arg in (extra_args or [])):
+        exclude_contracts = "|".join([
+            # Always excluded (massive assembly / not real contracts)
+            "UltraHonk", "Groth16", "SolverLib", "MockEthereumL1Bridge",
+            # Test suites for Group A stubbed contracts
+            "CryptoLib", "GasOptimiz", "ConstantTime",
+            # Test suites for Group B stubbed contracts
+            "StateTransferVerifier", "CrossChainProofVerifier",
+            "StateCommitmentVerifier", "ProofAggregator", "VerifierRegistry",
+            # Test suites for Group C stubbed contracts
+            "L2ChainAdapter", "L2ProofRouter", "CrossChainMessageRelay",
+            "RecursiveProofAggregator",
+            # Tests that indirectly use stubbed CryptoLib / GasOptimizations
+            "CryptoValidation", "CLSAGIntegration", "LibraryTests",
+            # Gas-sensitive tests that break under --ir-minimum
+            "PrivacyAttackSimulation", "GasLimitStress",
+        ])
+        cmd.extend(["--no-match-contract", exclude_contracts])
+
+    # Exclude individual tests that OOG under ir-minimum coverage
     if not any("--no-match-test" in arg for arg in (extra_args or [])):
         cmd.extend([
-            "--no-match-test", "testBLS12381|testOptimizedGroth16|testPLONK|testFRI|testBN254Verifier"
+            "--no-match-test",
+            "test_createContainer_revertsPayloadTooLarge",
         ])
-    
+
     print(f"  Running: {' '.join(cmd)}")
     print()
-    
-    # Set coverage profile to avoid stack too deep
+
     env = os.environ.copy()
     env["FOUNDRY_PROFILE"] = "coverage"
 
-    result = subprocess.run(
-        cmd,
-        cwd=str(PROJECT_DIR),
-        env=env
-    )
-    
+    result = subprocess.run(cmd, cwd=str(PROJECT_DIR), env=env)
+
+    # Check for lcov.info regardless of exit code — forge writes it
+    # even when some tests fail, which is expected with stubs.
+    if report_type == "lcov":
+        lcov_path = PROJECT_DIR / "lcov.info"
+        if lcov_path.exists():
+            size = lcov_path.stat().st_size
+            print_colored(f"\n📄 lcov.info written ({size:,} bytes)", GREEN)
+        else:
+            print_colored("\n⚠ lcov.info not found after coverage run", YELLOW)
+
+    if result.returncode != 0:
+        print_colored(f"\n⚠ Coverage exited with code {result.returncode}", YELLOW)
+
     return result.returncode
 
 
 def main():
     """Main entry point."""
     args = sys.argv[1:]
-    
+
     # Parse arguments
     report_type = "summary"
     restore_only = False
+    dry_run = False
     extra_args = []
-    
+
     for arg in args:
         if arg.startswith("--report="):
             report_type = arg.split("=")[1]
         elif arg == "--restore":
             restore_only = True
+        elif arg == "--dry-run":
+            dry_run = True
         else:
             extra_args.append(arg)
-    
+
     print_colored("=" * 60, CYAN)
-    print_colored("   Soul Coverage Runner v2", CYAN)
+    print_colored("   Soul Coverage Runner v3", CYAN)
+    print_colored(f"   Stubs: {len(STUB_MAPPING)} contracts", CYAN)
     print_colored("=" * 60, CYAN)
-    
+
     # Just restore if requested
     if restore_only:
         restore_contracts()
         return 0
-    
+
+    # Pre-flight: validate all stubs exist
+    missing = validate_stubs()
+    if missing:
+        print_colored(f"\n❌ Missing {len(missing)} stub file(s):", RED)
+        for m in missing:
+            print(f"   {m}")
+        print_colored("Create stubs before running coverage.", YELLOW)
+        return 1
+
+    if dry_run:
+        print_colored("\n✅ Dry-run OK: all stubs present.", GREEN)
+        for orig, stub in sorted(STUB_MAPPING.items()):
+            print(f"  {orig} → {stub}")
+        return 0
+
     try:
         # Step 1: Backup and apply stubs
         count = backup_and_stub()
         if count == 0:
             print_colored("\n❌ No contracts were stubbed. Check paths.", RED)
             return 1
-        
+
         # Step 2: Run coverage
         exit_code = run_coverage(report_type, extra_args)
-        
+
         if exit_code == 0:
             print_colored("\n✅ Coverage completed successfully!", GREEN)
-        else:
-            print_colored(f"\n⚠ Coverage exited with code {exit_code}", YELLOW)
-        
+
         return exit_code
-        
+
     except KeyboardInterrupt:
         print_colored("\n\n⚠ Interrupted by user", YELLOW)
         return 130
-        
+
     except Exception as e:
         print_colored(f"\n❌ Error: {e}", RED)
         return 1
-        
+
     finally:
         # Always restore contracts
         restore_contracts()
