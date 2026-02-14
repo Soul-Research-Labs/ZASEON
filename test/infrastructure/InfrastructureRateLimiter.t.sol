@@ -2,14 +2,17 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {RateLimiter} from "../../contracts/infrastructure/RateLimiter.sol";
 
 /**
  * @title InfrastructureRateLimiterTest
- * @notice Tests for the infrastructure rate limiter contract
+ * @notice The deprecated RateLimiter.sol has been removed.
+ *         Rate limiting is now handled by BridgeRateLimiter in contracts/security/.
+ * @dev See test/security/ for BridgeRateLimiter tests.
  */
 contract InfrastructureRateLimiterTest is Test {
-    function test_rateLimiterScaffold() public {
-        assertTrue(true, "Infrastructure rate limiter test scaffold");
+    function test_rateLimiterMigratedToBridgeRateLimiter() public {
+        // Deprecated RateLimiter has been removed.
+        // All rate limiting functionality is in BridgeRateLimiter.sol
+        assertTrue(true, "Rate limiter migrated to BridgeRateLimiter");
     }
 }

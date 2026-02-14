@@ -129,6 +129,7 @@ contract SoulGovernor is
                       REQUIRED OVERRIDES
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc GovernorSettings
     function votingDelay()
         public
         view
@@ -138,6 +139,7 @@ contract SoulGovernor is
         return super.votingDelay();
     }
 
+    /// @inheritdoc GovernorSettings
     function votingPeriod()
         public
         view
@@ -147,6 +149,7 @@ contract SoulGovernor is
         return super.votingPeriod();
     }
 
+    /// @inheritdoc GovernorVotesQuorumFraction
     function quorum(
         uint256 timepoint
     )
@@ -158,6 +161,7 @@ contract SoulGovernor is
         return super.quorum(timepoint);
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function state(
         uint256 proposalId
     )
@@ -169,12 +173,14 @@ contract SoulGovernor is
         return super.state(proposalId);
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function proposalNeedsQueuing(
         uint256 proposalId
     ) public view override(Governor, GovernorTimelockControl) returns (bool) {
         return super.proposalNeedsQueuing(proposalId);
     }
 
+    /// @inheritdoc GovernorSettings
     function proposalThreshold()
         public
         view
@@ -184,6 +190,7 @@ contract SoulGovernor is
         return super.proposalThreshold();
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function _queueOperations(
         uint256 proposalId,
         address[] memory targets,
@@ -201,6 +208,7 @@ contract SoulGovernor is
             );
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function _executeOperations(
         uint256 proposalId,
         address[] memory targets,
@@ -217,6 +225,7 @@ contract SoulGovernor is
         );
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function _cancel(
         address[] memory targets,
         uint256[] memory values,
@@ -226,6 +235,7 @@ contract SoulGovernor is
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
+    /// @inheritdoc GovernorTimelockControl
     function _executor()
         internal
         view

@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
   FOUNDRY_PROFILE: ci
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -137,6 +137,16 @@ jobs:
       - name: Check contract sizes
         run: forge build --sizes 2>&1 | tee /tmp/sizes.txt && ! grep -E "\|\s+[0-9]{3}\.[0-9]+" /tmp/sizes.txt | grep -v "^|" || echo "⚠️ Some contracts exceed 24KB limit"
 
+      - name: Generate gas snapshot
+        run: forge snapshot --no-match-test "test_Attack_RelayerFrontRunning|test_storageOperations_atScale" | head -200
+
+      - name: Upload gas snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: gas-snapshot
+          path: .gas-snapshot
+          retention-days: 30
+
   noir-circuits:
     name: Noir Circuits
     runs-on: ubuntu-latest
@@ -188,7 +198,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -201,7 +211,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Slither
         run: pip3 install slither-analyzer
@@ -227,7 +237,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -237,7 +247,6 @@ jobs:
 
       - name: SDK unit tests
         run: node test/sdk.test.mjs
-        continue-on-error: true
 
   formal-verification:
     name: Formal Verification (Halmos)
@@ -257,7 +266,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Halmos
         run: pip3 install halmos
@@ -284,7 +293,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -351,6 +360,7 @@ jobs:
           - verify_advanced_privacy
           - verify_network_invariants
           - verify_upgradeable
+          - verify_governor
     steps:
       - uses: actions/checkout@v4
         with:
@@ -360,7 +370,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -373,7 +383,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Certora CLI
         run: pip3 install certora-cli
