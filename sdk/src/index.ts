@@ -140,6 +140,26 @@ export {
 // Privacy (Stealth, RingCT, Nullifiers)
 export * from "./privacy";
 
+// Compliance
+export {
+  SoulComplianceProvider,
+  type ComplianceConfig,
+  type CredentialData,
+  type Credential,
+} from "./compliance/SoulComplianceProvider";
+
+// Relayer
+export {
+  CrossChainProofRelayer,
+  type RelayerMVPConfig,
+  type ChainConfig as RelayerChainConfig,
+} from "./relayer/CrossChainProofRelayer";
+
+export {
+  SoulRelayer,
+  type RelayerConfig as SoulRelayerConfig,
+} from "./relayer/SoulRelayer";
+
 // Advanced Modules (experimental — import from @soul/sdk/experimental instead)
 // Moved to sdk/experimental/: fhe, pqc, mpc, recursive, zkSystems
 export * as proofTranslator from "./proof-translator/ProofTranslator";

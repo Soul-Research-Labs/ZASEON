@@ -739,7 +739,10 @@ contract OptimismBridgeAdapter is
         zkProofVerifier = verifier;
     }
 
+
     /// @notice Withdraw accumulated bridge fees
+    /// @dev Transfers wrappedOP fees to the treasury address. Amount is capped
+    ///      at the contract's wrappedOP balance.
     function withdrawFees() external onlyRole(TREASURY_ROLE) {
         uint256 amount = accumulatedFees;
         if (amount == 0) revert InvalidAmount();
@@ -794,6 +797,8 @@ contract OptimismBridgeAdapter is
     }
 
     /// @notice Get user deposit history
+    /// @param user Address of the depositor
+    /// @return Array of deposit IDs associated with the user
     function getUserDeposits(
         address user
     ) external view returns (bytes32[] memory) {
@@ -801,6 +806,8 @@ contract OptimismBridgeAdapter is
     }
 
     /// @notice Get user withdrawal history
+    /// @param user Address of the withdrawer
+    /// @return Array of withdrawal IDs associated with the user
     function getUserWithdrawals(
         address user
     ) external view returns (bytes32[] memory) {
@@ -808,6 +815,8 @@ contract OptimismBridgeAdapter is
     }
 
     /// @notice Get user escrow history
+    /// @param user Address of the escrow creator
+    /// @return Array of escrow IDs associated with the user
     function getUserEscrows(
         address user
     ) external view returns (bytes32[] memory) {
@@ -815,6 +824,13 @@ contract OptimismBridgeAdapter is
     }
 
     /// @notice Get bridge statistics
+    /// @return totalDep Total deposited amount in wei
+    /// @return totalWith Total withdrawn amount in wei
+    /// @return totalEsc Total number of escrows created
+    /// @return totalEscFinished Number of successfully finished escrows
+    /// @return totalEscCancelled Number of cancelled escrows
+    /// @return fees Accumulated bridge fees in wei
+    /// @return latestBlock Latest verified L2 block number
     function getBridgeStats()
         external
         view

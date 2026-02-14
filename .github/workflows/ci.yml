@@ -452,3 +452,28 @@ jobs:
             echo "Parsing $spec..."
             java -cp ~/tla/tla2tools.jar tla2sany.SANY "$spec"
           done
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --production --audit-level=moderate
+
+      - name: Audit SDK dependencies
+        run: |
+          cd sdk
+          npm audit --production --audit-level=moderate || true

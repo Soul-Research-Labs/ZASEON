@@ -360,6 +360,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set the LayerZero endpoint
+     * @param _endpoint Address of the LayerZero V2 endpoint contract
+     * @param _localEid Local endpoint ID for this chain
      */
     function setEndpoint(
         address _endpoint,
@@ -376,6 +378,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set the delegate for configurations
+     * @param _delegate Address authorized to modify endpoint configurations
      */
     function setDelegate(
         address _delegate
@@ -386,6 +389,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set bridge fee in basis points
+     * @param _feeBps Fee in basis points (max 100 = 1%)
      */
     function setBridgeFee(
         uint256 _feeBps
@@ -401,6 +405,11 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set a peer (remote OApp) for a destination chain
+     * @param eid Destination endpoint ID
+     * @param peerAddress Remote OApp address (bytes32 for cross-VM compatibility)
+     * @param chainType Type of destination chain (EVM, Solana, Aptos, etc.)
+     * @param minGas Minimum gas for message execution (0 uses default MIN_GAS)
+     * @param securityLevel DVN verification level for this pathway
      */
     function setPeer(
         uint32 eid,
@@ -430,6 +439,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Update peer security level
+     * @param eid Endpoint ID of the peer to update
+     * @param level New DVN security level for this pathway
      */
     function updatePeerSecurity(
         uint32 eid,
@@ -444,6 +455,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Deactivate a peer
+     * @param eid Endpoint ID of the peer to deactivate
      */
     function deactivatePeer(uint32 eid) external onlyRole(GUARDIAN_ROLE) {
         if (peers[eid].eid == 0) revert PeerNotSet();
@@ -455,6 +467,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Reactivate a peer
+     * @param eid Endpoint ID of the peer to reactivate
      */
     function reactivatePeer(uint32 eid) external onlyRole(CONFIG_ROLE) {
         if (peers[eid].eid == 0) revert PeerNotSet();
@@ -470,6 +483,13 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure send library for a destination
+     * @param eid Destination endpoint ID
+     * @param sendLib Address of the send message library
+     * @param requiredDVNs Addresses of DVNs that must verify every message
+     * @param optionalDVNs Addresses of DVNs used for optional verification
+     * @param optionalThreshold Minimum optional DVNs required for quorum
+     * @param maxMessageSize Maximum payload size in bytes (0 uses default MAX_MESSAGE_SIZE)
+     * @param executor Address of the executor service for this pathway
      */
     function setSendLibConfig(
         uint32 eid,
@@ -503,6 +523,12 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure receive library for a source
+     * @param eid Source endpoint ID
+     * @param receiveLib Address of the receive message library
+     * @param requiredDVNs Addresses of DVNs that must verify every inbound message
+     * @param optionalDVNs Addresses of optional verification DVNs
+     * @param optionalThreshold Minimum optional DVNs required for quorum
+     * @param gracePeriod Grace period in seconds for library migration
      */
     function setReceiveLibConfig(
         uint32 eid,
@@ -665,6 +691,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Store a failed message for later retry
+     * @param guid Globally unique identifier of the failed message
+     * @param payload Original message payload to store
      */
     function storePayload(
         bytes32 guid,
@@ -681,6 +709,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Retry a stored message
+     * @param guid Globally unique identifier of the stored message
      */
     function retryPayload(bytes32 guid) external onlyRole(OPERATOR_ROLE) {
         bytes storage payload = storedPayloads[guid];
@@ -700,6 +729,9 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Map a local token to its remote representation
+     * @param localToken Address of the token on this chain
+     * @param remoteEid Destination endpoint ID where the remote token exists
+     * @param remoteToken Remote token identifier (bytes32 for cross-VM compatibility)
      */
     function mapToken(
         address localToken,
@@ -716,6 +748,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set OFT adapter for a token
+     * @param token Address of the local token
+     * @param oftAdapter Address of the OFT adapter contract for bridging
      */
     function setOFTAdapter(
         address token,
@@ -730,6 +764,11 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Send OFT tokens to a remote chain
+     * @param localToken Address of the token to bridge
+     * @param dstEid Destination endpoint ID
+     * @param recipient Recipient address on destination chain (bytes32)
+     * @param amount Amount of tokens to send (before fee deduction)
+     * @return transferId Unique identifier for this OFT transfer
      */
     function sendOFT(
         address localToken,
@@ -793,6 +832,10 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Quote the fee for sending a message
+     * @param dstEid Destination endpoint ID
+     * @param message Encoded message payload
+     * @param options Message options (gas, value, etc.)
+     * @return fee Estimated native and LZ token fees
      */
     function quoteSend(
         uint32 dstEid,
@@ -804,6 +847,10 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Internal fee calculation
+     * @param dstEid Destination endpoint ID
+     * @param message Encoded message payload for size-based fee calculation
+     * @param options Message options containing gas allocation
+     * @return MessagingFee struct with native and LZ token fees
      */
     function _quoteFee(
         uint32 dstEid,
@@ -877,6 +924,10 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get bridge statistics
+     * @return sent Total messages sent
+     * @return received Total messages received
+     * @return fees Total accumulated fees (wei)
+     * @return peerCount Number of registered peer endpoints
      */
     function getStats()
         external
@@ -898,6 +949,7 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get all registered endpoint IDs
+     * @return Array of registered LayerZero endpoint IDs
      */
     function getRegisteredEids() external view returns (uint32[] memory) {
         return registeredEids;
@@ -905,6 +957,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Check if a peer is active
+     * @param eid Endpoint ID to check
+     * @return True if the peer is registered and active
      */
     function isPeerActive(uint32 eid) external view returns (bool) {
         return peers[eid].active;
@@ -912,6 +966,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get peer configuration
+     * @param eid Endpoint ID of the peer
+     * @return PeerConfig struct with registration details
      */
     function getPeer(uint32 eid) external view returns (PeerConfig memory) {
         return peers[eid];
@@ -919,6 +975,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get message by GUID
+     * @param guid Globally unique message identifier
+     * @return OmniMessage struct with full message details
      */
     function getMessage(
         bytes32 guid
@@ -928,6 +986,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get OFT transfer by ID
+     * @param transferId Unique transfer identifier
+     * @return OFTTransfer struct with full transfer details
      */
     function getOFTTransfer(
         bytes32 transferId
@@ -937,6 +997,9 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get remote token for a local token and destination
+     * @param localToken Address of the token on this chain
+     * @param remoteEid Destination endpoint ID
+     * @return Remote token identifier (bytes32(0) if not mapped)
      */
     function getRemoteToken(
         address localToken,
@@ -947,6 +1010,8 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get sender nonce
+     * @param sender Address of the message sender
+     * @return Current nonce for the sender
      */
     function getNonce(address sender) external view returns (uint64) {
         return senderNonces[sender];

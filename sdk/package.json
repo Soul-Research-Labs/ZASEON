@@ -34,9 +34,20 @@
       "require": "./dist/cli/index.js",
       "types": "./dist/cli/index.d.ts"
     },
+    "./compliance": {
+      "import": "./dist/esm/compliance/SoulComplianceProvider.js",
+      "require": "./dist/compliance/SoulComplianceProvider.js",
+      "types": "./dist/compliance/SoulComplianceProvider.d.ts"
+    },
+    "./relayer": {
+      "import": "./dist/esm/relayer/CrossChainProofRelayer.js",
+      "require": "./dist/relayer/CrossChainProofRelayer.js",
+      "types": "./dist/relayer/CrossChainProofRelayer.d.ts"
+    },
     "./experimental": {
-      "import": "../experimental/index.ts",
-      "types": "../experimental/index.ts"
+      "import": "./dist/esm/experimental/index.js",
+      "require": "./dist/experimental/index.js",
+      "types": "./dist/experimental/index.d.ts"
     }
   },
   "scripts": {
