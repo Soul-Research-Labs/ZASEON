@@ -722,7 +722,9 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register as a relayer
+     * @notice Register as a relayer by posting the minimum bond
+     * @dev Caller must send at least MIN_RELAYER_BOND ETH. Grants RELAYER_ROLE
+     *      and adds to the relayer list. Reverts if the caller is already active.
      */
     function registerRelayer() external payable nonReentrant {
         if (msg.value < MIN_RELAYER_BOND) revert InsufficientBond();
@@ -745,7 +747,10 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     }
 
     /**
-     * @notice Withdraw relayer bond (after unbonding period)
+     * @notice Withdraw relayer bond after the 7-day unbonding period
+     * @dev Deactivates the relayer, revokes RELAYER_ROLE, and returns the
+     *      full bond via low-level call. Reverts if unbonding period has
+     *      not elapsed or the relayer is inactive.
      */
     function withdrawRelayerBond() external nonReentrant {
         Relayer storage relayer = relayers[msg.sender];
@@ -991,11 +996,13 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause all messaging operations (emergency use)
+    /// @dev Only callable by addresses with OPERATOR_ROLE. Blocks sendMessage, receiveMessage, and relayer operations.
     function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Resume messaging operations after pause
+    /// @dev Only callable by addresses with OPERATOR_ROLE. Re-enables all paused functions.
     function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
