@@ -222,9 +222,12 @@ contract SoulUniversalVerifier is Ownable, ReentrancyGuard {
 
         results = new bool[](proofs.length);
 
-        for (uint256 i = 0; i < proofs.length; i++) {
+        for (uint256 i = 0; i < proofs.length; ) {
             (bool valid, ) = this.verify(proofs[i], publicInputsArray[i]);
             results[i] = valid;
+            unchecked {
+                ++i;
+            }
         }
 
         return results;
@@ -269,11 +272,14 @@ contract SoulUniversalVerifier is Ownable, ReentrancyGuard {
         verified = new uint256[](8);
         active = new bool[](8);
 
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint256 i = 0; i < 8; ) {
             ProofSystem sys = ProofSystem(i);
             systems[i] = sys;
             verified[i] = verifiers[sys].totalVerified;
             active[i] = verifiers[sys].active;
+            unchecked {
+                ++i;
+            }
         }
 
         return (systems, verified, active);

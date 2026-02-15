@@ -190,10 +190,13 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
         if (nullifiers.length > MAX_BATCH_SIZE)
             revert BatchTooLarge(nullifiers.length);
 
-        for (uint256 i = 0; i < nullifiers.length; i++) {
+        for (uint256 i = 0; i < nullifiers.length; ) {
             pendingNullifiers.push(nullifiers[i]);
             pendingCommitments.push(commitments[i]);
             emit NullifierQueued(nullifiers[i], commitments[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -226,9 +229,12 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] memory batchNullifiers = new bytes32[](batchSize);
         bytes32[] memory batchCommitments = new bytes32[](batchSize);
 
-        for (uint256 i = 0; i < batchSize; i++) {
+        for (uint256 i = 0; i < batchSize; ) {
             batchNullifiers[i] = pendingNullifiers[i];
             batchCommitments[i] = pendingCommitments[i];
+            unchecked {
+                ++i;
+            }
         }
 
         // Remove sent items from pending arrays
@@ -338,7 +344,7 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
 
     function _getCurrentMerkleRoot() internal view returns (bytes32) {
         (bool success, bytes memory data) = nullifierRegistry.staticcall(
-            abi.encodeWithSignature("getCurrentRoot()")
+            abi.encodeWithSignature("merkleRoot()")
         );
         if (success && data.length == 32) {
             return abi.decode(data, (bytes32));
@@ -348,13 +354,19 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
 
     function _removeSentItems(uint256 count) internal {
         uint256 remaining = pendingNullifiers.length - count;
-        for (uint256 i = 0; i < remaining; i++) {
+        for (uint256 i = 0; i < remaining; ) {
             pendingNullifiers[i] = pendingNullifiers[i + count];
             pendingCommitments[i] = pendingCommitments[i + count];
+            unchecked {
+                ++i;
+            }
         }
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             pendingNullifiers.pop();
             pendingCommitments.pop();
+            unchecked {
+                ++i;
+            }
         }
     }
 

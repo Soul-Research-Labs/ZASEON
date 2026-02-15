@@ -247,6 +247,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /// @dev Immutable saves ~2100 gas per external call by avoiding SLOAD
     IProofVerifier public immutable proofVerifier;
 
+    /// @notice Canonical nullifier registry for cross-system double-spend prevention
+    /// @dev When set, nullifiers are propagated to NullifierRegistryV3 in addition to local tracking
+    address public nullifierRegistry;
+
     /// @notice Constants
     uint256 public constant DISPUTE_WINDOW = 2 hours;
     uint256 public constant MIN_BOND_AMOUNT = 0.01 ether;
@@ -382,6 +386,13 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         address indexed unlocker
     );
 
+    event NullifierRegistryUpdated(address indexed registry);
+
+    event NullifierPropagationFailed(
+        bytes32 indexed nullifier,
+        address indexed registry
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -402,6 +413,16 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
         // Initialize default domains
         _registerDefaultDomains();
+    }
+
+    /// @notice Set the canonical nullifier registry for cross-system propagation
+    /// @dev ZKBoundStateLocks must be granted REGISTRAR_ROLE on the NullifierRegistryV3
+    /// @param _registry Address of NullifierRegistryV3 (address(0) to disable propagation)
+    function setNullifierRegistry(
+        address _registry
+    ) external onlyRole(VERIFIER_ADMIN_ROLE) {
+        nullifierRegistry = _registry;
+        emit NullifierRegistryUpdated(_registry);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -811,6 +832,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
             revert NullifierAlreadyUsed(recoveryNullifier);
         }
         nullifierUsed[recoveryNullifier] = true;
+        _propagateNullifier(recoveryNullifier, lockId);
 
         // Force unlock logic - remove lock
         // Mark as unlocked
@@ -903,8 +925,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         // Mark lock as unlocked
         lock.isUnlocked = true;
 
-        // Record nullifier
+        // Record nullifier locally and propagate to canonical registry
         nullifierUsed[nullifier] = true;
+        _propagateNullifier(nullifier, newStateCommitment);
 
         // Update commitment chain
         commitmentSuccessor[lock.oldStateCommitment] = newStateCommitment;
@@ -935,6 +958,31 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
             domainSeparator,
             msg.sender
         );
+    }
+
+    /// @dev Propagate nullifier to canonical NullifierRegistryV3 if configured
+    /// @param nullifier The nullifier to register
+    /// @param commitment The associated state commitment
+    function _propagateNullifier(
+        bytes32 nullifier,
+        bytes32 commitment
+    ) internal {
+        address registry = nullifierRegistry;
+        if (registry != address(0)) {
+            // Call registerNullifier(bytes32,bytes32) — requires REGISTRAR_ROLE on registry
+            // Use low-level call to avoid reverting if registry is misconfigured
+            (bool success, ) = registry.call(
+                abi.encodeWithSignature(
+                    "registerNullifier(bytes32,bytes32)",
+                    nullifier,
+                    commitment
+                )
+            );
+            // Emit event on failure for off-chain monitoring (local nullifier is still recorded)
+            if (!success) {
+                emit NullifierPropagationFailed(nullifier, registry);
+            }
+        }
     }
 
     function _removeActiveLock(bytes32 lockId) internal {
@@ -1095,8 +1143,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         }
 
         bytes32[] memory result = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             result[i] = _activeLockIds[offset + i];
+            unchecked {
+                ++i;
+            }
         }
         return result;
     }
@@ -1118,8 +1169,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
             count = 100;
         }
         bytes32[] memory result = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             result[i] = _activeLockIds[i];
+            unchecked {
+                ++i;
+            }
         }
         return result;
     }

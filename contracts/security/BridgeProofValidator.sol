@@ -253,7 +253,6 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
     error InvalidCapConfiguration();
     error EpochTooShort();
 
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -375,9 +374,12 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
         // Check no active challenges
         Challenge[] storage challenges = proofChallenges[proofHash];
-        for (uint256 i = 0; i < challenges.length; i++) {
+        for (uint256 i = 0; i < challenges.length; ) {
             if (!challenges[i].resolved) {
                 revert ProofAlreadyChallenged();
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -459,10 +461,13 @@ contract BridgeProofValidator is AccessControl, Pausable, ReentrancyGuard {
         } else {
             // Check if all challenges resolved
             bool allResolved = true;
-            for (uint256 i = 0; i < proofChallenges[proofHash].length; i++) {
+            for (uint256 i = 0; i < proofChallenges[proofHash].length; ) {
                 if (!proofChallenges[proofHash][i].resolved) {
                     allResolved = false;
                     break;
+                }
+                unchecked {
+                    ++i;
                 }
             }
             if (allResolved) {

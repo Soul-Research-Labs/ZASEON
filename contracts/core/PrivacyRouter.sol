@@ -472,14 +472,23 @@ contract PrivacyRouter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Check if a nullifier has been spent
+    /// @dev Tries isNullifierSpent(bytes32) first (UnifiedNullifierManager), then exists(bytes32) (NullifierRegistryV3)
     function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         if (nullifierManager == address(0)) return false;
 
+        // Try isNullifierSpent(bytes32) — UnifiedNullifierManager signature
         (bool success, bytes memory result) = nullifierManager.staticcall(
             abi.encodeWithSignature("isNullifierSpent(bytes32)", nullifier)
         );
-        if (!success) return false;
-        return abi.decode(result, (bool));
+        if (success && result.length >= 32) return abi.decode(result, (bool));
+
+        // Fallback: try exists(bytes32) — NullifierRegistryV3 signature
+        (success, result) = nullifierManager.staticcall(
+            abi.encodeWithSignature("exists(bytes32)", nullifier)
+        );
+        if (success && result.length >= 32) return abi.decode(result, (bool));
+
+        return false;
     }
 
     /// @notice Check if a user passes compliance requirements

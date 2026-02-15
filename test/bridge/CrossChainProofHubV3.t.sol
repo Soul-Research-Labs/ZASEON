@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {CrossChainProofHubV3, BatchProofInput, IProofVerifier} from "../../contracts/bridge/CrossChainProofHubV3.sol";
+import {CrossChainProofHubV3, BatchProofInput} from "../../contracts/bridge/CrossChainProofHubV3.sol";
+import {IProofVerifier} from "../../contracts/interfaces/IProofVerifier.sol";
 
 contract MockProofVerifier is IProofVerifier {
     bool public returnValue;
@@ -11,11 +12,33 @@ contract MockProofVerifier is IProofVerifier {
         returnValue = _returnValue;
     }
 
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external view override returns (bool) {
+        return returnValue;
+    }
+
     function verifyProof(
         bytes calldata,
         bytes calldata
     ) external view override returns (bool) {
         return returnValue;
+    }
+
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external view override returns (bool) {
+        return returnValue;
+    }
+
+    function getPublicInputCount() external pure override returns (uint256) {
+        return 1;
+    }
+
+    function isReady() external pure override returns (bool) {
+        return true;
     }
 }
 

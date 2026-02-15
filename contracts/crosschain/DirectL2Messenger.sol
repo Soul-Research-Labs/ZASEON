@@ -851,11 +851,14 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
             RelayerConfirmation[] storage confirmations = messageConfirmations[
                 messageId
             ];
-            for (uint256 i = 0; i < confirmations.length; i++) {
+            for (uint256 i = 0; i < confirmations.length; ) {
                 Relayer storage r = relayers[confirmations[i].relayer];
                 uint256 slashAmount = r.bond / 10; // 10% slash
                 r.bond -= slashAmount;
                 r.slashedAmount += slashAmount;
+                unchecked {
+                    ++i;
+                }
             }
 
             msg_.status = MessageStatus.FAILED;

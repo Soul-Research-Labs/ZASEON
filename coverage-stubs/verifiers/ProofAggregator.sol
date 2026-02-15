@@ -5,13 +5,6 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-interface IProofVerifier {
-    function verifyProof(
-        bytes calldata proof,
-        bytes calldata publicInputs
-    ) external view returns (bool);
-}
-
 struct BatchProofInput {
     bytes32 proofHash;
     bytes32 publicInputsHash;

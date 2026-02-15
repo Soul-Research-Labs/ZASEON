@@ -252,12 +252,15 @@ contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
         _grantRole(RECOVERY_ROLE, _admin);
 
         // Add initial guardians
-        for (uint256 i = 0; i < _guardians.length; i++) {
+        for (uint256 i = 0; i < _guardians.length; ) {
             if (_guardians[i] != address(0)) {
                 guardians.push(_guardians[i]);
                 isGuardian[_guardians[i]] = true;
                 _grantRole(GUARDIAN_ROLE, _guardians[i]);
                 emit GuardianAdded(_guardians[i]);
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -536,11 +539,14 @@ contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
         _revokeRole(GUARDIAN_ROLE, guardian);
 
         // Remove from array
-        for (uint256 i = 0; i < guardians.length; i++) {
+        for (uint256 i = 0; i < guardians.length; ) {
             if (guardians[i] == guardian) {
                 guardians[i] = guardians[guardians.length - 1];
                 guardians.pop();
                 break;
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -675,8 +681,11 @@ contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
 
     function _clearPendingEscalation() internal {
         // Clear confirmations
-        for (uint256 i = 0; i < guardians.length; i++) {
+        for (uint256 i = 0; i < guardians.length; ) {
             escalationConfirmations[pendingLevel][guardians[i]] = false;
+            unchecked {
+                ++i;
+            }
         }
         confirmationCount[pendingLevel] = 0;
 

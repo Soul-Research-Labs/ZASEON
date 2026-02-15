@@ -552,7 +552,7 @@ contract BatchAccumulator is
             batchStatus = batch.status;
 
             // Find the transaction
-            for (uint256 i = 0; i < batch.commitments.length; i++) {
+            for (uint256 i = 0; i < batch.commitments.length; ) {
                 if (batch.commitments[i] == commitment) {
                     BatchedTransaction storage txn = batchTransactions[batchId][
                         i
@@ -560,6 +560,9 @@ contract BatchAccumulator is
                     submittedAt = txn.submittedAt;
                     processed = txn.processed;
                     break;
+                }
+                unchecked {
+                    ++i;
                 }
             }
         }
@@ -674,8 +677,11 @@ contract BatchAccumulator is
                 batch.commitments.length + 1
             );
             publicInputs[0] = uint256(batchId);
-            for (uint256 i = 0; i < batch.commitments.length; i++) {
+            for (uint256 i = 0; i < batch.commitments.length; ) {
                 publicInputs[i + 1] = uint256(batch.commitments[i]);
+                unchecked {
+                    ++i;
+                }
             }
 
             (bool success, bytes memory result) = proofVerifier.staticcall(

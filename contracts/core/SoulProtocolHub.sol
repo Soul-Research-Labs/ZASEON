@@ -102,14 +102,8 @@ contract SoulProtocolHub is AccessControl, Pausable {
 
     // ============ Component Registry ============
 
-    /// @notice All registered components by ID
-    mapping(bytes32 => ComponentInfo) public components;
-
-    /// @notice Component IDs by category
-    mapping(ComponentCategory => bytes32[]) public componentsByCategory;
-
-    /// @notice Latest version by component name
-    mapping(bytes32 => uint256) public latestVersion;
+    /// @dev NOTE: components/componentsByCategory/latestVersion mappings removed (dead code — never written to)
+    /// Storage slots preserved for upgrade safety if needed in future.
 
     // ============ Verifiers ============
 
@@ -154,6 +148,7 @@ contract SoulProtocolHub is AccessControl, Pausable {
     address public nullifierManager;
     address public complianceOracle;
     address public proofTranslator;
+    address public privacyRouter;
 
     // ============ Security ============
 
@@ -341,7 +336,7 @@ contract SoulProtocolHub is AccessControl, Pausable {
             "Length mismatch"
         );
 
-        for (uint256 i = 0; i < verifierTypes.length; i++) {
+        for (uint256 i = 0; i < verifierTypes.length; ) {
             if (verifierAddresses[i] == address(0)) revert ZeroAddress();
 
             verifiers[verifierTypes[i]] = VerifierInfo({
@@ -356,6 +351,9 @@ contract SoulProtocolHub is AccessControl, Pausable {
                 verifierAddresses[i],
                 gasLimits[i]
             );
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -448,7 +446,7 @@ contract SoulProtocolHub is AccessControl, Pausable {
             "Length mismatch"
         );
 
-        for (uint256 i = 0; i < chainIds.length; i++) {
+        for (uint256 i = 0; i < chainIds.length; ) {
             if (adapters[i] == address(0)) revert ZeroAddress();
 
             if (bridgeAdapters[chainIds[i]].adapter == address(0)) {
@@ -468,6 +466,9 @@ contract SoulProtocolHub is AccessControl, Pausable {
                 adapters[i],
                 supportsPrivacy[i]
             );
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -548,6 +549,17 @@ contract SoulProtocolHub is AccessControl, Pausable {
         if (_module == address(0)) revert ZeroAddress();
         proofTranslator = _module;
         emit PrivacyModuleRegistered("PROOF_TRANSLATOR", _module);
+    }
+
+    /**
+     * @notice Set Privacy Router
+     */
+    function setPrivacyRouter(
+        address _module
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (_module == address(0)) revert ZeroAddress();
+        privacyRouter = _module;
+        emit PrivacyModuleRegistered("PRIVACY_ROUTER", _module);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -750,6 +762,126 @@ contract SoulProtocolHub is AccessControl, Pausable {
         uint256 chainId
     ) external view returns (BridgeInfo memory) {
         return bridgeAdapters[chainId];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        BATCH WIRING
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Wire all core protocol components in a single transaction
+    /// @dev Reduces deployment setup from 20+ calls to 1. All addresses must be non-zero.
+    struct WireAllParams {
+        address _verifierRegistry;
+        address _universalVerifier;
+        address _crossChainMessageRelay;
+        address _crossChainPrivacyHub;
+        address _stealthAddressRegistry;
+        address _privateRelayerNetwork;
+        address _viewKeyRegistry;
+        address _shieldedPool;
+        address _nullifierManager;
+        address _complianceOracle;
+        address _proofTranslator;
+        address _privacyRouter;
+        address _bridgeProofValidator;
+        address _zkBoundStateLocks;
+        address _proofCarryingContainer;
+        address _crossDomainNullifierAlgebra;
+        address _policyBoundProofs;
+    }
+
+    function wireAll(
+        WireAllParams calldata p
+    ) external onlyRole(OPERATOR_ROLE) {
+        if (p._verifierRegistry != address(0))
+            verifierRegistry = p._verifierRegistry;
+        if (p._universalVerifier != address(0))
+            universalVerifier = p._universalVerifier;
+        if (p._crossChainMessageRelay != address(0))
+            crossChainMessageRelay = p._crossChainMessageRelay;
+        if (p._crossChainPrivacyHub != address(0))
+            crossChainPrivacyHub = p._crossChainPrivacyHub;
+        if (p._stealthAddressRegistry != address(0))
+            stealthAddressRegistry = p._stealthAddressRegistry;
+        if (p._privateRelayerNetwork != address(0))
+            privateRelayerNetwork = p._privateRelayerNetwork;
+        if (p._viewKeyRegistry != address(0))
+            viewKeyRegistry = p._viewKeyRegistry;
+        if (p._shieldedPool != address(0)) shieldedPool = p._shieldedPool;
+        if (p._nullifierManager != address(0))
+            nullifierManager = p._nullifierManager;
+        if (p._complianceOracle != address(0))
+            complianceOracle = p._complianceOracle;
+        if (p._proofTranslator != address(0))
+            proofTranslator = p._proofTranslator;
+        if (p._privacyRouter != address(0)) privacyRouter = p._privacyRouter;
+        if (p._bridgeProofValidator != address(0))
+            bridgeProofValidator = p._bridgeProofValidator;
+        if (p._zkBoundStateLocks != address(0))
+            zkBoundStateLocks = p._zkBoundStateLocks;
+        if (p._proofCarryingContainer != address(0))
+            proofCarryingContainer = p._proofCarryingContainer;
+        if (p._crossDomainNullifierAlgebra != address(0))
+            crossDomainNullifierAlgebra = p._crossDomainNullifierAlgebra;
+        if (p._policyBoundProofs != address(0))
+            policyBoundProofs = p._policyBoundProofs;
+    }
+
+    /// @notice Check if all critical protocol components are configured
+    /// @return configured True if all required components have non-zero addresses
+    function isFullyConfigured() external view returns (bool configured) {
+        return (verifierRegistry != address(0) &&
+            nullifierManager != address(0) &&
+            shieldedPool != address(0) &&
+            privacyRouter != address(0) &&
+            zkBoundStateLocks != address(0) &&
+            crossDomainNullifierAlgebra != address(0));
+    }
+
+    /// @notice Get a summary of which components are configured
+    /// @return names Array of component names
+    /// @return addresses Array of component addresses
+    function getComponentStatus()
+        external
+        view
+        returns (string[] memory names, address[] memory addresses)
+    {
+        names = new string[](17);
+        addresses = new address[](17);
+        names[0] = "verifierRegistry";
+        addresses[0] = verifierRegistry;
+        names[1] = "universalVerifier";
+        addresses[1] = universalVerifier;
+        names[2] = "crossChainMessageRelay";
+        addresses[2] = crossChainMessageRelay;
+        names[3] = "crossChainPrivacyHub";
+        addresses[3] = crossChainPrivacyHub;
+        names[4] = "stealthAddressRegistry";
+        addresses[4] = stealthAddressRegistry;
+        names[5] = "privateRelayerNetwork";
+        addresses[5] = privateRelayerNetwork;
+        names[6] = "viewKeyRegistry";
+        addresses[6] = viewKeyRegistry;
+        names[7] = "shieldedPool";
+        addresses[7] = shieldedPool;
+        names[8] = "nullifierManager";
+        addresses[8] = nullifierManager;
+        names[9] = "complianceOracle";
+        addresses[9] = complianceOracle;
+        names[10] = "proofTranslator";
+        addresses[10] = proofTranslator;
+        names[11] = "privacyRouter";
+        addresses[11] = privacyRouter;
+        names[12] = "bridgeProofValidator";
+        addresses[12] = bridgeProofValidator;
+        names[13] = "zkBoundStateLocks";
+        addresses[13] = zkBoundStateLocks;
+        names[14] = "proofCarryingContainer";
+        addresses[14] = proofCarryingContainer;
+        names[15] = "crossDomainNullifierAlgebra";
+        addresses[15] = crossDomainNullifierAlgebra;
+        names[16] = "policyBoundProofs";
+        addresses[16] = policyBoundProofs;
     }
 
     /*//////////////////////////////////////////////////////////////

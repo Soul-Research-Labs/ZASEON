@@ -114,6 +114,11 @@ contract VerifierRegistryV2 is AccessControl {
     /// @notice Total registered verifiers
     uint256 public totalRegistered;
 
+    /// @notice Mapping from bytes32 proof type hash to CircuitType for ProofHub compatibility
+    /// @dev Enables CrossChainProofHubV3 to call getVerifier(bytes32) on this registry
+    mapping(bytes32 => CircuitType) public proofTypeToCircuit;
+    mapping(bytes32 => bool) public proofTypeMapped;
+
     /// @notice Registry deployment timestamp
     uint256 public immutable deployedAt;
 
@@ -287,7 +292,7 @@ contract VerifierRegistryV2 is AccessControl {
             "Length mismatch"
         );
 
-        for (uint256 i = 0; i < circuitTypes.length; i++) {
+        for (uint256 i = 0; i < circuitTypes.length; ) {
             // Internal call to avoid repeated role checks
             _registerVerifierInternal(
                 circuitTypes[i],
@@ -295,6 +300,9 @@ contract VerifierRegistryV2 is AccessControl {
                 adapterAddrs[i],
                 circuitHashes[i]
             );
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -363,8 +371,11 @@ contract VerifierRegistryV2 is AccessControl {
         IProofVerifier adapter = IProofVerifier(entry.adapter);
         results = new bool[](proofs.length);
 
-        for (uint256 i = 0; i < proofs.length; i++) {
+        for (uint256 i = 0; i < proofs.length; ) {
             results[i] = adapter.verifyProof(proofs[i], publicInputsArray[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -442,6 +453,55 @@ contract VerifierRegistryV2 is AccessControl {
     ) external view validCircuitType(circuitType) returns (bool active) {
         VerifierEntry storage entry = verifiers[circuitType];
         return entry.adapter != address(0) && !entry.deprecated;
+    }
+
+    /**
+     * @notice Get verifier adapter by bytes32 proof type hash (CrossChainProofHubV3 compatibility)
+     * @dev Bridge method: maps bytes32 proofType → CircuitType → adapter address
+     * @param proofType Proof type as bytes32 hash (e.g., keccak256("state_transfer"))
+     * @return adapter The adapter address, or address(0) if not mapped
+     */
+    function getVerifier(bytes32 proofType) external view returns (address) {
+        if (!proofTypeMapped[proofType]) return address(0);
+        CircuitType circuitType = proofTypeToCircuit[proofType];
+        VerifierEntry storage entry = verifiers[circuitType];
+        if (entry.adapter == address(0) || entry.deprecated) return address(0);
+        return entry.adapter;
+    }
+
+    /**
+     * @notice Map a bytes32 proof type hash to a CircuitType
+     * @param proofType Proof type as bytes32 hash
+     * @param circuitType The circuit type to map to
+     */
+    function setProofTypeMapping(
+        bytes32 proofType,
+        CircuitType circuitType
+    ) external onlyRole(REGISTRY_ADMIN_ROLE) validCircuitType(circuitType) {
+        proofTypeToCircuit[proofType] = circuitType;
+        proofTypeMapped[proofType] = true;
+    }
+
+    /**
+     * @notice Batch map bytes32 proof type hashes to CircuitTypes
+     * @param proofTypes Array of proof type hashes
+     * @param circuitTypes Array of circuit types
+     */
+    function batchSetProofTypeMappings(
+        bytes32[] calldata proofTypes,
+        CircuitType[] calldata circuitTypes
+    ) external onlyRole(REGISTRY_ADMIN_ROLE) {
+        require(proofTypes.length == circuitTypes.length, "Length mismatch");
+        for (uint256 i = 0; i < proofTypes.length; ) {
+            if (uint256(circuitTypes[i]) >= CIRCUIT_TYPE_COUNT) {
+                revert InvalidCircuitType(uint256(circuitTypes[i]));
+            }
+            proofTypeToCircuit[proofTypes[i]] = circuitTypes[i];
+            proofTypeMapped[proofTypes[i]] = true;
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

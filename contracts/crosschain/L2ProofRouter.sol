@@ -606,11 +606,14 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         bytes[] memory publicInputsArray = new bytes[](batch.proofIds.length);
         ProofType[] memory proofTypes = new ProofType[](batch.proofIds.length);
 
-        for (uint256 i = 0; i < batch.proofIds.length; i++) {
+        for (uint256 i = 0; i < batch.proofIds.length; ) {
             Proof storage p = proofs[batch.proofIds[i]];
             proofDataArray[i] = p.proofData;
             publicInputsArray[i] = p.publicInputs;
             proofTypes[i] = p.proofType;
+            unchecked {
+                ++i;
+            }
         }
 
         // Encode batch data
@@ -657,7 +660,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
      * @notice Cache proofs after successful routing
      */
     function _cacheProofs(bytes32[] storage proofIds) internal {
-        for (uint256 i = 0; i < proofIds.length; i++) {
+        for (uint256 i = 0; i < proofIds.length; ) {
             Proof storage p = proofs[proofIds[i]];
 
             bytes32 cacheKey = keccak256(
@@ -685,6 +688,9 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
             cacheKeys.push(cacheKey);
 
             emit ProofCached(p.proofId, cacheKey, block.timestamp + CACHE_TTL);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -692,8 +698,11 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
      * @notice Mark proofs as processed to prevent replay
      */
     function _markProofsProcessed(bytes32[] storage proofIds) internal {
-        for (uint256 i = 0; i < proofIds.length; i++) {
+        for (uint256 i = 0; i < proofIds.length; ) {
             processedProofs[proofIds[i]] = true;
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -707,7 +716,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         uint256 lruIndex = 0;
         uint256 lowestScore = type(uint256).max;
 
-        for (uint256 i = 0; i < cacheKeys.length; i++) {
+        for (uint256 i = 0; i < cacheKeys.length; ) {
             CachedProof storage cached = proofCache[cacheKeys[i]];
             // Score = hitCount * weight + recency
             uint256 score = cached.hitCount *
@@ -716,6 +725,9 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
             if (score < lowestScore || !cached.valid) {
                 lowestScore = score;
                 lruIndex = i;
+            }
+            unchecked {
+                ++i;
             }
         }
 

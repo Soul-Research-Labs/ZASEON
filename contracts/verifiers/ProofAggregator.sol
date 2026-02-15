@@ -125,7 +125,6 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     error LengthMismatch();
     error MerkleRootMismatch();
 
-
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -178,7 +177,6 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
         uint256 len = proofHashes.length;
         if (len != publicInputsHashes.length || len != chainIds.length)
             revert LengthMismatch();
-
 
         for (uint256 i = 0; i < len; ) {
             if (proofData[proofHashes[i]].proofHash == bytes32(0)) {
@@ -290,7 +288,6 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
             providedRoot := calldataload(add(publicInputs.offset, 0))
         }
         if (providedRoot != expectedRoot) revert MerkleRootMismatch();
-
 
         // Call the verifier
         bool valid = _verifyAggregatedProof(aggregatedProof, publicInputs);
@@ -414,7 +411,6 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
         bytes32 proofHash = keccak256(recursiveProof);
         if (proofHash != batch.aggregatedProofHash)
             revert InvalidAggregatedProof();
-
 
         uint256 gasStart = gasleft();
 
@@ -700,12 +696,4 @@ struct BatchProofInput {
     bytes32 commitment;
     uint64 sourceChainId;
     uint64 destChainId;
-}
-
-/// @notice Interface for proof verifiers
-interface IProofVerifier {
-    function verifyProof(
-        bytes calldata proof,
-        bytes calldata publicInputs
-    ) external view returns (bool);
 }

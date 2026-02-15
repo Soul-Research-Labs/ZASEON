@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 
 /// @title ConfidentialStateContainerV3
 /// @author Soul Protocol
@@ -925,17 +926,6 @@ contract ConfidentialStateContainerV3 is
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
-}
-
-/*//////////////////////////////////////////////////////////////
-                          INTERFACES
-//////////////////////////////////////////////////////////////*/
-
-interface IProofVerifier {
-    function verifyProof(
-        bytes calldata proof,
-        bytes calldata publicInputs
-    ) external view returns (bool);
 }
 
 /// @notice Batch input structure

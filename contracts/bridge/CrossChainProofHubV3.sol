@@ -5,6 +5,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {SecurityModule} from "../security/SecurityModule.sol";
+import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 
 /// @title CrossChainProofHubV3
 /// @author Soul Protocol
@@ -1251,17 +1252,6 @@ contract CrossChainProofHubV3 is
 
     /// @notice Allows contract to receive ETH
     receive() external payable {}
-}
-
-/*//////////////////////////////////////////////////////////////
-                          INTERFACES
-//////////////////////////////////////////////////////////////*/
-
-interface IProofVerifier {
-    function verifyProof(
-        bytes calldata proof,
-        bytes calldata publicInputs
-    ) external view returns (bool);
 }
 
 /// @notice Batch proof input structure
