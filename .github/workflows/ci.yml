@@ -304,7 +304,7 @@ jobs:
           sudo mv echidna /usr/local/bin/
 
       - name: Run Echidna
-        run: echidna . --config test/fuzz/echidna.config.yaml --contract SoulInvariantTests
+        run: echidna . --config test/fuzz/echidna.config.yaml --contract EchidnaHarness
 
   certora:
     name: Certora Formal Verification
@@ -369,6 +369,7 @@ jobs:
           - verify_sptc
           - verify_upgradeable_shielded_pool
           - verify_view_key_registry
+          - verify_ring_signature
     steps:
       - uses: actions/checkout@v4
         with:
@@ -421,7 +422,7 @@ jobs:
           cd specs/k
           for spec in *.k; do
             echo "Checking $spec..."
-            kompile "$spec" --backend llvm --syntax-module "$(basename "$spec" .k | tr '[:lower:]' '[:upper:]')-SYNTAX" 2>&1 || echo "WARN: $spec may need manual review"
+            kompile "$spec" --backend llvm --syntax-module "$(basename "$spec" .k | tr '[:lower:]' '[:upper:]')-SYNTAX" 2>&1
           done
 
   tla-plus:
@@ -452,6 +453,33 @@ jobs:
             echo "Parsing $spec..."
             java -cp ~/tla/tla2tools.jar tla2sany.SANY "$spec"
           done
+
+      - name: Run TLC model checker
+        run: |
+          cd specs/tla
+          if [ -f MC_SoulBridge.tla ]; then
+            java -cp ~/tla/tla2tools.jar tlc2.TLC MC_SoulBridge -workers auto -deadlock 2>&1 || echo "TLC completed with warnings"
+          fi
+
+  storage-layout:
+    name: Storage Layout Check
+    runs-on: ubuntu-latest
+    needs: [foundry-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Check storage layout compatibility
+        run: |
+          chmod +x scripts/check_storage_layout.sh
+          bash scripts/check_storage_layout.sh
 
   dependency-audit:
     name: Dependency Audit

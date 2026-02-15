@@ -3,6 +3,18 @@ mutate:
     contract: SecurityModule
   - filename: contracts/primitives/ZKBoundStateLocks.sol
     contract: ZKBoundStateLocks
+  - filename: contracts/core/NullifierRegistryV3.sol
+    contract: NullifierRegistryV3
+  - filename: contracts/crosschain/CrossChainProofHubV3.sol
+    contract: CrossChainProofHubV3
+  - filename: contracts/privacy/SoulAtomicSwapV2.sol
+    contract: SoulAtomicSwapV2
+  - filename: contracts/privacy/UniversalShieldedPool.sol
+    contract: UniversalShieldedPool
+  - filename: contracts/crosschain/DirectL2Messenger.sol
+    contract: DirectL2Messenger
+  - filename: contracts/privacy/ConfidentialStateContainerV3.sol
+    contract: ConfidentialStateContainerV3
 
 remappings:
   - "@openzeppelin/=node_modules/@openzeppelin/"
