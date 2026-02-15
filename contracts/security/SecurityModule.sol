@@ -241,6 +241,9 @@ abstract contract SecurityModule {
 
     /**
      * @notice Circuit breaker modifier - halts on abnormal volume
+     * @dev When volume exceeds threshold, the current transaction is allowed to complete
+     *      but the circuit breaker trips, blocking all subsequent calls until cooldown elapses.
+     *      This is the standard circuit breaker pattern — state must persist for it to work.
      * @param value The value being processed
      */
     modifier circuitBreaker(uint256 value) {
@@ -273,15 +276,14 @@ abstract contract SecurityModule {
             // Add to volume
             lastHourlyVolume += value;
 
-            // Check threshold
+            // Check threshold — trip the breaker but allow this transaction to complete.
+            // The state change persists because we do NOT revert here.
+            // Subsequent calls will see circuitBreakerTripped() == true and revert
+            // with CooldownNotElapsed until the cooldown period elapses.
             if (lastHourlyVolume > volumeThreshold) {
                 _setFlag(FLAG_CIRCUIT_TRIPPED, true);
                 circuitBreakerTrippedAt = block.timestamp;
                 emit CircuitBreakerActivated(lastHourlyVolume, volumeThreshold);
-                revert CircuitBreakerTriggered(
-                    lastHourlyVolume,
-                    volumeThreshold
-                );
             }
         }
         _;

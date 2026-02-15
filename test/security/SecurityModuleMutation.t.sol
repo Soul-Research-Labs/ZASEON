@@ -85,24 +85,22 @@ contract SecurityModuleMutationTest is Test {
     }
 
     /**
-     * @notice Test if circuit breaker triggers on volume
+     * @notice Test circuit breaker trips on volume and blocks subsequent calls
+     * @dev BUG FIX VERIFICATION: Previously the circuit breaker set state then reverted,
+     *      which rolled back the state change. Now the threshold-exceeding tx succeeds
+     *      (trips the breaker), and subsequent calls revert with CooldownNotElapsed.
      */
     function test_CircuitBreaker() public {
-        // We need to see how circuit breaker calculates volume.
-        // In SecurityModule.sol, it likely uses an internal variable.
-        // Let's assume it checks against threshold.
-
-        // This should trigger the circuit breaker as 1001 > 1000
-        // We need to catch the specific error
-        // Note: The error signature depends on the contract definition.
-        // Based on the failure message: CircuitBreakerTriggered(uint256,uint256)
-
-        vm.expectRevert();
+        // This exceeds the 1000 ether threshold — the tx should SUCCEED
+        // but trip the circuit breaker for future calls
         harness.checkCircuitBreaker(1001 ether);
 
-        // BUG DISCOVERY: The circuit breaker DOES NOT persist because the revert undoes the state change!
-        // So the second call should SUCCEED, despite the code trying to set circuitBreakerTripped = true.
-        // We test this behavior for now as the baseline.
+        // The circuit breaker is now tripped — this call should REVERT with CooldownNotElapsed
+        vm.expectRevert();
+        harness.checkCircuitBreaker(1 ether);
+
+        // After cooldown elapses, calls should succeed again
+        vm.warp(block.timestamp + 1 hours + 1);
         harness.checkCircuitBreaker(1 ether);
     }
 }

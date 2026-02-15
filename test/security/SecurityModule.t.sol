@@ -497,9 +497,14 @@ contract SecurityModuleTest is Test {
         // Push volume to just under threshold
         sm.simulateVolume(10_000_000 * 1e18 - 1);
 
-        // This should revert AND trip (but trip is rolled back since revert)
-        vm.expectRevert();
+        // This exceeds the threshold — the tx SUCCEEDS but trips the breaker
         sm.doCircuitBreakerAction(2 * 1e18);
+        assertEq(sm.totalActions(), 1);
+        assertTrue(sm.circuitBreakerTripped(), "Breaker should be tripped");
+
+        // Next call should REVERT because breaker is tripped and cooldown hasn't elapsed
+        vm.expectRevert();
+        sm.doCircuitBreakerAction(1);
     }
 
     function test_circuitBreaker_passesWhenDisabled() public {

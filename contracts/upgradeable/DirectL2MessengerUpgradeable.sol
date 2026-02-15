@@ -973,6 +973,8 @@ contract DirectL2MessengerUpgradeable is
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {
+        require(newImplementation != address(0), "Zero address");
+        require(newImplementation.code.length > 0, "Not a contract");
         contractVersion++;
     }
 

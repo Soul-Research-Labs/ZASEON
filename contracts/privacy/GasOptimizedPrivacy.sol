@@ -462,15 +462,21 @@ contract GasOptimizedRingCT {
     error InvalidSignature();
     error RingSignatureVerificationNotImplemented();
     error Unauthorized();
+    error ZeroAddress();
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════════════════
     // EVENTS
-    // ═══════════════════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════════════════
 
     event RingCTTransaction(
         bytes32 indexed txHash,
         bytes32 indexed keyImage,
         uint256 ringSize
+    );
+
+    event RingSignatureVerifierUpdated(
+        address indexed oldVerifier,
+        address indexed newVerifier
     );
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -507,7 +513,10 @@ contract GasOptimizedRingCT {
      * @param verifier Address implementing verify(bytes32[],bytes32[],bytes,bytes32) → bool
      */
     function setRingSignatureVerifier(address verifier) external onlyOwner {
+        if (verifier == address(0)) revert ZeroAddress();
+        address oldVerifier = ringSignatureVerifier;
         ringSignatureVerifier = verifier;
+        emit RingSignatureVerifierUpdated(oldVerifier, verifier);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

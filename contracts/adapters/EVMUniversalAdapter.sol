@@ -506,7 +506,7 @@ contract EVMUniversalAdapter is
     /// @inheritdoc IUniversalChainAdapter
     function translateProof(
         bytes calldata proof,
-        bytes32[] calldata publicInputs,
+        bytes32[] calldata /* publicInputs */,
         ProofSystem fromSystem,
         ProofSystem toSystem
     ) external view override returns (bytes memory) {

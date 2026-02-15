@@ -60,7 +60,9 @@ contract ConfigureCrossChain is Script {
     /// @notice Configure L1 Sepolia proof hub with L2 peer chains
     function _configureL1(uint256 deployerPK) internal {
         address proofHubAddr = vm.envAddress("PROOF_HUB_ADDRESS");
-        CrossChainProofHubV3 proofHub = CrossChainProofHubV3(proofHubAddr);
+        CrossChainProofHubV3 proofHub = CrossChainProofHubV3(
+            payable(proofHubAddr)
+        );
 
         console.log("Configuring L1 ProofHub:", proofHubAddr);
 

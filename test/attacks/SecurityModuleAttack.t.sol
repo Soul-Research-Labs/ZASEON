@@ -326,15 +326,12 @@ contract SecurityModuleAttackTest is Test {
         vault.deposit{value: 500 ether}();
         vault.deposit{value: 400 ether}();
 
-        // This should trip the circuit breaker (1000 eth threshold)
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                SecurityModule.CircuitBreakerTriggered.selector,
-                1100 ether, // current volume
-                1000 ether // threshold
-            )
-        );
+        // This exceeds the 1000 ether threshold — tx SUCCEEDS but trips the breaker
         vault.deposit{value: 200 ether}();
+
+        // Circuit breaker is now tripped — next call should revert during cooldown
+        vm.expectRevert();
+        vault.deposit{value: 1 ether}();
 
         vm.stopPrank();
     }
@@ -343,34 +340,28 @@ contract SecurityModuleAttackTest is Test {
     function test_circuitBreaker_blocksWhenTripped() public {
         vm.startPrank(attacker);
 
-        // Trip the circuit breaker (Reverts)
-        vm.expectRevert();
+        // Trip the circuit breaker — tx succeeds but trips the breaker
         vault.deposit{value: 1001 ether}();
-        
+
         vm.stopPrank();
 
-        // Note: In current implementation, Revert undoes the "Tripped" state.
-        // So subsequent calls technically succeed if under limit.
-        // We comment out the check for persistent blocking as it's a known limitation.
-        /*
+        // Subsequent calls should revert during cooldown
         vm.startPrank(alice);
-        vm.expectRevert(SecurityModule.CooldownNotElapsed.selector);
+        vm.expectRevert();
         vault.deposit{value: 1 ether}();
         vm.stopPrank();
-        */
     }
 
     /// @notice Test: Circuit breaker resets after cooldown
     function test_circuitBreaker_resetsAfterCooldown() public {
         vm.startPrank(attacker);
 
-        // Trip the circuit breaker (Reverts)
-        vm.expectRevert();
+        // Trip the circuit breaker — tx succeeds but trips the breaker
         vault.deposit{value: 1001 ether}();
-        
-        // Note: Intermediate blocking check removed as Revert undoes state.
-        // vm.expectRevert();
-        // vault.deposit{value: 10 ether}();
+
+        // Subsequent call during cooldown should revert
+        vm.expectRevert();
+        vault.deposit{value: 10 ether}();
 
         vm.stopPrank();
 
@@ -601,13 +592,18 @@ contract SecurityModuleAttackTest is Test {
             vault.deposit{value: 200 ether}(); // 5 * 200 = 1000 ether (Exactly threshold)
         }
 
-        // Next deposit should trigger circuit breaker (or just revert due to limit)
+        // Next deposit triggers circuit breaker — tx succeeds but trips the breaker
         vm.prank(attackers[0]);
-        vm.expectRevert();
         vault.deposit{value: 100 ether}();
 
-        // Note: Circuit breaker state does not persist after revert in this simplistic implementation
-        // so we can't check 'circuitBreakerTripped' is true.
-        // assertTrue(vault.circuitBreakerTripped(), "Circuit breaker should be tripped");
+        // Circuit breaker is now tripped — verify subsequent calls revert
+        assertTrue(
+            vault.circuitBreakerTripped(),
+            "Circuit breaker should be tripped"
+        );
+
+        vm.prank(attackers[1]);
+        vm.expectRevert();
+        vault.deposit{value: 1 ether}();
     }
 }

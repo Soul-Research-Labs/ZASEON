@@ -185,7 +185,22 @@ contract DeployL2Testnet is Script {
 
             console.log("ArbitrumBridgeAdapter:", bridgeAdapter);
         } else if (block.chainid == SCROLL_SEPOLIA) {
-            ScrollBridgeAdapter adapter = new ScrollBridgeAdapter(deployer);
+            // Scroll requires messenger, gateway, rollup, and admin addresses
+            address scrollMessenger = vm.envOr("SCROLL_MESSENGER", address(0));
+            address scrollGateway = vm.envOr(
+                "SCROLL_GATEWAY_ROUTER",
+                address(0)
+            );
+            address scrollRollup = vm.envOr(
+                "SCROLL_ROLLUP_CONTRACT",
+                address(0)
+            );
+            ScrollBridgeAdapter adapter = new ScrollBridgeAdapter(
+                scrollMessenger,
+                scrollGateway,
+                scrollRollup,
+                admin
+            );
             bridgeAdapter = address(adapter);
 
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
@@ -198,7 +213,22 @@ contract DeployL2Testnet is Script {
 
             console.log("ScrollBridgeAdapter:", bridgeAdapter);
         } else if (block.chainid == LINEA_SEPOLIA) {
-            LineaBridgeAdapter adapter = new LineaBridgeAdapter(deployer);
+            // Linea requires message service, token bridge, rollup, and admin addresses
+            address lineaMessageService = vm.envOr(
+                "LINEA_MESSAGE_SERVICE",
+                address(0)
+            );
+            address lineaTokenBridge = vm.envOr(
+                "LINEA_TOKEN_BRIDGE",
+                address(0)
+            );
+            address lineaRollup = vm.envOr("LINEA_ROLLUP", address(0));
+            LineaBridgeAdapter adapter = new LineaBridgeAdapter(
+                lineaMessageService,
+                lineaTokenBridge,
+                lineaRollup,
+                admin
+            );
             bridgeAdapter = address(adapter);
 
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);

@@ -103,6 +103,9 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
     mapping(bytes32 => bytes32[])
         private __deprecated_pendingCrossChainNullifiers;
 
+    /// @notice Registered cross-chain peer domains for nullifier sync
+    mapping(bytes32 => bool) public registeredDomains;
+
     /// @notice Chain ID for this deployment
     uint256 public immutable CHAIN_ID;
 
@@ -138,6 +141,8 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
 
     event RegistrarAdded(address indexed registrar);
     event RegistrarRemoved(address indexed registrar);
+    event DomainRegistered(bytes32 indexed domain);
+    event DomainRemoved(bytes32 indexed domain);
 
     /*//////////////////////////////////////////////////////////////
                               CUSTOM ERRORS
@@ -151,6 +156,9 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
     error ZeroNullifier();
     error RootNotInHistory(bytes32 root);
     error InvalidChainId();
+    error DomainAlreadyRegistered(bytes32 domain);
+    error DomainNotRegistered(bytes32 domain);
+    error ZeroDomain();
 
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -207,6 +215,7 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
     }
 
     /// @notice Registers multiple nullifiers in a batch
+    /// @dev Gas-optimized: single Merkle root recomputation for the entire batch
     /// @param _nullifiers Array of nullifiers to register
     /// @param _commitments Array of associated commitments
     /// @return startIndex The starting index in the merkle tree
@@ -227,20 +236,30 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
 
         startIndex = totalNullifiers;
 
+        // Register nullifier state without individual tree insertions
+        bytes32[] memory leaves = new bytes32[](len);
         for (uint256 i = 0; i < len; ) {
             bytes32 commitment = _commitments.length > 0
                 ? _commitments[i]
                 : bytes32(0);
-            _registerNullifier(_nullifiers[i], commitment, msg.sender);
+            leaves[i] = _registerNullifierState(
+                _nullifiers[i],
+                commitment,
+                msg.sender
+            );
             unchecked {
                 ++i;
             }
         }
 
+        // Single batched Merkle tree insertion — one root write + one history entry
+        _batchInsertIntoTree(leaves, startIndex);
+
         emit NullifierBatchRegistered(_nullifiers, startIndex, len);
     }
 
     /// @notice Receives nullifiers from another chain
+    /// @dev Gas-optimized: single Merkle root recomputation for the entire batch
     /// @param sourceChainId The source chain ID
     /// @param _nullifiers Array of nullifiers
     /// @param _commitments Array of commitments
@@ -257,30 +276,56 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         if (len == 0) revert EmptyBatch();
         if (len > MAX_BATCH_SIZE) revert BatchTooLarge(len, MAX_BATCH_SIZE);
 
+        // Collect new leaves for batched tree insertion
+        uint256 newCount = 0;
+        uint256 batchStartIndex = totalNullifiers;
+        bytes32[] memory leaves = new bytes32[](len);
+
         for (uint256 i = 0; i < len; ) {
             bytes32 nullifier = _nullifiers[i];
 
             if (!isNullifierUsed[nullifier]) {
-                _registerCrossChainNullifier(
+                leaves[newCount] = _registerCrossChainNullifierState(
                     nullifier,
                     _commitments.length > i ? _commitments[i] : bytes32(0),
                     sourceChainId
                 );
+                unchecked {
+                    ++newCount;
+                }
             }
             unchecked {
                 ++i;
             }
         }
 
+        // Batched Merkle tree insertion for all new nullifiers
+        if (newCount > 0) {
+            // Trim leaves array to actual count
+            if (newCount < len) {
+                bytes32[] memory trimmed = new bytes32[](newCount);
+                for (uint256 i = 0; i < newCount; ) {
+                    trimmed[i] = leaves[i];
+                    unchecked {
+                        ++i;
+                    }
+                }
+                _batchInsertIntoTree(trimmed, batchStartIndex);
+            } else {
+                _batchInsertIntoTree(leaves, batchStartIndex);
+            }
+        }
+
         emit CrossChainNullifiersReceived(sourceChainId, sourceMerkleRoot, len);
     }
 
-    /// @dev Internal helper to register cross-chain nullifier (reduces stack depth)
-    function _registerCrossChainNullifier(
+    /// @dev Internal helper to register cross-chain nullifier state without tree insertion
+    /// @return leaf The nullifier hash to insert into the tree
+    function _registerCrossChainNullifierState(
         bytes32 nullifier,
         bytes32 commitment,
         uint256 sourceChainId
-    ) internal {
+    ) internal returns (bytes32 leaf) {
         if (nullifier == bytes32(0)) revert ZeroNullifier();
 
         uint256 index = totalNullifiers;
@@ -295,7 +340,6 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         });
 
         isNullifierUsed[nullifier] = true;
-        _insertIntoTree(nullifier);
 
         unchecked {
             ++totalNullifiers;
@@ -309,6 +353,20 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
             msg.sender,
             uint64(sourceChainId)
         );
+
+        return nullifier;
+    }
+
+    /// @dev Legacy helper for single cross-chain nullifier registration.
+    ///      Registers state AND inserts into tree.
+    function _registerCrossChainNullifier(
+        bytes32 nullifier,
+        bytes32 commitment,
+        uint256 sourceChainId
+    ) internal {
+        uint256 idx = totalNullifiers;
+        _registerCrossChainNullifierState(nullifier, commitment, sourceChainId);
+        _insertIntoTree(nullifier, idx);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -320,11 +378,26 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         bytes32 commitment,
         address registrar
     ) internal returns (uint256 index) {
+        // Capture index before state registration (which increments totalNullifiers)
+        index = totalNullifiers;
+        _registerNullifierState(nullifier, commitment, registrar);
+        // Single-nullifier path: insert directly into tree at the pre-increment index
+        _insertIntoTree(nullifier, index);
+    }
+
+    /// @dev Registers nullifier state (metadata, existence flag, counters, events)
+    ///      without inserting into the Merkle tree. Used by batch path.
+    /// @return leaf The nullifier hash (used as leaf in Merkle tree)
+    function _registerNullifierState(
+        bytes32 nullifier,
+        bytes32 commitment,
+        address registrar
+    ) internal returns (bytes32) {
         if (nullifier == bytes32(0)) revert ZeroNullifier();
         if (isNullifierUsed[nullifier])
             revert NullifierAlreadyExists(nullifier);
 
-        index = totalNullifiers;
+        uint256 index = totalNullifiers;
 
         nullifiers[nullifier] = NullifierData({
             timestamp: uint64(block.timestamp),
@@ -336,9 +409,6 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         });
 
         isNullifierUsed[nullifier] = true;
-
-        // Insert into merkle tree and update root
-        _insertIntoTree(nullifier);
 
         unchecked {
             ++totalNullifiers;
@@ -352,13 +422,16 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
             registrar,
             uint64(CHAIN_ID)
         );
+
+        return nullifier;
     }
 
     /// @notice Inserts a leaf into the incremental merkle tree
     /// @param leaf The leaf to insert
-    function _insertIntoTree(bytes32 leaf) internal {
+    /// @param treeIndex The position index in the tree for this leaf
+    function _insertIntoTree(bytes32 leaf, uint256 treeIndex) internal {
         bytes32 oldRoot = merkleRoot;
-        uint256 index = totalNullifiers;
+        uint256 index = treeIndex;
         bytes32 currentHash = leaf;
 
         for (uint256 i = 0; i < TREE_DEPTH; ) {
@@ -380,6 +453,49 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         _addRootToHistory(currentHash);
 
         emit MerkleRootUpdated(oldRoot, currentHash, totalNullifiers);
+    }
+
+    /// @notice Batch inserts multiple leaves into the incremental Merkle tree
+    /// @dev Gas optimization: inserts all leaves sequentially but only writes the final
+    ///      Merkle root and history entry once, saving ~20k gas per additional leaf.
+    ///      Each leaf is inserted at its correct index position.
+    /// @param leaves Array of leaf hashes to insert
+    /// @param startIndex The tree index of the first leaf (totalNullifiers BEFORE the batch registered state)
+    function _batchInsertIntoTree(
+        bytes32[] memory leaves,
+        uint256 startIndex
+    ) internal {
+        bytes32 oldRoot = merkleRoot;
+        uint256 len = leaves.length;
+        bytes32 currentHash;
+
+        for (uint256 leafIdx = 0; leafIdx < len; ) {
+            uint256 index = startIndex + leafIdx;
+            currentHash = leaves[leafIdx];
+
+            for (uint256 i = 0; i < TREE_DEPTH; ) {
+                if (index & 1 == 0) {
+                    branches[i] = currentHash;
+                    currentHash = _hashPair(currentHash, zeros[i]);
+                } else {
+                    currentHash = _hashPair(branches[i], currentHash);
+                }
+                index >>= 1;
+                unchecked {
+                    ++i;
+                }
+            }
+
+            unchecked {
+                ++leafIdx;
+            }
+        }
+
+        // Write root and history only once for entire batch
+        merkleRoot = currentHash;
+        _addRootToHistory(currentHash);
+
+        emit MerkleRootUpdated(oldRoot, currentHash, startIndex + len);
     }
 
     /// @notice Adds a root to the history ring buffer
@@ -546,6 +662,27 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(REGISTRAR_ROLE, registrar);
         emit RegistrarRemoved(registrar);
+    }
+
+    /// @notice Registers a cross-chain domain for nullifier sync
+    /// @param domain The domain identifier (typically bytes32 of chain ID)
+    function registerDomain(
+        bytes32 domain
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (domain == bytes32(0)) revert ZeroDomain();
+        if (registeredDomains[domain]) revert DomainAlreadyRegistered(domain);
+        registeredDomains[domain] = true;
+        emit DomainRegistered(domain);
+    }
+
+    /// @notice Removes a registered cross-chain domain
+    /// @param domain The domain identifier to remove
+    function removeDomain(
+        bytes32 domain
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!registeredDomains[domain]) revert DomainNotRegistered(domain);
+        registeredDomains[domain] = false;
+        emit DomainRemoved(domain);
     }
 
     /// @notice Pauses the contract
