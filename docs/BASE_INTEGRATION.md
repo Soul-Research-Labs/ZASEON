@@ -45,12 +45,12 @@ The `BaseBridgeAdapter` provides integration with Base and the OP Stack canonica
 
 ## Roles
 
-| Role | Purpose |
-|------|---------|
-| `DEFAULT_ADMIN_ROLE` | Core configuration |
-| `OPERATOR_ROLE` | Manage L2 targets, configure CCTP |
-| `GUARDIAN_ROLE` | Pause/unpause, emergency operations |
-| `RELAYER_ROLE` | Relay proofs, sync state |
+| Role                 | Purpose                             |
+| -------------------- | ----------------------------------- |
+| `DEFAULT_ADMIN_ROLE` | Core configuration                  |
+| `OPERATOR_ROLE`      | Manage L2 targets, configure CCTP   |
+| `GUARDIAN_ROLE`      | Pause/unpause, emergency operations |
+| `RELAYER_ROLE`       | Relay proofs, sync state            |
 
 ## Configuration
 
@@ -72,7 +72,11 @@ bridge.configureCCTP(cctpMessenger, usdcAddress, baseDomain);
 ## SDK Usage
 
 ```typescript
-import { BASE_BRIDGE_ABI, computeMessageId, isWithdrawalReady } from '@soul/sdk/bridges/base';
+import {
+  BASE_BRIDGE_ABI,
+  computeMessageId,
+  isWithdrawalReady,
+} from "@soul/sdk/bridges/base";
 
 const msgId = computeMessageId(origin, sender, nonce, target, message);
 const ready = isWithdrawalReady(provenAt, challengePeriod);
@@ -88,7 +92,7 @@ forge test --match-contract BaseBridgeFuzz -vvv
 npx hardhat test test/crosschain/BaseBridge.test.ts
 
 # Certora verification
-certorun certora/conf/verify_base_bridge.conf
+certoraRun certora/conf/verify_base_bridge.conf
 ```
 
 ## Deployment

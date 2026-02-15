@@ -40,11 +40,11 @@ The `ArbitrumBridgeAdapter` provides native integration with Arbitrum's canonica
 
 ## Roles
 
-| Role | Purpose |
-|------|---------|
-| `DEFAULT_ADMIN_ROLE` | Configure rollup, set operator/guardian |
-| `OPERATOR_ROLE` | Map tokens, adjust deposit limits, configure fees |
-| `GUARDIAN_ROLE` | Pause/unpause, emergency withdraw |
+| Role                 | Purpose                                           |
+| -------------------- | ------------------------------------------------- |
+| `DEFAULT_ADMIN_ROLE` | Configure rollup, set operator/guardian           |
+| `OPERATOR_ROLE`      | Map tokens, adjust deposit limits, configure fees |
+| `GUARDIAN_ROLE`      | Pause/unpause, emergency withdraw                 |
 
 ## Configuration
 
@@ -62,7 +62,11 @@ bridge.setFeeConfig(depositFeeBps, withdrawalFeeBps);
 ## SDK Usage
 
 ```typescript
-import { ARBITRUM_BRIDGE_ABI, ArbitrumConstants, calculateBridgeFee } from '@soul/sdk/bridges/arbitrum';
+import {
+  ARBITRUM_BRIDGE_ABI,
+  ArbitrumConstants,
+  calculateBridgeFee,
+} from "@soul/sdk/bridges/arbitrum";
 
 const fee = calculateBridgeFee(depositAmount, feeBps);
 ```
@@ -74,7 +78,7 @@ const fee = calculateBridgeFee(depositAmount, feeBps);
 forge test --match-contract ArbitrumBridgeFuzz -vvv
 
 # Run Certora verification
-certorun certora/conf/verify_arbitrum_bridge.conf
+certoraRun certora/conf/verify_arbitrum_bridge.conf
 ```
 
 ## Deployment

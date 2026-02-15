@@ -8,6 +8,7 @@
 ## ⚠️ Known Limitation
 
 Forge coverage fails on this project with **"stack too deep"** errors due to:
+
 1. Complex assembly blocks in ZK verifiers
 2. Deep call stacks in verification pipelines
 3. Foundry coverage instrumentation overhead
@@ -18,16 +19,16 @@ Forge coverage fails on this project with **"stack too deep"** errors due to:
 
 ## Test Suite Summary
 
-| Category | Files | Tests | Command |
-|----------|-------|-------|---------|
-| Foundry Unit | `test/foundry/*.t.sol` | 56 | `forge test --match-path 'test/foundry/*'` |
-| Fuzz | `test/fuzz/*.t.sol` | 19 | `forge test --match-path 'test/fuzz/*'` |
-| Invariant | `test/invariant/*.t.sol` | 5 | `forge test --match-path 'test/invariant/*'` |
-| Attack | `test/attack/*.t.sol` | 6 | `forge test --match-path 'test/attack/*'` |
-| Security | `test/security/*.t.sol` | 8 | `forge test --match-path 'test/security/*'` |
-| Gas Benchmark | `test/gas-benchmark/*.t.sol` | 2 | `forge test --match-path 'test/gas-benchmark/*'` |
-| Integration | `test/integration/*.t.sol` | 6 | `forge test --match-path 'test/integration/*'` |
-| Stress | `test/stress/*.t.sol` | 3 | `forge test --match-path 'test/stress/*'` |
+| Category      | Files                        | Tests | Command                                          |
+| ------------- | ---------------------------- | ----- | ------------------------------------------------ |
+| Foundry Unit  | `test/foundry/*.t.sol`       | 56    | `forge test --match-path 'test/foundry/*'`       |
+| Fuzz          | `test/fuzz/*.t.sol`          | 19    | `forge test --match-path 'test/fuzz/*'`          |
+| Invariant     | `test/invariant/*.t.sol`     | 5     | `forge test --match-path 'test/invariant/*'`     |
+| Attack        | `test/attack/*.t.sol`        | 6     | `forge test --match-path 'test/attack/*'`        |
+| Security      | `test/security/*.t.sol`      | 8     | `forge test --match-path 'test/security/*'`      |
+| Gas Benchmark | `test/gas-benchmark/*.t.sol` | 2     | `forge test --match-path 'test/gas-benchmark/*'` |
+| Integration   | `test/integration/*.t.sol`   | 6     | `forge test --match-path 'test/integration/*'`   |
+| Stress        | `test/stress/*.t.sol`        | 3     | `forge test --match-path 'test/stress/*'`        |
 
 ---
 
@@ -35,39 +36,39 @@ Forge coverage fails on this project with **"stack too deep"** errors due to:
 
 ### Core Contracts (Target: 95%)
 
-| Contract | Fuzz Runs | Certora | Foundry Tests | Status |
-|----------|-----------|---------|---------------|--------|
-| `ZKBoundStateLocks` | 10,000 | ✅ | ✅ 56 tests | 🟢 Tested |
-| `ConfidentialStateContainerV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
-| `CrossChainProofHubV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
-| `NullifierRegistryV3` | 10,000 | ✅ | ✅ | 🟢 Tested |
-| `StealthAddressRegistry` | 10,000 | ✅ | ✅ | 🟢 Tested |
+| Contract                       | Fuzz Runs | Certora | Foundry Tests | Status    |
+| ------------------------------ | --------- | ------- | ------------- | --------- |
+| `ZKBoundStateLocks`            | 10,000    | ✅      | ✅ 56 tests   | 🟢 Tested |
+| `ConfidentialStateContainerV3` | 10,000    | ✅      | ✅            | 🟢 Tested |
+| `CrossChainProofHubV3`         | 10,000    | ✅      | ✅            | 🟢 Tested |
+| `NullifierRegistryV3`          | 10,000    | ✅      | ✅            | 🟢 Tested |
+| `StealthAddressRegistry`       | 10,000    | ✅      | ✅            | 🟢 Tested |
 
 ### Security Contracts (Target: 90%)
 
-| Contract | Fuzz Runs | Attack Tests | Status |
-|----------|-----------|--------------|--------|
-| `SecurityModule` | 10,000 | ✅ | 🟢 Tested |
-| `BridgeCircuitBreaker` | 10,000 | ✅ | 🟢 Tested |
-| `FlashLoanGuard` | 10,000 | ✅ | 🟢 Tested |
-| `BatchAccumulator` | 10,000 | — | 🟡 Needs attack tests |
+| Contract               | Fuzz Runs | Attack Tests | Status                |
+| ---------------------- | --------- | ------------ | --------------------- |
+| `SecurityModule`       | 10,000    | ✅           | 🟢 Tested             |
+| `BridgeCircuitBreaker` | 10,000    | ✅           | 🟢 Tested             |
+| `FlashLoanGuard`       | 10,000    | ✅           | 🟢 Tested             |
+| `BatchAccumulator`     | 10,000    | —            | 🟡 Needs attack tests |
 
 ### Bridge Adapters (Target: 85%)
 
-| Contract | Integration Tests | Status |
-|----------|-------------------|--------|
-| `ArbitrumBridgeAdapter` | ✅ | 🟢 |
-| `OptimismBridgeAdapter` | ✅ | 🟢 |
-| `ScrollBridgeAdapter` | — | 🟡 Needs integration test |
-| `LayerZeroBridgeAdapter` | ✅ | 🟢 |
+| Contract                 | Integration Tests | Status                    |
+| ------------------------ | ----------------- | ------------------------- |
+| `ArbitrumBridgeAdapter`  | ✅                | 🟢                        |
+| `OptimismBridgeAdapter`  | ✅                | 🟢                        |
+| `ScrollBridgeAdapter`    | —                 | 🟡 Needs integration test |
+| `LayerZeroBridgeAdapter` | ✅                | 🟢                        |
 
 ### SDK (Target: 80%)
 
-| Module | Test Status | Status |
-|--------|-------------|--------|
-| `NoirProver` | — | 🔴 Needs tests |
-| `SoulClient` | — | 🔴 Needs tests |
-| `SoulPrivacySDK` | — | 🔴 Needs tests |
+| Module           | Test Status | Status         |
+| ---------------- | ----------- | -------------- |
+| `NoirProver`     | —           | 🔴 Needs tests |
+| `SoulClient`     | —           | 🔴 Needs tests |
+| `SoulPrivacySDK` | —           | 🔴 Needs tests |
 
 ---
 
@@ -98,6 +99,7 @@ forge test --match-path 'test/invariant/*' --fuzz-runs 1000 --fuzz-depth 100
 ```
 
 **Files:**
+
 - `test/invariant/ZKSlocksInvariant.t.sol`
 - `test/invariant/ConfidentialStateInvariant.t.sol`
 - `test/invariant/SecurityModuleInvariant.t.sol`
@@ -110,12 +112,16 @@ forge test --match-path 'test/invariant/*' --fuzz-runs 1000 --fuzz-depth 100
 npm run certora:full
 ```
 
-**Specs:** 38 CVL specifications covering:
+**Specs:** 54 CVL specifications covering:
+
 - ZK-SLocks properties
 - Nullifier uniqueness
 - State transition validity
 - Access control
 - Bridge security
+- Ring signature verification
+- Stealth address privacy
+- Cross-chain proof hub integrity
 
 ### 4. Symbolic Execution (Halmos)
 
@@ -130,6 +136,33 @@ halmos --solver-timeout-assertion 300000 --match-test 'check_'
 # Run Echidna
 npm run echidna
 ```
+
+**Properties:** 6 invariant properties in `test/security/EchidnaHarness.sol`
+
+### 6. K Framework (Algebraic Specs)
+
+```bash
+kompile specs/kframework/soul-bridge.k --backend haskell
+krun specs/kframework/soul-bridge.k
+```
+
+**Specs:** 5 specifications covering bridge state machines and proof verification algebra.
+
+### 7. TLA+ Model Checking
+
+```bash
+cd specs/tlaplus && java -jar tla2tools.jar MC_SoulBridge.tla
+```
+
+**Properties:** 4 safety properties — TVL conservation, double-spend prevention, bridge liveness, state consistency.
+
+### 8. Storage Layout Verification
+
+```bash
+forge inspect <Contract> storage-layout > layout.json
+```
+
+**Coverage:** 8 contract pairs checked for upgrade-safe storage layout compatibility.
 
 ---
 
@@ -152,12 +185,12 @@ python scripts/run_coverage.py --restore
 
 The following contracts are replaced with simplified stubs during coverage:
 
-| Category | Contracts |
-|----------|-----------|
+| Category  | Contracts                                                               |
+| --------- | ----------------------------------------------------------------------- |
 | Verifiers | `Groth16VerifierBN254`, `SoulUniversalVerifier`, `GasOptimizedVerifier` |
-| Core | `ZKBoundStateLocks`, `ConfidentialStateContainerV3` |
-| Privacy | `StealthAddressRegistry`, `CrossChainPrivacyHub` |
-| Bridges | `CrossChainProofHubV3`, `DirectL2Messenger` |
+| Core      | `ZKBoundStateLocks`, `ConfidentialStateContainerV3`                     |
+| Privacy   | `StealthAddressRegistry`, `CrossChainPrivacyHub`                        |
+| Bridges   | `CrossChainProofHubV3`, `DirectL2Messenger`                             |
 
 ---
 
@@ -183,10 +216,15 @@ The following contracts are replaced with simplified stubs during coverage:
 ## CI Pipeline
 
 Coverage runs automatically on:
+
 - Pull requests to `main`
 - Push to `develop`
 
 Results uploaded to Codecov (when available).
+
+### Total Test Count
+
+> **4,426 tests** across **189 test suites** — 0 failures as of February 2026.
 
 ---
 

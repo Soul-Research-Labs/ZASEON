@@ -14,21 +14,21 @@
 
 ### Production-Ready (Audited)
 
-| Component | Status | Description |
-|-----------|--------|-------------|
-| Stealth Addresses | ✅ Production | ERC-5564 compliant, secp256k1 |
-| Pedersen Commitments | ✅ Production | Amount hiding with homomorphic properties |
-| Cross-Domain Nullifiers (CDNA) | ✅ Production | Double-spend prevention across chains |
-| Groth16 Proofs (BN254) | ✅ Production | Efficient ZK proofs via native precompiles |
-| View Tag Optimization | ✅ Production | 256x scanning speedup |
+| Component                      | Status        | Description                                |
+| ------------------------------ | ------------- | ------------------------------------------ |
+| Stealth Addresses              | ✅ Production | ERC-5564 compliant, secp256k1              |
+| Pedersen Commitments           | ✅ Production | Amount hiding with homomorphic properties  |
+| Cross-Domain Nullifiers (CDNA) | ✅ Production | Double-spend prevention across chains      |
+| Groth16 Proofs (BN254)         | ✅ Production | Efficient ZK proofs via native precompiles |
+| View Tag Optimization          | ✅ Production | 256x scanning speedup                      |
 
-### Research Reference (Not Deployed)
+### Research Reference
 
-The following sections document cryptographic primitives for educational purposes. These are **not implemented** in production:
+The following sections document cryptographic primitives. Some have been implemented:
 
-- Ring Signatures (CLSAG) - Reference only
-- Bulletproof Range Proofs - Reference only  
-- Ring Confidential Transactions (RingCT) - Reference only
+- Ring Signatures (CLSAG) - **Production** (`RingSignatureVerifier.sol` + `BN254.sol` library, ~26k gas/ring member)
+- Bulletproof Range Proofs - Reference only
+- Ring Confidential Transactions (RingCT) - Uses CLSAG verifier for ring signatures
 - Privacy chain adapters (Monero, Zcash, Secret, etc.) - Planned for future
 
 ---
@@ -71,8 +71,8 @@ contracts/privacy/
 
 contracts/crosschain/
 ├── ArbitrumBridgeAdapter.sol      # Arbitrum native messaging
-├── OptimismBridgeAdapter.sol      # OP Stack CrossDomainMessenger (planned)
-├── BaseBridgeAdapter.sol          # Base + CCTP (planned)
+├── OptimismBridgeAdapter.sol      # OP Stack CrossDomainMessenger
+├── BaseBridgeAdapter.sol          # Base + CCTP
 ├── LayerZeroAdapter.sol           # LayerZero V2 OApp
 ├── DirectL2Messenger.sol          # Direct L2-to-L2 messaging
 ├── EthereumL1Bridge.sol           # L1 state commitments
@@ -99,11 +99,11 @@ contracts/core/
 
 Soul supports three privacy levels, configurable per transfer:
 
-| Level | ID | Sender | Receiver | Amount | Proof |
-|-------|-----|--------|----------|--------|-------|
-| **NONE** | 0 | Public | Public | Public | None |
-| **BASIC** | 1 | Hidden | Public | Public | Hash |
-| **HIGH** | 2 | Hidden | Hidden | Hidden | ZK (Groth16) |
+| Level     | ID  | Sender | Receiver | Amount | Proof        |
+| --------- | --- | ------ | -------- | ------ | ------------ |
+| **NONE**  | 0   | Public | Public   | Public | None         |
+| **BASIC** | 1   | Hidden | Public   | Public | Hash         |
+| **HIGH**  | 2   | Hidden | Hidden   | Hidden | ZK (Groth16) |
 
 ### Level Selection
 
@@ -136,14 +136,14 @@ interface ICrossChainPrivacyHub {
         bytes calldata proof,
         bytes calldata metadata
     ) external payable returns (bytes32 transferId);
-    
+
     // Complete transfer on destination
     function completeTransfer(
         bytes32 transferId,
         bytes calldata proof,
         bytes calldata nullifierPreimage
     ) external returns (bool);
-    
+
     // Generate stealth address
     function generateStealthAddress(
         bytes calldata recipientSpendingKey,
@@ -166,7 +166,7 @@ interface IStealthAddressRegistry {
         CurveType curveType,
         uint256 schemeId
     ) external;
-    
+
     // Announce stealth payment
     function announce(
         uint256 schemeId,
@@ -175,7 +175,7 @@ interface IStealthAddressRegistry {
         bytes calldata viewTag,
         bytes calldata metadata
     ) external;
-    
+
     // Scan for owned stealth addresses
     function batchScan(
         bytes32 viewingPrivKeyHash,
@@ -185,9 +185,9 @@ interface IStealthAddressRegistry {
 }
 ```
 
-### 3. RingConfidentialTransactions (Experimental)
+### 3. RingConfidentialTransactions
 
-> **Note:** RingCT is in the research phase. The interface below shows the target API. Implementation uses Groth16 proofs for production privacy.
+> **Note:** RingCT uses the production `RingSignatureVerifier.sol` (BN254 CLSAG) for ring signature verification and Groth16 proofs for range proofs.
 
 Monero-style RingCT with CLSAG signatures.
 
@@ -198,13 +198,13 @@ interface IRingConfidentialTransactions {
         bytes32 amountHash,
         bytes32 blindingHash
     ) external returns (PedersenCommitment memory);
-    
+
     // Verify ring signature
     function verifyCLSAGSignature(
         RingMember[] calldata ring,
         CLSAGSignature calldata signature
     ) external view returns (bool);
-    
+
     // Full RingCT transaction
     function verifyAndExecuteRCT(
         bytes32 txId,
@@ -230,7 +230,7 @@ interface IUnifiedNullifierManager {
         NullifierType nullifierType,
         uint256 expiresAt
     ) external returns (bytes32 pilNullifier);
-    
+
     // Create cross-domain binding
     function createCrossDomainBinding(
         bytes32 sourceNullifier,
@@ -238,7 +238,7 @@ interface IUnifiedNullifierManager {
         uint256 destChainId,
         bytes calldata derivationProof
     ) external returns (bytes32 destNullifier, bytes32 pilNullifier);
-    
+
     // Check if nullifier is spent
     function isNullifierSpent(bytes32 nullifier) external view returns (bool);
 }
@@ -263,6 +263,7 @@ where:
 ```
 
 **Properties:**
+
 - **Hiding**: Cannot determine amount without blinding factor
 - **Binding**: Cannot change amount without changing commitment
 - **Homomorphic**: `C(a) + C(b) = C(a+b)` for balance verification
@@ -371,13 +372,13 @@ Reduces scanning work by ~256x on average.
 
 ### Supported Curves
 
-| Curve | Chains | Key Size |
-|-------|--------|----------|
-| secp256k1 | Ethereum, Bitcoin, most EVMs | 33 bytes compressed |
-| ed25519 | Monero, Solana, Sui | 32 bytes |
-| BLS12-381 | Ethereum 2.0, zkSNARKs | 48/96 bytes |
-| Pallas/Vesta | Zcash Orchard | 32 bytes |
-| BN254 | Ethereum precompiles | 32/64 bytes |
+| Curve        | Chains                       | Key Size            |
+| ------------ | ---------------------------- | ------------------- |
+| secp256k1    | Ethereum, Bitcoin, most EVMs | 33 bytes compressed |
+| ed25519      | Monero, Solana, Sui          | 32 bytes            |
+| BLS12-381    | Ethereum 2.0, zkSNARKs       | 48/96 bytes         |
+| Pallas/Vesta | Zcash Orchard                | 32 bytes            |
+| BN254        | Ethereum precompiles         | 32/64 bytes         |
 
 ---
 
@@ -503,33 +504,33 @@ Source Chain                    Soul                      Destination Chain
 
 ### Production Adapters
 
-| Chain | Adapter | Chain ID | Status |
-|-------|---------|----------|--------|
-| Ethereum L1 | `EthereumL1Bridge` | 1 | ✅ Production |
-| Arbitrum | `ArbitrumBridgeAdapter` | 42161 | ✅ Production |
-| Any (LayerZero) | `LayerZeroAdapter` | Various | ✅ Production |
-| Direct L2 | `DirectL2Messenger` | Various | ✅ Production |
+| Chain           | Adapter                 | Chain ID | Status        |
+| --------------- | ----------------------- | -------- | ------------- |
+| Ethereum L1     | `EthereumL1Bridge`      | 1        | ✅ Production |
+| Arbitrum        | `ArbitrumBridgeAdapter` | 42161    | ✅ Production |
+| Any (LayerZero) | `LayerZeroAdapter`      | Various  | ✅ Production |
+| Direct L2       | `DirectL2Messenger`     | Various  | ✅ Production |
 
 ### Planned Adapters (Q2-Q3 2026)
 
-| Chain | Adapter | Chain ID | Status |
-|-------|---------|----------|--------|
-| Optimism | `OptimismBridgeAdapter` | 10 | 🔄 Q2 2026 |
-| Base | `BaseBridgeAdapter` | 8453 | 🔄 Q2 2026 |
-| zkSync Era | `zkSyncBridgeAdapter` | 324 | 🔄 Q3 2026 |
-| Scroll | `ScrollBridgeAdapter` | 534352 | 🔄 Q3 2026 |
-| Linea | `LineaBridgeAdapter` | 59144 | 🔄 Q3 2026 |
-| Polygon zkEVM | `PolygonZkEVMBridgeAdapter` | 1101 | 🔄 Q3 2026 |
+| Chain         | Adapter                     | Chain ID | Status     |
+| ------------- | --------------------------- | -------- | ---------- |
+| Optimism      | `OptimismBridgeAdapter`     | 10       | 🔄 Q2 2026 |
+| Base          | `BaseBridgeAdapter`         | 8453     | 🔄 Q2 2026 |
+| zkSync Era    | `zkSyncBridgeAdapter`       | 324      | 🔄 Q3 2026 |
+| Scroll        | `ScrollBridgeAdapter`       | 534352   | 🔄 Q3 2026 |
+| Linea         | `LineaBridgeAdapter`        | 59144    | 🔄 Q3 2026 |
+| Polygon zkEVM | `PolygonZkEVMBridgeAdapter` | 1101     | 🔄 Q3 2026 |
 
 ### Research Roadmap (Privacy Chains)
 
 > **Note:** The following adapters are part of the long-term research roadmap for interoperability with native privacy chains. These are **not currently implemented**.
 
-| Chain | Notes |
-|-------|-------|
-| Zcash | Sapling/Orchard nullifier translation |
-| Secret Network | TEE-based confidential compute |
-| Railgun | EVM privacy layer integration |
+| Chain          | Notes                                 |
+| -------------- | ------------------------------------- |
+| Zcash          | Sapling/Orchard nullifier translation |
+| Secret Network | TEE-based confidential compute        |
+| Railgun        | EVM privacy layer integration         |
 
 ---
 
@@ -538,11 +539,11 @@ Source Chain                    Soul                      Destination Chain
 ### Basic Integration
 
 ```typescript
-import { 
+import {
   CrossChainPrivacyHub,
   StealthAddressRegistry,
-  PrivacyLevel 
-} from '@soulprotocol/sdk';
+  PrivacyLevel,
+} from "@soulprotocol/sdk";
 
 // Initialize
 const privacyHub = new CrossChainPrivacyHub(provider);
@@ -553,15 +554,16 @@ await stealthRegistry.registerMetaAddress(
   spendingPubKey,
   viewingPubKey,
   CurveType.SECP256K1,
-  1 // ERC-5564 scheme ID
+  1, // ERC-5564 scheme ID
 );
 
 // 2. Sender generates stealth address
-const { stealthAddress, ephemeralPubKey } = await privacyHub.generateStealthAddress(
-  recipientSpendingKey,
-  recipientViewingKey,
-  ephemeralPrivKeyHash
-);
+const { stealthAddress, ephemeralPubKey } =
+  await privacyHub.generateStealthAddress(
+    recipientSpendingKey,
+    recipientViewingKey,
+    ephemeralPrivKeyHash,
+  );
 
 // 3. Sender initiates private transfer
 const transferId = await privacyHub.initiatePrivateTransfer(
@@ -570,22 +572,18 @@ const transferId = await privacyHub.initiatePrivateTransfer(
   PrivacyLevel.HIGH,
   zkProof,
   encryptedMetadata,
-  { value: ethers.parseEther("1.0") }
+  { value: ethers.parseEther("1.0") },
 );
 
 // 4. Recipient scans for their transfers
 const ownedAddresses = await stealthRegistry.batchScan(
   viewingPrivKeyHash,
   spendingPubKeyHash,
-  candidateAddresses
+  candidateAddresses,
 );
 
 // 5. Recipient completes transfer
-await privacyHub.completeTransfer(
-  transferId,
-  zkProof,
-  nullifierPreimage
-);
+await privacyHub.completeTransfer(transferId, zkProof, nullifierPreimage);
 ```
 
 ### RingCT Integration (Research Reference)
@@ -594,28 +592,21 @@ await privacyHub.completeTransfer(
 
 ```typescript
 // RESEARCH REFERENCE - Not yet implemented
-import { RingConfidentialTransactions } from '@soulprotocol/sdk';
+import { RingConfidentialTransactions } from "@soulprotocol/sdk";
 
 const ringCT = new RingConfidentialTransactions(provider);
 
 // 1. Create commitment for amount
-const commitment = await ringCT.createCommitment(
-  amountHash,
-  blindingHash
-);
+const commitment = await ringCT.createCommitment(amountHash, blindingHash);
 
 // 2. Select decoys for ring
 const decoys = await ringCT.selectDecoys(
   realOutputIndex,
-  16 // ring size
+  16, // ring size
 );
 
 // 3. Create ring signature (off-chain)
-const signature = await createCLSAGSignature(
-  ring,
-  messageHash,
-  privateKey
-);
+const signature = await createCLSAGSignature(ring, messageHash, privateKey);
 
 // 4. Verify and execute
 const success = await ringCT.verifyAndExecuteRCT(
@@ -623,7 +614,7 @@ const success = await ringCT.verifyAndExecuteRCT(
   inputs,
   outputs,
   balanceProof,
-  rangeProofs
+  rangeProofs,
 );
 ```
 
@@ -631,14 +622,14 @@ const success = await ringCT.verifyAndExecuteRCT(
 
 ## Security Considerations
 
-| Threat | Mitigation |
-|--------|------------|
-| Double Spend | Cross-domain nullifier registry (CDNA) |
-| Front-running | Commit-reveal for stealth announcements |
-| Graph Analysis | Stealth addresses + CDNA unlinkability |
+| Threat             | Mitigation                                |
+| ------------------ | ----------------------------------------- |
+| Double Spend       | Cross-domain nullifier registry (CDNA)    |
+| Front-running      | Commit-reveal for stealth announcements   |
+| Graph Analysis     | Stealth addresses + CDNA unlinkability    |
 | Amount Correlation | Pedersen commitments with ZK range proofs |
-| Timing Analysis | Delayed relay + random jitter |
-| Key Compromise | Separate view/spending keys |
+| Timing Analysis    | Delayed relay + random jitter             |
+| Key Compromise     | Separate view/spending keys               |
 
 **Best Practices:** Use max privacy for high-value • Wait for anonymity set • Fresh addresses per tx • Verify proofs
 

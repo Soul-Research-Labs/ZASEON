@@ -10,37 +10,37 @@ All verification jobs have been successfully submitted to the Certora cloud:
 
 ### Core Contracts
 
-| Contract | Config | Status |
-|----------|--------|--------|
-| ConfidentialStateContainerV3 | `verify.conf` | ✅ Submitted |
-| SoulAtomicSwapV2 | `verify_atomicswap.conf` | ✅ Submitted |
-| NullifierRegistryV3 | `verify_nullifier.conf` | ✅ Submitted |
-| CrossChainProofHubV3 | `verify_proofhub.conf` | ✅ Submitted |
-| SoulTimelock | `verify_timelock.conf` | ✅ Submitted |
+| Contract                     | Config                   | Status       |
+| ---------------------------- | ------------------------ | ------------ |
+| ConfidentialStateContainerV3 | `verify.conf`            | ✅ Submitted |
+| SoulAtomicSwapV2             | `verify_atomicswap.conf` | ✅ Submitted |
+| NullifierRegistryV3          | `verify_nullifier.conf`  | ✅ Submitted |
+| CrossChainProofHubV3         | `verify_proofhub.conf`   | ✅ Submitted |
+| SoulTimelock                 | `verify_timelock.conf`   | ✅ Submitted |
 
 ### Novel Primitives
 
-| Primitive | Config | Spec | Status |
-|-----------|--------|------|--------|
-| ZKBoundStateLocks | `verify_zkslocks.conf` | ZKBoundStateLocks.spec | ✅ Submitted |
-| ProofCarryingContainer (PC3) | `verify_pc3.conf` | PC3.spec | ✅ Submitted |
-| CrossDomainNullifierAlgebra (CDNA) | `verify_cdna.conf` | CDNA.spec | ✅ Submitted |
-| PolicyBoundProofs (PBP) | `verify_pbp.conf` | PBP.spec | ✅ Submitted |
-| ExecutionAgnosticStateCommitments (EASC) | `verify_easc.conf` | EASC.spec | ✅ Submitted |
-| HomomorphicHiding | `verify_homomorphic.conf` | HomomorphicHiding.spec | ✅ Submitted (experimental) |
-| AggregateDisclosureAlgebra | `verify_ada.conf` | AggregateDisclosureAlgebra.spec | ✅ Submitted (experimental) |
-| ComposableRevocationProofs | `verify_crp.conf` | ComposableRevocationProofs.spec | ✅ Submitted (experimental) |
+| Primitive                                | Config                    | Spec                            | Status                      |
+| ---------------------------------------- | ------------------------- | ------------------------------- | --------------------------- |
+| ZKBoundStateLocks                        | `verify_zkslocks.conf`    | ZKBoundStateLocks.spec          | ✅ Submitted                |
+| ProofCarryingContainer (PC3)             | `verify_pc3.conf`         | PC3.spec                        | ✅ Submitted                |
+| CrossDomainNullifierAlgebra (CDNA)       | `verify_cdna.conf`        | CDNA.spec                       | ✅ Submitted                |
+| PolicyBoundProofs (PBP)                  | `verify_pbp.conf`         | PBP.spec                        | ✅ Submitted                |
+| ExecutionAgnosticStateCommitments (EASC) | `verify_easc.conf`        | EASC.spec                       | ✅ Submitted                |
+| HomomorphicHiding                        | `verify_homomorphic.conf` | HomomorphicHiding.spec          | ✅ Submitted (experimental) |
+| AggregateDisclosureAlgebra               | `verify_ada.conf`         | AggregateDisclosureAlgebra.spec | ✅ Submitted (experimental) |
+| ComposableRevocationProofs               | `verify_crp.conf`         | ComposableRevocationProofs.spec | ✅ Submitted (experimental) |
 
 ### Infrastructure Components
 
-| Component | Config | Status |
-|-----------|--------|--------|
-| SPTC (Semantic Proof Translation Certificate) | `verify_sptc.conf` | ✅ Submitted |
-| SoulControlPlane | `verify_controlplane.conf` | ✅ Submitted |
-| JAM (Joinable Confidential Computation) | `verify_jam.conf` | ✅ Submitted |
-| MRP (Mixnet Receipt Proofs) | `verify_mrp.conf` | ✅ Submitted |
-| AnonymousDeliveryVerifier | `verify_adv.conf` | ✅ Submitted |
-| NetworkWideInvariants | `verify_network.conf` | ✅ Submitted |
+| Component                                     | Config                     | Status       |
+| --------------------------------------------- | -------------------------- | ------------ |
+| SPTC (Semantic Proof Translation Certificate) | `verify_sptc.conf`         | ✅ Submitted |
+| SoulControlPlane                              | `verify_controlplane.conf` | ✅ Submitted |
+| JAM (Joinable Confidential Computation)       | `verify_jam.conf`          | ✅ Submitted |
+| MRP (Mixnet Receipt Proofs)                   | `verify_mrp.conf`          | ✅ Submitted |
+| AnonymousDeliveryVerifier                     | `verify_adv.conf`          | ✅ Submitted |
+| NetworkWideInvariants                         | `verify_network.conf`      | ✅ Submitted |
 
 ## Verified Properties
 
@@ -55,6 +55,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 ### Novel Primitive Properties
 
 #### ZKBoundStateLocks (ZK-SLocks)
+
 - Lock creation increases total count
 - Lock creator is correctly recorded
 - Nullifier persistence after unlock
@@ -62,28 +63,33 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Finalization only after dispute window
 
 #### ProofCarryingContainer (PC3)
+
 - Consumed containers stay consumed
 - Nullifier consumption is irreversible
 - Container creation increases count
 
 #### CrossDomainNullifierAlgebra (CDNA)
+
 - Registration increases domain count
 - Consumption marks nullifiers permanently
 - No double consumption allowed
 - Consumption is permanent across all operations
 
 #### PolicyBoundProofs (PBP)
+
 - Policy registration increases count
 - Proof nullifier usage is permanent
 - Deactivated policies are invalid
 
 #### ExecutionAgnosticStateCommitments (EASC)
+
 - Backend registration increases count
 - Commitment creation increases count
 - Nullifier consumption is permanent
 - Deactivated backends are inactive
 
 #### HomomorphicHiding (HH)
+
 - Commitment creation increases count
 - Commitment reveal is permanent (cannot reveal twice)
 - Homomorphic operations increase operation count
@@ -91,6 +97,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Operations and commitments are monotonic
 
 #### AggregateDisclosureAlgebra (ADA)
+
 - Credential issuance increases count
 - Revocation is permanent
 - Disclosure creation increases count
@@ -99,6 +106,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Pause prevents operations
 
 #### ComposableRevocationProofs (CRP)
+
 - Accumulator creation increases count
 - Revocation sets status correctly
 - Cannot revoke twice
@@ -106,6 +114,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Cannot unrevoke non-revoked credentials
 
 #### TEEAttestation
+
 - Enclave registration increases count
 - Trusted signer addition/removal is effective
 - Trusted enclave addition/removal is effective
@@ -115,6 +124,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 ### Infrastructure Properties
 
 #### SPTC Properties
+
 - Certificate count monotonically increases
 - Translator success count monotonically increases
 - Only staked translators can issue certificates
@@ -122,6 +132,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Revoked certificates are no longer valid
 
 #### Control Plane Properties
+
 - 5-stage message lifecycle invariants
 - Materializations bounded by executions
 - Executions bounded by messages
@@ -130,6 +141,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Paused state blocks all operations
 
 #### JAM Properties
+
 - Verified bounded by finalized
 - Finalized bounded by computations
 - Participant count monotonically increases
@@ -138,6 +150,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - State transitions are one-directional
 
 #### MRP Properties
+
 - Receipt count monotonically increases
 - Nullifier usage is permanent
 - Min batch size is always >= 1
@@ -145,6 +158,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Challenge stake is non-negative
 
 #### NullifierRegistry Properties
+
 - Registration increases count and marks nullifier as used
 - Cannot register same nullifier twice
 - Zero nullifier fails
@@ -153,6 +167,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Total nullifiers is monotonic
 
 #### CrossChainProofHub Properties
+
 - Deposit increases stake
 - Withdraw decreases stake
 - Cannot withdraw more than stake
@@ -161,6 +176,7 @@ All verification jobs have been successfully submitted to the Certora cloud:
 - Total proofs and batches are monotonic
 
 #### SoulTimelock Properties
+
 - Execution requires minimum delay
 - Execution after grace period fails
 - Same operation cannot be proposed twice
@@ -232,23 +248,23 @@ certoraRun certora/conf/verify_security.conf
 
 ### New Specifications Added
 
-| Specification | Description | Properties |
-|--------------|-------------|------------|
-| CrossChainBridges.spec | All bridge adapters | 30+ rules |
-| SecurityInvariants.spec | Global safety properties | 40+ invariants |
-| ZKBoundStateLocksEnhanced.spec | Extended ZK-SLocks | 15+ rules |
+| Specification                  | Description              | Properties     |
+| ------------------------------ | ------------------------ | -------------- |
+| CrossChainBridges.spec         | All bridge adapters      | 30+ rules      |
+| SecurityInvariants.spec        | Global safety properties | 40+ invariants |
+| ZKBoundStateLocksEnhanced.spec | Extended ZK-SLocks       | 15+ rules      |
 
 ### Cross-Chain Bridge Coverage
 
-| Bridge | Adapter | Verified Properties |
-|--------|---------|-------------------|
-| Solana | SolanaBridgeAdapter | VAA replay, nonce, programs |
-| LayerZero | LayerZeroBridgeAdapter | GUID dedup, peer auth, gas |
+| Bridge    | Adapter                | Verified Properties             |
+| --------- | ---------------------- | ------------------------------- |
+| Solana    | SolanaBridgeAdapter    | VAA replay, nonce, programs     |
+| LayerZero | LayerZeroBridgeAdapter | GUID dedup, peer auth, gas      |
 | Chainlink | ChainlinkBridgeAdapter | CCIP dedup, sender auth, tokens |
-| StarkNet | StarkNetBridgeAdapter | Message consumption, contracts |
-| Bitcoin | BitcoinBridgeAdapter | TX hash dedup, confirmations |
-| BitVM | BitVMBridgeAdapter | Proof dedup, challenges |
-| Aztec | AztecBridgeAdapter | Nullifier, double-spend |
+| StarkNet  | StarkNetBridgeAdapter  | Message consumption, contracts  |
+| Bitcoin   | BitcoinBridgeAdapter   | TX hash dedup, confirmations    |
+| BitVM     | BitVMBridgeAdapter     | Proof dedup, challenges         |
+| Aztec     | AztecBridgeAdapter     | Nullifier, double-spend         |
 
 ### Security Invariants Categories
 
@@ -301,7 +317,19 @@ certoraRun certora/conf/verify_security.conf
 1. Monitor Certora cloud for verification results
 2. Address any counterexamples found
 3. Add additional properties as needed
-4. Integrate verification into CI/CD pipeline
+4. ~~Integrate verification into CI/CD pipeline~~ ✅ Done — CI runs Certora matrix (54 specs), Halmos, Echidna, K Framework, TLA+
 5. Extend coverage to new bridge adapters
-6. Add Halmos symbolic execution tests
-7. Implement Kontrol K-framework proofs
+6. ~~Add Halmos symbolic execution tests~~ ✅ Done — 12 symbolic checks (CrossChainProofHub + ZKBoundStateLocks)
+7. ~~Implement Kontrol K-framework proofs~~ ✅ Done — K specs in `specs/k/`, CI job runs `kompile`
+
+### Additional Verification Tools (February 2026)
+
+| Tool                   | Location                                                                                  | Scope                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Halmos                 | `test/formal/HalmosCrossChainProofHub.t.sol`, `test/formal/HalmosZKBoundStateLocks.t.sol` | 12 symbolic checks: stake conservation, proof monotonicity, state transitions             |
+| Echidna                | `test/fuzz/EchidnaHarness.sol`                                                            | 6 invariant properties: balance conservation, nullifier uniqueness, LP supply, fee bounds |
+| TLA+                   | `specs/tla/MC_SoulBridge.tla`                                                             | Model checking: TVL conservation, no double-spend, proof-required withdrawal              |
+| K Framework            | `specs/k/*.k`                                                                             | Algebraic specifications of protocol invariants                                           |
+| Storage Layout         | `scripts/check_storage_layout.sh`                                                         | 8 base/upgradeable contract pairs verified for slot compatibility                         |
+| Gambit                 | `scripts/run_gambit.sh`                                                                   | Mutation testing across 8 security-critical contracts                                     |
+| Ring Signature Certora | `certora/specs/RingSignatureVerifier.spec`                                                | Min/max ring size, zero message reverts, determinism, statelessness                       |

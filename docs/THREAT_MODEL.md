@@ -2,12 +2,12 @@
 
 ## Document Information
 
-| Field | Value |
-|-------|-------|
-| Version | 2.0.0 |
-| Last Updated | 2026-02-01 |
-| Status | Active |
-| Classification | Public |
+| Field          | Value      |
+| -------------- | ---------- |
+| Version        | 2.0.0      |
+| Last Updated   | 2026-02-01 |
+| Status         | Active     |
+| Classification | Public     |
 
 ---
 
@@ -52,20 +52,20 @@ This document provides a comprehensive threat model for the Soul Protocol (Soul)
 
 ### 3.1 External Attackers
 
-| Actor | Motivation | Capability | Risk Level |
-|-------|------------|------------|------------|
-| **Opportunistic Hackers** | Financial gain | Script-level attacks | Medium |
-| **Sophisticated Attackers** | Large-scale theft | Custom exploits, MEV | High |
-| **Nation-State Actors** | Surveillance, disruption | Quantum computing, vast resources | Critical |
-| **Competitors** | Market disruption | Funded security research | Medium |
+| Actor                       | Motivation               | Capability                        | Risk Level |
+| --------------------------- | ------------------------ | --------------------------------- | ---------- |
+| **Opportunistic Hackers**   | Financial gain           | Script-level attacks              | Medium     |
+| **Sophisticated Attackers** | Large-scale theft        | Custom exploits, MEV              | High       |
+| **Nation-State Actors**     | Surveillance, disruption | Quantum computing, vast resources | Critical   |
+| **Competitors**             | Market disruption        | Funded security research          | Medium     |
 
 ### 3.2 Internal Threats
 
-| Actor | Motivation | Capability | Risk Level |
-|-------|------------|------------|------------|
-| **Malicious Developers** | Backdoors, theft | Code access | High |
-| **Compromised Admin Keys** | Protocol takeover | Admin functions | Critical |
-| **Rogue Relayers** | Fee extraction | Transaction ordering | Medium |
+| Actor                      | Motivation        | Capability           | Risk Level |
+| -------------------------- | ----------------- | -------------------- | ---------- |
+| **Malicious Developers**   | Backdoors, theft  | Code access          | High       |
+| **Compromised Admin Keys** | Protocol takeover | Admin functions      | Critical   |
+| **Rogue Relayers**         | Fee extraction    | Transaction ordering | Medium     |
 
 ---
 
@@ -78,6 +78,7 @@ This document provides a comprehensive threat model for the Soul Protocol (Soul)
 **Threat**: Recursive calls to drain funds or manipulate state.
 
 **Affected Components**:
+
 - `SoulAtomicSwapV2.sol`
 - `ConfidentialStateContainerV3.sol`
 - `SoulUpgradeTimelock.sol`
@@ -86,21 +87,23 @@ This document provides a comprehensive threat model for the Soul Protocol (Soul)
 - `SoulL2Messenger.sol`
 
 **Mitigations**:
+
 - ✅ ReentrancyGuard on all external state-changing functions
 - ✅ Checks-Effects-Interactions pattern
 - ✅ Pull-over-push payment patterns
 - ✅ Replaced deprecated `.transfer()` with `.call{value:}()`
 
 **Code Reference**:
+
 ```solidity
 function registerState(...) external nonReentrant whenNotPaused {
     // Checks
     require(!commitmentExists[commitment], "Duplicate commitment");
-    
+
     // Effects
     commitmentExists[commitment] = true;
     nullifierUsed[nullifier] = true;
-    
+
     // Interactions
     emit StateRegistered(commitment, nullifier);
 }
@@ -111,11 +114,13 @@ function registerState(...) external nonReentrant whenNotPaused {
 **Threat**: Arithmetic errors leading to incorrect state calculations.
 
 **Mitigations**:
+
 - ✅ Solidity 0.8.22 with built-in overflow checks
 - ✅ LLVM-safe bit operations in ZK-SLocks
 - ✅ Explicit bounds checking on array indices
 
 **LLVM-Safe Implementation**:
+
 ```solidity
 // Prevents LLVM optimization issues
 function safeBitRotate(uint256 value, uint256 shift) internal pure returns (uint256) {
@@ -129,15 +134,18 @@ function safeBitRotate(uint256 value, uint256 shift) internal pure returns (uint
 **Threat**: Unauthorized access to admin functions.
 
 **Affected Components**:
+
 - All pausable contracts
 - Role-based access control systems
 
 **Mitigations**:
+
 - ✅ OpenZeppelin AccessControl
 - ✅ Role hierarchy with separation of duties
 - ✅ Time-locked admin operations via SoulTimelock
 
 **Role Structure**:
+
 ```
 DEFAULT_ADMIN_ROLE
     ├── PAUSER_ROLE
@@ -153,11 +161,13 @@ DEFAULT_ADMIN_ROLE
 **Threat**: Creating valid-looking proofs without knowing secrets.
 
 **Mitigations**:
+
 - ✅ Groth16 verifier (BN254) using EVM precompiles
 - ✅ Input validation before verification
 - ✅ Trusted setup ceremony with secure parameters
 
 **Verification Flow**:
+
 ```
 User Proof → Input Validation → Curve Check → Pairing Verification → Result
 ```
@@ -167,11 +177,13 @@ User Proof → Input Validation → Curve Check → Pairing Verification → Res
 **Threat**: Precomputing nullifiers to front-run or replay transactions.
 
 **Mitigations**:
+
 - ✅ Nullifier bound to commitment and user address
 - ✅ Domain separation via CrossDomainNullifierAlgebra
 - ✅ Randomness requirements in proof generation
 
 **Nullifier Construction**:
+
 ```solidity
 bytes32 nullifier = keccak256(abi.encodePacked(
     commitment,
@@ -186,6 +198,7 @@ bytes32 nullifier = keccak256(abi.encodePacked(
 **Threat**: Predictable random values enabling proof manipulation.
 
 **Mitigations**:
+
 - ✅ User-provided entropy required in ZK-SLocks
 - ✅ VDF-based randomness beacon (planned)
 - ✅ Commit-reveal schemes for sensitive operations
@@ -197,11 +210,13 @@ bytes32 nullifier = keccak256(abi.encodePacked(
 **Threat**: Exploiting bridge protocols to forge cross-chain proofs.
 
 **Mitigations**:
+
 - ✅ Multi-source proof verification
 - ✅ Chain-specific domain separators
 - ✅ Finality requirements before proof acceptance
 
 **Chain Verification**:
+
 ```solidity
 mapping(uint256 => bool) public supportedChains;
 mapping(uint256 => uint256) public chainFinalityBlocks;
@@ -218,6 +233,7 @@ function submitCrossChainProof(...) external {
 **Threat**: Replaying proofs across chains or after state changes.
 
 **Mitigations**:
+
 - ✅ Chain ID in proof public inputs
 - ✅ Nonce tracking per user per chain
 - ✅ Nullifier consumption prevents replay
@@ -229,6 +245,7 @@ function submitCrossChainProof(...) external {
 **Threat**: MEV bots extracting value from pending transactions.
 
 **Mitigations**:
+
 - ✅ Commit-reveal for sensitive operations
 - ✅ Private mempool integration support
 - ✅ Time-locked execution windows
@@ -238,11 +255,13 @@ function submitCrossChainProof(...) external {
 **Threat**: DoS by submitting many low-value transactions.
 
 **Mitigations**:
+
 - ✅ Rate limiting via RateLimiter contract
 - ✅ Minimum stake requirements for relayers
 - ✅ Batch operation limits (max 100 items)
 
 **Rate Limiting**:
+
 ```solidity
 uint256 public constant MAX_OPS_PER_BLOCK = 100;
 mapping(address => uint256) public lastOpBlock;
@@ -267,11 +286,13 @@ modifier rateLimited() {
 **Threat**: Admin or user private keys stolen.
 
 **Mitigations**:
+
 - ✅ Multi-sig requirements (EmergencyRecovery)
 - ✅ Timelock delays for critical operations
 - ✅ Guardian system with threshold signatures
 
 **Emergency Recovery Structure**:
+
 ```
 Emergency Action → Guardian Signatures (M of N) → Timelock (24-72h) → Execution
 ```
@@ -281,6 +302,7 @@ Emergency Action → Guardian Signatures (M of N) → Timelock (24-72h) → Exec
 **Threat**: Malicious contract upgrades.
 
 **Mitigations**:
+
 - ✅ UUPS proxy pattern with access control
 - ✅ Storage layout verification (StorageLayoutReport)
 - ✅ Governance approval required
@@ -289,16 +311,16 @@ Emergency Action → Guardian Signatures (M of N) → Timelock (24-72h) → Exec
 
 ## 5. Risk Matrix
 
-| Threat | Likelihood | Impact | Risk Score | Status |
-|--------|------------|--------|------------|--------|
-| Reentrancy | Low | High | Medium | ✅ Mitigated |
-| Proof Forgery | Very Low | Critical | Medium | ✅ Mitigated |
-| Access Control Bypass | Low | Critical | High | ✅ Mitigated |
-| Front-Running | High | Medium | High | ⚠️ Partially Mitigated |
-| Bridge Exploitation | Medium | Critical | High | ✅ Mitigated |
-| Key Compromise | Medium | Critical | Critical | ✅ Mitigated |
-| Griefing/DoS | High | Low | Medium | ✅ Mitigated |
-| Quantum Attack | Very Low | Critical | Low | ⚠️ Future Consideration |
+| Threat                | Likelihood | Impact   | Risk Score | Status                  |
+| --------------------- | ---------- | -------- | ---------- | ----------------------- |
+| Reentrancy            | Low        | High     | Medium     | ✅ Mitigated            |
+| Proof Forgery         | Very Low   | Critical | Medium     | ✅ Mitigated            |
+| Access Control Bypass | Low        | Critical | High       | ✅ Mitigated            |
+| Front-Running         | High       | Medium   | High       | ⚠️ Partially Mitigated  |
+| Bridge Exploitation   | Medium     | Critical | High       | ✅ Mitigated            |
+| Key Compromise        | Medium     | Critical | Critical   | ✅ Mitigated            |
+| Griefing/DoS          | High       | Low      | Medium     | ✅ Mitigated            |
+| Quantum Attack        | Very Low   | Critical | Low        | ⚠️ Future Consideration |
 
 ---
 
@@ -306,31 +328,31 @@ Emergency Action → Guardian Signatures (M of N) → Timelock (24-72h) → Exec
 
 ### 6.1 Preventive Controls
 
-| Control | Implementation | Coverage |
-|---------|---------------|----------|
-| Access Control | OpenZeppelin RBAC | All contracts |
-| Reentrancy Guard | OpenZeppelin ReentrancyGuard | State-changing functions |
-| Pause Mechanism | OpenZeppelin Pausable | All critical contracts |
-| Input Validation | Custom checks | All external functions |
-| Rate Limiting | RateLimiter contract | High-frequency operations |
+| Control          | Implementation               | Coverage                  |
+| ---------------- | ---------------------------- | ------------------------- |
+| Access Control   | OpenZeppelin RBAC            | All contracts             |
+| Reentrancy Guard | OpenZeppelin ReentrancyGuard | State-changing functions  |
+| Pause Mechanism  | OpenZeppelin Pausable        | All critical contracts    |
+| Input Validation | Custom checks                | All external functions    |
+| Rate Limiting    | RateLimiter contract         | High-frequency operations |
 
 ### 6.2 Detective Controls
 
-| Control | Implementation | Coverage |
-|---------|---------------|----------|
-| Event Logging | Comprehensive events | All state changes |
-| Monitoring | Event logging + OZ Defender | System-wide |
-| Static Analysis | Slither | All contracts |
-| Fuzzing | Echidna harnesses | Core contracts |
+| Control         | Implementation              | Coverage          |
+| --------------- | --------------------------- | ----------------- |
+| Event Logging   | Comprehensive events        | All state changes |
+| Monitoring      | Event logging + OZ Defender | System-wide       |
+| Static Analysis | Slither                     | All contracts     |
+| Fuzzing         | Echidna harnesses           | Core contracts    |
 
 ### 6.3 Corrective Controls
 
-| Control | Implementation | Coverage |
-|---------|---------------|----------|
-| Emergency Pause | Owner-triggered | All pausable contracts |
-| Guardian Recovery | Multi-sig | Critical operations |
-| Timelock | SoulTimelock | Admin functions |
-| Upgradability | UUPS Proxy | Upgradeable contracts |
+| Control           | Implementation  | Coverage               |
+| ----------------- | --------------- | ---------------------- |
+| Emergency Pause   | Owner-triggered | All pausable contracts |
+| Guardian Recovery | Multi-sig       | Critical operations    |
+| Timelock          | SoulTimelock    | Admin functions        |
+| Upgradability     | UUPS Proxy      | Upgradeable contracts  |
 
 ---
 
@@ -372,10 +394,10 @@ The following conditions should trigger immediate incident response:
 
 ## 8.4 Known Limitations
 
-| Component | Description | Severity | Status |
-|-----------|-------------|----------|--------|
-| Ring Signature Verifier | `GasOptimizedPrivacy.sol` ring signature verification (line ~652) uses a placeholder verifier that always reverts with `"Ring signature verification not yet implemented"`. This is a **feature gap**, not a vulnerability — no funds are at risk since the function cannot succeed. | Low | Tracked — pending dedicated Noir ring signature circuit |
-| Noir Circuit Compilation | All 20 Noir circuits compile successfully after February 2026 migration from external `poseidon` crate to `std::hash::poseidon::bn254`. Existing 8 generated Solidity verifiers remain valid. | Informational | Resolved — see `noir/README.md` |
+| Component                | Description                                                                                                                                                                                             | Severity      | Status                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------- |
+| Ring Signature Verifier  | `RingSignatureVerifier.sol` implements BN254 CLSAG ring signature verification using EVM precompiles (ecAdd, ecMul, modExp). Integrated with `GasOptimizedPrivacy.sol`. Gas cost: ~26k per ring member. | Informational | Resolved — production CLSAG verifier deployed |
+| Noir Circuit Compilation | All 20 Noir circuits compile successfully after February 2026 migration from external `poseidon` crate to `std::hash::poseidon::bn254`. Existing 8 generated Solidity verifiers remain valid.           | Informational | Resolved — see `noir/README.md`               |
 
 ---
 
@@ -383,11 +405,16 @@ The following conditions should trigger immediate incident response:
 
 ### 9.1 Security Tool Results
 
-| Tool | Findings | Critical | High | Medium | Low |
-|------|----------|----------|------|--------|-----|
-| Slither | 9 | 0 | 0 | 2 | 7 |
-| Foundry Tests | 2243/2243 | N/A | N/A | N/A | N/A |
-| Fuzz Tests | 150+ | N/A | N/A | N/A | N/A |
+| Tool               | Findings          | Critical | High | Medium | Low |
+| ------------------ | ----------------- | -------- | ---- | ------ | --- |
+| Slither            | 9 (all addressed) | 0        | 0    | 2      | 7   |
+| Foundry Tests      | 4,426/4,426       | N/A      | N/A  | N/A    | N/A |
+| Fuzz Tests         | 300+              | N/A      | N/A  | N/A    | N/A |
+| Halmos Symbolic    | 12 checks         | N/A      | N/A  | N/A    | N/A |
+| Echidna Properties | 6 invariants      | N/A      | N/A  | N/A    | N/A |
+| K Framework        | 5 specs           | N/A      | N/A  | N/A    | N/A |
+| TLA+ Model Check   | 4 properties      | N/A      | N/A  | N/A    | N/A |
+| Certora CVL        | 54 specs          | N/A      | N/A  | N/A    | N/A |
 
 ### 9.2 Contact Information
 
@@ -397,4 +424,4 @@ The following conditions should trigger immediate incident response:
 
 ---
 
-*This threat model should be reviewed and updated quarterly or after any significant protocol changes.*
+_This threat model should be reviewed and updated quarterly or after any significant protocol changes._

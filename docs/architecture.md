@@ -115,6 +115,7 @@ struct VerificationKey {
 #### Pairing Check
 
 The verification performs the pairing equation:
+
 ```
 e(A, B) = e(α, β) · e(∑ᵢ aᵢ·ICᵢ, γ) · e(C, δ)
 ```
@@ -150,12 +151,12 @@ e(A, B) = e(α, β) · e(∑ᵢ aᵢ·ICᵢ, γ) · e(C, δ)
 
 #### Relayer Economics
 
-| Parameter | Value |
-|-----------|-------|
-| Minimum Stake | 10 ETH |
-| Slashing Penalty | Up to 100% |
-| Withdrawal Cooldown | 7 days |
-| Batch Fee | 0.1% of value |
+| Parameter           | Value         |
+| ------------------- | ------------- |
+| Minimum Stake       | 10 ETH        |
+| Slashing Penalty    | Up to 100%    |
+| Withdrawal Cooldown | 7 days        |
+| Batch Fee           | 0.1% of value |
 
 #### Privacy Features
 
@@ -252,18 +253,18 @@ Chain A                    Relayer Network                    Chain B
 
 ### Threat Model
 
-| Threat | Mitigation |
-|--------|------------|
-| State theft | ZK proof required for transfers |
-| Double-spending | Nullifier registry with cross-chain sync |
-| Replay attacks | Unique nullifiers per state |
-| Relayer censorship | Multiple independent relayers |
-| Relayer collusion | Economic slashing, reputation |
-| Traffic analysis | Mixnet routing, decoy traffic |
-| Front-running | Commit-reveal schemes |
-| Reentrancy | ReentrancyGuard on all state-changing functions |
-| DoS via .transfer() | Using .call{value:}() for all ETH transfers |
-| Access control bypass | Role-based access with separation of duties |
+| Threat                | Mitigation                                      |
+| --------------------- | ----------------------------------------------- |
+| State theft           | ZK proof required for transfers                 |
+| Double-spending       | Nullifier registry with cross-chain sync        |
+| Replay attacks        | Unique nullifiers per state                     |
+| Relayer censorship    | Multiple independent relayers                   |
+| Relayer collusion     | Economic slashing, reputation                   |
+| Traffic analysis      | Mixnet routing, decoy traffic                   |
+| Front-running         | Commit-reveal schemes                           |
+| Reentrancy            | ReentrancyGuard on all state-changing functions |
+| DoS via .transfer()   | Using .call{value:}() for all ETH transfers     |
+| Access control bypass | Role-based access with separation of duties     |
 
 ### Security Hardening (February 2026)
 
@@ -276,6 +277,7 @@ All critical contracts include:
 5. **Loop Gas Optimization**: Array length caching, batch storage writes
 
 **Protected Contracts**:
+
 - `SoulMultiSigGovernance` - Multi-sig governance with reentrancy protection
 - `BridgeWatchtower` - Watchtower network with optimized slashing
 - `SoulPreconfirmationHandler` - Preconfirmation with safe ETH transfers
@@ -348,20 +350,22 @@ function registerState(
 
 ### Phase 3: Additional L2 Support
 
-- **Optimism Adapter**: OP Stack native messaging
-- **Base + CCTP**: Circle's cross-chain transfer protocol
+- ✅ **Optimism Adapter**: OP Stack native messaging — _Production_
+- ✅ **Base + CCTP**: Circle's cross-chain transfer protocol — _Production_
 - **zkSync Era**: ZK rollup native integration
+- **Scroll**: zkEVM integration
+- **Linea**: Consensys zkEVM integration
 
-### Phase 4: Research (Experimental)
+### Phase 4: Advanced Cryptography
 
-The following are in `contracts/experimental/` for future consideration:
-- **Recursive Proof Aggregation**: IVC/Nova-style proof folding
-- **CLSAG Verifier**: Compact ring signature verification
-- **Homomorphic Hiding**: Research-grade homomorphic operations
-- **Mixnet Routing**: Privacy-preserving relay selection
-- **Side-Channel Defense**: Constant-time operations, gas normalization
-
-See `contracts/experimental/README.md` for promotion criteria.
+| Component                       | Status        | Path                                            |
+| ------------------------------- | ------------- | ----------------------------------------------- |
+| **CLSAG Verifier**              | ✅ Production | `contracts/verifiers/RingSignatureVerifier.sol` |
+| **BN254 Library**               | ✅ Production | `contracts/libraries/BN254.sol`                 |
+| **Recursive Proof Aggregation** | Research      | IVC/Nova-style proof folding                    |
+| **Homomorphic Hiding**          | Research      | Research-grade homomorphic operations           |
+| **Mixnet Routing**              | Research      | Privacy-preserving relay selection              |
+| **Side-Channel Defense**        | Research      | Constant-time operations, gas normalization     |
 
 ---
 
@@ -391,7 +395,7 @@ Statement: C(x, w) = 0 (circuit satisfiability)
 
 Proof π = (A, B, C) where:
 - A ∈ G₁
-- B ∈ G₂  
+- B ∈ G₂
 - C ∈ G₁
 
 Verification:
@@ -417,41 +421,40 @@ Properties:
 
 The V3 version adds production-ready features:
 
-| Feature | Description |
-|---------|-------------|
-| **Role-Based Access** | AccessControl with OPERATOR_ROLE, EMERGENCY_ROLE, VERIFIER_ADMIN_ROLE |
-| **State Versioning** | Each state tracks version number for upgrade tracking |
-| **State Status** | Active, Locked, Frozen, Retired states |
-| **Batch Operations** | `batchRegisterStates()` for gas efficiency |
-| **Meta-Transactions** | `registerStateWithSignature()` for gasless UX |
-| **State History** | Full audit trail of state transitions |
-| **Emergency Controls** | Lock, freeze, and pause functionality |
+| Feature                | Description                                                           |
+| ---------------------- | --------------------------------------------------------------------- |
+| **Role-Based Access**  | AccessControl with OPERATOR_ROLE, EMERGENCY_ROLE, VERIFIER_ADMIN_ROLE |
+| **State Versioning**   | Each state tracks version number for upgrade tracking                 |
+| **State Status**       | Active, Locked, Frozen, Retired states                                |
+| **Batch Operations**   | `batchRegisterStates()` for gas efficiency                            |
+| **Meta-Transactions**  | `registerStateWithSignature()` for gasless UX                         |
+| **State History**      | Full audit trail of state transitions                                 |
+| **Emergency Controls** | Lock, freeze, and pause functionality                                 |
 
 ### NullifierRegistryV3
 
 Enhanced with merkle tree support for light client verification:
 
-| Feature | Description |
-|---------|-------------|
-| **Incremental Merkle Tree** | 32-depth tree supporting ~4 billion nullifiers |
-| **Historical Roots** | Ring buffer of 100 valid roots for delayed verification |
-| **Cross-Chain Sync** | `receiveCrossChainNullifiers()` for bridge integration |
-| **Batch Operations** | `batchRegisterNullifiers()` and `batchExists()` |
-| **Rich Metadata** | Timestamp, block number, source chain, registrar |
-| **Merkle Proofs** | `verifyMerkleProof()` for inclusion proofs |
+| Feature                     | Description                                             |
+| --------------------------- | ------------------------------------------------------- |
+| **Incremental Merkle Tree** | 32-depth tree supporting ~4 billion nullifiers          |
+| **Historical Roots**        | Ring buffer of 100 valid roots for delayed verification |
+| **Cross-Chain Sync**        | `receiveCrossChainNullifiers()` for bridge integration  |
+| **Batch Operations**        | `batchRegisterNullifiers()` and `batchExists()`         |
+| **Rich Metadata**           | Timestamp, block number, source chain, registrar        |
+| **Merkle Proofs**           | `verifyMerkleProof()` for inclusion proofs              |
 
 ### CrossChainProofHubV3
 
 Production-ready cross-chain proof relay:
 
-| Feature | Description |
-|---------|-------------|
-| **Optimistic Verification** | Challenge period before finalization |
-| **Instant Verification** | Higher fee for immediate verification |
-| **Challenge System** | Dispute resolution with slashing |
-| **Relayer Staking** | Economic security with deposits |
-| **Batch Submissions** | Merkle root-based batch proofs |
-| **Fee Management** | Configurable fees and withdrawal |
+| Feature                     | Description                           |
+| --------------------------- | ------------------------------------- |
+| **Optimistic Verification** | Challenge period before finalization  |
+| **Instant Verification**    | Higher fee for immediate verification |
+| **Challenge System**        | Dispute resolution with slashing      |
+| **Relayer Staking**         | Economic security with deposits       |
+| **Batch Submissions**       | Merkle root-based batch proofs        |
+| **Fee Management**          | Configurable fees and withdrawal      |
 
 ---
-

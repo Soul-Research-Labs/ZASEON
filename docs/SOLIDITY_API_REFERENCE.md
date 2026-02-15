@@ -14,6 +14,8 @@
 6. [DirectL2Messenger](#6-directl2messenger)
 7. [UniversalShieldedPool](#7-universalshieldedpool)
 8. [StealthAddressRegistry](#8-stealthaddressregistry)
+9. [BN254 Library](#9-bn254-library)
+10. [RingSignatureVerifier](#10-ringsignatureverifier)
 
 ---
 
@@ -27,30 +29,30 @@ Production-ready cross-chain proof relay with optimistic verification and disput
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `RELAYER_ROLE` | Authorized relayers |
-| `VERIFIER_ADMIN_ROLE` | Verifier management |
-| `CHALLENGER_ROLE` | Authorized challengers |
-| `OPERATOR_ROLE` | Config & trusted remotes |
-| `EMERGENCY_ROLE` | Emergency pause |
+| Constant              | Description              |
+| --------------------- | ------------------------ |
+| `RELAYER_ROLE`        | Authorized relayers      |
+| `VERIFIER_ADMIN_ROLE` | Verifier management      |
+| `CHALLENGER_ROLE`     | Authorized challengers   |
+| `OPERATOR_ROLE`       | Config & trusted remotes |
+| `EMERGENCY_ROLE`      | Emergency pause          |
 
 ### Key State Variables
 
-| Variable | Type | Description |
-|---|---|---|
-| `CHAIN_ID` | `uint256 immutable` | Deployment chain ID |
-| `challengePeriod` | `uint256` | Challenge window (default 1h) |
-| `minRelayerStake` | `uint256` | Min relayer stake (0.1 ETH) |
-| `minChallengerStake` | `uint256` | Min challenger stake (0.05 ETH) |
-| `proofSubmissionFee` | `uint256` | Fee per proof (0.001 ETH) |
-| `maxProofsPerHour` | `uint256` | Circuit breaker limit (1000) |
-| `maxValuePerHour` | `uint256` | Circuit breaker limit (1000 ETH) |
-| `totalProofs` | `uint256` | Counter |
-| `totalBatches` | `uint256` | Counter |
-| `accumulatedFees` | `uint256` | Collected fees |
-| `MAX_BATCH_SIZE` | `uint256` | 100 |
-| `rolesSeparated` | `bool` | Must be true before operations |
+| Variable             | Type                | Description                      |
+| -------------------- | ------------------- | -------------------------------- |
+| `CHAIN_ID`           | `uint256 immutable` | Deployment chain ID              |
+| `challengePeriod`    | `uint256`           | Challenge window (default 1h)    |
+| `minRelayerStake`    | `uint256`           | Min relayer stake (0.1 ETH)      |
+| `minChallengerStake` | `uint256`           | Min challenger stake (0.05 ETH)  |
+| `proofSubmissionFee` | `uint256`           | Fee per proof (0.001 ETH)        |
+| `maxProofsPerHour`   | `uint256`           | Circuit breaker limit (1000)     |
+| `maxValuePerHour`    | `uint256`           | Circuit breaker limit (1000 ETH) |
+| `totalProofs`        | `uint256`           | Counter                          |
+| `totalBatches`       | `uint256`           | Counter                          |
+| `accumulatedFees`    | `uint256`           | Collected fees                   |
+| `MAX_BATCH_SIZE`     | `uint256`           | 100                              |
+| `rolesSeparated`     | `bool`              | Must be true before operations   |
 
 ### Functions
 
@@ -59,21 +61,25 @@ Production-ready cross-chain proof relay with optimistic verification and disput
 ```solidity
 function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE)
 ```
+
 Mark roles as properly separated. Prevents mainnet deployment with centralized control.
 
 ```solidity
 function depositStake() external payable nonReentrant
 ```
+
 Deposit ETH stake as a relayer.
 
 ```solidity
 function withdrawStake(uint256 amount) external nonReentrant
 ```
+
 Withdraw relayer stake. Includes TOCTOU protection — blocked while proofs are pending.
 
 ```solidity
 function withdrawRewards(uint256 amount) external nonReentrant
 ```
+
 Withdraw claimable rewards (for challengers who won disputes).
 
 #### Proof Submission
@@ -87,6 +93,7 @@ function submitProof(
     uint64 destChainId
 ) external payable nonReentrant whenNotPaused returns (bytes32 proofId)
 ```
+
 Submit a proof with optimistic verification (enters challenge period). Requires `RELAYER_ROLE`.
 
 ```solidity
@@ -99,6 +106,7 @@ function submitProofInstant(
     bytes32 proofType
 ) external payable nonReentrant whenNotPaused returns (bytes32 proofId)
 ```
+
 Submit with instant on-chain verification (3x fee). No challenge period.
 
 ```solidity
@@ -107,6 +115,7 @@ function submitBatch(
     bytes32 merkleRoot
 ) external payable nonReentrant whenNotPaused returns (bytes32 batchId)
 ```
+
 Submit a batch of proofs (up to `MAX_BATCH_SIZE`). Requires `RELAYER_ROLE`.
 
 #### Challenge System
@@ -114,6 +123,7 @@ Submit a batch of proofs (up to `MAX_BATCH_SIZE`). Requires `RELAYER_ROLE`.
 ```solidity
 function challengeProof(bytes32 proofId, string calldata reason) external payable nonReentrant
 ```
+
 Challenge a pending proof. Requires `minChallengerStake`.
 
 ```solidity
@@ -124,11 +134,13 @@ function resolveChallenge(
     bytes32 proofType
 ) external nonReentrant
 ```
+
 Resolve a challenge via on-chain proof verification. Only the original challenger can call.
 
 ```solidity
 function expireChallenge(bytes32 proofId) external nonReentrant whenNotPaused
 ```
+
 Expire a stale challenge after deadline, resolving in the relayer's favor.
 
 #### Finalization
@@ -136,6 +148,7 @@ Expire a stale challenge after deadline, resolving in the relayer's favor.
 ```solidity
 function finalizeProof(bytes32 proofId) external nonReentrant whenNotPaused
 ```
+
 Finalize a proof after the challenge period has elapsed.
 
 #### View Functions
@@ -167,22 +180,22 @@ function unpause() external onlyRole(DEFAULT_ADMIN_ROLE)
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `ProofSubmitted` | `proofId`, `commitment`, `sourceChainId`, `destChainId`, `relayer` |
-| `ProofDataEmitted` | `proofId`, `proof`, `publicInputs` |
-| `BatchSubmitted` | `batchId`, `merkleRoot`, `proofCount`, `relayer` |
-| `ProofVerified` | `proofId`, `status` |
-| `ProofFinalized` | `proofId` |
-| `ProofRejected` | `proofId`, `reason` |
-| `ChallengeCreated` | `proofId`, `challenger`, `reason` |
-| `ChallengeResolved` | `proofId`, `challengerWon`, `winner`, `reward` |
-| `RelayerStakeDeposited` | `relayer`, `amount` |
-| `RelayerStakeWithdrawn` | `relayer`, `amount` |
-| `RelayerSlashed` | `relayer`, `amount` |
-| `ChainAdded` / `ChainRemoved` | `chainId` |
-| `TrustedRemoteSet` | `chainId`, `remote` |
-| `VerifierSet` | `proofType`, `verifier` |
+| Event                         | Parameters                                                         |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `ProofSubmitted`              | `proofId`, `commitment`, `sourceChainId`, `destChainId`, `relayer` |
+| `ProofDataEmitted`            | `proofId`, `proof`, `publicInputs`                                 |
+| `BatchSubmitted`              | `batchId`, `merkleRoot`, `proofCount`, `relayer`                   |
+| `ProofVerified`               | `proofId`, `status`                                                |
+| `ProofFinalized`              | `proofId`                                                          |
+| `ProofRejected`               | `proofId`, `reason`                                                |
+| `ChallengeCreated`            | `proofId`, `challenger`, `reason`                                  |
+| `ChallengeResolved`           | `proofId`, `challengerWon`, `winner`, `reward`                     |
+| `RelayerStakeDeposited`       | `relayer`, `amount`                                                |
+| `RelayerStakeWithdrawn`       | `relayer`, `amount`                                                |
+| `RelayerSlashed`              | `relayer`, `amount`                                                |
+| `ChainAdded` / `ChainRemoved` | `chainId`                                                          |
+| `TrustedRemoteSet`            | `chainId`, `remote`                                                |
+| `VerifierSet`                 | `proofType`, `verifier`                                            |
 
 ---
 
@@ -196,21 +209,21 @@ Gas-optimized confidential state management with EIP-712 meta-transaction suppor
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `OPERATOR_ROLE` | State lock/unlock operations |
-| `EMERGENCY_ROLE` | Freeze states, pause |
-| `VERIFIER_ADMIN_ROLE` | Verifier management |
+| Constant              | Description                  |
+| --------------------- | ---------------------------- |
+| `OPERATOR_ROLE`       | State lock/unlock operations |
+| `EMERGENCY_ROLE`      | Freeze states, pause         |
+| `VERIFIER_ADMIN_ROLE` | Verifier management          |
 
 ### Key State Variables
 
-| Variable | Type | Description |
-|---|---|---|
-| `verifier` | `IProofVerifier immutable` | Proof verifier contract |
-| `CHAIN_ID` | `uint256 immutable` | Deployment chain ID |
-| `DOMAIN_SEPARATOR` | `bytes32 immutable` | EIP-712 domain separator |
-| `MAX_BATCH_SIZE` | `uint256` | 50 |
-| `MAX_HISTORY_LENGTH` | `uint256` | 100 |
+| Variable             | Type                       | Description              |
+| -------------------- | -------------------------- | ------------------------ |
+| `verifier`           | `IProofVerifier immutable` | Proof verifier contract  |
+| `CHAIN_ID`           | `uint256 immutable`        | Deployment chain ID      |
+| `DOMAIN_SEPARATOR`   | `bytes32 immutable`        | EIP-712 domain separator |
+| `MAX_BATCH_SIZE`     | `uint256`                  | 50                       |
+| `MAX_HISTORY_LENGTH` | `uint256`                  | 100                      |
 
 ### Functions
 
@@ -225,6 +238,7 @@ function registerState(
     bytes32 metadata
 ) external nonReentrant whenNotPaused
 ```
+
 Register a new confidential state with ZK proof verification.
 
 ```solidity
@@ -239,6 +253,7 @@ function registerStateWithSignature(
     bytes calldata signature
 ) external nonReentrant whenNotPaused
 ```
+
 Register state via EIP-712 meta-transaction (gasless for owner).
 
 ```solidity
@@ -246,6 +261,7 @@ function batchRegisterStates(
     BatchStateInput[] calldata stateInputs
 ) external nonReentrant whenNotPaused
 ```
+
 Batch register up to `MAX_BATCH_SIZE` states.
 
 ```solidity
@@ -259,6 +275,7 @@ function transferState(
     address newOwner
 ) external nonReentrant whenNotPaused
 ```
+
 Transfer state ownership with ZK proof. Retires old commitment and creates new one.
 
 #### View Functions
@@ -288,12 +305,12 @@ function unpause() external onlyRole(DEFAULT_ADMIN_ROLE)
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `StateRegistered` | `commitment`, `owner`, `nullifier`, `timestamp` |
-| `StateTransferred` | `fromCommitment`, `toCommitment`, `newOwner`, `version` |
-| `StateStatusChanged` | `commitment`, `oldStatus`, `newStatus` |
-| `StateBatchRegistered` | `commitments[]`, `owner`, `count` |
+| Event                  | Parameters                                              |
+| ---------------------- | ------------------------------------------------------- |
+| `StateRegistered`      | `commitment`, `owner`, `nullifier`, `timestamp`         |
+| `StateTransferred`     | `fromCommitment`, `toCommitment`, `newOwner`, `version` |
+| `StateStatusChanged`   | `commitment`, `oldStatus`, `newStatus`                  |
+| `StateBatchRegistered` | `commitments[]`, `owner`, `count`                       |
 
 ---
 
@@ -307,21 +324,21 @@ Nullifier registry with incremental Merkle tree (depth 32, ~4B capacity), cross-
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `REGISTRAR_ROLE` | Register nullifiers |
-| `BRIDGE_ROLE` | Cross-chain operations |
-| `EMERGENCY_ROLE` | Emergency pause |
+| Constant         | Description            |
+| ---------------- | ---------------------- |
+| `REGISTRAR_ROLE` | Register nullifiers    |
+| `BRIDGE_ROLE`    | Cross-chain operations |
+| `EMERGENCY_ROLE` | Emergency pause        |
 
 ### Key State Variables
 
-| Variable | Type | Description |
-|---|---|---|
-| `TREE_DEPTH` | `uint256` | 32 |
-| `ROOT_HISTORY_SIZE` | `uint256` | 100 |
-| `MAX_BATCH_SIZE` | `uint256` | 20 |
-| `merkleRoot` | `bytes32` | Current tree root |
-| `totalNullifiers` | `uint256` | Counter |
+| Variable            | Type      | Description       |
+| ------------------- | --------- | ----------------- |
+| `TREE_DEPTH`        | `uint256` | 32                |
+| `ROOT_HISTORY_SIZE` | `uint256` | 100               |
+| `MAX_BATCH_SIZE`    | `uint256` | 20                |
+| `merkleRoot`        | `bytes32` | Current tree root |
+| `totalNullifiers`   | `uint256` | Counter           |
 
 ### Functions
 
@@ -346,12 +363,12 @@ function getTreeStats() external view returns (uint256, bytes32, uint256)
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `NullifierRegistered` | `nullifier`, `commitment`, `index`, `registrar`, `chainId` |
-| `NullifierBatchRegistered` | `nullifiers[]`, `startIndex`, `count` |
-| `MerkleRootUpdated` | `oldRoot`, `newRoot`, `nullifierCount` |
-| `CrossChainNullifiersReceived` | `sourceChainId`, `merkleRoot`, `count` |
+| Event                          | Parameters                                                 |
+| ------------------------------ | ---------------------------------------------------------- |
+| `NullifierRegistered`          | `nullifier`, `commitment`, `index`, `registrar`, `chainId` |
+| `NullifierBatchRegistered`     | `nullifiers[]`, `startIndex`, `count`                      |
+| `MerkleRootUpdated`            | `oldRoot`, `newRoot`, `nullifierCount`                     |
+| `CrossChainNullifiersReceived` | `sourceChainId`, `merkleRoot`, `count`                     |
 
 ---
 
@@ -365,11 +382,11 @@ Central registry and integration hub for all Soul Protocol components. Routes re
 
 ### Roles
 
-| Constant | Description |
-|---|---|
+| Constant        | Description                |
+| --------------- | -------------------------- |
 | `OPERATOR_ROLE` | Register/update components |
-| `GUARDIAN_ROLE` | Emergency deactivation |
-| `UPGRADER_ROLE` | Upgrade management |
+| `GUARDIAN_ROLE` | Emergency deactivation     |
+| `UPGRADER_ROLE` | Upgrade management         |
 
 ### Functions
 
@@ -434,13 +451,13 @@ Atomic cross-chain swaps with HTLC, stealth address support, commit-reveal front
 
 ### Key Constants
 
-| Constant | Value | Description |
-|---|---|---|
-| `MIN_TIMELOCK` | 1 hour | Minimum swap lock |
-| `MAX_TIMELOCK` | 7 days | Maximum swap lock |
-| `MAX_FEE_BPS` | 100 (1%) | Maximum fee |
-| `FEE_WITHDRAWAL_DELAY` | 2 days | Timelock on fee withdrawal |
-| `MIN_REVEAL_DELAY` | 2 seconds | L2-compatible commit-reveal delay |
+| Constant               | Value     | Description                       |
+| ---------------------- | --------- | --------------------------------- |
+| `MIN_TIMELOCK`         | 1 hour    | Minimum swap lock                 |
+| `MAX_TIMELOCK`         | 7 days    | Maximum swap lock                 |
+| `MAX_FEE_BPS`          | 100 (1%)  | Maximum fee                       |
+| `FEE_WITHDRAWAL_DELAY` | 2 days    | Timelock on fee withdrawal        |
+| `MIN_REVEAL_DELAY`     | 2 seconds | L2-compatible commit-reveal delay |
 
 ### Functions
 
@@ -473,12 +490,12 @@ function isRefundable(bytes32 swapId) external view returns (bool)
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `SwapCreated` | `swapId`, `initiator`, `recipient`, `token`, `amount`, `hashLock`, `timeLock` |
-| `SwapClaimed` | `swapId`, `claimer`, `secret` |
-| `SwapRefunded` | `swapId`, `initiator` |
-| `ClaimCommitted` | `swapId`, `committer`, `commitHash` |
+| Event            | Parameters                                                                    |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `SwapCreated`    | `swapId`, `initiator`, `recipient`, `token`, `amount`, `hashLock`, `timeLock` |
+| `SwapClaimed`    | `swapId`, `claimer`, `secret`                                                 |
+| `SwapRefunded`   | `swapId`, `initiator`                                                         |
+| `ClaimCommitted` | `swapId`, `committer`, `commitHash`                                           |
 
 ---
 
@@ -492,11 +509,11 @@ Direct L2-to-L2 messaging supporting four paths: OP Superchain native, shared se
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `OPERATOR_ROLE` | Route config, slashing, pause |
-| `RELAYER_ROLE` | Auto-granted on `registerRelayer()` |
-| `SEQUENCER_ROLE` | Shared sequencer message delivery |
+| Constant         | Description                         |
+| ---------------- | ----------------------------------- |
+| `OPERATOR_ROLE`  | Route config, slashing, pause       |
+| `RELAYER_ROLE`   | Auto-granted on `registerRelayer()` |
+| `SEQUENCER_ROLE` | Shared sequencer message delivery   |
 
 ### Enums
 
@@ -547,15 +564,15 @@ function setAstriaSequencer(address sequencer) external onlyRole(DEFAULT_ADMIN_R
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `MessageSent` | `messageId`, `sourceChainId`, `destChainId`, `sender`, `recipient`, `payload`, `nonce`, `path` |
-| `MessageReceived` | `messageId`, `sourceChainId`, `sender`, `recipient`, `payload` |
-| `MessageExecuted` | `messageId`, `success`, `returnData` |
-| `RelayerRegistered` | `relayer`, `bond` |
-| `RelayerSlashed` | `relayer`, `amount`, `reason` |
-| `MessageChallenged` | `messageId`, `challenger`, `reason` |
-| `ChallengeResolved` | `messageId`, `fraudProven`, `winner` |
+| Event               | Parameters                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `MessageSent`       | `messageId`, `sourceChainId`, `destChainId`, `sender`, `recipient`, `payload`, `nonce`, `path` |
+| `MessageReceived`   | `messageId`, `sourceChainId`, `sender`, `recipient`, `payload`                                 |
+| `MessageExecuted`   | `messageId`, `success`, `returnData`                                                           |
+| `RelayerRegistered` | `relayer`, `bond`                                                                              |
+| `RelayerSlashed`    | `relayer`, `amount`, `reason`                                                                  |
+| `MessageChallenged` | `messageId`, `challenger`, `reason`                                                            |
+| `ChallengeResolved` | `messageId`, `fraudProven`, `winner`                                                           |
 
 ---
 
@@ -569,20 +586,20 @@ Multi-asset shielded pool with Poseidon-based Merkle tree (depth 32), cross-chai
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `RELAYER_ROLE` | Sync cross-chain commitments |
-| `OPERATOR_ROLE` | Asset registration, verifier config |
-| `COMPLIANCE_ROLE` | Sanctions oracle config |
+| Constant          | Description                         |
+| ----------------- | ----------------------------------- |
+| `RELAYER_ROLE`    | Sync cross-chain commitments        |
+| `OPERATOR_ROLE`   | Asset registration, verifier config |
+| `COMPLIANCE_ROLE` | Sanctions oracle config             |
 
 ### Key Constants
 
-| Constant | Value | Description |
-|---|---|---|
-| `TREE_DEPTH` | 32 | ~4B deposits |
-| `MAX_DEPOSIT` | 10,000 ETH | Per deposit cap |
-| `MIN_DEPOSIT` | 0.001 ETH | Minimum deposit |
-| `ROOT_HISTORY_SIZE` | 100 | Root ring buffer |
+| Constant            | Value      | Description      |
+| ------------------- | ---------- | ---------------- |
+| `TREE_DEPTH`        | 32         | ~4B deposits     |
+| `MAX_DEPOSIT`       | 10,000 ETH | Per deposit cap  |
+| `MIN_DEPOSIT`       | 0.001 ETH  | Minimum deposit  |
+| `ROOT_HISTORY_SIZE` | 100        | Root ring buffer |
 
 ### Functions
 
@@ -598,6 +615,7 @@ function depositERC20(bytes32 assetId, uint256 amount, bytes32 commitment) exter
 ```solidity
 function withdraw(WithdrawalProof calldata wp) external nonReentrant whenNotPaused
 ```
+
 Withdraw with ZK proof. Marks nullifier as spent, transfers funds minus optional relayer fee.
 
 #### Cross-Chain
@@ -629,12 +647,12 @@ function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE)  // Irreversibl
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `Deposit` | `commitment`, `assetId`, `leafIndex`, `amount`, `timestamp` |
-| `Withdrawal` | `nullifier`, `assetId`, `recipient`, `amount`, `relayerFee` |
-| `CrossChainCommitmentsInserted` | `sourceChainId`, `count`, `newRoot` |
-| `AssetRegistered` | `assetId`, `tokenAddress` |
+| Event                           | Parameters                                                  |
+| ------------------------------- | ----------------------------------------------------------- |
+| `Deposit`                       | `commitment`, `assetId`, `leafIndex`, `amount`, `timestamp` |
+| `Withdrawal`                    | `nullifier`, `assetId`, `recipient`, `amount`, `relayerFee` |
+| `CrossChainCommitmentsInserted` | `sourceChainId`, `count`, `newRoot`                         |
+| `AssetRegistered`               | `assetId`, `tokenAddress`                                   |
 
 ---
 
@@ -648,11 +666,11 @@ ERC-5564 compatible stealth address registry supporting multiple curves (secp256
 
 ### Roles
 
-| Constant | Description |
-|---|---|
-| `OPERATOR_ROLE` | General operations |
-| `ANNOUNCER_ROLE` | Authorized announcements |
-| `UPGRADER_ROLE` | UUPS upgrade authorization |
+| Constant         | Description                |
+| ---------------- | -------------------------- |
+| `OPERATOR_ROLE`  | General operations         |
+| `ANNOUNCER_ROLE` | Authorized announcements   |
+| `UPGRADER_ROLE`  | UUPS upgrade authorization |
 
 ### Enums
 
@@ -723,9 +741,131 @@ function getStats() external view returns (uint256, uint256, uint256)
 
 ### Events
 
-| Event | Parameters |
-|---|---|
-| `MetaAddressRegistered` | `owner`, `spendingPubKey`, `viewingPubKey`, `curveType`, `schemeId` |
-| `StealthAnnouncement` | `schemeId`, `stealthAddress`, `caller`, `ephemeralPubKey`, `viewTag`, `metadata` |
-| `CrossChainStealthDerived` | `sourceKey`, `destKey`, `sourceChainId`, `destChainId` |
-| `DualKeyStealthGenerated` | `stealthHash`, `derivedAddress`, `chainId` |
+| Event                      | Parameters                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `MetaAddressRegistered`    | `owner`, `spendingPubKey`, `viewingPubKey`, `curveType`, `schemeId`              |
+| `StealthAnnouncement`      | `schemeId`, `stealthAddress`, `caller`, `ephemeralPubKey`, `viewTag`, `metadata` |
+| `CrossChainStealthDerived` | `sourceKey`, `destKey`, `sourceChainId`, `destChainId`                           |
+| `DualKeyStealthGenerated`  | `stealthHash`, `derivedAddress`, `chainId`                                       |
+
+---
+
+## 9. BN254 Library
+
+**Path:** `contracts/libraries/BN254.sol`
+**Solidity:** `^0.8.24`
+
+Gas-efficient BN254 (alt_bn128) elliptic curve operations using EVM precompiles. Provides the cryptographic primitives for CLSAG ring signature verification.
+
+### Types
+
+```solidity
+struct G1Point {
+    uint256 x;
+    uint256 y;
+}
+```
+
+### Functions
+
+```solidity
+/// @notice Elliptic curve point addition on BN254
+function add(G1Point memory p1, G1Point memory p2) internal view returns (G1Point memory)
+
+/// @notice Scalar multiplication on BN254
+function mul(G1Point memory p, uint256 s) internal view returns (G1Point memory)
+
+/// @notice Compress a G1 point to 32 bytes (x-coordinate + sign bit)
+function compress(G1Point memory p) internal pure returns (bytes32)
+
+/// @notice Decompress a 32-byte compressed point back to G1Point
+function decompress(bytes32 compressed) internal view returns (G1Point memory)
+
+/// @notice Hash arbitrary data to a BN254 curve point (hash-to-curve)
+function hashToPoint(bytes memory data) internal view returns (G1Point memory)
+
+/// @notice Check whether a point lies on the BN254 curve
+function isOnCurve(G1Point memory p) internal pure returns (bool)
+
+/// @notice Return the curve generator point G
+function generator() internal pure returns (G1Point memory)
+
+/// @notice Negate a G1 point (additive inverse)
+function negate(G1Point memory p) internal pure returns (G1Point memory)
+```
+
+### Gas Costs
+
+| Operation                 | Approximate Gas           |
+| ------------------------- | ------------------------- |
+| `add`                     | ~150 (ecAdd precompile)   |
+| `mul`                     | ~6,000 (ecMul precompile) |
+| `hashToPoint`             | ~6,200 (mul + keccak)     |
+| `compress` / `decompress` | ~50 / ~6,200              |
+
+---
+
+## 10. RingSignatureVerifier
+
+**Path:** `contracts/verifiers/RingSignatureVerifier.sol`
+**Solidity:** `^0.8.24`
+**Inherits:** `AccessControl`, `ReentrancyGuard`
+
+Production CLSAG (Compact Linkable Spontaneous Anonymous Group) ring signature verifier. Enables privacy-preserving authentication where a signer proves membership in a set without revealing which member they are.
+
+### Roles
+
+| Constant     | Description                        |
+| ------------ | ---------------------------------- |
+| `ADMIN_ROLE` | Key ring management, configuration |
+
+### Key State Variables
+
+| Variable        | Type                       | Description                                       |
+| --------------- | -------------------------- | ------------------------------------------------- |
+| `MAX_RING_SIZE` | `uint256 constant`         | Maximum ring members (default 32)                 |
+| `keyImages`     | `mapping(bytes32 => bool)` | Tracks used key images to prevent double-spending |
+
+### Core Functions
+
+```solidity
+/// @notice Verify a CLSAG ring signature
+/// @param message The signed message hash
+/// @param ring Array of public keys forming the ring
+/// @param keyImage The key image (linkability tag)
+/// @param c0 Initial challenge scalar
+/// @param s Array of response scalars
+/// @return valid Whether the signature is valid
+function verifyRingSignature(
+    bytes32 message,
+    BN254.G1Point[] calldata ring,
+    BN254.G1Point calldata keyImage,
+    uint256 c0,
+    uint256[] calldata s
+) external view returns (bool valid)
+
+/// @notice Check if a key image has been used (double-spend check)
+function isKeyImageUsed(bytes32 keyImageHash) external view returns (bool)
+
+/// @notice Register a key image as used
+function markKeyImageUsed(bytes32 keyImageHash) external
+```
+
+### Events
+
+| Event                   | Parameters                                |
+| ----------------------- | ----------------------------------------- |
+| `RingSignatureVerified` | `messageHash`, `ringSize`, `keyImageHash` |
+| `KeyImageRegistered`    | `keyImageHash`, `registrar`               |
+
+### Gas Costs
+
+| Ring Size  | Approximate Verification Gas |
+| ---------- | ---------------------------- |
+| 2 members  | ~52,000                      |
+| 4 members  | ~104,000                     |
+| 8 members  | ~208,000                     |
+| 16 members | ~416,000                     |
+| 32 members | ~832,000                     |
+
+> **Note:** ~26,000 gas per ring member, dominated by BN254 scalar multiplications.

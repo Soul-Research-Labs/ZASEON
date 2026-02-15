@@ -39,24 +39,28 @@ We take security seriously. If you discover a security vulnerability within Soul
 ### Severity Levels
 
 **Critical**
+
 - Direct fund theft
 - Permanent loss of funds
 - Unauthorized token minting
 - Governance takeover
 
 **High**
+
 - Temporary fund lock
 - Proof forgery
 - Access control bypass
 - Cross-chain message manipulation
 
 **Medium**
+
 - Denial of service
 - Gas griefing
 - Information disclosure
 - Nullifier collision (theoretical)
 
 **Low**
+
 - UI/UX issues
 - Documentation errors
 - Non-critical code quality issues
@@ -67,61 +71,69 @@ We take security seriously. If you discover a security vulnerability within Soul
 
 ### Bug Bounty Program (Planned)
 
-| Severity | Reward Range | Examples |
-|----------|--------------|----------|
-| Critical | $50,000 - $500,000 | Direct fund theft, proof forgery |
-| High | $10,000 - $50,000 | Access control bypass, cross-chain manipulation |
-| Medium | $2,000 - $10,000 | DoS attacks, gas griefing |
-| Low | $500 - $2,000 | Information disclosure, non-critical issues |
+| Severity | Reward Range       | Examples                                        |
+| -------- | ------------------ | ----------------------------------------------- |
+| Critical | $50,000 - $500,000 | Direct fund theft, proof forgery                |
+| High     | $10,000 - $50,000  | Access control bypass, cross-chain manipulation |
+| Medium   | $2,000 - $10,000   | DoS attacks, gas griefing                       |
+| Low      | $500 - $2,000      | Information disclosure, non-critical issues     |
 
 **Scope:**
+
 - Smart contracts in `/contracts`
 - Noir circuits in `/noir`
 - SDK security issues affecting contract interaction
 
 **Out of Scope:**
+
 - Documentation errors
 - UI/frontend issues
 - Already-known issues in SECURITY_AUDIT_REPORT.md
 
 ### Monitoring Recommendations
 
-| Component | Monitoring Tool | Alert Threshold |
-|-----------|-----------------|-----------------|
-| Bridge Deposits | Tenderly/OpenZeppelin Defender | > $100k single tx |
-| Proof Verifications | Custom Indexer | Failure rate > 1% |
-| TVL Changes | Dune Dashboard | > 10% in 1 hour |
-| Admin Actions | Defender Sentinels | Any timelock proposal |
-| Relayer Health | Prometheus/Grafana | Latency > 30s |
+| Component           | Monitoring Tool                | Alert Threshold       |
+| ------------------- | ------------------------------ | --------------------- |
+| Bridge Deposits     | Tenderly/OpenZeppelin Defender | > $100k single tx     |
+| Proof Verifications | Custom Indexer                 | Failure rate > 1%     |
+| TVL Changes         | Dune Dashboard                 | > 10% in 1 hour       |
+| Admin Actions       | Defender Sentinels             | Any timelock proposal |
+| Relayer Health      | Prometheus/Grafana             | Latency > 30s         |
 
 **Recommended Alert Channels:**
+
 - PagerDuty for Critical (24/7)
 - Slack/Discord for High/Medium
 - Email digest for Low
 
 ### Internal Security Testing
 
-| Tool | Purpose | Frequency |
-|------|---------|-----------|
-| Certora | Formal verification | Per release |
-| Slither | Static analysis | Every commit |
-| Echidna | Property fuzzing | Weekly |
-| Halmos | Symbolic execution | Weekly |
-| Foundry Fuzz | Differential testing | Every PR |
-| Mutation Testing | Test quality | Monthly |
+| Tool             | Purpose                                         | Frequency    |
+| ---------------- | ----------------------------------------------- | ------------ |
+| Certora          | Formal verification (54 CVL specs)              | Per release  |
+| Slither          | Static analysis                                 | Every commit |
+| Echidna          | Property fuzzing (6 invariant properties)       | Weekly       |
+| Halmos           | Symbolic execution (12 checks)                  | Weekly       |
+| K Framework      | Algebraic specification                         | Per release  |
+| TLA+             | Model checking (TVL conservation, double-spend) | Per release  |
+| Foundry Fuzz     | Differential testing (300+ fuzz tests)          | Every PR     |
+| Mutation Testing | Gambit across 8 contracts                       | Monthly      |
+| Storage Layout   | Upgrade compatibility (8 contract pairs)        | Every PR     |
 
 ### Security Focus Areas
 
 **In Scope:**
+
 - Smart contracts in `/contracts`
 - Circuit implementations in `/noir`
 - SDK security issues
 - Cross-chain message validation
 - Proof verification logic
 
-**Development Only:**
-- All testing on local forks only
-- No mainnet/testnet deployment planned
+**Development & Testing:**
+
+- All testing on local forks and Sepolia testnet
+- Sepolia deployment live (see `deployments/sepolia-11155111.json`)
 - Internal red team exercises
 
 ## Security Measures
@@ -148,54 +160,60 @@ We take security seriously. If you discover a security vulnerability within Soul
 #### Phase 1: Core Protocol Fixes
 
 ##### Critical Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
-| Nullifier Race Condition | ZKBoundStateLocks | Fixed double-spend via optimisticUnlock() race |
-| Access Control | CrossChainProofHubV3 | Added role checks to submitProofInstant/submitBatch |
-| Proof Verification | UnifiedNullifierManager | Fixed _verifyDerivationProof accepting any proof |
-| Signature Malleability | Various | Added SECP256K1_N_DIV_2 check |
-| VRF Bypass | Various | Fixed logic error allowing any non-zero gamma |
-| Chain ID Validation | CrossChainMessageRelay | Added block.chainid check in proof verification |
+
+| Fix                      | Contract                | Description                                         |
+| ------------------------ | ----------------------- | --------------------------------------------------- |
+| Nullifier Race Condition | ZKBoundStateLocks       | Fixed double-spend via optimisticUnlock() race      |
+| Access Control           | CrossChainProofHubV3    | Added role checks to submitProofInstant/submitBatch |
+| Proof Verification       | UnifiedNullifierManager | Fixed \_verifyDerivationProof accepting any proof   |
+| Signature Malleability   | Various                 | Added SECP256K1_N_DIV_2 check                       |
+| VRF Bypass               | Various                 | Fixed logic error allowing any non-zero gamma       |
+| Chain ID Validation      | CrossChainMessageRelay  | Added block.chainid check in proof verification     |
 
 ##### High Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
-| EIP-712 Binding | ConfidentialStateContainerV3 | Signature now binds to encryptedState/metadata |
-| Hash Collision | UnifiedNullifierManager | Changed abi.encodePacked to abi.encode |
-| Recovery Bypass | ZKBoundStateLocks | recoverLock now validates unlock state + nullifier |
-| Chain ID Truncation | ZKBoundStateLocks | Extended domain separator to uint64 chainId |
-| Double-Counting | CrossChainProofHubV3 | Fixed relayerSuccessCount double increment |
-| Challenger Rewards | CrossChainProofHubV3 | Added claimableRewards + withdrawRewards() |
+
+| Fix                 | Contract                     | Description                                        |
+| ------------------- | ---------------------------- | -------------------------------------------------- |
+| EIP-712 Binding     | ConfidentialStateContainerV3 | Signature now binds to encryptedState/metadata     |
+| Hash Collision      | UnifiedNullifierManager      | Changed abi.encodePacked to abi.encode             |
+| Recovery Bypass     | ZKBoundStateLocks            | recoverLock now validates unlock state + nullifier |
+| Chain ID Truncation | ZKBoundStateLocks            | Extended domain separator to uint64 chainId        |
+| Double-Counting     | CrossChainProofHubV3         | Fixed relayerSuccessCount double increment         |
+| Challenger Rewards  | CrossChainProofHubV3         | Added claimableRewards + withdrawRewards()         |
 
 ##### Medium Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
-| Missing Events | Multiple | Added events for all admin configuration changes |
-| Input Validation | DirectL2Messenger | Zero-checks, upper bounds on parameters |
-| DoS Prevention | ZKBoundStateLocks | MAX_ACTIVE_LOCKS enforcement |
-| Pagination | ConfidentialStateContainerV3, UnifiedNullifierManager | Added paginated getters |
-| Role Separation | ZKBoundStateLocks | Added confirmRoleSeparation() |
-| Silent Failures | CrossChainMessageRelay | Emit MessageFailed on batch verification failure |
+
+| Fix              | Contract                                              | Description                                      |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| Missing Events   | Multiple                                              | Added events for all admin configuration changes |
+| Input Validation | DirectL2Messenger                                     | Zero-checks, upper bounds on parameters          |
+| DoS Prevention   | ZKBoundStateLocks                                     | MAX_ACTIVE_LOCKS enforcement                     |
+| Pagination       | ConfidentialStateContainerV3, UnifiedNullifierManager | Added paginated getters                          |
+| Role Separation  | ZKBoundStateLocks                                     | Added confirmRoleSeparation()                    |
+| Silent Failures  | CrossChainMessageRelay                                | Emit MessageFailed on batch verification failure |
 
 #### Phase 2: Governance & Infrastructure Fixes (February 5, 2026)
 
 ##### Critical Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
-| Reentrancy | SoulMultiSigGovernance | Added ReentrancyGuard + nonReentrant to executeProposal() |
-| Reentrancy | BridgeWatchtower | Added ReentrancyGuard to completeExit() and claimRewards() |
+
+| Fix        | Contract               | Description                                                |
+| ---------- | ---------------------- | ---------------------------------------------------------- |
+| Reentrancy | SoulMultiSigGovernance | Added ReentrancyGuard + nonReentrant to executeProposal()  |
+| Reentrancy | BridgeWatchtower       | Added ReentrancyGuard to completeExit() and claimRewards() |
 
 ##### High Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
-| DoS via .transfer() | SoulPreconfirmationHandler | Replaced .transfer() with .call{value:}() in 4 locations |
-| DoS via .transfer() | SoulIntentResolver | Replaced .transfer() with .call{value:}() in withdrawBond() |
-| DoS via .transfer() | SoulL2Messenger | Replaced .transfer() with .call{value:}() in withdrawBond() |
-| Loop Gas | BridgeWatchtower | Optimized slashInactive() with cached length + batch storage writes |
+
+| Fix                 | Contract                   | Description                                                         |
+| ------------------- | -------------------------- | ------------------------------------------------------------------- |
+| DoS via .transfer() | SoulPreconfirmationHandler | Replaced .transfer() with .call{value:}() in 4 locations            |
+| DoS via .transfer() | SoulIntentResolver         | Replaced .transfer() with .call{value:}() in withdrawBond()         |
+| DoS via .transfer() | SoulL2Messenger            | Replaced .transfer() with .call{value:}() in withdrawBond()         |
+| Loop Gas            | BridgeWatchtower           | Optimized slashInactive() with cached length + batch storage writes |
 
 ##### Medium Fixes
-| Fix | Contract | Description |
-|-----|----------|-------------|
+
+| Fix          | Contract        | Description                             |
+| ------------ | --------------- | --------------------------------------- |
 | Zero-Address | SoulProtocolHub | Added validation to addSupportedChain() |
 
 **Total: 44 vulnerabilities fixed across both phases**
@@ -206,17 +224,19 @@ For complete details, see [docs/SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_
 
 As of February 2026, the following dependency vulnerabilities exist with **no upstream fix available**:
 
-| CVE | Package | Severity | Status | Risk Mitigation |
-|-----|---------|----------|--------|-----------------|
+| CVE            | Package         | Severity     | Status             | Risk Mitigation      |
+| -------------- | --------------- | ------------ | ------------------ | -------------------- |
 | CVE-2025-14505 | elliptic ≤6.6.1 | Low (2.9/10) | No patch available | See mitigation below |
 
 **CVE-2025-14505 Details:**
+
 - **Affected**: `elliptic` library (all versions ≤6.6.1), used by ethers.js v5 via `@nomicfoundation/hardhat-verify`
 - **Issue**: ECDSA signature generation flaw when interim value 'k' has leading zeros
 - **Impact**: Potential secret key exposure under specific cryptanalysis conditions
 - **EPSS Score**: 0.01% (1st percentile - very low exploitation probability)
 
 **Why This Doesn't Affect Soul Protocol:**
+
 1. **Smart Contracts**: On-chain signature verification uses `ecrecover` opcode, not JavaScript elliptic
 2. **ZK Proofs**: All cryptographic operations use Noir circuits with BN254, not elliptic curves via JS
 3. **SDK Usage**: The SDK uses ethers.js v6 (main dependency), not v5
@@ -224,19 +244,21 @@ As of February 2026, the following dependency vulnerabilities exist with **no up
 5. **ZK Proofs**: All proof verification delegated to registered IProofVerifier implementations
 
 **Actions Taken:**
+
 - ✅ Replaced `circomlibjs` with `poseidon-lite` (zero dependencies) for Poseidon hashing
 - ✅ Reduced vulnerabilities from 19 to 11 (all remaining are in Hardhat verify tooling)
 - npm overrides configured to use latest elliptic version when available
 
 **Monitoring Actions:**
+
 - Track [indutny/elliptic#321](https://github.com/indutny/elliptic/issues/321) for upstream fix
 - Monitor `@nomicfoundation/hardhat-verify` for migration to ethers v6
 
 ### Known Dependency Issues
 
-| Package | Severity | Status | Details |
-|---------|----------|--------|---------|
-| elliptic | LOW | Upstream Issue | GHSA-848j-6mx2-7j84 - Risky crypto implementation in elliptic used by @ethersproject/signing-key (ethers v5) via @nomicfoundation/hardhat-verify. No fix available until Hardhat migrates to ethers v6. Risk mitigated: hardhat-verify is only used for contract verification on block explorers, not for transaction signing or production operations. |
+| Package  | Severity | Status         | Details                                                                                                                                                                                                                                                                                                                                                 |
+| -------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| elliptic | LOW      | Upstream Issue | GHSA-848j-6mx2-7j84 - Risky crypto implementation in elliptic used by @ethersproject/signing-key (ethers v5) via @nomicfoundation/hardhat-verify. No fix available until Hardhat migrates to ethers v6. Risk mitigated: hardhat-verify is only used for contract verification on block explorers, not for transaction signing or production operations. |
 
 **Note:** npm overrides are used to enforce security patches for transitive dependencies (diff, jsonpath, undici, ws, tar). See `package.json` overrides section.
 
@@ -258,6 +280,7 @@ As of February 2026, the following dependency vulnerabilities exist with **no up
 | P3 (Low) | 24 hours | Normal triage |
 
 **Response Steps:**
+
 1. **Detect** - Monitoring alerts or user report
 2. **Assess** - Determine severity and scope
 3. **Contain** - Pause affected contracts if needed
@@ -266,6 +289,7 @@ As of February 2026, the following dependency vulnerabilities exist with **no up
 6. **Review** - Post-mortem within 48 hours
 
 **Emergency Contacts:**
+
 - Primary: Security Lead (on-call rotation)
 - Secondary: Protocol Lead
 - Tertiary: Legal/Comms
@@ -281,6 +305,7 @@ As of February 2026, the following dependency vulnerabilities exist with **no up
 | Monitoring Keys | On compromise | Environment vars |
 
 **Rotation Procedure:**
+
 1. Generate new key in secure environment
 2. Add new key via timelock proposal
 3. Wait for timelock execution
@@ -290,14 +315,16 @@ As of February 2026, the following dependency vulnerabilities exist with **no up
 
 ## Security Roadmap
 
-See [docs/SECURITY_ROADMAP.md](./docs/SECURITY_ROADMAP.md) for the comprehensive security hardening plan.
+See [docs/SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_REPORT.md) for the comprehensive security hardening plan, including the Phase 1 & Phase 2 audit findings.
 
 ### Current Phase: L3 - Hardening
+
 - Mutation testing
 - Attack simulations
 - Chaos testing
 
 ### Next Phase: L4 - Resilience
+
 - Economic security analysis
 - Game theory verification
 - Stress testing
@@ -310,11 +337,10 @@ See [docs/SECURITY_ROADMAP.md](./docs/SECURITY_ROADMAP.md) for the comprehensive
 
 ## Security Documentation
 
-| Document | Description |
-|----------|-------------|
-| [SECURITY_ROADMAP.md](./docs/SECURITY_ROADMAP.md) | Complete security plan |
-| [SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_REPORT.md) | February 2026 audit findings (26 fixes) |
-| [SECURITY_INVARIANTS.md](./docs/SECURITY_INVARIANTS.md) | Formal invariants |
-| [THREAT_MODEL.md](./docs/THREAT_MODEL.md) | Threat analysis |
+| Document                                                    | Description                                                                 |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [SECURITY_AUDIT_REPORT.md](./docs/SECURITY_AUDIT_REPORT.md) | February 2026 audit findings (44 fixes across 2 phases)                     |
+| [FORMAL_VERIFICATION.md](./docs/FORMAL_VERIFICATION.md)     | Formal verification report (54 Certora specs + Halmos + K Framework + TLA+) |
+| [THREAT_MODEL.md](./docs/THREAT_MODEL.md)                   | Threat analysis                                                             |
 
 Thank you for contributing to Soul Protocol security!
