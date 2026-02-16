@@ -5,6 +5,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IRelayerFeeMarket} from "../interfaces/IRelayerFeeMarket.sol";
 
 /**
  * @title RelayerFeeMarket
@@ -27,7 +28,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  *
  * @custom:security-contact security@soul.network
  */
-contract RelayerFeeMarket is AccessControl, ReentrancyGuard {
+contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -41,47 +42,6 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard {
     /// @dev keccak256("OPERATOR_ROLE")
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
-
-    /*//////////////////////////////////////////////////////////////
-                                TYPES
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice A relay request submitted by a user
-    struct RelayRequest {
-        bytes32 requestId;
-        bytes32 sourceChainId;
-        bytes32 destChainId;
-        address requester;
-        uint256 maxFee; // Maximum fee user is willing to pay
-        uint256 priorityFee; // User tip above base fee
-        uint256 submittedAt;
-        uint256 deadline; // Must be relayed before this timestamp
-        bytes32 proofId; // Proof to relay
-        RequestStatus status;
-        address claimedBy; // Relayer who claimed this request
-        uint256 claimedAt;
-        uint256 effectiveFee; // Actual fee paid
-    }
-
-    enum RequestStatus {
-        PENDING,
-        CLAIMED,
-        COMPLETED,
-        EXPIRED,
-        CANCELLED
-    }
-
-    /// @notice Fee parameters for a route
-    struct RouteFeeConfig {
-        uint256 baseFee; // Current base fee (adjusts dynamically)
-        uint256 minBaseFee; // Floor base fee
-        uint256 maxBaseFee; // Ceiling base fee
-        uint256 targetUtilization; // Target relay rate (per epoch, basis points)
-        uint256 currentUtilization; // Current epoch utilization
-        uint256 epochRelays; // Relays in current epoch
-        uint256 lastEpochUpdate; // Last epoch start timestamp
-        bool active;
-    }
 
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -141,54 +101,6 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard {
 
     /// @notice Request nonce
     uint256 public requestNonce;
-
-    /*//////////////////////////////////////////////////////////////
-                               EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event RelayRequestSubmitted(
-        bytes32 indexed requestId,
-        bytes32 indexed sourceChainId,
-        bytes32 indexed destChainId,
-        address requester,
-        uint256 maxFee
-    );
-
-    event RelayRequestClaimed(
-        bytes32 indexed requestId,
-        address indexed relayer
-    );
-
-    event RelayCompleted(
-        bytes32 indexed requestId,
-        address indexed relayer,
-        uint256 effectiveFee
-    );
-
-    event RelayRequestExpired(bytes32 indexed requestId);
-    event RelayRequestCancelled(bytes32 indexed requestId);
-    event BaseFeeUpdated(
-        bytes32 indexed sourceChainId,
-        bytes32 indexed destChainId,
-        uint256 newBaseFee
-    );
-    event ProtocolFeeWithdrawn(uint256 amount);
-
-    /*//////////////////////////////////////////////////////////////
-                            CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error RequestNotFound();
-    error RequestNotPending();
-    error RequestExpired();
-    error RequestAlreadyClaimed();
-    error ClaimTimeout();
-    error InsufficientFee();
-    error NotRequester();
-    error NotClaimedRelayer();
-    error RouteNotActive();
-    error ZeroAddress();
-    error InvalidFee();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

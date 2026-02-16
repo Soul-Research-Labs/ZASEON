@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {CrossChainProofHubV3, BatchProofInput} from "../../contracts/bridge/CrossChainProofHubV3.sol";
+import {CrossChainProofHubV3} from "../../contracts/bridge/CrossChainProofHubV3.sol";
+import {ICrossChainProofHubV3, BatchProofInput} from "../../contracts/interfaces/ICrossChainProofHubV3.sol";
 import {IProofVerifier} from "../../contracts/interfaces/IProofVerifier.sol";
 
 contract MockProofVerifier is IProofVerifier {
@@ -148,14 +149,16 @@ contract CrossChainProofHubV3Test is Test {
 
         assertEq(hub.totalProofs(), 1);
 
-        CrossChainProofHubV3.ProofSubmission memory sub = hub.getProof(proofId);
+        ICrossChainProofHubV3.ProofSubmission memory sub = hub.getProof(
+            proofId
+        );
         assertEq(sub.commitment, commitment);
         assertEq(sub.sourceChainId, uint64(block.chainid));
         assertEq(sub.destChainId, 42161);
         assertEq(sub.relayer, relayer);
         assertEq(
             uint256(sub.status),
-            uint256(CrossChainProofHubV3.ProofStatus.Pending)
+            uint256(ICrossChainProofHubV3.ProofStatus.Pending)
         );
     }
 
@@ -215,11 +218,13 @@ contract CrossChainProofHubV3Test is Test {
             PROOF_TYPE
         );
 
-        CrossChainProofHubV3.ProofSubmission memory sub = hub.getProof(proofId);
+        ICrossChainProofHubV3.ProofSubmission memory sub = hub.getProof(
+            proofId
+        );
         // Instant verification should set status to Verified
         assertEq(
             uint256(sub.status),
-            uint256(CrossChainProofHubV3.ProofStatus.Verified)
+            uint256(ICrossChainProofHubV3.ProofStatus.Verified)
         );
     }
 
@@ -263,7 +268,7 @@ contract CrossChainProofHubV3Test is Test {
             merkleRoot
         );
 
-        CrossChainProofHubV3.BatchSubmission memory batch = hub.getBatch(
+        ICrossChainProofHubV3.BatchSubmission memory batch = hub.getBatch(
             batchId
         );
         assertEq(batch.merkleRoot, merkleRoot);
@@ -310,7 +315,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(challenger);
         hub.challengeProof{value: 0.05 ether}(proofId, "Invalid proof data");
 
-        CrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
+        ICrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
         assertEq(c.challenger, challenger);
         assertFalse(c.resolved);
         assertEq(c.reason, "Invalid proof data");
@@ -336,7 +341,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(challenger);
         hub.resolveChallenge(proofId, hex"aa", hex"bb", PROOF_TYPE);
 
-        CrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
+        ICrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
         assertTrue(c.resolved);
         assertTrue(c.challengerWon);
     }
@@ -352,7 +357,7 @@ contract CrossChainProofHubV3Test is Test {
         vm.prank(challenger);
         hub.resolveChallenge(proofId, hex"deadbeef", hex"cafe", PROOF_TYPE);
 
-        CrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
+        ICrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
         assertTrue(c.resolved);
         assertFalse(c.challengerWon);
     }
@@ -364,7 +369,7 @@ contract CrossChainProofHubV3Test is Test {
         hub.challengeProof{value: 0.05 ether}(proofId, "bad");
 
         // Advance past challenge deadline
-        CrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
+        ICrossChainProofHubV3.Challenge memory c = hub.getChallenge(proofId);
         vm.warp(c.deadline + 1);
 
         hub.expireChallenge(proofId);

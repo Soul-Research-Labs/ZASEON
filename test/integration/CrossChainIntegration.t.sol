@@ -7,6 +7,7 @@ import {console} from "forge-std/console.sol";
 // Cross-chain contracts
 import {DirectL2Messenger} from "../../contracts/crosschain/DirectL2Messenger.sol";
 import {L2ProofRouter} from "../../contracts/crosschain/L2ProofRouter.sol";
+import {IL2DirectMessenger} from "../../contracts/interfaces/IL2DirectMessenger.sol";
 
 /**
  * @title CrossChainIntegrationTest
@@ -110,7 +111,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0), // No adapter for fast path
             3, // 3 confirmations
             30 minutes
@@ -127,7 +128,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             user, // recipient
             payload,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             nullifierBinding
         );
 
@@ -149,11 +150,11 @@ contract CrossChainIntegrationTest is Test {
             ,
             ,
             ,
-            DirectL2Messenger.MessageStatus status,
+            IL2DirectMessenger.MessageStatus status,
 
         ) = messengerArbitrum.messages(messageId);
         assertTrue(
-            status == DirectL2Messenger.MessageStatus.SENT,
+            status == IL2DirectMessenger.MessageStatus.SENT,
             "Message status is SENT"
         );
     }
@@ -171,7 +172,7 @@ contract CrossChainIntegrationTest is Test {
             ARBITRUM_CHAIN_ID, // Same chain - should fail
             user,
             payload,
-            DirectL2Messenger.MessagePath.SLOW_L1,
+            IL2DirectMessenger.MessagePath.SLOW_L1,
             bytes32(0)
         );
 
@@ -191,7 +192,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             address(0), // Zero recipient - should fail
             payload,
-            DirectL2Messenger.MessagePath.SLOW_L1,
+            IL2DirectMessenger.MessagePath.SLOW_L1,
             bytes32(0)
         );
 
@@ -211,7 +212,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             30 minutes
@@ -227,7 +228,7 @@ contract CrossChainIntegrationTest is Test {
                 OPTIMISM_CHAIN_ID,
                 user,
                 payload,
-                DirectL2Messenger.MessagePath.FAST_RELAYER,
+                IL2DirectMessenger.MessagePath.FAST_RELAYER,
                 bytes32(0)
             );
         }
@@ -258,7 +259,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             30 minutes
@@ -279,7 +280,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             user,
             payload,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             nullifier
         );
 
@@ -300,7 +301,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             30 minutes
@@ -315,7 +316,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             user,
             abi.encode("First message"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             nullifier
         );
 
@@ -323,7 +324,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             user,
             abi.encode("Second message"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             nullifier
         );
 
@@ -493,7 +494,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             BASE_CHAIN_ID,
-            DirectL2Messenger.MessagePath.SUPERCHAIN,
+            IL2DirectMessenger.MessagePath.SUPERCHAIN,
             address(0), // No adapter (will use native superchain)
             2, // 2 confirmations
             5 minutes // Fast challenge window
@@ -501,7 +502,7 @@ contract CrossChainIntegrationTest is Test {
 
         // Verify route is configured
         (
-            DirectL2Messenger.MessagePath preferredPath,
+            IL2DirectMessenger.MessagePath preferredPath,
             address adapter,
             uint256 minConfirmations,
             uint256 challengeWindow,
@@ -510,7 +511,7 @@ contract CrossChainIntegrationTest is Test {
 
         assertEq(
             uint8(preferredPath),
-            uint8(DirectL2Messenger.MessagePath.SUPERCHAIN),
+            uint8(IL2DirectMessenger.MessagePath.SUPERCHAIN),
             "Path correct"
         );
         assertEq(adapter, address(0), "Adapter correct (none)");
@@ -532,7 +533,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             30 minutes
@@ -547,7 +548,7 @@ contract CrossChainIntegrationTest is Test {
             OPTIMISM_CHAIN_ID,
             user,
             payload,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
         uint256 gasUsed = gasBefore - gasleft();
@@ -584,7 +585,7 @@ contract CrossChainIntegrationTest is Test {
         messengerArbitrum.configureRoute(
             ARBITRUM_CHAIN_ID,
             OPTIMISM_CHAIN_ID,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             30 minutes
@@ -598,7 +599,7 @@ contract CrossChainIntegrationTest is Test {
                 OPTIMISM_CHAIN_ID,
                 user,
                 abi.encode("Batch", i),
-                DirectL2Messenger.MessagePath.FAST_RELAYER,
+                IL2DirectMessenger.MessagePath.FAST_RELAYER,
                 bytes32(0)
             );
         }

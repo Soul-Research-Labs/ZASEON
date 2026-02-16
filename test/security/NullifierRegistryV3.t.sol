@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {NullifierRegistryV3} from "../../contracts/core/NullifierRegistryV3.sol";
+import {INullifierRegistryV3} from "../../contracts/interfaces/INullifierRegistryV3.sol";
 
 contract NullifierRegistryV3Test is Test {
     NullifierRegistryV3 public registry;
@@ -48,7 +49,7 @@ contract NullifierRegistryV3Test is Test {
         vm.prank(registrar);
         vm.expectRevert(
             abi.encodeWithSelector(
-                NullifierRegistryV3.NullifierAlreadyExists.selector,
+                INullifierRegistryV3.NullifierAlreadyExists.selector,
                 nullifier
             )
         );
@@ -57,7 +58,7 @@ contract NullifierRegistryV3Test is Test {
 
     function test_registerNullifier_revertsZero() public {
         vm.prank(registrar);
-        vm.expectRevert(NullifierRegistryV3.ZeroNullifier.selector);
+        vm.expectRevert(INullifierRegistryV3.ZeroNullifier.selector);
         registry.registerNullifier(bytes32(0), bytes32(0));
     }
 
@@ -95,7 +96,7 @@ contract NullifierRegistryV3Test is Test {
     function test_batchRegister_emptyReverts() public {
         bytes32[] memory empty = new bytes32[](0);
         vm.prank(registrar);
-        vm.expectRevert(NullifierRegistryV3.EmptyBatch.selector);
+        vm.expectRevert(INullifierRegistryV3.EmptyBatch.selector);
         registry.batchRegisterNullifiers(empty, empty);
     }
 
@@ -109,7 +110,7 @@ contract NullifierRegistryV3Test is Test {
         vm.prank(registrar);
         vm.expectRevert(
             abi.encodeWithSelector(
-                NullifierRegistryV3.BatchTooLarge.selector,
+                INullifierRegistryV3.BatchTooLarge.selector,
                 21,
                 20
             )
@@ -199,7 +200,7 @@ contract NullifierRegistryV3Test is Test {
         bytes32[] memory commitments = new bytes32[](0);
 
         vm.prank(bridge);
-        vm.expectRevert(NullifierRegistryV3.InvalidChainId.selector);
+        vm.expectRevert(INullifierRegistryV3.InvalidChainId.selector);
         registry.receiveCrossChainNullifiers(
             block.chainid,
             nullifiers,
@@ -233,7 +234,7 @@ contract NullifierRegistryV3Test is Test {
         vm.prank(registrar);
         registry.registerNullifier(nullifier, commitment);
 
-        NullifierRegistryV3.NullifierData memory data = registry
+        INullifierRegistryV3.NullifierData memory data = registry
             .getNullifierData(nullifier);
         assertEq(data.commitment, commitment);
         assertEq(data.registrar, registrar);
@@ -243,7 +244,7 @@ contract NullifierRegistryV3Test is Test {
     function test_getNullifierData_revertsNotFound() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                NullifierRegistryV3.NullifierNotFound.selector,
+                INullifierRegistryV3.NullifierNotFound.selector,
                 keccak256("nope")
             )
         );

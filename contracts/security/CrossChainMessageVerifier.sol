@@ -42,7 +42,6 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
     error InsufficientBond();
     error BondReturnFailed();
 
-
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -448,7 +447,7 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
         bytes32 messageId,
         bool accurate
     ) internal {
-        for (uint256 i = 0; i < activeVerifiers.length; i++) {
+        for (uint256 i = 0; i < activeVerifiers.length; ) {
             address verifierAddr = activeVerifiers[i];
             if (verifierConfirmations[messageId][verifierAddr]) {
                 if (accurate) {
@@ -456,6 +455,9 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
                 } else {
                     verifiers[verifierAddr].slashedCount++;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -505,13 +507,16 @@ contract CrossChainMessageVerifier is ReentrancyGuard, AccessControl, Pausable {
         verifiers[verifier].isActive = false;
 
         // Remove from active list
-        for (uint256 i = 0; i < activeVerifiers.length; i++) {
+        for (uint256 i = 0; i < activeVerifiers.length; ) {
             if (activeVerifiers[i] == verifier) {
                 activeVerifiers[i] = activeVerifiers[
                     activeVerifiers.length - 1
                 ];
                 activeVerifiers.pop();
                 break;
+            }
+            unchecked {
+                ++i;
             }
         }
 

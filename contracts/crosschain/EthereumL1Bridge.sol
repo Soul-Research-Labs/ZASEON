@@ -992,7 +992,7 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
 
         // Verify Merkle proof
         bytes32 computedRoot = leaf;
-        for (uint256 i = 0; i < proof.length; i++) {
+        for (uint256 i = 0; i < proof.length; ) {
             bytes32 proofElement = proof[i];
             if (computedRoot <= proofElement) {
                 computedRoot = keccak256(
@@ -1002,6 +1002,9 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
                 computedRoot = keccak256(
                     abi.encodePacked(proofElement, computedRoot)
                 );
+            }
+            unchecked {
+                ++i;
             }
         }
 

@@ -416,7 +416,7 @@ contract ZKSLockIntegration {
             ? domainSeparator
             : defaultDomainSeparator;
 
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             lockIds[i] = zkSlocks.createLock(
                 stateCommitments[i],
                 transitionPredicates[i],
@@ -424,6 +424,9 @@ contract ZKSLockIntegration {
                 domainSep,
                 unlockDeadlines[i]
             );
+            unchecked {
+                ++i;
+            }
         }
     }
 

@@ -580,11 +580,14 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     ) external onlyRole(EXECUTOR_ROLE) returns (bytes32 withdrawalId) {
         // Find L1 token
         address l1Token = address(0);
-        for (uint256 i = 0; i < tokenMappingKeys.length; i++) {
+        for (uint256 i = 0; i < tokenMappingKeys.length; ) {
             TokenMapping storage m = tokenMappings[tokenMappingKeys[i]];
             if (m.l2Token == l2Token && m.active) {
                 l1Token = m.l1Token;
                 break;
+            }
+            unchecked {
+                ++i;
             }
         }
         if (l1Token == address(0)) revert TokenNotMapped();
@@ -869,7 +872,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
         bytes32 computedHash = outputId;
 
-        for (uint256 i = 0; i < proof.length; i++) {
+        for (uint256 i = 0; i < proof.length; ) {
             if (index % 2 == 0) {
                 computedHash = keccak256(
                     abi.encodePacked(computedHash, proof[i])
@@ -880,6 +883,9 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
                 );
             }
             index = index / 2;
+            unchecked {
+                ++i;
+            }
         }
 
         // Note: In production, full verification happens via IOutbox.executeTransaction()

@@ -375,7 +375,7 @@ contract SoulAtomicSwapSecurityIntegration is
         address user,
         address[] calldata tokens
     ) external {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokens.length; ) {
             uint256 balance;
             if (tokens[i] == address(0)) {
                 balance = user.balance;
@@ -383,6 +383,9 @@ contract SoulAtomicSwapSecurityIntegration is
                 balance = IERC20(tokens[i]).balanceOf(user);
             }
             balanceSnapshots[user][block.number][tokens[i]] = balance;
+            unchecked {
+                ++i;
+            }
         }
     }
 

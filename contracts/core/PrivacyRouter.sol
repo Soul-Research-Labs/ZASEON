@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IPrivacyRouter} from "../interfaces/IPrivacyRouter.sol";
 
 /// @notice Minimal interface for SoulProtocolHub address resolution
 interface ISoulProtocolHub {
@@ -51,7 +52,12 @@ interface ISoulProtocolHub {
  *
  * @custom:security-contact security@soul.network
  */
-contract PrivacyRouter is AccessControl, ReentrancyGuard, Pausable {
+contract PrivacyRouter is
+    AccessControl,
+    ReentrancyGuard,
+    Pausable,
+    IPrivacyRouter
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -90,48 +96,6 @@ contract PrivacyRouter is AccessControl, ReentrancyGuard, Pausable {
         uint256 amount; // Amount to deposit (0 for ETH — uses msg.value)
     }
 
-    /// @notice Parameters for a private withdrawal
-    struct WithdrawParams {
-        bytes proof; // ZK proof of knowledge
-        bytes32 merkleRoot; // Merkle root the proof is against
-        bytes32 nullifier; // Nullifier to prevent double-spend
-        address recipient; // Withdrawal recipient
-        address relayerAddress; // Relayer for gas abstraction (address(0) if self-relay)
-        uint256 amount; // Amount to withdraw
-        uint256 relayerFee; // Fee for relayer
-        bytes32 assetId; // Asset being withdrawn
-        bytes32 destChainId; // Destination chain (bytes32(0) for same-chain)
-    }
-
-    /// @notice Parameters for a cross-chain private transfer
-    struct CrossChainTransferParams {
-        uint256 destChainId; // EVM chain ID of destination
-        bytes32 recipientStealth; // Stealth address hash of recipient
-        uint256 amount; // Transfer amount
-        uint8 privacyLevel; // 0=NONE, 1=BASIC, 2=MEDIUM, 3=HIGH, 4=MAXIMUM
-        uint8 proofSystem; // Proof system enum value
-        bytes proof; // ZK proof bytes
-        bytes32[] publicInputs; // Public inputs to the proof
-        bytes32 proofHash; // Hash of the proof for dedup
-    }
-
-    /// @notice Privacy operation receipt
-    struct OperationReceipt {
-        bytes32 operationId;
-        OperationType opType;
-        uint256 timestamp;
-        bytes32 commitmentOrNullifier;
-        bool success;
-    }
-
-    enum OperationType {
-        DEPOSIT,
-        WITHDRAW,
-        CROSS_CHAIN_TRANSFER,
-        STEALTH_PAYMENT,
-        PROOF_TRANSLATION
-    }
-
     /*//////////////////////////////////////////////////////////////
                             COMPONENT ADDRESSES
     //////////////////////////////////////////////////////////////*/
@@ -167,51 +131,9 @@ contract PrivacyRouter is AccessControl, ReentrancyGuard, Pausable {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event PrivateDeposit(
-        bytes32 indexed operationId,
-        bytes32 indexed commitment,
-        bytes32 assetId,
-        uint256 amount
-    );
-
-    event PrivateWithdrawal(
-        bytes32 indexed operationId,
-        bytes32 indexed nullifier,
-        address indexed recipient,
-        uint256 amount
-    );
-
-    event CrossChainTransferInitiated(
-        bytes32 indexed operationId,
-        uint256 indexed destChainId,
-        bytes32 recipientStealth,
-        uint256 amount
-    );
-
-    event StealthPaymentSent(
-        bytes32 indexed operationId,
-        address indexed stealthAddress,
-        uint256 amount
-    );
-
-    event ComponentUpdated(string name, address newAddress);
-    event ComplianceToggled(bool enabled);
     event MinimumKYCTierUpdated(uint8 oldTier, uint8 newTier);
     event ETHWithdrawn(address indexed to, uint256 amount);
     event SyncedFromHub(address indexed hub);
-
-    /*//////////////////////////////////////////////////////////////
-                            CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error ComponentNotSet(string name);
-    error ComplianceCheckFailed(address user);
-    error SanctionedAddress(address user);
-    error InsufficientKYCTier(address user, uint8 required, uint8 actual);
-    error ZeroAddress();
-    error ZeroAmount();
-    error OperationFailed(string reason);
-    error InvalidParams();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

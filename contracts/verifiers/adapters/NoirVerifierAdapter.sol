@@ -79,8 +79,11 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
         uint256 len = publicInputs.length;
         bytes32[] memory signals = new bytes32[](len);
 
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ) {
             signals[i] = bytes32(publicInputs[i]);
+            unchecked {
+                ++i;
+            }
         }
 
         // Internal verification call

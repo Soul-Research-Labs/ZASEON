@@ -80,7 +80,6 @@ contract Groth16VerifierBN254 is IProofVerifier {
     error PrecompileFailed();
     error InvalidOwner();
 
-
     /*//////////////////////////////////////////////////////////////
                               EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -134,7 +133,7 @@ contract Groth16VerifierBN254 is IProofVerifier {
         uint256[2][] calldata ic
     ) external onlyOwner {
         // M-7 Fix: Allow key rotation by owner (removed AlreadyInitialized check)
-        
+
         vkAlpha = alpha;
         vkBeta = beta;
         vkGamma = gamma;
@@ -296,7 +295,7 @@ contract Groth16VerifierBN254 is IProofVerifier {
         // Compute linear combination: vk_x = IC[0] + Σ(IC[i+1] * input[i])
         uint256[2] memory vkX = vkIC[0];
 
-        for (uint256 i = 0; i < publicInputs.length; i++) {
+        for (uint256 i = 0; i < publicInputs.length; ) {
             // IC[i+1] * input[i]
             uint256[2] memory mulResult = _scalarMul(
                 vkIC[i + 1],
@@ -304,6 +303,9 @@ contract Groth16VerifierBN254 is IProofVerifier {
             );
             // vk_x + mulResult
             vkX = _pointAdd(vkX, mulResult);
+            unchecked {
+                ++i;
+            }
         }
 
         // Negate piA for the pairing check

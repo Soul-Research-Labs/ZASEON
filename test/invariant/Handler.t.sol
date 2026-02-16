@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {ConfidentialStateContainerV3} from "../../contracts/core/ConfidentialStateContainerV3.sol";
+import {IConfidentialStateContainerV3} from "../../contracts/interfaces/IConfidentialStateContainerV3.sol";
 import {IProofVerifier} from "../../contracts/interfaces/IProofVerifier.sol";
 
 contract MockVerifier is IProofVerifier {
@@ -110,9 +111,9 @@ contract Handler is Test {
         // We can't prune msg.sender easily inside the handler unless we use library calls or `vm.prank`.
         // `vm.prank` works in handlers!
 
-        ConfidentialStateContainerV3.EncryptedState memory state = container
+        IConfidentialStateContainerV3.EncryptedState memory state = container
             .states(oldCommitment);
-        if (state.status != ConfidentialStateContainerV3.StateStatus.Active)
+        if (state.status != IConfidentialStateContainerV3.StateStatus.Active)
             return;
 
         bytes32 newCommitment = keccak256(abi.encodePacked(newCommitmentSeed));

@@ -440,10 +440,13 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
 
             // Check if signer is validator
             bool isValidator = false;
-            for (uint256 j = 0; j < params.validators.length; j++) {
+            for (uint256 j = 0; j < params.validators.length; ) {
                 if (params.validators[j] == signer) {
                     isValidator = true;
                     break;
+                }
+                unchecked {
+                    ++j;
                 }
             }
 
@@ -474,7 +477,7 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
 
         // Verify proof
         bytes32 computedHash = messageId;
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 0; i < path.length; ) {
             if (index % 2 == 0) {
                 computedHash = keccak256(
                     abi.encodePacked(computedHash, path[i])
@@ -485,6 +488,9 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
                 );
             }
             index = index / 2;
+            unchecked {
+                ++i;
+            }
         }
 
         return computedHash == root;
@@ -502,9 +508,12 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
         uint8 verified = 0;
 
         // Verify with each sub-ISM (simplified)
-        for (uint256 i = 0; i < subMetadata.length; i++) {
+        for (uint256 i = 0; i < subMetadata.length; ) {
             if (_verifyMultisig(messageId, subMetadata[i], originDomain)) {
                 verified++;
+            }
+            unchecked {
+                ++i;
             }
         }
 

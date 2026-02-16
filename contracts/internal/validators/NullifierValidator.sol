@@ -221,8 +221,11 @@ library NullifierValidator {
 
         // Simple hash chain for small batches
         root = nullifiers[0];
-        for (uint256 i = 1; i < nullifiers.length; i++) {
+        for (uint256 i = 1; i < nullifiers.length; ) {
             root = keccak256(abi.encodePacked(root, nullifiers[i]));
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -234,11 +237,17 @@ library NullifierValidator {
     function validateBatchUniqueness(
         bytes32[] memory nullifiers
     ) internal pure returns (bool allUnique) {
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            for (uint256 j = i + 1; j < nullifiers.length; j++) {
+        for (uint256 i = 0; i < nullifiers.length; ) {
+            for (uint256 j = i + 1; j < nullifiers.length; ) {
                 if (nullifiers[i] == nullifiers[j]) {
                     return false;
                 }
+                unchecked {
+                    ++j;
+                }
+            }
+            unchecked {
+                ++i;
             }
         }
         return true;

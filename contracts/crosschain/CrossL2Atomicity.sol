@@ -279,8 +279,11 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         // Calculate total required value
         {
             uint256 totalRequiredValue = 0;
-            for (uint256 i = 0; i < chainCount; i++) {
+            for (uint256 i = 0; i < chainCount; ) {
                 totalRequiredValue += values[i];
+                unchecked {
+                    ++i;
+                }
             }
             if (msg.value < totalRequiredValue) revert InsufficientValue();
         }
@@ -340,11 +343,14 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
         AtomicBundle storage bundle = _bundles[bundleId];
         uint256 chainCount = chainIds.length;
 
-        for (uint256 i = 0; i < chainCount; i++) {
+        for (uint256 i = 0; i < chainCount; ) {
             // Check for duplicate chainIds
-            for (uint256 j = 0; j < i; j++) {
+            for (uint256 j = 0; j < i; ) {
                 if (chainIds[j] == chainIds[i])
                     revert DuplicateChainId(chainIds[i]);
+                unchecked {
+                    ++j;
+                }
             }
             bundle.operations[chainIds[i]] = ChainOperation({
                 chainId: chainIds[i],
@@ -356,6 +362,9 @@ contract CrossL2Atomicity is ReentrancyGuard, AccessControl, Pausable {
                 prepared: false,
                 executed: false
             });
+            unchecked {
+                ++i;
+            }
         }
     }
 

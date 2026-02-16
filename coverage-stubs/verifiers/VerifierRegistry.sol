@@ -3,7 +3,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "../interfaces/IProofVerifier.sol";
+import "../../contracts/interfaces/IProofVerifier.sol";
 
 contract VerifierRegistry is AccessControl, IVerifierRegistry {
     bytes32 public constant REGISTRY_ADMIN_ROLE =

@@ -333,10 +333,13 @@ contract MEVProtection is ReentrancyGuard, AccessControl, Pausable {
         commitmentIds = new bytes32[](pending);
 
         uint256 index = 0;
-        for (uint256 i = 0; i < all.length && index < pending; i++) {
+        for (uint256 i = 0; i < all.length && index < pending; ) {
             Commitment storage c = commitments[all[i]];
             if (!c.revealed && !c.cancelled && block.number <= c.expiresAt) {
                 commitmentIds[index++] = all[i];
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -389,13 +392,16 @@ contract MEVProtection is ReentrancyGuard, AccessControl, Pausable {
         bytes32[] storage all = userCommitments[user];
         uint256 cleaned = 0;
 
-        for (uint256 i = 0; i < all.length && cleaned < maxCleanup; i++) {
+        for (uint256 i = 0; i < all.length && cleaned < maxCleanup; ) {
             Commitment storage c = commitments[all[i]];
             if (!c.revealed && !c.cancelled && block.number > c.expiresAt) {
                 c.cancelled = true;
                 pendingCommitmentCount[user]--;
                 cleaned++;
                 emit CommitmentExpiredEvent(all[i]);
+            }
+            unchecked {
+                ++i;
             }
         }
     }

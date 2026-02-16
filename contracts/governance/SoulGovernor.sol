@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {ISoulGovernor} from "../interfaces/ISoulGovernor.sol";
 
 /**
  * @title SoulGovernor
@@ -40,7 +41,8 @@ contract SoulGovernor is
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction,
-    GovernorTimelockControl
+    GovernorTimelockControl,
+    ISoulGovernor
 {
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -106,7 +108,7 @@ contract SoulGovernor is
     function clock()
         public
         view
-        override(Governor, GovernorVotes)
+        override(Governor, GovernorVotes, IERC6372)
         returns (uint48)
     {
         return uint48(block.timestamp);
@@ -119,7 +121,7 @@ contract SoulGovernor is
     function CLOCK_MODE()
         public
         pure
-        override(Governor, GovernorVotes)
+        override(Governor, GovernorVotes, IERC6372)
         returns (string memory)
     {
         return "mode=timestamp&from=default";
@@ -133,7 +135,7 @@ contract SoulGovernor is
     function votingDelay()
         public
         view
-        override(Governor, GovernorSettings)
+        override(Governor, GovernorSettings, IGovernor)
         returns (uint256)
     {
         return super.votingDelay();
@@ -143,7 +145,7 @@ contract SoulGovernor is
     function votingPeriod()
         public
         view
-        override(Governor, GovernorSettings)
+        override(Governor, GovernorSettings, IGovernor)
         returns (uint256)
     {
         return super.votingPeriod();
@@ -155,7 +157,7 @@ contract SoulGovernor is
     )
         public
         view
-        override(Governor, GovernorVotesQuorumFraction)
+        override(Governor, GovernorVotesQuorumFraction, IGovernor)
         returns (uint256)
     {
         return super.quorum(timepoint);
@@ -167,7 +169,7 @@ contract SoulGovernor is
     )
         public
         view
-        override(Governor, GovernorTimelockControl)
+        override(Governor, GovernorTimelockControl, IGovernor)
         returns (ProposalState)
     {
         return super.state(proposalId);
@@ -176,7 +178,12 @@ contract SoulGovernor is
     /// @inheritdoc GovernorTimelockControl
     function proposalNeedsQueuing(
         uint256 proposalId
-    ) public view override(Governor, GovernorTimelockControl) returns (bool) {
+    )
+        public
+        view
+        override(Governor, GovernorTimelockControl, IGovernor)
+        returns (bool)
+    {
         return super.proposalNeedsQueuing(proposalId);
     }
 
@@ -184,7 +191,7 @@ contract SoulGovernor is
     function proposalThreshold()
         public
         view
-        override(Governor, GovernorSettings)
+        override(Governor, GovernorSettings, IGovernor)
         returns (uint256)
     {
         return super.proposalThreshold();

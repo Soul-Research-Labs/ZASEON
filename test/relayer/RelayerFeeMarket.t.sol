@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {RelayerFeeMarket} from "../../contracts/relayer/RelayerFeeMarket.sol";
+import {IRelayerFeeMarket} from "../../contracts/interfaces/IRelayerFeeMarket.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /// @dev Mock ERC20 fee token for testing
@@ -107,7 +108,7 @@ contract RelayerFeeMarketTest is Test {
         // Try to submit with fee below base fee
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(RelayerFeeMarket.InsufficientFee.selector)
+            abi.encodeWithSelector(IRelayerFeeMarket.InsufficientFee.selector)
         );
         market.submitRelayRequest(
             sourceChain,
@@ -125,7 +126,7 @@ contract RelayerFeeMarketTest is Test {
 
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(RelayerFeeMarket.RouteNotActive.selector)
+            abi.encodeWithSelector(IRelayerFeeMarket.RouteNotActive.selector)
         );
         market.submitRelayRequest(
             sourceChain,
@@ -167,12 +168,12 @@ contract RelayerFeeMarketTest is Test {
             ,
             ,
             ,
-            RelayerFeeMarket.RequestStatus status,
+            IRelayerFeeMarket.RequestStatus status,
             address claimedBy,
             ,
 
         ) = market.requests(requestId);
-        assertEq(uint8(status), uint8(RelayerFeeMarket.RequestStatus.CLAIMED));
+        assertEq(uint8(status), uint8(IRelayerFeeMarket.RequestStatus.CLAIMED));
         assertEq(claimedBy, relayerA);
     }
 
@@ -229,14 +230,14 @@ contract RelayerFeeMarketTest is Test {
             ,
             ,
             ,
-            RelayerFeeMarket.RequestStatus status,
+            IRelayerFeeMarket.RequestStatus status,
             ,
             ,
             uint256 effectiveFee
         ) = market.requests(requestId);
         assertEq(
             uint8(status),
-            uint8(RelayerFeeMarket.RequestStatus.COMPLETED)
+            uint8(IRelayerFeeMarket.RequestStatus.COMPLETED)
         );
         assertTrue(effectiveFee > 0, "Effective fee should be set");
         assertEq(market.totalRelaysCompleted(), 1);
@@ -275,7 +276,7 @@ contract RelayerFeeMarketTest is Test {
         // Different relayer tries to complete
         vm.prank(relayerB);
         vm.expectRevert(
-            abi.encodeWithSelector(RelayerFeeMarket.NotClaimedRelayer.selector)
+            abi.encodeWithSelector(IRelayerFeeMarket.NotClaimedRelayer.selector)
         );
         market.completeRelay(requestId);
     }
@@ -320,7 +321,7 @@ contract RelayerFeeMarketTest is Test {
 
         vm.prank(relayerA);
         vm.expectRevert(
-            abi.encodeWithSelector(RelayerFeeMarket.NotRequester.selector)
+            abi.encodeWithSelector(IRelayerFeeMarket.NotRequester.selector)
         );
         market.cancelRelayRequest(requestId);
     }

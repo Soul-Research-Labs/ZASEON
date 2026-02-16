@@ -314,7 +314,7 @@ contract MixnetNodeRegistry is
         );
 
         bytes32[] memory route = new bytes32[](pathLength);
-        for (uint256 i = 0; i < pathLength; i++) {
+        for (uint256 i = 0; i < pathLength; ) {
             bytes32[] storage layerSet = _layerNodes[uint16(i)];
             require(layerSet.length > 0, "Empty layer");
 
@@ -322,6 +322,9 @@ contract MixnetNodeRegistry is
                 keccak256(abi.encode(block.prevrandao, i, block.timestamp))
             ) % layerSet.length;
             route[i] = layerSet[idx];
+            unchecked {
+                ++i;
+            }
         }
         return route;
     }

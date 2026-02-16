@@ -359,11 +359,14 @@ contract PrivacyPreservingRelayerSelection is AccessControl, ReentrancyGuard {
         uint256[] memory weights = new uint256[](poolSize);
         uint256 totalWeight = 0;
 
-        for (uint256 i = 0; i < poolSize; i++) {
+        for (uint256 i = 0; i < poolSize; ) {
             Relayer storage r = relayers[activeRelayers[i]];
             // Weight = stake * reputation / 10000
             weights[i] = (r.stake * r.reputation) / 10000;
             totalWeight += weights[i];
+            unchecked {
+                ++i;
+            }
         }
 
         // Select without replacement

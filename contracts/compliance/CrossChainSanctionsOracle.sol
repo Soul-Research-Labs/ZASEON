@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ICrossChainSanctionsOracle} from "../interfaces/ICrossChainSanctionsOracle.sol";
 
 /**
  * @title CrossChainSanctionsOracle
@@ -20,7 +21,10 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *
  * @custom:security-contact security@soul.network
  */
-contract CrossChainSanctionsOracle is AccessControl {
+contract CrossChainSanctionsOracle is
+    AccessControl,
+    ICrossChainSanctionsOracle
+{
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -36,23 +40,6 @@ contract CrossChainSanctionsOracle is AccessControl {
     /*//////////////////////////////////////////////////////////////
                                 TYPES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Screening provider configuration
-    struct ScreeningProvider {
-        address providerAddress; // External oracle contract
-        string name; // Human-readable name
-        uint256 weight; // Weight in quorum (1-100)
-        bool active;
-        uint256 totalScreenings;
-    }
-
-    /// @notice Sanctions entry for an address
-    struct SanctionsEntry {
-        bool flagged; // Whether address is sanctioned
-        uint256 flagCount; // Number of providers flagging
-        uint256 lastUpdated; // Last update timestamp
-        bytes32 reason; // Reason hash (for audit)
-    }
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -78,34 +65,6 @@ contract CrossChainSanctionsOracle is AccessControl {
 
     /// @notice Whether to fail-open (false = fail-closed: treat unknown as sanctioned)
     bool public failOpen = true;
-
-    /*//////////////////////////////////////////////////////////////
-                               EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event ProviderRegistered(
-        address indexed provider,
-        string name,
-        uint256 weight
-    );
-    event ProviderDeactivated(address indexed provider);
-    event AddressFlagged(
-        address indexed addr,
-        address indexed provider,
-        bytes32 reason
-    );
-    event AddressCleared(address indexed addr);
-    event QuorumThresholdUpdated(uint256 newThreshold);
-
-    /*//////////////////////////////////////////////////////////////
-                            CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error ZeroAddress();
-    error ProviderAlreadyRegistered();
-    error ProviderNotRegistered();
-    error InvalidWeight();
-    error InvalidThreshold();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

@@ -966,8 +966,11 @@ contract ZKBoundStateLocksUpgradeable is
         }
 
         bytes32[] memory result = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             result[i] = _activeLockIds[offset + i];
+            unchecked {
+                ++i;
+            }
         }
         return result;
     }
@@ -989,8 +992,11 @@ contract ZKBoundStateLocksUpgradeable is
             count = 100;
         }
         bytes32[] memory result = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             result[i] = _activeLockIds[i];
+            unchecked {
+                ++i;
+            }
         }
         return result;
     }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
+import {ISoulL2Messenger} from "../interfaces/ISoulL2Messenger.sol";
 
 /// @title SoulL2Messenger
 /// @author Soul Protocol
@@ -36,7 +37,7 @@ import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 /// - RIP-7755: https://github.com/wilsoncusack/RIPs/blob/cross-l2-call-standard/RIPS/rip-7755.md
 /// - L1SLOAD: https://ethereum-magicians.org/t/rip-7728-l1sload-precompile/20388
 /// - https://vitalik.eth.limo/general/2024/10/17/futures2.html
-contract SoulL2Messenger is ReentrancyGuard, AccessControl {
+contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -48,30 +49,6 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl {
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Message status
-    enum MessageStatus {
-        PENDING,
-        FULFILLED,
-        FAILED,
-        EXPIRED
-    }
-
-    /// @notice Cross-L2 privacy message (RIP-7755 compatible)
-    struct PrivacyMessage {
-        bytes32 messageId;
-        uint256 sourceChainId;
-        uint256 destChainId;
-        address sender;
-        address target;
-        bytes encryptedCalldata; // Privacy: encrypted call data
-        bytes32 calldataCommitment; // Commitment for verification
-        bytes32 nullifier; // Prevents replay
-        uint256 value; // ETH to send
-        uint256 gasLimit;
-        uint64 deadline;
-        MessageStatus status;
-    }
-
     /// @notice Fulfillment proof
     struct FulfillmentProof {
         bytes32 messageId;
@@ -79,28 +56,6 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl {
         bytes zkProof; // Proof of correct execution
         address fulfiller;
         uint64 fulfilledAt;
-    }
-
-    /// @notice RIP-7755 Call structure
-    struct Call {
-        address to;
-        bytes data;
-        uint256 value;
-    }
-
-    /// @notice RIP-7755 Request structure
-    struct CrossL2Request {
-        Call[] calls;
-        uint256 sourceChainId;
-        uint256 destinationChainId;
-        address inbox;
-        uint256 l2GasLimit;
-        address l2GasToken;
-        uint256 maxL2GasPrice;
-        uint256 maxPriorityFeePerGas;
-        uint256 rewardAmount;
-        address rewardToken;
-        uint256 deadline;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -144,21 +99,6 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl {
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
-
-    event PrivacyMessageSent(
-        bytes32 indexed messageId,
-        uint256 indexed destChainId,
-        address indexed sender,
-        address target
-    );
-
-    event PrivacyMessageFulfilled(
-        bytes32 indexed messageId,
-        address indexed fulfiller,
-        bytes32 executionResultHash
-    );
-
-    event PrivacyMessageFailed(bytes32 indexed messageId, string reason);
 
     event CounterpartSet(uint256 indexed chainId, address messenger);
 

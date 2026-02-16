@@ -224,7 +224,7 @@ contract NullifierRegistryV3 is AccessControl, Pausable {
         external
         view
         returns (
-            uint256 totalNullifiers,
+            uint256 total,
             uint256 nextIndex,
             bytes32 currentRoot,
             uint256 treeDepth

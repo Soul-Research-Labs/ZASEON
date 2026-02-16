@@ -131,9 +131,12 @@ library ProofValidator {
         inputs = new bytes32[](inputCount);
         uint256 offset = proofSize;
 
-        for (uint256 i = 0; i < inputCount; i++) {
+        for (uint256 i = 0; i < inputCount; ) {
             inputs[i] = bytes32(proofData[offset:offset + 32]);
             offset += 32;
+            unchecked {
+                ++i;
+            }
         }
     }
 

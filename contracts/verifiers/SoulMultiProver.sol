@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ISoulMultiProver} from "../interfaces/ISoulMultiProver.sol";
 
 /// @title SoulMultiProver
 /// @author Soul Protocol
@@ -43,7 +44,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 /// - https://vitalik.eth.limo/general/2024/10/23/futures4.html
 /// - https://docs.succinct.xyz/sp1
 /// - https://github.com/a16z/jolt
-contract SoulMultiProver is ReentrancyGuard, AccessControl {
+contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -55,28 +56,6 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Supported prover systems
-    enum ProverSystem {
-        NOIR, // Aztec Noir (UltraPlonk)
-        SP1, // Succinct SP1 (RISC-V zkVM)
-        JOLT, // a16z Jolt (Lasso lookups)
-        PLONKY3, // Polygon Plonky3 (recursive)
-        BINIUS, // Irreducible Binius (binary field)
-        HALO2, // ZCash Halo2 (no trusted setup)
-        GROTH16, // Classic Groth16 (smallest proofs)
-        RISC_ZERO // RiscZero zkVM
-    }
-
-    /// @notice Prover configuration
-    struct ProverConfig {
-        ProverSystem system;
-        address verifier; // On-chain verifier contract
-        bool isActive;
-        uint256 weight; // Voting weight (default: 1)
-        uint256 successCount; // Successful verifications
-        uint256 failureCount; // Failed verifications
-    }
-
     /// @notice Multi-proof submission
     struct MultiProof {
         bytes32 proofId;
@@ -85,24 +64,6 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
         uint256 consensusReached; // Timestamp when consensus reached
         bool isVerified;
         bytes32 executionHash; // For cross-chain execution
-    }
-
-    /// @notice Individual proof submission
-    struct ProofSubmission {
-        ProverSystem prover;
-        bytes proof;
-        bool isValid;
-        uint64 submittedAt;
-        address submitter;
-    }
-
-    /// @notice Verification result
-    struct VerificationResult {
-        bytes32 proofId;
-        bool consensusReached;
-        uint256 validCount;
-        uint256 totalCount;
-        ProverSystem[] validProvers;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -141,36 +102,16 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event ProverRegistered(ProverSystem indexed system, address verifier);
-
     event ProverUpdated(
         ProverSystem indexed system,
         bool isActive,
         uint256 weight
     );
 
-    event ProofSubmitted(
-        bytes32 indexed proofId,
-        ProverSystem indexed prover,
-        address submitter
-    );
-
-    event ConsensusReached(
-        bytes32 indexed proofId,
-        uint256 validCount,
-        uint256 totalCount
-    );
-
     event ConsensusFailure(
         bytes32 indexed proofId,
         uint256 validCount,
         uint256 required
-    );
-
-    event MultiProofVerified(
-        bytes32 indexed proofId,
-        bytes32 publicInputsHash,
-        ProverSystem[] validProvers
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -396,7 +337,7 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
         uint256 validCount = 0;
         uint256 totalWeight = 0;
 
-        for (uint i = 0; i < activeProvers.length; i++) {
+        for (uint i = 0; i < activeProvers.length; ) {
             ProofSubmission storage sub = submissions[proofId][
                 activeProvers[i]
             ];
@@ -405,6 +346,9 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
                 if (sub.isValid) {
                     validCount += provers[activeProvers[i]].weight;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -418,9 +362,12 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
                 activeProvers.length
             );
             uint256 validIdx = 0;
-            for (uint i = 0; i < activeProvers.length; i++) {
+            for (uint i = 0; i < activeProvers.length; ) {
                 if (submissions[proofId][activeProvers[i]].isValid) {
                     validProvers[validIdx++] = activeProvers[i];
+                }
+                unchecked {
+                    ++i;
                 }
             }
 
@@ -497,9 +444,12 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
     function _countValidSubmissions(
         bytes32 proofId
     ) internal view returns (uint256 count) {
-        for (uint i = 0; i < activeProvers.length; i++) {
+        for (uint i = 0; i < activeProvers.length; ) {
             if (submissions[proofId][activeProvers[i]].isValid) {
                 count++;
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -520,10 +470,13 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
         );
         uint256 validIdx = 0;
 
-        for (uint i = 0; i < activeProvers.length; i++) {
+        for (uint i = 0; i < activeProvers.length; ) {
             if (submissions[proofId][activeProvers[i]].isValid) {
                 validCount++;
                 validProvers[validIdx++] = activeProvers[i];
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -549,9 +502,12 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl {
     /// @notice Get active prover count
     function getActiveProverCount() external view returns (uint256) {
         uint256 count = 0;
-        for (uint i = 0; i < activeProvers.length; i++) {
+        for (uint i = 0; i < activeProvers.length; ) {
             if (provers[activeProvers[i]].isActive) {
                 count++;
+            }
+            unchecked {
+                ++i;
             }
         }
         return count;

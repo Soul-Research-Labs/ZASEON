@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {UniversalShieldedPool} from "../../contracts/privacy/UniversalShieldedPool.sol";
+import {IUniversalShieldedPool} from "../../contracts/interfaces/IUniversalShieldedPool.sol";
 import {UniversalChainRegistry} from "../../contracts/libraries/UniversalChainRegistry.sol";
 
 /**
@@ -106,7 +107,7 @@ contract UniversalShieldedPoolTest is Test {
         );
 
         vm.expectEmit(true, true, false, true);
-        emit UniversalShieldedPool.Deposit(
+        emit IUniversalShieldedPool.Deposit(
             commitment,
             NATIVE_ASSET,
             0,
@@ -124,7 +125,7 @@ contract UniversalShieldedPoolTest is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                UniversalShieldedPool.DepositTooSmall.selector
+                IUniversalShieldedPool.DepositTooSmall.selector
             )
         );
         pool.depositETH{value: 0}(commitment);
@@ -134,7 +135,7 @@ contract UniversalShieldedPoolTest is Test {
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
-                UniversalShieldedPool.InvalidCommitment.selector
+                IUniversalShieldedPool.InvalidCommitment.selector
             )
         );
         pool.depositETH{value: 1 ether}(bytes32(0));
@@ -214,8 +215,8 @@ contract UniversalShieldedPoolTest is Test {
         // Generate a dummy proof (test mode accepts >= 64 bytes)
         bytes memory proof = new bytes(64);
 
-        UniversalShieldedPool.WithdrawalProof memory wp = UniversalShieldedPool
-            .WithdrawalProof({
+        IUniversalShieldedPool.WithdrawalProof
+            memory wp = IUniversalShieldedPool.WithdrawalProof({
                 proof: proof,
                 merkleRoot: root,
                 nullifier: nullifier,
@@ -260,8 +261,8 @@ contract UniversalShieldedPoolTest is Test {
         bytes32 nullifier = keccak256(abi.encodePacked("nullifier_dup"));
         bytes memory proof = new bytes(64);
 
-        UniversalShieldedPool.WithdrawalProof memory wp = UniversalShieldedPool
-            .WithdrawalProof({
+        IUniversalShieldedPool.WithdrawalProof
+            memory wp = IUniversalShieldedPool.WithdrawalProof({
                 proof: proof,
                 merkleRoot: root,
                 nullifier: nullifier,
@@ -278,7 +279,7 @@ contract UniversalShieldedPoolTest is Test {
         // Second withdrawal with same nullifier should revert
         vm.expectRevert(
             abi.encodeWithSelector(
-                UniversalShieldedPool.NullifierAlreadySpent.selector,
+                IUniversalShieldedPool.NullifierAlreadySpent.selector,
                 nullifier
             )
         );
@@ -297,8 +298,8 @@ contract UniversalShieldedPoolTest is Test {
         bytes32 nullifier = keccak256(abi.encodePacked("nullifier_relay"));
         bytes memory proof = new bytes(64);
 
-        UniversalShieldedPool.WithdrawalProof memory wp = UniversalShieldedPool
-            .WithdrawalProof({
+        IUniversalShieldedPool.WithdrawalProof
+            memory wp = IUniversalShieldedPool.WithdrawalProof({
                 proof: proof,
                 merkleRoot: root,
                 nullifier: nullifier,
@@ -356,8 +357,8 @@ contract UniversalShieldedPoolTest is Test {
         bytes32 nullifier = keccak256(abi.encodePacked("null_disabled"));
         bytes memory proof = new bytes(64);
 
-        UniversalShieldedPool.WithdrawalProof memory wp = UniversalShieldedPool
-            .WithdrawalProof({
+        IUniversalShieldedPool.WithdrawalProof
+            memory wp = IUniversalShieldedPool.WithdrawalProof({
                 proof: proof,
                 merkleRoot: root,
                 nullifier: nullifier,
@@ -400,7 +401,7 @@ contract UniversalShieldedPoolTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                UniversalShieldedPool.AssetAlreadyRegistered.selector,
+                IUniversalShieldedPool.AssetAlreadyRegistered.selector,
                 assetId
             )
         );
@@ -446,7 +447,7 @@ contract UniversalShieldedPoolTest is Test {
     function test_RevertSetVerifierZeroAddress() public {
         vm.prank(admin);
         vm.expectRevert(
-            abi.encodeWithSelector(UniversalShieldedPool.ZeroAddress.selector)
+            abi.encodeWithSelector(IUniversalShieldedPool.ZeroAddress.selector)
         );
         pool.setWithdrawalVerifier(address(0));
     }

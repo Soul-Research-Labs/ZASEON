@@ -518,8 +518,11 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
         // For simplicity, hash all commitments together
         // Production should use proper incremental Merkle tree
         bytes32 hash = commitmentTree[0];
-        for (uint256 i = 1; i < nextLeafIndex; i++) {
+        for (uint256 i = 1; i < nextLeafIndex; ) {
             hash = keccak256(abi.encodePacked(hash, commitmentTree[i]));
+            unchecked {
+                ++i;
+            }
         }
         return hash;
     }

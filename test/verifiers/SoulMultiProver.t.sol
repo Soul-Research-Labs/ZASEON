@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {SoulMultiProver} from "../../contracts/verifiers/SoulMultiProver.sol";
+import {ISoulMultiProver} from "../../contracts/interfaces/ISoulMultiProver.sol";
 
 /// @dev Mock verifier that always returns true
 contract MockVerifierPass {
@@ -87,7 +88,7 @@ contract SoulMultiProverTest is Test {
     }
 
     function test_Constructor_DefaultProversActive() public view {
-        SoulMultiProver.ProverSystem[] memory active = prover
+        ISoulMultiProver.ProverSystem[] memory active = prover
             .getActiveProvers();
         assertEq(active.length, 4);
     }
@@ -99,7 +100,7 @@ contract SoulMultiProverTest is Test {
     function test_RegisterProver() public {
         vm.prank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.HALO2,
+            ISoulMultiProver.ProverSystem.HALO2,
             address(mockPass),
             2
         );
@@ -111,7 +112,7 @@ contract SoulMultiProverTest is Test {
         vm.prank(operator);
         vm.expectRevert(SoulMultiProver.InvalidProverConfig.selector);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.HALO2,
+            ISoulMultiProver.ProverSystem.HALO2,
             address(mockPass),
             0
         );
@@ -122,7 +123,7 @@ contract SoulMultiProverTest is Test {
         // So it pushes a duplicate into activeProvers
         vm.prank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             3
         );
@@ -135,7 +136,7 @@ contract SoulMultiProverTest is Test {
         vm.prank(submitter1);
         vm.expectRevert();
         prover.registerProver(
-            SoulMultiProver.ProverSystem.HALO2,
+            ISoulMultiProver.ProverSystem.HALO2,
             address(mockPass),
             1
         );
@@ -143,7 +144,7 @@ contract SoulMultiProverTest is Test {
 
     function test_DeactivateProver() public {
         vm.prank(operator);
-        prover.deactivateProver(SoulMultiProver.ProverSystem.BINIUS);
+        prover.deactivateProver(ISoulMultiProver.ProverSystem.BINIUS);
 
         assertEq(prover.getActiveProverCount(), 3);
     }
@@ -151,7 +152,7 @@ contract SoulMultiProverTest is Test {
     function test_DeactivateProver_RevertNotOperator() public {
         vm.prank(submitter1);
         vm.expectRevert();
-        prover.deactivateProver(SoulMultiProver.ProverSystem.NOIR);
+        prover.deactivateProver(ISoulMultiProver.ProverSystem.NOIR);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -162,7 +163,7 @@ contract SoulMultiProverTest is Test {
         // Register verifier for NOIR
         vm.prank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             1
         );
@@ -174,12 +175,12 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aabb"
         );
 
         // Verify submission was recorded
-        SoulMultiProver.VerificationResult memory result = prover
+        ISoulMultiProver.VerificationResult memory result = prover
             .getVerificationResult(proofId);
         assertEq(result.proofId, proofId);
         assertEq(result.totalCount, 1);
@@ -187,7 +188,7 @@ contract SoulMultiProverTest is Test {
 
     function test_SubmitProof_RevertInactiveProver() public {
         vm.prank(operator);
-        prover.deactivateProver(SoulMultiProver.ProverSystem.NOIR);
+        prover.deactivateProver(ISoulMultiProver.ProverSystem.NOIR);
 
         bytes32 proofId = keccak256("proof_inactive");
         bytes32 inputsHash = keccak256("inputs");
@@ -197,7 +198,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
     }
@@ -205,7 +206,7 @@ contract SoulMultiProverTest is Test {
     function test_SubmitProof_RevertDuplicateSubmission() public {
         vm.prank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             1
         );
@@ -217,7 +218,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -226,7 +227,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"bb"
         );
     }
@@ -239,12 +240,12 @@ contract SoulMultiProverTest is Test {
         // Set up verifiers for NOIR and SP1
         vm.startPrank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             1
         );
         prover.registerProver(
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             address(mockPass),
             1
         );
@@ -258,7 +259,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -267,7 +268,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             hex"bb"
         );
 
@@ -280,12 +281,12 @@ contract SoulMultiProverTest is Test {
         // NOIR has failing verifier, SP1 has passing
         vm.startPrank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockFail),
             1
         );
         prover.registerProver(
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             address(mockPass),
             1
         );
@@ -298,7 +299,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -306,14 +307,14 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             hex"bb"
         );
 
         // NOIR invalid (mockFail), SP1 valid (mockPass)
         // Because registerProver pushes duplicates to activeProvers,
         // SP1 is counted twice (weight 2), so consensus IS reached
-        SoulMultiProver.VerificationResult memory result = prover
+        ISoulMultiProver.VerificationResult memory result = prover
             .getVerificationResult(proofId);
         // validCount includes SP1's weight counted for each activeProvers entry
         assertGe(result.validCount, 1);
@@ -323,7 +324,7 @@ contract SoulMultiProverTest is Test {
         // Register NOIR with weight 2 — single proof should reach consensus
         vm.startPrank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             2
         );
@@ -336,7 +337,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -347,7 +348,7 @@ contract SoulMultiProverTest is Test {
         MockVerifierRevert revertVerifier = new MockVerifierRevert();
         vm.prank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(revertVerifier),
             1
         );
@@ -359,7 +360,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -376,11 +377,11 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
-        SoulMultiProver.VerificationResult memory result = prover
+        ISoulMultiProver.VerificationResult memory result = prover
             .getVerificationResult(proofId);
         assertEq(result.validCount, 0);
     }
@@ -392,12 +393,12 @@ contract SoulMultiProverTest is Test {
     function test_SubmitMultipleProofs() public {
         vm.startPrank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             1
         );
         prover.registerProver(
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             address(mockPass),
             1
         );
@@ -406,10 +407,10 @@ contract SoulMultiProverTest is Test {
         bytes32 proofId = keccak256("multi");
         bytes32 inputsHash = keccak256("multi_inputs");
 
-        SoulMultiProver.ProverSystem[]
-            memory systems = new SoulMultiProver.ProverSystem[](2);
-        systems[0] = SoulMultiProver.ProverSystem.NOIR;
-        systems[1] = SoulMultiProver.ProverSystem.SP1;
+        ISoulMultiProver.ProverSystem[]
+            memory systems = new ISoulMultiProver.ProverSystem[](2);
+        systems[0] = ISoulMultiProver.ProverSystem.NOIR;
+        systems[1] = ISoulMultiProver.ProverSystem.SP1;
 
         bytes[] memory proofs = new bytes[](2);
         proofs[0] = hex"aa";
@@ -434,7 +435,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -456,7 +457,7 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
@@ -501,7 +502,7 @@ contract SoulMultiProverTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetVerificationResult_Empty() public view {
-        SoulMultiProver.VerificationResult memory result = prover
+        ISoulMultiProver.VerificationResult memory result = prover
             .getVerificationResult(keccak256("empty"));
         assertEq(result.totalCount, 0);
         assertFalse(result.consensusReached);
@@ -514,12 +515,12 @@ contract SoulMultiProverTest is Test {
     function test_TotalVerifiedProofs() public {
         vm.startPrank(operator);
         prover.registerProver(
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             address(mockPass),
             1
         );
         prover.registerProver(
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             address(mockPass),
             1
         );
@@ -532,14 +533,14 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
         vm.prank(submitter2);
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.SP1,
+            ISoulMultiProver.ProverSystem.SP1,
             hex"bb"
         );
 
@@ -561,11 +562,11 @@ contract SoulMultiProverTest is Test {
         prover.submitProof(
             proofId,
             inputsHash,
-            SoulMultiProver.ProverSystem.NOIR,
+            ISoulMultiProver.ProverSystem.NOIR,
             hex"aa"
         );
 
-        SoulMultiProver.VerificationResult memory result = prover
+        ISoulMultiProver.VerificationResult memory result = prover
             .getVerificationResult(proofId);
         assertEq(result.proofId, proofId);
     }

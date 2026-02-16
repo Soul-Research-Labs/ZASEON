@@ -150,8 +150,11 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
             revert NullifierCountMismatch();
 
         // Check nullifiers haven't been used
-        for (uint256 i = 0; i < nullifiers.length; i++) {
+        for (uint256 i = 0; i < nullifiers.length; ) {
             if (usedNullifiers[nullifiers[i]]) revert NullifierAlreadyUsed();
+            unchecked {
+                ++i;
+            }
         }
 
         // Compute batch ID
@@ -175,14 +178,20 @@ contract SoulRecursiveVerifier is Ownable, ReentrancyGuard, Pausable {
         verifiedBatches[batchId] = true;
 
         // Record nullifiers
-        for (uint256 i = 0; i < nullifiers.length; i++) {
+        for (uint256 i = 0; i < nullifiers.length; ) {
             usedNullifiers[nullifiers[i]] = true;
             emit NullifierUsed(nullifiers[i], batchId);
+            unchecked {
+                ++i;
+            }
         }
 
         // Map transfers to batch
-        for (uint256 i = 0; i < transferIds.length; i++) {
+        for (uint256 i = 0; i < transferIds.length; ) {
             transferToBatch[transferIds[i]] = batchId;
+            unchecked {
+                ++i;
+            }
         }
 
         // Record result

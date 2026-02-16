@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/DirectL2Messenger.sol";
+import {IL2DirectMessenger} from "../../contracts/interfaces/IL2DirectMessenger.sol";
 
 /// @notice Mock recipient contract
 contract MockRecipient {
@@ -73,7 +74,7 @@ contract DirectL2MessengerTest is Test {
         messenger.configureRoute(
             block.chainid,
             DEST_CHAIN,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0), // No adapter needed for fast relayer
             3,
             30 minutes
@@ -116,7 +117,7 @@ contract DirectL2MessengerTest is Test {
             DEST_CHAIN,
             address(recipient),
             bytes("hello"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
 
@@ -131,7 +132,7 @@ contract DirectL2MessengerTest is Test {
             block.chainid, // Same chain
             address(recipient),
             bytes("hello"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
     }
@@ -143,7 +144,7 @@ contract DirectL2MessengerTest is Test {
             DEST_CHAIN,
             address(0),
             bytes("hello"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
     }
@@ -155,7 +156,7 @@ contract DirectL2MessengerTest is Test {
             999, // No route configured
             address(recipient),
             bytes("hello"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
     }
@@ -169,7 +170,7 @@ contract DirectL2MessengerTest is Test {
             888,
             address(recipient),
             bytes("hello"),
-            DirectL2Messenger.MessagePath.SLOW_L1,
+            IL2DirectMessenger.MessagePath.SLOW_L1,
             bytes32(0)
         );
     }
@@ -180,7 +181,7 @@ contract DirectL2MessengerTest is Test {
         vm.prank(user);
         messenger.registerRelayer{value: 1 ether}();
 
-        DirectL2Messenger.Relayer memory rel = messenger.getRelayer(user);
+        IL2DirectMessenger.Relayer memory rel = messenger.getRelayer(user);
         assertTrue(rel.active);
         assertEq(rel.bond, 1 ether);
         assertEq(rel.addr, user);
@@ -215,7 +216,7 @@ contract DirectL2MessengerTest is Test {
         messenger.withdrawRelayerBond();
 
         assertEq(user.balance - balBefore, 2 ether);
-        DirectL2Messenger.Relayer memory rel = messenger.getRelayer(user);
+        IL2DirectMessenger.Relayer memory rel = messenger.getRelayer(user);
         assertFalse(rel.active);
         assertEq(rel.bond, 0);
     }
@@ -238,7 +239,7 @@ contract DirectL2MessengerTest is Test {
         vm.prank(operator);
         messenger.slashRelayer(user, 0.5 ether, keccak256("fraud"));
 
-        DirectL2Messenger.Relayer memory rel = messenger.getRelayer(user);
+        IL2DirectMessenger.Relayer memory rel = messenger.getRelayer(user);
         assertEq(rel.bond, 1.5 ether);
         assertEq(rel.slashedAmount, 0.5 ether);
         assertEq(rel.failCount, 1);
@@ -252,7 +253,7 @@ contract DirectL2MessengerTest is Test {
         vm.prank(operator);
         messenger.slashRelayer(user, 0.5 ether, keccak256("fraud"));
 
-        DirectL2Messenger.Relayer memory rel = messenger.getRelayer(user);
+        IL2DirectMessenger.Relayer memory rel = messenger.getRelayer(user);
         assertFalse(rel.active); // Bond < MIN_RELAYER_BOND
     }
 
@@ -263,7 +264,7 @@ contract DirectL2MessengerTest is Test {
         vm.prank(operator);
         messenger.slashRelayer(user, 10 ether, keccak256("fraud")); // More than bond
 
-        DirectL2Messenger.Relayer memory rel = messenger.getRelayer(user);
+        IL2DirectMessenger.Relayer memory rel = messenger.getRelayer(user);
         assertEq(rel.bond, 0);
         assertEq(rel.slashedAmount, 1 ether); // Capped at original bond
     }
@@ -432,12 +433,12 @@ contract DirectL2MessengerTest is Test {
         );
 
         assertTrue(messenger.isMessageProcessed(messageId));
-        DirectL2Messenger.L2Message memory msg_ = messenger.getMessage(
+        IL2DirectMessenger.L2Message memory msg_ = messenger.getMessage(
             messageId
         );
         assertEq(
             uint8(msg_.status),
-            uint8(DirectL2Messenger.MessageStatus.EXECUTED)
+            uint8(IL2DirectMessenger.MessageStatus.EXECUTED)
         );
     }
 
@@ -623,12 +624,12 @@ contract DirectL2MessengerTest is Test {
         assertTrue(challenger.balance > challengerBalBefore);
 
         // Message should be FAILED
-        DirectL2Messenger.L2Message memory msg_ = messenger.getMessage(
+        IL2DirectMessenger.L2Message memory msg_ = messenger.getMessage(
             messageId
         );
         assertEq(
             uint8(msg_.status),
-            uint8(DirectL2Messenger.MessageStatus.FAILED)
+            uint8(IL2DirectMessenger.MessageStatus.FAILED)
         );
     }
 
@@ -639,19 +640,19 @@ contract DirectL2MessengerTest is Test {
         messenger.configureRoute(
             1,
             42161,
-            DirectL2Messenger.MessagePath.SUPERCHAIN,
+            IL2DirectMessenger.MessagePath.SUPERCHAIN,
             address(0),
             5,
             1 hours
         );
 
-        DirectL2Messenger.RouteConfig memory route = messenger.getRoute(
+        IL2DirectMessenger.RouteConfig memory route = messenger.getRoute(
             1,
             42161
         );
         assertEq(
             uint8(route.preferredPath),
-            uint8(DirectL2Messenger.MessagePath.SUPERCHAIN)
+            uint8(IL2DirectMessenger.MessagePath.SUPERCHAIN)
         );
         assertEq(route.minConfirmations, 5);
         assertEq(route.challengeWindow, 1 hours);
@@ -664,7 +665,7 @@ contract DirectL2MessengerTest is Test {
         messenger.configureRoute(
             0,
             42161,
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0),
             3,
             0
@@ -716,7 +717,7 @@ contract DirectL2MessengerTest is Test {
             DEST_CHAIN,
             address(recipient),
             bytes("hi"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             bytes32(0)
         );
 
@@ -732,11 +733,11 @@ contract DirectL2MessengerTest is Test {
             DEST_CHAIN,
             address(recipient),
             bytes("test"),
-            DirectL2Messenger.MessagePath.FAST_RELAYER,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
             keccak256("nullifier")
         );
 
-        DirectL2Messenger.L2Message memory msg_ = messenger.getMessage(msgId);
+        IL2DirectMessenger.L2Message memory msg_ = messenger.getMessage(msgId);
         assertEq(msg_.sender, user);
         assertEq(msg_.recipient, address(recipient));
         assertEq(msg_.destChainId, DEST_CHAIN);

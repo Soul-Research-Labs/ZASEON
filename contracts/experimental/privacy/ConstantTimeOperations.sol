@@ -438,7 +438,7 @@ library ConstantTimePrivacy {
         bytes32 foundMask = bytes32(0);
         uint256 foundIndex = 0;
 
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ) {
             bool match_ = ConstantTimeOperations.constantTimeEquals(
                 target,
                 nullifiers[i]
@@ -454,6 +454,9 @@ library ConstantTimePrivacy {
                 i,
                 foundIndex
             );
+            unchecked {
+                ++i;
+            }
         }
 
         found = foundMask != bytes32(0);
@@ -479,8 +482,11 @@ library ConstantTimePrivacy {
         indices = new uint256[](ringSize);
 
         // Fill with sequential indices
-        for (uint256 i = 0; i < ringSize; i++) {
+        for (uint256 i = 0; i < ringSize; ) {
             indices[i] = i;
+            unchecked {
+                ++i;
+            }
         }
 
         // Fisher-Yates shuffle in constant time

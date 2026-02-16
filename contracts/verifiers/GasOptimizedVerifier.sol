@@ -37,7 +37,6 @@ library GasOptimizedVerifier {
     error InvalidInputsLength();
     error HashToCurveFailed();
 
-
     /*//////////////////////////////////////////////////////////////
                         EC POINT OPERATIONS
     //////////////////////////////////////////////////////////////*/
@@ -291,7 +290,6 @@ library GasOptimizedVerifier {
         if (proofs.length != publicInputs.length) revert LengthMismatch();
         if (proofs.length == 0) revert EmptyBatchBatch();
 
-
         if (proofs.length == 1) {
             // Single proof, no batching needed
             return verifySingle(proofs[0], publicInputs[0], vk);
@@ -301,43 +299,52 @@ library GasOptimizedVerifier {
         uint256[] memory coeffs = new uint256[](proofs.length);
         coeffs[0] = 1; // First coefficient is 1
 
-        for (uint256 i = 1; i < proofs.length; i++) {
+        for (uint256 i = 1; i < proofs.length; ) {
             coeffs[i] =
                 uint256(keccak256(abi.encodePacked(randomness, i))) %
                 PRIME_R;
+            unchecked {
+                ++i;
+            }
         }
 
         // Compute linear combination of A points
         uint256 accAx = proofs[0][0];
         uint256 accAy = proofs[0][1];
 
-        for (uint256 i = 1; i < proofs.length; i++) {
+        for (uint256 i = 1; i < proofs.length; ) {
             (uint256 scaledX, uint256 scaledY) = ecMul(
                 proofs[i][0],
                 proofs[i][1],
                 coeffs[i]
             );
             (accAx, accAy) = ecAdd(accAx, accAy, scaledX, scaledY);
+            unchecked {
+                ++i;
+            }
         }
 
         // Compute linear combination of C points
         uint256 accCx = proofs[0][6];
         uint256 accCy = proofs[0][7];
 
-        for (uint256 i = 1; i < proofs.length; i++) {
+        for (uint256 i = 1; i < proofs.length; ) {
             (uint256 scaledX, uint256 scaledY) = ecMul(
                 proofs[i][6],
                 proofs[i][7],
                 coeffs[i]
             );
             (accCx, accCy) = ecAdd(accCx, accCy, scaledX, scaledY);
+            unchecked {
+                ++i;
+            }
         }
 
         // Compute linear combination of public input contributions
         uint256 accVkXx;
         uint256 accVkXy;
 
-        for (uint256 i = 0; i < proofs.length; i++) {
+        for (uint256 i = 0; i < proofs.length; ) {
             (uint256 vkXx, uint256 vkXy) = computeVkX(publicInputs[i], vk);
             if (i == 0) {
                 accVkXx = vkXx;
@@ -349,6 +356,9 @@ library GasOptimizedVerifier {
                     coeffs[i]
                 );
                 (accVkXx, accVkXy) = ecAdd(accVkXx, accVkXy, scaledX, scaledY);
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -381,13 +391,16 @@ library GasOptimizedVerifier {
         uint256 x = vk[14];
         uint256 y = vk[15];
 
-        for (uint256 i = 0; i < publicInputs.length && i < 2; i++) {
+        for (uint256 i = 0; i < publicInputs.length && i < 2; ) {
             (uint256 scaledX, uint256 scaledY) = ecMul(
                 vk[14 + i * 2],
                 vk[15 + i * 2],
                 publicInputs[i]
             );
             (x, y) = ecAdd(x, y, scaledX, scaledY);
+            unchecked {
+                ++i;
+            }
         }
 
         return (x, y);
@@ -482,7 +495,7 @@ library GasOptimizedVerifier {
         uint256 h = hashToField(data);
 
         // Try to find a valid point
-        for (uint256 i = 0; i < 256; i++) {
+        for (uint256 i = 0; i < 256; ) {
             x = addmod(h, i, PRIME_Q);
 
             // Calculate y^2 = x^3 + 3
@@ -498,6 +511,9 @@ library GasOptimizedVerifier {
 
             if (mulmod(y, y, PRIME_Q) == y2) {
                 return (x, y);
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -557,10 +573,9 @@ contract BatchProofVerifier {
         if (publicInputs.length + 1 != vk.ic.length)
             revert InvalidInputsLength();
 
-
         (uint256 vkXx, uint256 vkXy) = (vk.ic[0][0], vk.ic[0][1]);
 
-        for (uint256 i = 0; i < publicInputs.length; i++) {
+        for (uint256 i = 0; i < publicInputs.length; ) {
             (uint256 scaledX, uint256 scaledY) = GasOptimizedVerifier.ecMul(
                 vk.ic[i + 1][0],
                 vk.ic[i + 1][1],
@@ -572,6 +587,9 @@ contract BatchProofVerifier {
                 scaledX,
                 scaledY
             );
+            unchecked {
+                ++i;
+            }
         }
 
         return
@@ -597,7 +615,6 @@ contract BatchProofVerifier {
     ) external view returns (bool) {
         if (proofs.length != publicInputs.length)
             revert GasOptimizedVerifier.LengthMismatch();
-
 
         // Generate randomness for linear combination
         uint256 randomness = uint256(
@@ -635,9 +652,15 @@ contract BatchProofVerifier {
 
         // Copy proofs to memory
         uint256[8][] memory proofsMemory = new uint256[8][](proofs.length);
-        for (uint256 i = 0; i < proofs.length; i++) {
-            for (uint256 j = 0; j < 8; j++) {
+        for (uint256 i = 0; i < proofs.length; ) {
+            for (uint256 j = 0; j < 8; ) {
                 proofsMemory[i][j] = proofs[i][j];
+                unchecked {
+                    ++j;
+                }
+            }
+            unchecked {
+                ++i;
             }
         }
 

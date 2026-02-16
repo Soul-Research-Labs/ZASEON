@@ -207,7 +207,7 @@ library StackOptimizedHelper {
         uint256 indices
     ) internal pure returns (bytes32 root) {
         root = leaf;
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 0; i < path.length; ) {
             bytes32 sibling = path[i];
             bool isLeft = (indices >> i) & 1 == 0;
 
@@ -215,6 +215,9 @@ library StackOptimizedHelper {
                 root = keccak256(abi.encodePacked(root, sibling));
             } else {
                 root = keccak256(abi.encodePacked(sibling, root));
+            }
+            unchecked {
+                ++i;
             }
         }
     }

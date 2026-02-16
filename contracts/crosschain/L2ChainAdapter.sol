@@ -462,9 +462,12 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         merkleProof = new bytes32[](merkleProofLength);
 
         uint256 offset = 66;
-        for (uint256 i = 0; i < merkleProofLength; i++) {
+        for (uint256 i = 0; i < merkleProofLength; ) {
             merkleProof[i] = bytes32(proof[offset:offset + 32]);
             offset += 32;
+            unchecked {
+                ++i;
+            }
         }
 
         // Remaining bytes are oracle signatures (each 65 bytes)
@@ -472,9 +475,12 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         uint256 numSignatures = remainingBytes / 65;
         oracleSignatures = new bytes[](numSignatures);
 
-        for (uint256 i = 0; i < numSignatures; i++) {
+        for (uint256 i = 0; i < numSignatures; ) {
             oracleSignatures[i] = proof[offset:offset + 65];
             offset += 65;
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -509,15 +515,21 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         address[] memory oracles = chainOracles[sourceChain];
         uint256 validSignatures = 0;
 
-        for (uint256 i = 0; i < signatures.length; i++) {
+        for (uint256 i = 0; i < signatures.length; ) {
             address signer = _recoverSigner(messageHash, signatures[i]);
 
             // Check if signer is a registered oracle for this chain
-            for (uint256 j = 0; j < oracles.length; j++) {
+            for (uint256 j = 0; j < oracles.length; ) {
                 if (oracles[j] == signer) {
                     validSignatures++;
                     break;
                 }
+                unchecked {
+                    ++j;
+                }
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -596,12 +608,15 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
         address oracle
     ) external onlyRole(ADMIN_ROLE) {
         address[] storage oracles = chainOracles[chainId];
-        for (uint256 i = 0; i < oracles.length; i++) {
+        for (uint256 i = 0; i < oracles.length; ) {
             if (oracles[i] == oracle) {
                 oracles[i] = oracles[oracles.length - 1];
                 oracles.pop();
                 emit OracleRemoved(chainId, oracle);
                 break;
+            }
+            unchecked {
+                ++i;
             }
         }
     }

@@ -6,6 +6,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IL2DirectMessenger} from "../interfaces/IL2DirectMessenger.sol";
 
 /**
  * @title DirectL2Messenger
@@ -57,7 +58,12 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
  * - Superchain: OP Stack native security model
  * - Fallback: L1 settlement for disputed messages
  */
-contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
+contract DirectL2Messenger is
+    ReentrancyGuard,
+    AccessControl,
+    Pausable,
+    IL2DirectMessenger
+{
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
@@ -89,37 +95,6 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event MessageSent(
-        bytes32 indexed messageId,
-        uint256 indexed sourceChainId,
-        uint256 indexed destChainId,
-        address sender,
-        address recipient,
-        bytes payload,
-        uint256 nonce,
-        MessagePath path
-    );
-
-    event MessageReceived(
-        bytes32 indexed messageId,
-        uint256 indexed sourceChainId,
-        address sender,
-        address recipient,
-        bytes payload
-    );
-
-    event MessageExecuted(
-        bytes32 indexed messageId,
-        bool success,
-        bytes returnData
-    );
-
-    event RelayerRegistered(address indexed relayer, uint256 bond);
-    event RelayerSlashed(
-        address indexed relayer,
-        uint256 amount,
-        bytes32 reason
-    );
     event RelayerBondWithdrawn(address indexed relayer, uint256 amount);
 
     event RouteConfigured(
@@ -151,68 +126,8 @@ contract DirectL2Messenger is ReentrancyGuard, AccessControl, Pausable {
     );
 
     /*//////////////////////////////////////////////////////////////
-                                 ENUMS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Message delivery path
-    enum MessagePath {
-        SUPERCHAIN, // OP Stack native (Optimism, Base, Mode, Zora)
-        SHARED_SEQUENCER, // Espresso, Astria, Radius
-        FAST_RELAYER, // Bonded relayer network
-        SLOW_L1 // Via L1 settlement
-    }
-
-    /// @notice Message status
-    enum MessageStatus {
-        NONE,
-        SENT,
-        RELAYED,
-        CHALLENGED,
-        EXECUTED,
-        FAILED,
-        REFUNDED
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Cross-L2 message
-    struct L2Message {
-        bytes32 messageId;
-        uint256 sourceChainId;
-        uint256 destChainId;
-        address sender;
-        address recipient;
-        bytes payload;
-        uint256 value;
-        uint256 nonce;
-        uint256 timestamp;
-        uint256 deadline;
-        MessagePath path;
-        MessageStatus status;
-        bytes32 nullifierBinding; // Soul nullifier for cross-chain privacy
-    }
-
-    /// @notice Relayer information
-    struct Relayer {
-        address addr;
-        uint256 bond;
-        uint256 successCount;
-        uint256 failCount;
-        uint256 slashedAmount;
-        bool active;
-        uint256 registeredAt;
-    }
-
-    /// @notice Route configuration
-    struct RouteConfig {
-        MessagePath preferredPath;
-        address adapter;
-        uint256 minConfirmations;
-        uint256 challengeWindow;
-        bool active;
-    }
 
     /// @notice Relayer confirmation for fast path
     struct RelayerConfirmation {

@@ -920,13 +920,16 @@ contract OptimismBridgeAdapter is
 
         uint256 validCount = 0;
 
-        for (uint256 i = 0; i < attestations.length; i++) {
+        for (uint256 i = 0; i < attestations.length; ) {
             // Check for duplicate validators
-            for (uint256 j = 0; j < i; j++) {
+            for (uint256 j = 0; j < i; ) {
                 require(
                     attestations[j].validator != attestations[i].validator,
                     "Duplicate validator"
                 );
+                unchecked {
+                    ++j;
+                }
             }
             // Delegate ECDSA signature verification to the oracle contract
             // The oracle maintains the validator set and verifies each attestation
@@ -946,6 +949,9 @@ contract OptimismBridgeAdapter is
                 if (isValid) {
                     validCount++;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
 

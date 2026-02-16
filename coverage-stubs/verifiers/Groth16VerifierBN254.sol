@@ -2,7 +2,7 @@
 // Coverage stub – assembly-free Groth16VerifierBN254
 pragma solidity ^0.8.20;
 
-import "../interfaces/IProofVerifier.sol";
+import "../../contracts/interfaces/IProofVerifier.sol";
 
 contract Groth16VerifierBN254 is IProofVerifier {
     error NotOwner();

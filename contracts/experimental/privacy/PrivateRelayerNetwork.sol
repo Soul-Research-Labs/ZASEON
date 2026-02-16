@@ -600,7 +600,7 @@ contract PrivateRelayerNetwork is
         uint256 cumulativeStake = 0;
 
         address selectedRelayer = address(0);
-        for (uint256 i = 0; i < activeRelayers.length; i++) {
+        for (uint256 i = 0; i < activeRelayers.length; ) {
             Relayer storage r = relayers[activeRelayers[i]];
             if (r.status == RelayerStatus.ACTIVE) {
                 uint256 effectiveStake = r.stake > MAX_STAKE
@@ -611,6 +611,9 @@ contract PrivateRelayerNetwork is
                     selectedRelayer = activeRelayers[i];
                     break;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -762,11 +765,14 @@ contract PrivateRelayerNetwork is
     // =========================================================================
 
     function _removeFromActiveRelayers(address relayerAddress) internal {
-        for (uint256 i = 0; i < activeRelayers.length; i++) {
+        for (uint256 i = 0; i < activeRelayers.length; ) {
             if (activeRelayers[i] == relayerAddress) {
                 activeRelayers[i] = activeRelayers[activeRelayers.length - 1];
                 activeRelayers.pop();
                 break;
+            }
+            unchecked {
+                ++i;
             }
         }
     }

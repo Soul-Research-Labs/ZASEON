@@ -81,8 +81,11 @@ contract UltraHonkAdapter is IProofVerifier {
 
         // Convert uint256[] to bytes32[] for UltraHonk verifier
         bytes32[] memory honkInputs = new bytes32[](publicInputs.length);
-        for (uint256 i = 0; i < publicInputs.length; i++) {
+        for (uint256 i = 0; i < publicInputs.length; ) {
             honkInputs[i] = bytes32(publicInputs[i]);
+            unchecked {
+                ++i;
+            }
         }
 
         return honkVerifier.verify(proof, honkInputs);
@@ -100,8 +103,11 @@ contract UltraHonkAdapter is IProofVerifier {
         }
 
         bytes32[] memory honkInputs = new bytes32[](inputs.length);
-        for (uint256 i = 0; i < inputs.length; i++) {
+        for (uint256 i = 0; i < inputs.length; ) {
             honkInputs[i] = bytes32(inputs[i]);
+            unchecked {
+                ++i;
+            }
         }
 
         return honkVerifier.verify(proof, honkInputs);

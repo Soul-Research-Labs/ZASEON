@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../../contracts/core/ConfidentialStateContainerV3.sol";
+import {IConfidentialStateContainerV3} from "../../contracts/interfaces/IConfidentialStateContainerV3.sol";
 import "../../contracts/mocks/MockProofVerifier.sol";
 
 contract ConfidentialStateContainerV3Test is Test {
@@ -58,7 +59,7 @@ contract ConfidentialStateContainerV3Test is Test {
     }
 
     function test_Constructor_ZeroVerifier_Reverts() public {
-        vm.expectRevert(ConfidentialStateContainerV3.ZeroAddress.selector);
+        vm.expectRevert(IConfidentialStateContainerV3.ZeroAddress.selector);
         new ConfidentialStateContainerV3(address(0));
     }
 
@@ -105,7 +106,7 @@ contract ConfidentialStateContainerV3Test is Test {
         bytes32 nullifier = keccak256("n1");
 
         vm.expectEmit(true, true, false, true);
-        emit ConfidentialStateContainerV3.StateRegistered(
+        emit IConfidentialStateContainerV3.StateRegistered(
             commitment,
             admin,
             nullifier,
@@ -121,7 +122,7 @@ contract ConfidentialStateContainerV3Test is Test {
 
         _registerState(commitment, nullifier);
 
-        ConfidentialStateContainerV3.EncryptedState memory s = container
+        IConfidentialStateContainerV3.EncryptedState memory s = container
             .getState(commitment);
         assertEq(s.commitment, commitment);
         assertEq(s.nullifier, nullifier);
@@ -129,7 +130,7 @@ contract ConfidentialStateContainerV3Test is Test {
         assertEq(s.owner, admin);
         assertEq(
             uint8(s.status),
-            uint8(ConfidentialStateContainerV3.StateStatus.Active)
+            uint8(IConfidentialStateContainerV3.StateStatus.Active)
         );
         assertEq(s.version, 1);
         assertEq(s.encryptedState, SAMPLE_STATE);
@@ -154,7 +155,7 @@ contract ConfidentialStateContainerV3Test is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.CommitmentAlreadyExists.selector,
+                IConfidentialStateContainerV3.CommitmentAlreadyExists.selector,
                 commitment
             )
         );
@@ -167,7 +168,7 @@ contract ConfidentialStateContainerV3Test is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.NullifierAlreadyUsed.selector,
+                IConfidentialStateContainerV3.NullifierAlreadyUsed.selector,
                 nullifier
             )
         );
@@ -176,7 +177,7 @@ contract ConfidentialStateContainerV3Test is Test {
 
     function test_RegisterState_RevertEmptyState() public {
         vm.expectRevert(
-            ConfidentialStateContainerV3.EmptyEncryptedState.selector
+            IConfidentialStateContainerV3.EmptyEncryptedState.selector
         );
         container.registerState(
             "",
@@ -190,7 +191,7 @@ contract ConfidentialStateContainerV3Test is Test {
     function test_RegisterState_RevertInvalidProof() public {
         verifier.setVerificationResult(false);
 
-        vm.expectRevert(ConfidentialStateContainerV3.InvalidProof.selector);
+        vm.expectRevert(IConfidentialStateContainerV3.InvalidProof.selector);
         _registerState(keccak256("c1"), keccak256("n1"));
     }
 
@@ -198,7 +199,7 @@ contract ConfidentialStateContainerV3Test is Test {
         bytes memory largeState = new bytes(65537);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.StateSizeTooLarge.selector,
+                IConfidentialStateContainerV3.StateSizeTooLarge.selector,
                 65537,
                 65536
             )
@@ -256,7 +257,7 @@ contract ConfidentialStateContainerV3Test is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.BatchTooLarge.selector,
+                IConfidentialStateContainerV3.BatchTooLarge.selector,
                 51,
                 50
             )
@@ -289,16 +290,16 @@ contract ConfidentialStateContainerV3Test is Test {
 
         // Old state retired
         assertFalse(container.isStateActive(oldC));
-        ConfidentialStateContainerV3.EncryptedState memory oldState = container
+        IConfidentialStateContainerV3.EncryptedState memory oldState = container
             .getState(oldC);
         assertEq(
             uint8(oldState.status),
-            uint8(ConfidentialStateContainerV3.StateStatus.Retired)
+            uint8(IConfidentialStateContainerV3.StateStatus.Retired)
         );
 
         // New state active
         assertTrue(container.isStateActive(newC));
-        ConfidentialStateContainerV3.EncryptedState memory newState = container
+        IConfidentialStateContainerV3.EncryptedState memory newState = container
             .getState(newC);
         assertEq(newState.owner, user1);
         assertEq(newState.version, 2);
@@ -315,7 +316,7 @@ contract ConfidentialStateContainerV3Test is Test {
         bytes32 newC = keccak256("cnew");
 
         vm.expectEmit(true, true, true, true);
-        emit ConfidentialStateContainerV3.StateTransferred(
+        emit IConfidentialStateContainerV3.StateTransferred(
             oldC,
             newC,
             user1,
@@ -340,7 +341,7 @@ contract ConfidentialStateContainerV3Test is Test {
         vm.prank(user2);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.NotStateOwner.selector,
+                IConfidentialStateContainerV3.NotStateOwner.selector,
                 user2,
                 admin
             )
@@ -360,7 +361,7 @@ contract ConfidentialStateContainerV3Test is Test {
         bytes32 oldC = keccak256("cold");
         _registerState(oldC, keccak256("nold"));
 
-        vm.expectRevert(ConfidentialStateContainerV3.ZeroAddress.selector);
+        vm.expectRevert(IConfidentialStateContainerV3.ZeroAddress.selector);
         container.transferState(
             oldC,
             SAMPLE_STATE,
@@ -376,7 +377,7 @@ contract ConfidentialStateContainerV3Test is Test {
         bytes32 bogus = keccak256("nope");
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.CommitmentNotFound.selector,
+                IConfidentialStateContainerV3.CommitmentNotFound.selector,
                 bogus
             )
         );
@@ -406,7 +407,7 @@ contract ConfidentialStateContainerV3Test is Test {
             user1
         );
 
-        ConfidentialStateContainerV3.StateTransition[] memory hist = container
+        IConfidentialStateContainerV3.StateTransition[] memory hist = container
             .getStateHistory(oldC);
         assertEq(hist.length, 1);
         assertEq(hist[0].fromCommitment, oldC);
@@ -424,9 +425,9 @@ contract ConfidentialStateContainerV3Test is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.StateNotActive.selector,
+                IConfidentialStateContainerV3.StateNotActive.selector,
                 oldC,
-                ConfidentialStateContainerV3.StateStatus.Locked
+                IConfidentialStateContainerV3.StateStatus.Locked
             )
         );
         container.transferState(
@@ -451,11 +452,11 @@ contract ConfidentialStateContainerV3Test is Test {
         vm.prank(operator);
         container.lockState(c);
 
-        ConfidentialStateContainerV3.EncryptedState memory s = container
+        IConfidentialStateContainerV3.EncryptedState memory s = container
             .getState(c);
         assertEq(
             uint8(s.status),
-            uint8(ConfidentialStateContainerV3.StateStatus.Locked)
+            uint8(IConfidentialStateContainerV3.StateStatus.Locked)
         );
     }
 
@@ -480,11 +481,11 @@ contract ConfidentialStateContainerV3Test is Test {
         vm.prank(emergency);
         container.freezeState(c);
 
-        ConfidentialStateContainerV3.EncryptedState memory s = container
+        IConfidentialStateContainerV3.EncryptedState memory s = container
             .getState(c);
         assertEq(
             uint8(s.status),
-            uint8(ConfidentialStateContainerV3.StateStatus.Frozen)
+            uint8(IConfidentialStateContainerV3.StateStatus.Frozen)
         );
         assertEq(container.activeStates(), 0);
     }
@@ -511,7 +512,7 @@ contract ConfidentialStateContainerV3Test is Test {
         vm.prank(operator);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ConfidentialStateContainerV3.CommitmentNotFound.selector,
+                IConfidentialStateContainerV3.CommitmentNotFound.selector,
                 keccak256("nope")
             )
         );
@@ -613,7 +614,7 @@ contract ConfidentialStateContainerV3Test is Test {
     }
 
     function test_GetState_EmptyForNonexistent() public view {
-        ConfidentialStateContainerV3.EncryptedState memory s = container
+        IConfidentialStateContainerV3.EncryptedState memory s = container
             .getState(keccak256("nope"));
         assertEq(s.owner, address(0));
     }
@@ -633,7 +634,7 @@ contract ConfidentialStateContainerV3Test is Test {
         assertEq(container.totalStates(), 1);
         assertEq(container.activeStates(), 1);
 
-        ConfidentialStateContainerV3.EncryptedState memory s = container
+        IConfidentialStateContainerV3.EncryptedState memory s = container
             .getState(commitment);
         assertEq(s.owner, admin);
         assertEq(s.version, 1);

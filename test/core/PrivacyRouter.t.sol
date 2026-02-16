@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {PrivacyRouter} from "../../contracts/core/PrivacyRouter.sol";
+import {IPrivacyRouter} from "../../contracts/interfaces/IPrivacyRouter.sol";
 import {UniversalShieldedPool} from "../../contracts/privacy/UniversalShieldedPool.sol";
 
 /**
@@ -89,13 +90,13 @@ contract PrivacyRouterTest is Test {
         // Check receipt
         (
             bytes32 receiptId,
-            PrivacyRouter.OperationType opType,
+            IPrivacyRouter.OperationType opType,
             ,
             bytes32 commitHash,
             bool success
         ) = router.receipts(opId);
         assertEq(receiptId, opId);
-        assertEq(uint8(opType), uint8(PrivacyRouter.OperationType.DEPOSIT));
+        assertEq(uint8(opType), uint8(IPrivacyRouter.OperationType.DEPOSIT));
         assertEq(commitHash, commitment);
         assertTrue(success);
     }
@@ -103,7 +104,7 @@ contract PrivacyRouterTest is Test {
     function test_RevertDepositETHZeroAmount() public {
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(PrivacyRouter.ZeroAmount.selector)
+            abi.encodeWithSelector(IPrivacyRouter.ZeroAmount.selector)
         );
         router.depositETH{value: 0}(keccak256("zero"));
     }
@@ -122,11 +123,11 @@ contract PrivacyRouterTest is Test {
         vm.stopPrank();
 
         assertEq(
-            router.getOperationCount(PrivacyRouter.OperationType.DEPOSIT),
+            router.getOperationCount(IPrivacyRouter.OperationType.DEPOSIT),
             2
         );
         assertEq(
-            router.getOperationCount(PrivacyRouter.OperationType.WITHDRAW),
+            router.getOperationCount(IPrivacyRouter.OperationType.WITHDRAW),
             0
         );
     }
@@ -139,7 +140,9 @@ contract PrivacyRouterTest is Test {
         vm.prank(user);
         bytes32 opId = router.depositETH{value: 1 ether}(commitment);
 
-        PrivacyRouter.OperationReceipt memory receipt = router.getReceipt(opId);
+        IPrivacyRouter.OperationReceipt memory receipt = router.getReceipt(
+            opId
+        );
         assertEq(receipt.operationId, opId);
         assertTrue(receipt.success);
         assertEq(receipt.timestamp, block.timestamp);
@@ -168,7 +171,7 @@ contract PrivacyRouterTest is Test {
     function test_RevertSetComponentZeroAddress() public {
         vm.prank(admin);
         vm.expectRevert(
-            abi.encodeWithSelector(PrivacyRouter.ZeroAddress.selector)
+            abi.encodeWithSelector(IPrivacyRouter.ZeroAddress.selector)
         );
         router.setComponent("shieldedPool", address(0));
     }
@@ -176,7 +179,7 @@ contract PrivacyRouterTest is Test {
     function test_RevertSetInvalidComponent() public {
         vm.prank(admin);
         vm.expectRevert(
-            abi.encodeWithSelector(PrivacyRouter.InvalidParams.selector)
+            abi.encodeWithSelector(IPrivacyRouter.InvalidParams.selector)
         );
         router.setComponent("invalidName", makeAddr("something"));
     }
@@ -217,7 +220,7 @@ contract PrivacyRouterTest is Test {
     function test_CrossChainTransferForwardsToHub() public {
         // crossChainHub is an EOA (makeAddr), so the low-level call succeeds
         // but the operation should still complete and emit an event
-        PrivacyRouter.CrossChainTransferParams memory params = PrivacyRouter
+        IPrivacyRouter.CrossChainTransferParams memory params = IPrivacyRouter
             .CrossChainTransferParams({
                 destChainId: 42161,
                 recipientStealth: keccak256("stealth"),
@@ -235,7 +238,7 @@ contract PrivacyRouterTest is Test {
     }
 
     function test_RevertConstructorZeroAdmin() public {
-        vm.expectRevert(PrivacyRouter.ZeroAddress.selector);
+        vm.expectRevert(IPrivacyRouter.ZeroAddress.selector);
         new PrivacyRouter(
             address(0),
             address(pool),
@@ -248,7 +251,7 @@ contract PrivacyRouterTest is Test {
     }
 
     function test_RevertConstructorZeroPool() public {
-        vm.expectRevert(PrivacyRouter.ZeroAddress.selector);
+        vm.expectRevert(IPrivacyRouter.ZeroAddress.selector);
         new PrivacyRouter(
             admin,
             address(0),

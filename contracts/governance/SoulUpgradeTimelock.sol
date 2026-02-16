@@ -144,7 +144,6 @@ contract SoulUpgradeTimelock is TimelockController {
     error NotInEmergencyMode();
     error MinSignaturesTooLow();
 
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -165,8 +164,11 @@ contract SoulUpgradeTimelock is TimelockController {
         _grantRole(UPGRADE_ROLE, admin);
 
         // Grant proposer role to all proposers
-        for (uint256 i = 0; i < proposers.length; i++) {
+        for (uint256 i = 0; i < proposers.length; ) {
             _grantRole(UPGRADE_ROLE, proposers[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 

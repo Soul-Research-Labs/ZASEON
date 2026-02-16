@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {SecurityModule} from "../security/SecurityModule.sol";
+import {SecurityModule} from "../../contracts/security/SecurityModule.sol";
 
 contract CrossChainProofHubV3 is
     AccessControl,

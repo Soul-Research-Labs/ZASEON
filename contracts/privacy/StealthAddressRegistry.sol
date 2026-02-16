@@ -636,7 +636,7 @@ contract StealthAddressRegistry is
         uint256 count = 0;
         address[] memory temp = new address[](candidates.length);
 
-        for (uint256 i = 0; i < candidates.length; i++) {
+        for (uint256 i = 0; i < candidates.length; ) {
             if (
                 this.checkStealthOwnership(
                     candidates[i],
@@ -647,12 +647,18 @@ contract StealthAddressRegistry is
                 temp[count] = candidates[i];
                 count++;
             }
+            unchecked {
+                ++i;
+            }
         }
 
         // Resize array
         owned = new address[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             owned[i] = temp[i];
+            unchecked {
+                ++i;
+            }
         }
 
         return owned;

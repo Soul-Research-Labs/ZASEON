@@ -133,7 +133,6 @@ contract EncryptedStealthAnnouncements is
     error TransferFailed();
     error InvalidRecipient();
 
-
     // =========================================================================
     // CONSTRUCTOR
     // =========================================================================
@@ -239,7 +238,7 @@ contract EncryptedStealthAnnouncements is
 
         startId = totalAnnouncements;
 
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             // Validate each announcement
             if (batch.ephemeralPubKeys[i] == bytes32(0))
                 revert InvalidEphemeralKey();
@@ -277,6 +276,9 @@ contract EncryptedStealthAnnouncements is
                 block.number,
                 msg.sender
             );
+            unchecked {
+                ++i;
+            }
         }
 
         announcerCount[msg.sender] += count;
@@ -324,8 +326,11 @@ contract EncryptedStealthAnnouncements is
 
         for (uint256 b = startBlock; b <= endBlock; b++) {
             uint256[] memory blockAnnouncements = announcementsByBlock[b];
-            for (uint256 i = 0; i < blockAnnouncements.length; i++) {
+            for (uint256 i = 0; i < blockAnnouncements.length; ) {
                 result[index++] = announcements[blockAnnouncements[i]];
+                unchecked {
+                    ++i;
+                }
             }
         }
     }
@@ -346,8 +351,11 @@ contract EncryptedStealthAnnouncements is
         uint256[] calldata ids
     ) external view returns (EncryptedAnnouncement[] memory result) {
         result = new EncryptedAnnouncement[](ids.length);
-        for (uint256 i = 0; i < ids.length; i++) {
+        for (uint256 i = 0; i < ids.length; ) {
             result[i] = announcements[ids[i]];
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -370,8 +378,11 @@ contract EncryptedStealthAnnouncements is
         uint256 count = end > start + limit ? limit : end - start;
 
         result = new EncryptedAnnouncement[](count);
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; ) {
             result[i] = announcements[start + i];
+            unchecked {
+                ++i;
+            }
         }
 
         nextIndex = start + count;
@@ -432,7 +443,6 @@ contract EncryptedStealthAnnouncements is
         if (newRecipient == address(0)) revert InvalidRecipient();
         feeRecipient = newRecipient;
     }
-
 
     /// @notice Collect accumulated fees
     function collectFees() external onlyRole(OPERATOR_ROLE) {

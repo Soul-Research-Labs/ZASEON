@@ -7,6 +7,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniversalChainAdapter} from "../interfaces/IUniversalChainAdapter.sol";
+import {IUniversalShieldedPool} from "../interfaces/IUniversalShieldedPool.sol";
 import {UniversalChainRegistry} from "../libraries/UniversalChainRegistry.sol";
 import {PoseidonYul} from "../libraries/PoseidonYul.sol";
 
@@ -48,7 +49,12 @@ import {PoseidonYul} from "../libraries/PoseidonYul.sol";
  *
  * @custom:security-contact security@soul.network
  */
-contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
+contract UniversalShieldedPool is
+    AccessControl,
+    ReentrancyGuard,
+    Pausable,
+    IUniversalShieldedPool
+{
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
@@ -93,51 +99,6 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Native ETH asset identifier
     bytes32 public constant NATIVE_ASSET = keccak256("ETH");
-
-    /*//////////////////////////////////////////////////////////////
-                                TYPES
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice A deposit note (public data emitted on-chain)
-    struct DepositNote {
-        bytes32 commitment; // Pedersen commitment
-        bytes32 assetId; // Asset identifier
-        uint256 leafIndex; // Position in Merkle tree
-        uint256 timestamp; // Block timestamp
-        bytes32 sourceChainId; // Chain where deposit occurred
-    }
-
-    /// @notice A withdrawal proof submission
-    struct WithdrawalProof {
-        bytes proof; // ZK proof data
-        bytes32 merkleRoot; // Root the proof references
-        bytes32 nullifier; // Nullifier to consume
-        address recipient; // Withdrawal recipient
-        address relayerAddress; // Relayer (for fee payment)
-        uint256 amount; // Withdrawal amount
-        uint256 relayerFee; // Fee paid to relayer
-        bytes32 assetId; // Asset being withdrawn
-        bytes32 destChainId; // Destination chain (for cross-chain)
-    }
-
-    /// @notice Cross-chain commitment batch from a remote chain
-    struct CrossChainCommitmentBatch {
-        bytes32 sourceChainId; // Origin chain
-        bytes32[] commitments; // Commitments to insert
-        bytes32[] assetIds; // Asset IDs per commitment
-        bytes32 batchRoot; // Merkle root of the batch (for verification)
-        bytes proof; // Proof of batch validity
-        uint256 sourceTreeSize; // Tree size on source chain at batch time
-    }
-
-    /// @notice Registered asset in the pool
-    struct AssetConfig {
-        address tokenAddress; // ERC20 address (address(0) for native ETH)
-        bytes32 assetId; // Universal asset identifier
-        uint256 totalDeposited; // Total amount deposited
-        uint256 totalWithdrawn; // Total amount withdrawn
-        bool active; // Whether deposits are accepted
-    }
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -211,37 +172,6 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event Deposit(
-        bytes32 indexed commitment,
-        bytes32 indexed assetId,
-        uint256 leafIndex,
-        uint256 amount,
-        uint256 timestamp
-    );
-
-    event Withdrawal(
-        bytes32 indexed nullifier,
-        bytes32 indexed assetId,
-        address indexed recipient,
-        uint256 amount,
-        uint256 relayerFee
-    );
-
-    event CrossChainCommitmentsInserted(
-        bytes32 indexed sourceChainId,
-        uint256 count,
-        bytes32 newRoot
-    );
-
-    event AssetRegistered(
-        bytes32 indexed assetId,
-        address indexed tokenAddress
-    );
-
-    event VerifierUpdated(address indexed newVerifier, string verifierType);
-
-    event SanctionsOracleUpdated(address indexed newOracle);
-
     /// @notice Emitted when test mode is permanently disabled
     event TestModeDisabled(address indexed disabledBy);
 
@@ -250,28 +180,6 @@ contract UniversalShieldedPool is AccessControl, ReentrancyGuard, Pausable {
         address indexed confirmedBy,
         address verifier
     );
-
-    /*//////////////////////////////////////////////////////////////
-                            CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InvalidCommitment();
-    error NullifierAlreadySpent(bytes32 nullifier);
-    error InvalidMerkleRoot(bytes32 root);
-    error WithdrawalProofFailed();
-    error InvalidAmount();
-    error AssetNotRegistered(bytes32 assetId);
-    error AssetNotActive(bytes32 assetId);
-    error AssetAlreadyRegistered(bytes32 assetId);
-    error MerkleTreeFull();
-    error InvalidRecipient();
-    error InsufficientRelayerFee();
-    error BatchAlreadyProcessed(bytes32 batchRoot);
-    error BatchProofFailed();
-    error SanctionedAddress(address addr);
-    error ZeroAddress();
-    error DepositTooLarge();
-    error DepositTooSmall();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

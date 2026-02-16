@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/SoulL2Messenger.sol";
+import {ISoulL2Messenger} from "../../contracts/interfaces/ISoulL2Messenger.sol";
 
 /// @dev Mock target contract that accepts calls
 contract MockTarget {
@@ -97,7 +98,7 @@ contract SoulL2MessengerTest is Test {
 
         vm.prank(user);
         vm.expectEmit(false, true, true, false);
-        emit SoulL2Messenger.PrivacyMessageSent(
+        emit ISoulL2Messenger.PrivacyMessageSent(
             bytes32(0), // messageId not known yet
             DEST_CHAIN,
             user,
@@ -192,14 +193,14 @@ contract SoulL2MessengerTest is Test {
     // =========================================================================
 
     function test_requestL2Call_basic() public {
-        SoulL2Messenger.Call[] memory calls = new SoulL2Messenger.Call[](1);
-        calls[0] = SoulL2Messenger.Call({
+        ISoulL2Messenger.Call[] memory calls = new ISoulL2Messenger.Call[](1);
+        calls[0] = ISoulL2Messenger.Call({
             to: address(target),
             data: abi.encodeWithSelector(MockTarget.setData.selector, 42),
             value: 0
         });
 
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+        ISoulL2Messenger.CrossL2Request memory request = ISoulL2Messenger
             .CrossL2Request({
                 calls: calls,
                 sourceChainId: block.chainid,
@@ -220,9 +221,9 @@ contract SoulL2MessengerTest is Test {
     }
 
     function test_requestL2Call_revertOnEmptyCalls() public {
-        SoulL2Messenger.Call[] memory calls = new SoulL2Messenger.Call[](0);
+        ISoulL2Messenger.Call[] memory calls = new ISoulL2Messenger.Call[](0);
 
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+        ISoulL2Messenger.CrossL2Request memory request = ISoulL2Messenger
             .CrossL2Request({
                 calls: calls,
                 sourceChainId: block.chainid,
@@ -243,14 +244,14 @@ contract SoulL2MessengerTest is Test {
     }
 
     function test_requestL2Call_revertOnInsufficientValue() public {
-        SoulL2Messenger.Call[] memory calls = new SoulL2Messenger.Call[](1);
-        calls[0] = SoulL2Messenger.Call({
+        ISoulL2Messenger.Call[] memory calls = new ISoulL2Messenger.Call[](1);
+        calls[0] = ISoulL2Messenger.Call({
             to: address(target),
             data: "",
             value: 0
         });
 
-        SoulL2Messenger.CrossL2Request memory request = SoulL2Messenger
+        ISoulL2Messenger.CrossL2Request memory request = ISoulL2Messenger
             .CrossL2Request({
                 calls: calls,
                 sourceChainId: block.chainid,
@@ -485,7 +486,7 @@ contract SoulL2MessengerTest is Test {
         vm.prank(proofHub);
         // Should not revert, just emit PrivacyMessageFailed
         vm.expectEmit(true, false, false, false);
-        emit SoulL2Messenger.PrivacyMessageFailed(
+        emit ISoulL2Messenger.PrivacyMessageFailed(
             keccak256("fail_recv"),
             "Execution failed"
         );

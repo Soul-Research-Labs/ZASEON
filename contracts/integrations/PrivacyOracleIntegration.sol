@@ -439,7 +439,7 @@ contract PrivacyOracleIntegration is ReentrancyGuard, AccessControl, Pausable {
         }
 
         uint256 validSignatures = 0;
-        for (uint256 i = 0; i < update.signatures.length; i++) {
+        for (uint256 i = 0; i < update.signatures.length; ) {
             if (
                 _verifyOracleSignature(
                     update.pairId,
@@ -450,6 +450,9 @@ contract PrivacyOracleIntegration is ReentrancyGuard, AccessControl, Pausable {
                 )
             ) {
                 validSignatures++;
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -569,7 +572,7 @@ contract PrivacyOracleIntegration is ReentrancyGuard, AccessControl, Pausable {
         bytes calldata signature
     ) internal view returns (bool) {
         // Find oracle node by public key
-        for (uint256 i = 0; i < oracleNodeList.length; i++) {
+        for (uint256 i = 0; i < oracleNodeList.length; ) {
             OracleNode storage node = oracleNodes[oracleNodeList[i]];
             if (node.publicKey == signerPubKey && node.isActive) {
                 // Verify signature
@@ -591,6 +594,9 @@ contract PrivacyOracleIntegration is ReentrancyGuard, AccessControl, Pausable {
                 ) {
                     return true;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
         return false;

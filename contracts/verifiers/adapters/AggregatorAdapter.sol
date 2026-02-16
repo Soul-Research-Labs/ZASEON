@@ -27,8 +27,11 @@ contract AggregatorAdapter {
         bytes32[] calldata publicInputs
     ) external view returns (bool) {
         uint256[] memory inputs = new uint256[](publicInputs.length);
-        for (uint256 i = 0; i < publicInputs.length; i++) {
+        for (uint256 i = 0; i < publicInputs.length; ) {
             inputs[i] = uint256(publicInputs[i]);
+            unchecked {
+                ++i;
+            }
         }
 
         return verifier.verify(aggregatedProof, inputs);

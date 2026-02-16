@@ -528,7 +528,7 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
         uint256 len = activeWatchtowers.length;
         uint256 totalSlashAmount = 0;
 
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ) {
             address op = activeWatchtowers[i];
             Watchtower storage wt = watchtowers[op];
 
@@ -542,6 +542,9 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
                 totalSlashAmount += slashAmount;
 
                 emit WatchtowerSlashed(op, slashAmount, "Inactivity");
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -717,8 +720,11 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
         // Simple reward: proportional to correct reports
         uint256 totalCorrect = 0;
-        for (uint256 i = 0; i < activeWatchtowers.length; i++) {
+        for (uint256 i = 0; i < activeWatchtowers.length; ) {
             totalCorrect += watchtowers[activeWatchtowers[i]].correctReports;
+            unchecked {
+                ++i;
+            }
         }
 
         if (totalCorrect == 0) return 0;

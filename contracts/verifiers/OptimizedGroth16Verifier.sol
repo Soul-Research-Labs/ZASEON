@@ -106,9 +106,12 @@ contract OptimizedGroth16Verifier {
         _VK_DELTA_Y_RE = delta[3];
         _VK_IC_LENGTH = ic.length;
 
-        for (uint256 i = 0; i < ic.length; i++) {
+        for (uint256 i = 0; i < ic.length; ) {
             _vk_ic.push(ic[i][0]);
             _vk_ic.push(ic[i][1]);
+            unchecked {
+                ++i;
+            }
         }
     }
 

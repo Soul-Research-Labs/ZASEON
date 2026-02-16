@@ -499,9 +499,12 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
      * @notice Get active protected contract count
      */
     function getActiveProtectedCount() external view returns (uint256 count) {
-        for (uint256 i = 0; i < protectedAddresses.length; i++) {
+        for (uint256 i = 0; i < protectedAddresses.length; ) {
             if (protectedContracts[protectedAddresses[i]].active) {
                 count++;
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -527,9 +530,12 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
      * @notice Get unresolved alert count
      */
     function getUnresolvedAlertCount() external view returns (uint256 count) {
-        for (uint256 i = 0; i < alerts.length; i++) {
+        for (uint256 i = 0; i < alerts.length; ) {
             if (!alerts[i].resolved) {
                 count++;
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -558,11 +564,14 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
         )
     {
         // Protected count
-        for (uint256 i = 0; i < protectedAddresses.length; i++) {
+        for (uint256 i = 0; i < protectedAddresses.length; ) {
             if (protectedContracts[protectedAddresses[i]].active) {
                 protectedCount++;
                 avgScore += protectedContracts[protectedAddresses[i]]
                     .securityScore;
+            }
+            unchecked {
+                ++i;
             }
         }
         if (protectedCount > 0) {
@@ -571,12 +580,15 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
         // Alert counts
         totalAlerts = alerts.length;
-        for (uint256 i = 0; i < alerts.length; i++) {
+        for (uint256 i = 0; i < alerts.length; ) {
             if (!alerts[i].resolved) {
                 unresolvedAlerts++;
                 if (alerts[i].severity == AlertSeverity.CRITICAL) {
                     criticalAlerts++;
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
     }

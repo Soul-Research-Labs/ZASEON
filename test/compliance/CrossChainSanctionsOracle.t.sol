@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {CrossChainSanctionsOracle} from "../../contracts/compliance/CrossChainSanctionsOracle.sol";
+import {ICrossChainSanctionsOracle} from "../../contracts/interfaces/ICrossChainSanctionsOracle.sol";
 
 /**
  * @title CrossChainSanctionsOracleTest
@@ -61,7 +62,7 @@ contract CrossChainSanctionsOracleTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                CrossChainSanctionsOracle.ProviderAlreadyRegistered.selector
+                ICrossChainSanctionsOracle.ProviderAlreadyRegistered.selector
             )
         );
         oracle.registerProvider(providerA, "Duplicate", 50);
