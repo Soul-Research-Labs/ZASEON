@@ -24,9 +24,20 @@ contract MockTarget {
     receive() external payable {}
 }
 
+/// @dev Mock decryption verifier that always returns true
+contract MockDecryptionVerifier {
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external pure returns (bool) {
+        return true;
+    }
+}
+
 contract SoulL2MessengerTest is Test {
     SoulL2Messenger public messenger;
     MockTarget public target;
+    MockDecryptionVerifier public mockDecryptionVerifier;
 
     address public admin = address(this);
     address public operator = address(this);
@@ -41,6 +52,10 @@ contract SoulL2MessengerTest is Test {
 
     function setUp() public {
         messenger = new SoulL2Messenger(proofHub);
+
+        // Deploy and set mock decryption verifier
+        mockDecryptionVerifier = new MockDecryptionVerifier();
+        messenger.setDecryptionVerifier(address(mockDecryptionVerifier));
 
         // Set up counterpart
         messenger.setCounterpart(DEST_CHAIN, counterpart);

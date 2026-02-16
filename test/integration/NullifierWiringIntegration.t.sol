@@ -46,6 +46,9 @@ contract NullifierWiringIntegrationTest is Test {
     MockVerifierForWiring public verifier;
 
     address admin = address(this);
+    address recoveryAddr = makeAddr("recovery");
+    address disputeAddr = makeAddr("dispute");
+    address operatorAddr = makeAddr("operator");
     bytes32 ethDomain; // Ethereum Mainnet pre-registered domain
 
     function setUp() public {
@@ -103,6 +106,17 @@ contract NullifierWiringIntegrationTest is Test {
         assertTrue(lockId != bytes32(0));
     }
 
+    /// @dev Grants operational roles to separate addresses, revokes from admin, confirms separation
+    function _enableRoleSeparation(ZKBoundStateLocks _zksl) internal {
+        _zksl.grantRole(_zksl.DISPUTE_RESOLVER_ROLE(), disputeAddr);
+        _zksl.grantRole(_zksl.RECOVERY_ROLE(), recoveryAddr);
+        _zksl.grantRole(_zksl.OPERATOR_ROLE(), operatorAddr);
+        _zksl.revokeRole(_zksl.DISPUTE_RESOLVER_ROLE(), admin);
+        _zksl.revokeRole(_zksl.RECOVERY_ROLE(), admin);
+        _zksl.revokeRole(_zksl.OPERATOR_ROLE(), admin);
+        _zksl.confirmRoleSeparation();
+    }
+
     /// @notice Test nullifier propagation on recovery unlock
     function test_NullifierPropagatedOnRecovery() public {
         // Create a lock using pre-registered Ethereum Mainnet domain
@@ -125,7 +139,11 @@ contract NullifierWiringIntegrationTest is Test {
         // Before recovery: nullifier should NOT exist in registry
         assertFalse(nullifierRegistry.exists(recoveryNullifier));
 
-        // Recover the lock
+        // Enable role separation before recovery
+        _enableRoleSeparation(zkSlocks);
+
+        // Recover the lock (must be called by recoveryAddr who has RECOVERY_ROLE)
+        vm.prank(recoveryAddr);
         zkSlocks.recoverLock(lockId, admin);
 
         // After recovery: nullifier should be marked locally
@@ -151,6 +169,12 @@ contract NullifierWiringIntegrationTest is Test {
             domain,
             0
         );
+
+        // Enable role separation on the fresh instance before recovery
+        _enableRoleSeparation(fresh);
+
+        // Recover the lock from the recovery address
+        vm.prank(recoveryAddr);
         fresh.recoverLock(lockId, admin);
 
         // Nullifier marked locally

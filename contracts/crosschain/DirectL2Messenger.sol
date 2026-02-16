@@ -486,6 +486,10 @@ contract DirectL2Messenger is
 
         if (processedMessages[messageId]) revert MessageAlreadyProcessed();
 
+        // SECURITY FIX H-2: Validate route from source chain is configured and active
+        if (!routes[sourceChainId][currentChainId].active)
+            revert UnsupportedRoute();
+
         // Mark as processed
         processedMessages[messageId] = true;
 
@@ -650,8 +654,13 @@ contract DirectL2Messenger is
         msg_.status = MessageStatus.EXECUTED;
 
         // Execute call - SECURITY FIX: Forward the value stored in the message
+        // SECURITY FIX H-6: Add gas limit to prevent gas griefing from malicious recipients
+        uint256 executionGasLimit = gasleft() > 100_000
+            ? gasleft() - 50_000
+            : gasleft();
         (bool success, bytes memory returnData) = msg_.recipient.call{
-            value: msg_.value
+            value: msg_.value,
+            gas: executionGasLimit
         }(msg_.payload);
 
         if (!success) revert MessageExecutionFailed();
@@ -818,9 +827,13 @@ contract DirectL2Messenger is
             (bool success, ) = challenger.call{value: totalReward}("");
             if (!success) revert TransferFailed();
         } else {
-            // Challenge failed: burn challenger bond
+            // Challenge failed: message is valid, return bond to challenger
             msg_.status = MessageStatus.EXECUTED;
-            // Bond is kept by protocol
+
+            // SECURITY FIX H-6: Return challenger bond on failed challenge
+            // Honest challengers shouldn't be penalized for good-faith attempts
+            (bool bondSuccess, ) = challenger.call{value: bond}("");
+            if (!bondSuccess) revert TransferFailed();
         }
 
         emit ChallengeResolved(

@@ -71,6 +71,9 @@ contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
     /// @notice Historical merkle roots (for delayed verification)
     mapping(bytes32 => bool) public historicalRoots;
 
+    /// @notice Reference count for roots in the ring buffer (SECURITY FIX M-2)
+    mapping(bytes32 => uint256) public rootRefCount;
+
     /// @notice Number of historical roots to keep
     uint256 public constant ROOT_HISTORY_SIZE = 100;
 
@@ -454,17 +457,24 @@ contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
     /// @notice Adds a root to the history ring buffer
     /// @param root The root to add
     function _addRootToHistory(bytes32 root) internal {
-        // First, invalidate the old root at the current index before overwriting
+        // SECURITY FIX M-2: Use reference counting to handle duplicate roots correctly
+        // Decrement ref count for evicted root
         bytes32 evictedRoot = rootHistory[rootHistoryIndex];
-        if (evictedRoot != bytes32(0) && evictedRoot != root) {
-            // Only invalidate if this root doesn't appear elsewhere in the buffer
-            // For gas efficiency, we just mark it false; duplicate roots are unlikely
-            historicalRoots[evictedRoot] = false;
+        if (evictedRoot != bytes32(0)) {
+            uint256 refCount = rootRefCount[evictedRoot];
+            if (refCount <= 1) {
+                // Last reference — invalidate the root
+                historicalRoots[evictedRoot] = false;
+                delete rootRefCount[evictedRoot];
+            } else {
+                rootRefCount[evictedRoot] = refCount - 1;
+            }
         }
 
-        // Write new root at current position
+        // Write new root at current position and increment its ref count
         rootHistory[rootHistoryIndex] = root;
         historicalRoots[root] = true;
+        rootRefCount[root]++;
 
         unchecked {
             rootHistoryIndex = (rootHistoryIndex + 1) % ROOT_HISTORY_SIZE;

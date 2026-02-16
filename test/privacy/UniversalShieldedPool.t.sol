@@ -6,12 +6,23 @@ import {UniversalShieldedPool} from "../../contracts/privacy/UniversalShieldedPo
 import {IUniversalShieldedPool} from "../../contracts/interfaces/IUniversalShieldedPool.sol";
 import {UniversalChainRegistry} from "../../contracts/libraries/UniversalChainRegistry.sol";
 
+/// @dev Mock withdrawal verifier that always returns true
+contract MockWithdrawalVerifier {
+    function verifyProof(
+        bytes calldata,
+        bytes calldata
+    ) external pure returns (bool) {
+        return true;
+    }
+}
+
 /**
  * @title UniversalShieldedPoolTest
  * @notice Comprehensive tests for the Universal Shielded Pool
  */
 contract UniversalShieldedPoolTest is Test {
     UniversalShieldedPool public pool;
+    MockWithdrawalVerifier public mockVerifier;
 
     address public admin = makeAddr("admin");
     address public relayer = makeAddr("relayer");
@@ -42,8 +53,10 @@ contract UniversalShieldedPoolTest is Test {
 
     function setUp() public {
         vm.startPrank(admin);
-        // Deploy in test mode (no verifier required)
-        pool = new UniversalShieldedPool(admin, address(0), true);
+        // Deploy mock withdrawal verifier
+        mockVerifier = new MockWithdrawalVerifier();
+        // Deploy with testMode=false so deposits work (security fix blocks deposits in testMode)
+        pool = new UniversalShieldedPool(admin, address(mockVerifier), false);
         pool.grantRole(RELAYER_ROLE, relayer);
         pool.grantRole(COMPLIANCE_ROLE, admin);
         NATIVE_ASSET = pool.NATIVE_ASSET();
@@ -59,11 +72,11 @@ contract UniversalShieldedPoolTest is Test {
 
     function test_InitializeCorrectly() public view {
         assertEq(pool.nextLeafIndex(), 0, "Tree should start empty");
-        assertTrue(pool.testMode(), "Should be in test mode");
+        assertFalse(pool.testMode(), "Should not be in test mode");
         assertEq(
             pool.withdrawalVerifier(),
-            address(0),
-            "No verifier in test mode"
+            address(mockVerifier),
+            "Mock verifier should be set"
         );
         assertEq(pool.totalDeposits(), 0);
         assertEq(pool.totalWithdrawals(), 0);
@@ -334,26 +347,37 @@ contract UniversalShieldedPoolTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_DisableTestMode() public {
-        assertTrue(pool.testMode());
-
-        vm.prank(admin);
-        pool.disableTestMode();
-
-        assertFalse(pool.testMode());
+        // Create a fresh pool with testMode=true to verify disable works
+        vm.startPrank(admin);
+        UniversalShieldedPool testPool = new UniversalShieldedPool(
+            admin,
+            address(0),
+            true
+        );
+        assertTrue(testPool.testMode());
+        testPool.disableTestMode();
+        assertFalse(testPool.testMode());
+        vm.stopPrank();
     }
 
     function test_RevertWithdrawAfterTestModeDisabled() public {
+        // Create a fresh pool with no verifier and testMode=false
+        vm.startPrank(admin);
+        UniversalShieldedPool noVerifierPool = new UniversalShieldedPool(
+            admin,
+            address(0),
+            false
+        );
+        vm.stopPrank();
+
+        // Deposit into the no-verifier pool
         bytes32 commitment = _validCommitment(
             abi.encodePacked("sec", uint256(1 ether))
         );
         vm.prank(user);
-        pool.depositETH{value: 1 ether}(commitment);
+        noVerifierPool.depositETH{value: 1 ether}(commitment);
 
-        // Disable test mode
-        vm.prank(admin);
-        pool.disableTestMode();
-
-        bytes32 root = pool.currentRoot();
+        bytes32 root = noVerifierPool.currentRoot();
         bytes32 nullifier = keccak256(abi.encodePacked("null_disabled"));
         bytes memory proof = new bytes(64);
 
@@ -366,14 +390,14 @@ contract UniversalShieldedPoolTest is Test {
                 relayerAddress: address(0),
                 amount: 1 ether,
                 relayerFee: 0,
-                assetId: NATIVE_ASSET,
+                assetId: noVerifierPool.NATIVE_ASSET(),
                 destChainId: bytes32(0)
             });
 
         // Should revert because no verifier is configured and test mode is off
         vm.prank(user);
         vm.expectRevert("No verifier configured");
-        pool.withdraw(wp);
+        noVerifierPool.withdraw(wp);
     }
 
     /*//////////////////////////////////////////////////////////////

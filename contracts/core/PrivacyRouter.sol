@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPrivacyRouter} from "../interfaces/IPrivacyRouter.sol";
 
 /// @notice Minimal interface for SoulProtocolHub address resolution
@@ -56,6 +58,7 @@ contract PrivacyRouter is
     Pausable,
     IPrivacyRouter
 {
+    using SafeERC20 for IERC20;
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -221,10 +224,23 @@ contract PrivacyRouter is
 
         operationId = _nextOperationId();
 
-        // The user must have approved the shielded pool directly,
-        // or we transfer to this contract first then forward.
-        // For gas efficiency, require direct approval to shieldedPool.
-        (bool success, ) = shieldedPool.call(
+        // SECURITY FIX C-6: Transfer tokens from user to router,
+        // then approve and forward to shielded pool.
+        // Resolve the token address from the shielded pool's asset registry.
+        // For safety, pull tokens to router first, then forward via approval.
+        (bool success, bytes memory returnData) = shieldedPool.staticcall(
+            abi.encodeWithSignature("assetAddresses(bytes32)", assetId)
+        );
+        if (!success) revert OperationFailed("Asset lookup failed");
+        address token = abi.decode(returnData, (address));
+        if (token == address(0)) revert OperationFailed("Invalid asset");
+
+        // Pull tokens from user to router
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        // Approve shielded pool to pull from router
+        IERC20(token).forceApprove(shieldedPool, amount);
+
+        (bool depositSuccess, ) = shieldedPool.call(
             abi.encodeWithSignature(
                 "depositERC20(bytes32,uint256,bytes32)",
                 assetId,
@@ -232,7 +248,7 @@ contract PrivacyRouter is
                 commitment
             )
         );
-        if (!success) revert OperationFailed("ERC20 deposit failed");
+        if (!depositSuccess) revert OperationFailed("ERC20 deposit failed");
 
         _recordReceipt(operationId, OperationType.DEPOSIT, commitment);
 

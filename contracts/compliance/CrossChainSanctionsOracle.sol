@@ -66,6 +66,10 @@ contract CrossChainSanctionsOracle is
     /// @notice Whether to fail-open (false = fail-closed: treat unknown as sanctioned)
     bool public failOpen = true;
 
+    /// @notice Per-provider per-address dedup to prevent quorum gaming
+    /// provider => address => hasFlagged
+    mapping(address => mapping(address => bool)) public providerHasFlagged;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -128,6 +132,13 @@ contract CrossChainSanctionsOracle is
     ) external onlyRole(PROVIDER_ROLE) {
         ScreeningProvider storage provider = providers[msg.sender];
         require(provider.active, "Provider not active");
+
+        // SECURITY FIX H-8b: Prevent duplicate flags from same provider
+        require(
+            !providerHasFlagged[msg.sender][addr],
+            "Already flagged by this provider"
+        );
+        providerHasFlagged[msg.sender][addr] = true;
 
         SanctionsEntry storage entry = sanctions[addr];
         entry.flagCount += 1;
@@ -237,6 +248,8 @@ contract CrossChainSanctionsOracle is
     function setSanctionsExpiry(
         uint256 _expiry
     ) external onlyRole(OPERATOR_ROLE) {
+        // SECURITY FIX M-5: Enforce minimum expiry to prevent accidental sanctions bypass
+        require(_expiry >= 1 days, "Expiry too short");
         sanctionsExpiry = _expiry;
     }
 

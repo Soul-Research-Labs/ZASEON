@@ -146,6 +146,9 @@ contract CrossChainProofHubV3Upgradeable is
     /// @notice Supported chains
     mapping(uint256 => bool) public supportedChains;
 
+    /// @notice Stored proof type per proof ID (SECURITY FIX M-10)
+    mapping(bytes32 => bytes32) public proofProofType;
+
     /// @notice Challenge period duration
     uint256 public challengePeriod;
 
@@ -480,9 +483,7 @@ contract CrossChainProofHubV3Upgradeable is
         }
 
         if (address(verifier) == address(0)) {
-            verifier = verifiers[DEFAULT_PROOF_TYPE];
-            if (address(verifier) == address(0))
-                revert VerifierNotSet(proofType);
+            revert VerifierNotSet(proofType);
         }
 
         if (!verifier.verifyProof(proof, publicInputs)) revert InvalidProof();
@@ -495,6 +496,9 @@ contract CrossChainProofHubV3Upgradeable is
             destChainId,
             true
         );
+
+        // SECURITY FIX M-10: Store proofType for challenge resolution
+        proofProofType[proofId] = proofType;
 
         proofs[proofId].status = ProofStatus.Verified;
         proofs[proofId].challengeDeadline = uint64(block.timestamp);
@@ -635,24 +639,29 @@ contract CrossChainProofHubV3Upgradeable is
     /// @param proofId The challenged proof
     /// @param proof The original proof bytes
     /// @param publicInputs The original public inputs
-    /// @param proofType The proof type for verifier selection
     function resolveChallenge(
         bytes32 proofId,
         bytes calldata proof,
-        bytes calldata publicInputs,
-        bytes32 proofType
+        bytes calldata publicInputs
     ) external nonReentrant {
         Challenge storage challenge = challenges[proofId];
         if (challenge.challenger == address(0))
             revert ChallengeNotFound(proofId);
         if (challenge.resolved) revert ChallengeNotFound(proofId);
 
+        // SECURITY FIX M-10: Allow both challenger and relayer to resolve
+        ProofSubmission storage submission = proofs[proofId];
         require(
-            msg.sender == challenge.challenger,
-            "Only challenger can resolve"
+            msg.sender == challenge.challenger ||
+                msg.sender == submission.relayer,
+            "Only challenger or relayer can resolve"
         );
 
-        ProofSubmission storage submission = proofs[proofId];
+        // SECURITY FIX M-10: Enforce challenge deadline
+        require(
+            block.timestamp <= challenge.deadline,
+            "Challenge deadline passed, use expireChallenge"
+        );
 
         bytes32 proofHash = keccak256(proof);
         bytes32 inputsHash = keccak256(publicInputs);
@@ -662,7 +671,10 @@ contract CrossChainProofHubV3Upgradeable is
             proofHash == submission.proofHash &&
             inputsHash == submission.publicInputsHash
         ) {
-            ICCPHProofVerifier verifier = verifiers[proofType];
+            // SECURITY FIX M-10: Use the proofType from submission, not from caller input
+            // This prevents challenger from specifying wrong verifier type
+            bytes32 submissionProofType = proofProofType[proofId];
+            ICCPHProofVerifier verifier = verifiers[submissionProofType];
 
             if (
                 address(verifier) == address(0) &&
@@ -672,7 +684,7 @@ contract CrossChainProofHubV3Upgradeable is
                     .staticcall(
                         abi.encodeWithSignature(
                             "getVerifier(bytes32)",
-                            proofType
+                            submissionProofType
                         )
                     );
                 if (regSuccess && regData.length == 32) {

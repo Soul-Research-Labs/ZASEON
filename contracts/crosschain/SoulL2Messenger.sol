@@ -236,12 +236,14 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
         // Encode first call as privacy message
         Call memory firstCall = request.calls[0];
 
+        // SECURITY FIX M-7: Include nonce to prevent nullifier collisions
         bytes32 nullifier = keccak256(
             abi.encode(
                 msg.sender,
                 block.timestamp,
                 block.chainid,
-                request.destinationChainId
+                request.destinationChainId,
+                totalMessagesSent
             )
         );
 
@@ -340,6 +342,9 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
         ) {
             revert InvalidCounterpart();
         }
+
+        // SECURITY FIX C-3: Require caller funds the ETH being forwarded
+        if (msg.value < value) revert InsufficientValue();
 
         // Execute
         (bool success, ) = target.call{value: value}(decryptedCalldata);
@@ -473,39 +478,23 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
         bytes calldata decryptedCalldata,
         bytes calldata zkProof
     ) internal view returns (bool) {
-        // If the commitment matches the hash of decrypted data, no ZK proof needed
-        if (keccak256(decryptedCalldata) == calldataCommitment) {
-            return true;
+        // SECURITY FIX C-4: Always require a real ZK verifier — no hash bypass
+        if (decryptionVerifier == address(0)) {
+            revert DecryptionVerificationFailed();
         }
 
-        // --- Real ZK verification path ---
-        if (decryptionVerifier != address(0)) {
-            // Pack public inputs: [calldataCommitment, keccak256(decryptedCalldata)]
-            uint256[] memory publicInputs = new uint256[](2);
-            publicInputs[0] = uint256(calldataCommitment);
-            publicInputs[1] = uint256(keccak256(decryptedCalldata));
+        // Pack public inputs: [calldataCommitment, keccak256(decryptedCalldata)]
+        uint256[] memory publicInputs = new uint256[](2);
+        publicInputs[0] = uint256(calldataCommitment);
+        publicInputs[1] = uint256(keccak256(decryptedCalldata));
 
-            try
-                IProofVerifier(decryptionVerifier).verify(zkProof, publicInputs)
-            returns (bool valid) {
-                return valid;
-            } catch {
-                return false;
-            }
+        try
+            IProofVerifier(decryptionVerifier).verify(zkProof, publicInputs)
+        returns (bool valid) {
+            return valid;
+        } catch {
+            return false;
         }
-
-        // --- Fallback: hash-based structural check (testing only) ---
-        if (zkProof.length < 128) revert("ZK proof too short");
-
-        // Verify proof structure: first 32 bytes must commit to the calldata hash
-        bytes32 proofCommitment = bytes32(zkProof[0:32]);
-        if (proofCommitment != keccak256(decryptedCalldata)) return false;
-
-        // Verify proof binds to the original commitment
-        bytes32 proofBinding = bytes32(zkProof[32:64]);
-        if (proofBinding != calldataCommitment) return false;
-
-        return true;
     }
 
     /// @notice Set the ZK decryption proof verifier

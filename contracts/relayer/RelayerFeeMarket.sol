@@ -108,6 +108,8 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     constructor(address _admin, address _feeToken) {
         if (_admin == address(0)) revert ZeroAddress();
+        // SECURITY FIX M-6: Validate feeToken to prevent bricked contract
+        if (_feeToken == address(0)) revert ZeroAddress();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(OPERATOR_ROLE, _admin);

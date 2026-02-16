@@ -64,6 +64,9 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
     bytes32[] public pendingNullifiers;
     bytes32[] public pendingCommitments;
 
+    /// @notice Head pointer for O(1) queue dequeue (SECURITY FIX M-3)
+    uint256 public pendingHead;
+
     /// @notice Sync targets keyed by chain ID
     mapping(uint256 => SyncTarget) public syncTargets;
     uint256[] public targetChainIds;
@@ -211,7 +214,8 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
     function flushToChain(
         uint256 targetChainId
     ) external payable onlyRole(SYNCER_ROLE) nonReentrant whenNotPaused {
-        if (pendingNullifiers.length == 0) revert NoPendingNullifiers();
+        if (pendingNullifiers.length - pendingHead == 0)
+            revert NoPendingNullifiers();
 
         SyncTarget storage target = syncTargets[targetChainId];
         if (!target.active) revert TargetNotConfigured(targetChainId);
@@ -225,23 +229,24 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
         bytes32 currentRoot = _getCurrentMerkleRoot();
 
         // Take snapshot of pending nullifiers (up to MAX_BATCH_SIZE)
-        uint256 batchSize = pendingNullifiers.length > MAX_BATCH_SIZE
+        uint256 pendingCount = pendingNullifiers.length - pendingHead;
+        uint256 batchSize = pendingCount > MAX_BATCH_SIZE
             ? MAX_BATCH_SIZE
-            : pendingNullifiers.length;
+            : pendingCount;
 
         bytes32[] memory batchNullifiers = new bytes32[](batchSize);
         bytes32[] memory batchCommitments = new bytes32[](batchSize);
 
         for (uint256 i = 0; i < batchSize; ) {
-            batchNullifiers[i] = pendingNullifiers[i];
-            batchCommitments[i] = pendingCommitments[i];
+            batchNullifiers[i] = pendingNullifiers[pendingHead + i];
+            batchCommitments[i] = pendingCommitments[pendingHead + i];
             unchecked {
                 ++i;
             }
         }
 
-        // Remove sent items from pending arrays
-        _removeSentItems(batchSize);
+        // SECURITY FIX M-3: O(1) head pointer advance instead of O(n) array shift
+        pendingHead += batchSize;
 
         // Encode the sync message
         bytes memory payload = abi.encode(
@@ -355,22 +360,10 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
         return bytes32(0);
     }
 
-    function _removeSentItems(uint256 count) internal {
-        uint256 remaining = pendingNullifiers.length - count;
-        for (uint256 i = 0; i < remaining; ) {
-            pendingNullifiers[i] = pendingNullifiers[i + count];
-            pendingCommitments[i] = pendingCommitments[i + count];
-            unchecked {
-                ++i;
-            }
-        }
-        for (uint256 i = 0; i < count; ) {
-            pendingNullifiers.pop();
-            pendingCommitments.pop();
-            unchecked {
-                ++i;
-            }
-        }
+    /// @dev DEPRECATED: No longer used after M-3 head-pointer fix
+    /// Kept for ABI compatibility. Head pointer makes this O(1).
+    function _removeSentItems(uint256 /* count */) internal pure {
+        // No-op: pendingHead advancement handles dequeue
     }
 
     // ──────────────────────────────────────────────
@@ -380,7 +373,7 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get the number of nullifiers pending synchronisation
     /// @return The count of pending nullifiers
     function getPendingCount() external view returns (uint256) {
-        return pendingNullifiers.length;
+        return pendingNullifiers.length - pendingHead;
     }
 
     /// @notice Get all target chain IDs configured for sync

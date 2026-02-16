@@ -132,6 +132,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     error InvalidBridgeAdapter();
     error InvalidMessage();
     error ZeroAddress();
+    error BridgeCallFailed(string reason);
 
     // ──────────────────────────────────────────────
     //  Constructor
@@ -336,11 +337,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
             )
         );
         if (!success) {
-            emit ProofRelayFailed(
-                bytes32(0),
-                uint64(config.bridgeChainId),
-                "LayerZero send failed"
-            );
+            revert BridgeCallFailed("LayerZero send failed");
         }
     }
 
@@ -358,11 +355,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
             )
         );
         if (!success) {
-            emit ProofRelayFailed(
-                bytes32(0),
-                uint64(config.bridgeChainId),
-                "Hyperlane dispatch failed"
-            );
+            revert BridgeCallFailed("Hyperlane dispatch failed");
         }
     }
 

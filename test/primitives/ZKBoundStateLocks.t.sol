@@ -857,8 +857,18 @@ contract ZKBoundStateLocksTest is Test {
                         RECOVERY
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Helper to enable role separation required for recoverLock
+    function _enableRoleSeparation() internal {
+        zksl.revokeRole(zksl.DISPUTE_RESOLVER_ROLE(), admin);
+        zksl.revokeRole(zksl.RECOVERY_ROLE(), admin);
+        zksl.revokeRole(zksl.OPERATOR_ROLE(), admin);
+        zksl.confirmRoleSeparation();
+    }
+
     function test_RecoverLock_Success() public {
         bytes32 lockId = _createDefaultLock();
+
+        _enableRoleSeparation();
 
         vm.prank(recovery);
         zksl.recoverLock(lockId, recovery);
@@ -869,6 +879,9 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_RecoverLock_RevertInvalidLock() public {
         bytes32 fake = keccak256("fake");
+
+        _enableRoleSeparation();
+
         vm.prank(recovery);
         vm.expectRevert(
             abi.encodeWithSelector(ZKBoundStateLocks.InvalidLock.selector, fake)
@@ -880,6 +893,8 @@ contract ZKBoundStateLocksTest is Test {
         bytes32 lockId = _createDefaultLock();
         ZKBoundStateLocks.UnlockProof memory proof = _buildUnlockProof(lockId);
         zksl.unlock(proof);
+
+        _enableRoleSeparation();
 
         vm.prank(recovery);
         vm.expectRevert(
@@ -900,6 +915,8 @@ contract ZKBoundStateLocksTest is Test {
 
     function test_RecoverLock_PreventDoubleRecovery() public {
         bytes32 lockId = _createDefaultLock();
+
+        _enableRoleSeparation();
 
         vm.prank(recovery);
         zksl.recoverLock(lockId, recovery);

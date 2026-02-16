@@ -235,6 +235,9 @@ contract UniversalShieldedPool is
     function depositETH(
         bytes32 commitment
     ) external payable nonReentrant whenNotPaused {
+        // SECURITY FIX: Block deposits in testMode to prevent loss of real funds
+        // In testMode, withdrawal proofs are not verified — depositing real assets is unsafe
+        require(!testMode, "Deposits disabled in test mode");
         if (commitment == bytes32(0) || uint256(commitment) >= FIELD_SIZE) {
             revert InvalidCommitment();
         }
@@ -254,6 +257,8 @@ contract UniversalShieldedPool is
         uint256 amount,
         bytes32 commitment
     ) external nonReentrant whenNotPaused {
+        // SECURITY FIX: Block deposits in testMode
+        require(!testMode, "Deposits disabled in test mode");
         if (commitment == bytes32(0) || uint256(commitment) >= FIELD_SIZE) {
             revert InvalidCommitment();
         }

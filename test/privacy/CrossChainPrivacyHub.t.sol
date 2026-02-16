@@ -251,7 +251,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_initiatePrivateTransfer_basic() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("recipient"),
             1 ether,
@@ -265,7 +265,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_initiatePrivateTransfer_withProof() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("recipient"),
             1 ether,
@@ -319,7 +319,7 @@ contract CrossChainPrivacyHubTest is Test {
         uint256 expectedFee = (amount * 30) / 10_000; // 0.3%
 
         vm.prank(user);
-        hub.initiatePrivateTransfer{value: amount}(
+        hub.initiatePrivateTransfer{value: amount + expectedFee}(
             DEST_CHAIN,
             keccak256("r"),
             amount,
@@ -339,7 +339,7 @@ contract CrossChainPrivacyHubTest is Test {
             abi.encodeWithSelector(
                 CrossChainPrivacyHub.InsufficientFee.selector,
                 fee - 1,
-                fee
+                amount + fee
             )
         );
         hub.initiatePrivateTransfer{value: fee - 1}(
@@ -354,7 +354,7 @@ contract CrossChainPrivacyHubTest is Test {
     function test_initiatePrivateTransfer_revertOnMediumNoProof() public {
         vm.prank(user);
         vm.expectRevert(CrossChainPrivacyHub.InvalidProof.selector);
-        hub.initiatePrivateTransfer{value: 1 ether}(
+        hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -419,7 +419,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_relayTransfer() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -450,7 +450,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_relayTransfer_revertOnAlreadyRelayed() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -473,7 +473,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_relayTransfer_revertOnExpired() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -495,7 +495,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_relayTransfer_accessControl() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -514,7 +514,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_completeTransfer() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -539,7 +539,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_completeTransfer_revertOnDoubleSpend() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -556,7 +556,7 @@ contract CrossChainPrivacyHubTest is Test {
 
         // Try to use same nullifier on different transfer
         vm.prank(user);
-        bytes32 reqId2 = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId2 = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r2"),
             1 ether,
@@ -582,7 +582,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_refundTransfer_afterExpiry() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -607,7 +607,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_refundTransfer_guardianBeforeExpiry() public {
         vm.prank(user);
-        bytes32 reqId = hub.initiatePrivateTransfer{value: 1 ether}(
+        bytes32 reqId = hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -913,7 +913,7 @@ contract CrossChainPrivacyHubTest is Test {
 
         // Transfer up to near daily limit
         vm.startPrank(user);
-        hub.initiatePrivateTransfer{value: 5000 ether}(
+        hub.initiatePrivateTransfer{value: 5015 ether}(
             DEST_CHAIN,
             keccak256("r1"),
             5000 ether,
@@ -921,7 +921,7 @@ contract CrossChainPrivacyHubTest is Test {
             _emptyProof()
         );
 
-        hub.initiatePrivateTransfer{value: 5000 ether}(
+        hub.initiatePrivateTransfer{value: 5015 ether}(
             DEST_CHAIN,
             keccak256("r2"),
             5000 ether,
@@ -944,7 +944,7 @@ contract CrossChainPrivacyHubTest is Test {
         vm.warp(block.timestamp + 1 days + 1);
 
         vm.prank(user);
-        hub.initiatePrivateTransfer{value: 1 ether}(
+        hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r4"),
             1 ether,
@@ -967,7 +967,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_getUserTransfers() public {
         vm.prank(user);
-        hub.initiatePrivateTransfer{value: 1 ether}(
+        hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,
@@ -986,7 +986,7 @@ contract CrossChainPrivacyHubTest is Test {
 
     function test_getStats() public {
         vm.prank(user);
-        hub.initiatePrivateTransfer{value: 1 ether}(
+        hub.initiatePrivateTransfer{value: 1.003 ether}(
             DEST_CHAIN,
             keccak256("r"),
             1 ether,

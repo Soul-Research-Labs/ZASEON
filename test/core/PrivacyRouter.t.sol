@@ -35,8 +35,8 @@ contract PrivacyRouterTest is Test {
     function setUp() public {
         vm.startPrank(admin);
 
-        // Deploy pool in test mode
-        pool = new UniversalShieldedPool(admin, address(0), true);
+        // Deploy pool with testMode=false so deposits are accepted
+        pool = new UniversalShieldedPool(admin, address(0), false);
 
         // Deploy router with pool and mock component addresses
         router = new PrivacyRouter(

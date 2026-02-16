@@ -908,4 +908,7 @@ contract StealthAddressRegistry is
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
+
+    /// @dev Reserved storage gap for future upgrades
+    uint256[50] private __gap;
 }

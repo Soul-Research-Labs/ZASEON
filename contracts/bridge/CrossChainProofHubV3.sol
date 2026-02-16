@@ -306,9 +306,7 @@ contract CrossChainProofHubV3 is
         }
 
         if (address(verifier) == address(0)) {
-            verifier = verifiers[DEFAULT_PROOF_TYPE];
-            if (address(verifier) == address(0))
-                revert VerifierNotSet(proofType);
+            revert VerifierNotSet(proofType);
         }
 
         if (!verifier.verifyProof(proof, publicInputs)) revert InvalidProof();
@@ -739,7 +737,14 @@ contract CrossChainProofHubV3 is
             ++relayerPendingProofs[msg.sender];
             ++totalProofs;
         }
-        accumulatedFees += msg.value;
+        accumulatedFees += requiredFee;
+
+        // Refund excess ETH to prevent overpayment loss
+        uint256 excess = msg.value - requiredFee;
+        if (excess > 0) {
+            (bool refundSuccess, ) = msg.sender.call{value: excess}("");
+            if (!refundSuccess) revert TransferFailed();
+        }
 
         emit ProofSubmitted(
             proofId,

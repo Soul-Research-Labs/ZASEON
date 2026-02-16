@@ -493,7 +493,9 @@ contract CrossChainPrivacyHub is
 
         // Calculate fee
         uint256 fee = (amount * protocolFeeBps) / 10000;
-        if (msg.value < fee) revert InsufficientFee(msg.value, fee);
+        // SECURITY FIX C-1: Require msg.value covers BOTH the transfer amount AND protocol fee
+        if (msg.value < amount + fee)
+            revert InsufficientFee(msg.value, amount + fee);
 
         // Verify privacy proof if required
         if (privacyLevel >= PrivacyLevel.MEDIUM) {
@@ -750,6 +752,17 @@ contract CrossChainPrivacyHub is
 
         transfer.status = TransferStatus.COMPLETED;
 
+        // SECURITY FIX C-2: Actually deliver escrowed funds to the recipient
+        address recipientAddr = address(uint160(uint256(transfer.recipient)));
+        if (transfer.token == address(0)) {
+            // ETH transfer
+            (bool sent, ) = recipientAddr.call{value: transfer.amount}("");
+            if (!sent) revert RefundFailed();
+        } else {
+            // ERC20 transfer
+            IERC20(transfer.token).safeTransfer(recipientAddr, transfer.amount);
+        }
+
         emit TransferCompleted(requestId, transfer.recipient, transfer.amount);
         emit NullifierConsumed(
             transfer.nullifier,
@@ -821,6 +834,9 @@ contract CrossChainPrivacyHub is
         bytes32 viewingPubKey,
         uint256 chainId
     ) external returns (bytes32 stealthPubKey, bytes32 ephemeralPubKey) {
+        // SECURITY FIX M-9: Include a counter nonce to prevent predictable outputs
+        // even when block.prevrandao is known to validators
+        uint256 nonce = userStealthAddresses[msg.sender].length;
         // Generate ephemeral keypair (in practice, done off-chain)
         ephemeralPubKey = keccak256(
             abi.encode(
@@ -828,7 +844,8 @@ contract CrossChainPrivacyHub is
                 viewingPubKey,
                 block.timestamp,
                 block.prevrandao,
-                msg.sender
+                msg.sender,
+                nonce
             )
         );
 
@@ -1297,4 +1314,11 @@ contract CrossChainPrivacyHub is
     // =========================================================================
 
     receive() external payable {}
+
+    // =========================================================================
+    // STORAGE GAP
+    // =========================================================================
+
+    /// @dev Reserved storage gap for future upgrades
+    uint256[50] private __gap;
 }

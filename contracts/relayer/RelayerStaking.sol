@@ -184,6 +184,12 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
         Relayer storage relayer = relayers[relayerAddress];
         if (relayer.stakedAmount == 0) revert NoStakeFound();
 
+        // SECURITY FIX H-7: Update reward debt BEFORE modifying stakedAmount
+        // This prevents the slashed relayer from earning rewards on their own slashed tokens
+        relayer.rewardDebt =
+            (relayer.stakedAmount * rewardPerShare) /
+            PRECISION;
+
         uint256 slashAmount = (relayer.stakedAmount * slashingPercentage) /
             10000;
         relayer.stakedAmount -= slashAmount;
@@ -252,8 +258,11 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
             return; // Silently return if stake is too new
         }
 
-        uint256 pending = ((relayer.stakedAmount * rewardPerShare) /
-            PRECISION) - relayer.rewardDebt;
+        uint256 pending = ((relayer.stakedAmount * rewardPerShare) / PRECISION);
+        // SECURITY FIX H-7: Prevent underflow when rewardDebt exceeds current share
+        pending = pending > relayer.rewardDebt
+            ? pending - relayer.rewardDebt
+            : 0;
 
         if (pending > 0) {
             relayer.rewardDebt =
@@ -307,9 +316,10 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
         address relayerAddress
     ) external view returns (uint256) {
         Relayer storage relayer = relayers[relayerAddress];
+        uint256 computed = (relayer.stakedAmount * rewardPerShare) / PRECISION;
+        // SECURITY FIX H-7: Prevent underflow in pending rewards view
         return
-            ((relayer.stakedAmount * rewardPerShare) / PRECISION) -
-            relayer.rewardDebt;
+            computed > relayer.rewardDebt ? computed - relayer.rewardDebt : 0;
     }
 
     /**

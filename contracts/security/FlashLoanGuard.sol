@@ -123,6 +123,9 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
     uint256 public lastTVLBlock;
     uint256 public lastTVL;
 
+    /// @notice Maximum age for oracle data (staleness threshold)
+    uint256 public maxOracleAge = 1 hours;
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -321,9 +324,9 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
         address token,
         TokenConfig storage config
     ) internal view returns (bool valid) {
-        // Get oracle price
+        // SECURITY FIX M-7: Use latestRoundData() with staleness check
         (bool success, bytes memory data) = config.priceOracle.staticcall(
-            abi.encodeWithSignature("latestAnswer()")
+            abi.encodeWithSignature("latestRoundData()")
         );
 
         if (!success || data.length == 0) {
@@ -331,9 +334,17 @@ contract FlashLoanGuard is ReentrancyGuard, AccessControl, Pausable {
             return false;
         }
 
-        int256 oraclePrice = abi.decode(data, (int256));
+        (, int256 oraclePrice, , uint256 updatedAt, ) = abi.decode(
+            data,
+            (uint80, int256, uint256, uint256, uint80)
+        );
         if (oraclePrice <= 0) {
             // Invalid oracle price — reject
+            return false;
+        }
+
+        // SECURITY FIX M-7: Check oracle staleness
+        if (block.timestamp - updatedAt > maxOracleAge) {
             return false;
         }
 

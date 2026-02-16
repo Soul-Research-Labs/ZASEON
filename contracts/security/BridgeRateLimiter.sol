@@ -352,6 +352,95 @@ contract BridgeRateLimiter is AccessControl, Pausable {
     }
 
     /**
+     * @notice SECURITY FIX M-8: Atomically check and record a transfer to prevent TOCTOU race conditions
+     * @dev Combines checkTransfer validation with recordTransfer state update in a single transaction
+     * @param user The user initiating the transfer
+     * @param amount The transfer amount
+     */
+    function checkAndRecordTransfer(
+        address user,
+        uint256 amount
+    ) external onlyRole(OPERATOR_ROLE) {
+        // Check blacklist
+        require(!blacklisted[user], "Address blacklisted");
+        require(!whitelisted[user] || true, ""); // whitelisted bypass, always proceed
+
+        // Check circuit breaker
+        if (
+            breakerStatus.isTriggered &&
+            block.timestamp < breakerStatus.cooldownEnds
+        ) {
+            revert(breakerStatus.reason);
+        }
+        require(!paused(), "Bridge paused");
+
+        // Check TVL cap
+        if (tvlCap > 0) {
+            require(
+                globalStats.currentTVL + amount <= tvlCap,
+                "TVL cap exceeded"
+            );
+        }
+
+        // Check global limits
+        if (globalConfig.enabled) {
+            (uint256 hourlyVol, uint256 dailyVol) = _getGlobalUsage();
+            require(
+                amount <= globalConfig.maxSingleTx,
+                "Exceeds global single tx limit"
+            );
+            require(
+                hourlyVol + amount <= globalConfig.hourlyLimit,
+                "Exceeds global hourly limit"
+            );
+            require(
+                dailyVol + amount <= globalConfig.dailyLimit,
+                "Exceeds global daily limit"
+            );
+        }
+
+        // Check user limits (skip for whitelisted)
+        if (userConfig.enabled && !whitelisted[user]) {
+            UserUsage storage usage = userUsage[user];
+            (uint256 hourlyUsed, uint256 dailyUsed) = _getUserUsage(usage);
+            require(
+                amount <= userConfig.maxSingleTx,
+                "Exceeds user single tx limit"
+            );
+            require(
+                hourlyUsed + amount <= userConfig.hourlyLimit,
+                "Exceeds user hourly limit"
+            );
+            require(
+                dailyUsed + amount <= userConfig.dailyLimit,
+                "Exceeds user daily limit"
+            );
+            if (userConfig.minTimeBetweenTx > 0 && usage.lastTxTime > 0) {
+                require(
+                    block.timestamp - usage.lastTxTime >=
+                        userConfig.minTimeBetweenTx,
+                    "Too soon between transactions"
+                );
+            }
+        }
+
+        // Atomically record after all checks pass
+        _updateGlobalStats(amount);
+        _updateUserUsage(user, amount);
+
+        if (circuitBreaker.autoBreakEnabled) {
+            _checkCircuitBreaker(amount);
+        }
+
+        emit UsageRecorded(
+            user,
+            amount,
+            userUsage[user].hourlyUsed,
+            globalStats.hourlyVolume
+        );
+    }
+
+    /**
      * @notice Record TVL change
      * @param delta The change in TVL (positive = deposit, negative = withdrawal)
      * @param isDeposit Whether this is a deposit (true) or withdrawal (false)

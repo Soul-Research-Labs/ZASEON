@@ -69,13 +69,24 @@ contract DirectL2MessengerTest is Test {
         vm.deal(user, 100 ether);
         vm.deal(address(messenger), 10 ether);
 
-        // Configure a route
+        // Configure a route (outbound: this chain → DEST_CHAIN)
         vm.prank(operator);
         messenger.configureRoute(
             block.chainid,
             DEST_CHAIN,
             IL2DirectMessenger.MessagePath.FAST_RELAYER,
             address(0), // No adapter needed for fast relayer
+            3,
+            30 minutes
+        );
+
+        // Configure inbound route (source chain 10 → this chain) for receiveMessage tests
+        vm.prank(operator);
+        messenger.configureRoute(
+            10,
+            block.chainid,
+            IL2DirectMessenger.MessagePath.FAST_RELAYER,
+            address(0),
             3,
             30 minutes
         );

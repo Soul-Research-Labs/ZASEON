@@ -361,8 +361,12 @@ contract GasOptimizedNullifierManager {
     /**
      * @notice Consume nullifier with minimal gas
      * @dev Uses single storage write, ~45k gas vs ~120k original
+     * SECURITY FIX C-5: Added onlyOwner to prevent arbitrary nullifier consumption
      */
-    function consumeNullifier(bytes32 nullifier, bytes32 domain) external {
+    function consumeNullifier(
+        bytes32 nullifier,
+        bytes32 domain
+    ) external onlyOwner {
         if (nullifier == bytes32(0)) revert InvalidNullifier();
         if (consumed[nullifier][domain]) revert NullifierAlreadyConsumed();
 
@@ -374,11 +378,12 @@ contract GasOptimizedNullifierManager {
     /**
      * @notice Batch consume nullifiers
      * @dev Amortizes event emission and checks, ~30k gas per nullifier
+     * SECURITY FIX C-5: Added onlyOwner to prevent arbitrary nullifier consumption
      */
     function batchConsumeNullifiers(
         bytes32[] calldata nullifiers,
         bytes32 domain
-    ) external {
+    ) external onlyOwner {
         uint256 count = nullifiers.length;
         if (count > MAX_BATCH_SIZE) revert BatchSizeExceeded();
 

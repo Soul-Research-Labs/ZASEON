@@ -713,6 +713,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
             // Mark as disputed
             optimistic.disputed = true;
 
+            // SECURITY FIX H-5b: Free the nullifier so it can be reused for legitimate unlock
+            nullifierUsed[optimistic.nullifier] = false;
+
             // Update statistics
             unchecked {
                 _packedStats += uint256(1) << _STAT_SHIFT_DISPUTES;
@@ -817,6 +820,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         bytes32 lockId,
         address recipient
     ) external nonReentrant onlyRole(RECOVERY_ROLE) {
+        // SECURITY FIX H-5b: Enforce role separation for sensitive recovery operations
+        if (!rolesSeparated) revert RolesNotSeparated();
+
         ZKSLock storage lock = locks[lockId];
         if (lock.lockId == bytes32(0)) revert InvalidLock(lockId);
 
