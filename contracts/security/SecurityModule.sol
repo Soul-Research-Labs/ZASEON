@@ -670,4 +670,15 @@ abstract contract SecurityModule {
 
         return (false, requiredBlock - block.number + 1);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          STORAGE GAP
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Reserved storage gap for future upgrades.
+     *      Allows adding new state variables in SecurityModule without
+     *      shifting the storage layout of child contracts.
+     */
+    uint256[50] private __gap;
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {UniversalShieldedPool} from "../../contracts/privacy/UniversalShieldedPool.sol";
 import {IUniversalShieldedPool} from "../../contracts/interfaces/IUniversalShieldedPool.sol";
-import {UniversalChainRegistry} from "../../contracts/libraries/UniversalChainRegistry.sol";
 
 /// @dev Mock withdrawal verifier that always returns true
 contract MockWithdrawalVerifier {
