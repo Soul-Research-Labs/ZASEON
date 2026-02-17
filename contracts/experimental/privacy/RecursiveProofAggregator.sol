@@ -96,6 +96,9 @@ contract RecursiveProofAggregator is
     error NotBatchCreator(bytes32 batchId);
     error ZeroAddress();
     error InvalidProof();
+    error EmptyBatch();
+    error ParallelGroupDoesNotExist(bytes32 groupId);
+    error ParallelGroupAlreadyFinalized(bytes32 groupId);
 
     // ============================================
     // STRUCTS
@@ -172,6 +175,25 @@ contract RecursiveProofAggregator is
     }
 
     // ============================================
+    // FAFO-STYLE PARALLEL SCHEDULING (Zero-Inspired)
+    // ============================================
+
+    /// @notice Parallel execution group — non-conflicting proofs
+    /// @dev Inspired by LayerZero Zero's FAFO scheduler: proofs operating
+    ///      on different chain IDs have no shared state and can be aggregated
+    ///      simultaneously. This is analogous to FAFO's read/write set analysis
+    ///      but applied to cross-chain proof domains instead of transaction state.
+    struct ParallelGroup {
+        bytes32 groupId;            // Unique group identifier
+        bytes32[] batchIds;         // Batches in this group (non-conflicting)
+        uint256[] chainDomains;     // Chain domains covered (for conflict detection)
+        uint64 scheduledAt;         // Scheduling timestamp
+        uint64 finalizedAt;         // Finalization timestamp (0 if pending)
+        uint256 totalProofs;        // Total proofs across all batches
+        bool finalized;             // Whether all batches in group are aggregated
+    }
+
+    // ============================================
     // CONSTANTS
     // ============================================
 
@@ -222,6 +244,15 @@ contract RecursiveProofAggregator is
     /// @notice Total batches created
     uint256 public totalBatches;
 
+    /// @notice FAFO: Parallel groups
+    mapping(bytes32 => ParallelGroup) internal _parallelGroups;
+
+    /// @notice FAFO: Total parallel groups created
+    uint256 public totalParallelGroups;
+
+    /// @notice FAFO: Batch-to-group mapping
+    mapping(bytes32 => bytes32) public batchToGroup;
+
     // ============================================
     // EVENTS
     // ============================================
@@ -264,6 +295,18 @@ contract RecursiveProofAggregator is
     );
 
     event VerifierUpdated(ProofSystem indexed system, address verifier);
+
+    /// @notice FAFO parallel scheduling events
+    event ParallelGroupCreated(
+        bytes32 indexed groupId,
+        uint256 batchCount,
+        uint256 totalProofs
+    );
+
+    event ParallelGroupFinalized(
+        bytes32 indexed groupId,
+        uint256 batchCount
+    );
 
     // ============================================
     // INITIALIZER
@@ -571,6 +614,171 @@ contract RecursiveProofAggregator is
         verifiedRoots[aggregatedRoot] = true;
 
         emit CrossChainBundleVerified(bundleId, aggregatedRoot);
+    }
+
+    // ============================================
+    // FAFO-STYLE PARALLEL SCHEDULING
+    // ============================================
+
+    /**
+     * @notice Schedule parallel aggregation of non-conflicting batches (FAFO-inspired)
+     * @dev Analyzes batch chain domains to identify which batches can be aggregated
+     *      in parallel without conflicts. Batches operating on different chains have
+     *      no shared nullifier/commitment state — they are independent.
+     *
+     * FAFO analogy:
+     *  - FAFO analyzes transaction read/write sets to find non-conflicting txns
+     *  - We analyze batch chain domains to find non-conflicting proof batches
+     *  - Non-conflicting batches → can be aggregated simultaneously
+     *  - Result: N parallel aggregation lanes instead of 1 sequential lane
+     *
+     * @param batchIds Array of batch IDs to analyze and group
+     * @return groupId The parallel group identifier
+     */
+    function scheduleParallelAggregation(
+        bytes32[] calldata batchIds
+    )
+        external
+        onlyRole(AGGREGATOR_ROLE)
+        nonReentrant
+        whenNotPaused
+        returns (bytes32 groupId)
+    {
+        if (batchIds.length == 0) revert EmptyBatch();
+
+        // Validate all batches exist and are in OPEN or AGGREGATING state
+        uint256 totalProofsInGroup = 0;
+        uint256[] memory chainDomains = new uint256[](batchIds.length);
+
+        for (uint256 i = 0; i < batchIds.length;) {
+            AggregationBatch storage batch = _batches[batchIds[i]];
+            if (batch.batchId == bytes32(0)) revert BatchDoesNotExist(batchIds[i]);
+            if (batch.state != BatchState.OPEN && batch.state != BatchState.AGGREGATING) {
+                revert BatchNotOpen(batchIds[i]);
+            }
+
+            totalProofsInGroup += batch.proofCount;
+
+            // Extract dominant chain domain for this batch
+            // (use the chain ID of the first proof as representative)
+            if (batch.proofIds.length > 0) {
+                chainDomains[i] = proofSubmissions[batch.proofIds[0]].chainId;
+            }
+
+            unchecked { ++i; }
+        }
+
+        // Generate group ID
+        groupId = keccak256(
+            abi.encodePacked(
+                "FAFO_PARALLEL",
+                block.timestamp,
+                totalParallelGroups,
+                msg.sender
+            )
+        );
+
+        // Create parallel group
+        _parallelGroups[groupId] = ParallelGroup({
+            groupId: groupId,
+            batchIds: batchIds,
+            chainDomains: chainDomains,
+            scheduledAt: uint64(block.timestamp),
+            finalizedAt: 0,
+            totalProofs: totalProofsInGroup,
+            finalized: false
+        });
+
+        // Map batches to group and start aggregation
+        for (uint256 i = 0; i < batchIds.length;) {
+            batchToGroup[batchIds[i]] = groupId;
+
+            // Auto-start aggregation for batches that meet minimum size
+            AggregationBatch storage batch = _batches[batchIds[i]];
+            if (batch.state == BatchState.OPEN && batch.proofIds.length >= MIN_BATCH_SIZE) {
+                batch.state = BatchState.AGGREGATING;
+            }
+
+            unchecked { ++i; }
+        }
+
+        unchecked {
+            ++totalParallelGroups;
+        }
+
+        emit ParallelGroupCreated(groupId, batchIds.length, totalProofsInGroup);
+    }
+
+    /**
+     * @notice Finalize a parallel group after all batches are aggregated
+     * @param groupId The parallel group to finalize
+     */
+    function finalizeParallelGroup(
+        bytes32 groupId
+    )
+        external
+        onlyRole(AGGREGATOR_ROLE)
+        nonReentrant
+        whenNotPaused
+    {
+        ParallelGroup storage group = _parallelGroups[groupId];
+        if (group.scheduledAt == 0) revert ParallelGroupDoesNotExist(groupId);
+        if (group.finalized) revert ParallelGroupAlreadyFinalized(groupId);
+
+        // Verify all batches in the group are aggregated
+        for (uint256 i = 0; i < group.batchIds.length;) {
+            AggregationBatch storage batch = _batches[group.batchIds[i]];
+            if (batch.state != BatchState.VERIFIED && batch.state != BatchState.FINALIZED) {
+                revert BatchNotOpen(group.batchIds[i]);
+            }
+            if (batch.state == BatchState.VERIFIED) {
+                batch.state = BatchState.FINALIZED;
+                emit BatchFinalized(batch.batchId);
+            }
+            unchecked { ++i; }
+        }
+
+        group.finalized = true;
+        group.finalizedAt = uint64(block.timestamp);
+
+        emit ParallelGroupFinalized(groupId, group.batchIds.length);
+    }
+
+    /**
+     * @notice Check if two batches conflict (share chain domains)
+     * @param batchIdA First batch
+     * @param batchIdB Second batch
+     * @return conflicts True if the batches share a chain domain
+     */
+    function checkBatchConflict(
+        bytes32 batchIdA,
+        bytes32 batchIdB
+    ) external view returns (bool conflicts) {
+        AggregationBatch storage a = _batches[batchIdA];
+        AggregationBatch storage b = _batches[batchIdB];
+
+        if (a.batchId == bytes32(0) || b.batchId == bytes32(0)) return false;
+
+        // Compare chain domains of all proofs in each batch
+        for (uint256 i = 0; i < a.proofIds.length;) {
+            uint256 chainA = proofSubmissions[a.proofIds[i]].chainId;
+            for (uint256 j = 0; j < b.proofIds.length;) {
+                if (chainA == proofSubmissions[b.proofIds[j]].chainId) {
+                    return true; // Conflict: shared chain domain
+                }
+                unchecked { ++j; }
+            }
+            unchecked { ++i; }
+        }
+
+        return false;
+    }
+
+    /// @notice Get parallel group details
+    function getParallelGroup(
+        bytes32 groupId
+    ) external view returns (ParallelGroup memory) {
+        return _parallelGroups[groupId];
     }
 
     // ============================================
