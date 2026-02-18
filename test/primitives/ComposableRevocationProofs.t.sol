@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../../contracts/experimental/primitives/ComposableRevocationProofs.sol";
+import "../../contracts/primitives/ComposableRevocationProofs.sol";
 
 contract ComposableRevocationProofsTest is Test {
     ComposableRevocationProofs crp;

@@ -2,21 +2,26 @@
 
 Research-tier and non-priority contracts that are **not part of the core Soul Protocol deployment**. These contracts are kept for future reference and potential inclusion once they mature.
 
+## Graduated Contracts
+
+The following contracts were promoted to production after meeting all promotion criteria:
+
+| Contract | Graduated To | Criteria Met |
+|----------|-------------|-------------|
+| `HomomorphicHiding.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_homomorphic_hiding`) |
+| `AggregateDisclosureAlgebra.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_aggregate_disclosure`) |
+| `ComposableRevocationProofs.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_crp`) |
+| `ScrollBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_scroll_bridge`), integration tests |
+| `LineaBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_linea_bridge`), integration tests |
+| `zkSyncBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_zksync_bridge`), integration tests |
+| `PolygonZkEVMBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_polygon_zkevm_bridge`), integration tests |
+
 ## Structure
 
 ```
 experimental/
-├── adapters/          # Non-priority L2 bridge adapters
-│   ├── ScrollBridgeAdapter.sol
-│   ├── LineaBridgeAdapter.sol
-│   ├── zkSyncBridgeAdapter.sol
-│   └── PolygonZkEVMBridgeAdapter.sol
 ├── interfaces/        # Interfaces for experimental contracts
 │   └── IMixnetNodeRegistry.sol
-├── primitives/        # Research-grade cryptographic primitives
-│   ├── HomomorphicHiding.sol
-│   ├── AggregateDisclosureAlgebra.sol
-│   └── ComposableRevocationProofs.sol
 ├── privacy/           # Research-grade privacy modules
 │   ├── MixnetNodeRegistry.sol
 │   ├── RecursiveProofAggregator.sol
@@ -35,8 +40,6 @@ experimental/
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| L2 Adapters | Deferred | Scroll, Linea, zkSync, Polygon zkEVM — will be re-integrated when these L2s are prioritized |
-| Research Primitives | Research | Self-described as "research-grade" — not production ready |
 | Privacy Modules | Research | Mixnet, recursive proofs, relayer selection — needs further R&D |
 | Verifiers | Superseded | VerifierHub superseded by VerifierRegistryV2; others are experimental proof systems |
 

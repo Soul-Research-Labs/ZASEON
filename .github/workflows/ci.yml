@@ -424,13 +424,13 @@ jobs:
           - verify_network_invariants
           - verify_upgradeable
           - verify_governor
-          # verify_crosschain — DISABLED (pending SolanaBridgeAdapter)
+          # verify_crosschain — DISABLED (spec targets non-existent SolanaBridgeAdapter with Wormhole VAA methods)
           - verify_direct_l2_messenger
           - verify_gas_normalizer
           - verify_private_relayer_network
           - verify_recursive_proof_aggregator
-          # verify_sptc — DISABLED (pending SPTC contract)
-          # verify_upgradeable_shielded_pool — DISABLED (pending contract alignment)
+          # verify_sptc — DISABLED (spec targets non-existent SelfProvingTransferCertificate; PC3 already has verify_pc3)
+          - verify_upgradeable_shielded_pool
           - verify_view_key_registry
           - verify_ring_signature
     steps:

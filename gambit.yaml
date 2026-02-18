@@ -1,4 +1,5 @@
 mutate:
+  # ── Core (existing) ──
   - filename: contracts/security/SecurityModule.sol
     contract: SecurityModule
   - filename: contracts/primitives/ZKBoundStateLocks.sol
@@ -15,6 +16,86 @@ mutate:
     contract: DirectL2Messenger
   - filename: contracts/privacy/ConfidentialStateContainerV3.sol
     contract: ConfidentialStateContainerV3
+
+  # ── Core (new) ──
+  - filename: contracts/core/SoulProtocolHub.sol
+    contract: SoulProtocolHub
+  - filename: contracts/core/PrivacyRouter.sol
+    contract: PrivacyRouter
+  - filename: contracts/core/ExperimentalFeatureRegistry.sol
+    contract: ExperimentalFeatureRegistry
+
+  # ── Privacy (new) ──
+  - filename: contracts/privacy/BatchAccumulator.sol
+    contract: BatchAccumulator
+  - filename: contracts/privacy/CrossChainPrivacyHub.sol
+    contract: CrossChainPrivacyHub
+  - filename: contracts/privacy/StealthAddressRegistry.sol
+    contract: StealthAddressRegistry
+  - filename: contracts/privacy/ViewKeyRegistry.sol
+    contract: ViewKeyRegistry
+  - filename: contracts/privacy/PrivacyZoneManager.sol
+    contract: PrivacyZoneManager
+  - filename: contracts/privacy/DataAvailabilityOracle.sol
+    contract: DataAvailabilityOracle
+
+  # ── Governance (new) ──
+  - filename: contracts/governance/SoulGovernor.sol
+    contract: SoulGovernor
+  - filename: contracts/governance/SoulGovernance.sol
+    contract: SoulGovernance
+  - filename: contracts/governance/SoulToken.sol
+    contract: SoulToken
+  - filename: contracts/governance/SoulUpgradeTimelock.sol
+    contract: SoulUpgradeTimelock
+
+  # ── Relayer (new) ──
+  - filename: contracts/relayer/GelatoRelayAdapter.sol
+    contract: GelatoRelayAdapter
+  - filename: contracts/relayer/RelayerStaking.sol
+    contract: RelayerStaking
+  - filename: contracts/relayer/RelayerFeeMarket.sol
+    contract: RelayerFeeMarket
+  - filename: contracts/relayer/HeterogeneousRelayerRegistry.sol
+    contract: HeterogeneousRelayerRegistry
+
+  # ── Compliance (new) ──
+  - filename: contracts/compliance/CrossChainSanctionsOracle.sol
+    contract: CrossChainSanctionsOracle
+  - filename: contracts/compliance/SoulComplianceV2.sol
+    contract: SoulComplianceV2
+
+  # ── Cross-chain (new) ──
+  - filename: contracts/crosschain/ArbitrumBridgeAdapter.sol
+    contract: ArbitrumBridgeAdapter
+  - filename: contracts/crosschain/OptimismBridgeAdapter.sol
+    contract: OptimismBridgeAdapter
+  - filename: contracts/crosschain/BaseBridgeAdapter.sol
+    contract: BaseBridgeAdapter
+  - filename: contracts/crosschain/LayerZeroBridgeAdapter.sol
+    contract: LayerZeroBridgeAdapter
+  - filename: contracts/crosschain/EthereumL1Bridge.sol
+    contract: EthereumL1Bridge
+
+  # ── Adapters (new) ──
+  - filename: contracts/adapters/EVMUniversalAdapter.sol
+    contract: EVMUniversalAdapter
+
+  # ── Graduated from experimental ──
+  - filename: contracts/primitives/HomomorphicHiding.sol
+    contract: HomomorphicHiding
+  - filename: contracts/primitives/AggregateDisclosureAlgebra.sol
+    contract: AggregateDisclosureAlgebra
+  - filename: contracts/primitives/ComposableRevocationProofs.sol
+    contract: ComposableRevocationProofs
+  - filename: contracts/crosschain/ScrollBridgeAdapter.sol
+    contract: ScrollBridgeAdapter
+  - filename: contracts/crosschain/LineaBridgeAdapter.sol
+    contract: LineaBridgeAdapter
+  - filename: contracts/crosschain/zkSyncBridgeAdapter.sol
+    contract: zkSyncBridgeAdapter
+  - filename: contracts/crosschain/PolygonZkEVMBridgeAdapter.sol
+    contract: PolygonZkEVMBridgeAdapter
 
 remappings:
   - "@openzeppelin/=node_modules/@openzeppelin/"

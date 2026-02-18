@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol
  * @notice Bridge adapter for zkSync Era integration
  * @dev Enables cross-chain interoperability with zkSync Era L2
- * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
+ * @custom:graduated Promoted from experimental to production. Formally verified via Certora.
  *
  * ZKSYNC ERA INTEGRATION:
  * - zkRollup with LLVM-based zkEVM

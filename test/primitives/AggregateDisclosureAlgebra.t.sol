@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../../contracts/experimental/primitives/AggregateDisclosureAlgebra.sol";
+import "../../contracts/primitives/AggregateDisclosureAlgebra.sol";
 
 /// @dev Mock disclosure proof verifier
 contract MockDisclosureVerifier {

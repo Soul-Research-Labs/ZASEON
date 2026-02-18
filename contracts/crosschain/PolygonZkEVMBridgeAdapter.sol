@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @title PolygonZkEVMBridgeAdapter
  * @author Soul Protocol
  * @notice Bridge adapter for Polygon zkEVM integration
- * @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
+ * @custom:graduated Promoted from experimental to production. Formally verified via Certora.
  */
 contract PolygonZkEVMBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
