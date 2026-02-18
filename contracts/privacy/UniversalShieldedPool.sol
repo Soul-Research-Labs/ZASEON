@@ -116,6 +116,12 @@ contract UniversalShieldedPool is
     /// @notice Historical root ring buffer
     bytes32[ROOT_HISTORY_SIZE] public rootHistory;
 
+    /// @notice Historical roots mapping for O(1) lookup
+    mapping(bytes32 => bool) public historicalRoots;
+
+    /// @notice Precomputed zero hashes for each tree level
+    bytes32[TREE_DEPTH + 1] public precomputedZeros;
+
     /// @notice Current root history index
     uint256 public currentRootIndex;
 
@@ -197,15 +203,18 @@ contract UniversalShieldedPool is
 
         // Initialize Merkle tree with zero values
         bytes32 currentZero = ZERO_VALUE;
+        precomputedZeros[0] = currentZero;
         for (uint256 i = 0; i < TREE_DEPTH; ) {
             filledSubtrees[i] = currentZero;
             currentZero = _hashPair(currentZero, currentZero);
+            precomputedZeros[i + 1] = currentZero;
             unchecked {
                 ++i;
             }
         }
         currentRoot = currentZero;
         rootHistory[0] = currentRoot;
+        historicalRoots[currentRoot] = true;
 
         // Register native ETH as first asset
         bytes32 ethAssetId = NATIVE_ASSET;
@@ -581,6 +590,7 @@ contract UniversalShieldedPool is
         }
         currentRootIndex = newRootIndex;
         rootHistory[newRootIndex] = currentHash;
+        historicalRoots[currentHash] = true;
         currentRoot = currentHash;
 
         unchecked {
@@ -591,31 +601,12 @@ contract UniversalShieldedPool is
     /// @notice Check if a root exists in history
     function _isKnownRoot(bytes32 root) internal view returns (bool) {
         if (root == bytes32(0)) return false;
-        for (uint256 i = 0; i < ROOT_HISTORY_SIZE; ) {
-            if (rootHistory[i] == root) return true;
-            unchecked {
-                ++i;
-            }
-        }
-        return false;
+        return historicalRoots[root];
     }
 
     /// @notice Get the zero value for a given tree level
-    function _zeros(uint256 level) internal pure returns (bytes32) {
-        // Precomputed zero hashes for each level
-        // Level 0 = ZERO_VALUE
-        // Level n = hash(zeros(n-1), zeros(n-1))
-        if (level == 0) return ZERO_VALUE;
-
-        // For higher levels, compute dynamically
-        bytes32 z = ZERO_VALUE;
-        for (uint256 i = 0; i < level; ) {
-            z = _hashPair(z, z);
-            unchecked {
-                ++i;
-            }
-        }
-        return z;
+    function _zeros(uint256 level) internal view returns (bytes32) {
+        return precomputedZeros[level];
     }
 
     /// @notice Hash a pair of nodes using Poseidon (BN254, T=3)

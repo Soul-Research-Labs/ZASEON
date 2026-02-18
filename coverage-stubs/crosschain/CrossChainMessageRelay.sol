@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free CrossChainMessageRelay
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -55,7 +55,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
     bytes32 public constant GUARDIAN_ROLE =
-        0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365f804e30c1f4d1;
+        0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041;
     uint256 public constant ETHEREUM_CHAIN_ID = 1;
     uint256 public constant RETRY_DELAY = 1 hours;
     uint256 public constant MAX_BATCH_SIZE = 50;

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {INullifierRegistryV3} from "../interfaces/INullifierRegistryV3.sol";
 
 /// @title NullifierRegistryV3Upgradeable
 /// @author Soul Protocol
@@ -20,7 +21,8 @@ contract NullifierRegistryV3Upgradeable is
     Initializable,
     AccessControlUpgradeable,
     PausableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    INullifierRegistryV3
 {
     using SafeCast for uint256;
 
@@ -50,21 +52,8 @@ contract NullifierRegistryV3Upgradeable is
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Nullifier metadata structure
-    /// @param timestamp Block timestamp when registered
-    /// @param blockNumber Block number when registered
-    /// @param sourceChainId Origin chain ID
-    /// @param registrar Address that registered the nullifier
-    /// @param commitment Associated commitment (if any)
-    /// @param index Position in the merkle tree
-    struct NullifierData {
-        uint64 timestamp;
-        uint64 blockNumber;
-        uint64 sourceChainId;
-        address registrar;
-        bytes32 commitment;
-        uint256 index;
-    }
+    // NullifierData struct is inherited from INullifierRegistryV3
+    // to prevent struct drift between proxy and non-proxy versions.
 
     /*//////////////////////////////////////////////////////////////
                           MERKLE TREE CONFIG
@@ -134,34 +123,8 @@ contract NullifierRegistryV3Upgradeable is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event NullifierRegistered(
-        bytes32 indexed nullifier,
-        bytes32 indexed commitment,
-        uint256 indexed index,
-        address registrar,
-        uint64 chainId
-    );
+    // Events inherited from INullifierRegistryV3
 
-    event NullifierBatchRegistered(
-        bytes32[] nullifiers,
-        uint256 startIndex,
-        uint256 count
-    );
-
-    event MerkleRootUpdated(
-        bytes32 indexed oldRoot,
-        bytes32 indexed newRoot,
-        uint256 nullifierCount
-    );
-
-    event CrossChainNullifiersReceived(
-        uint256 indexed sourceChainId,
-        bytes32 indexed merkleRoot,
-        uint256 count
-    );
-
-    event RegistrarAdded(address indexed registrar);
-    event RegistrarRemoved(address indexed registrar);
     event ContractUpgraded(
         uint256 indexed oldVersion,
         uint256 indexed newVersion
@@ -171,14 +134,7 @@ contract NullifierRegistryV3Upgradeable is
                               CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error NullifierAlreadyExists(bytes32 nullifier);
-    error NullifierNotFound(bytes32 nullifier);
-    error InvalidMerkleProof();
-    error BatchTooLarge(uint256 size, uint256 maxSize);
-    error EmptyBatch();
-    error ZeroNullifier();
-    error RootNotInHistory(bytes32 root);
-    error InvalidChainId();
+    // Other errors inherited from INullifierRegistryV3
     error ZeroAddress();
 
     /*//////////////////////////////////////////////////////////////

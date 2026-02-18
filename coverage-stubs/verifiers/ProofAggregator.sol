@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free ProofAggregator
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";

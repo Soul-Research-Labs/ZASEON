@@ -130,7 +130,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
     bytes32 public constant GUARDIAN_ROLE =
-        0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365f804e30c1f4d1;
+        0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041;
     bytes32 public constant DVN_ROLE =
         0x7935bd0ae54bc31f548c14dba4d37c5c64b3f8ca900cb468fb8abd54d5894f55;
 

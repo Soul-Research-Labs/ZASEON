@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title SoulProtocolHub
@@ -39,7 +40,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * 3. Supports versioning for upgradeable components
  * 4. Emits events for all registrations for off-chain indexing
  */
-contract SoulProtocolHub is AccessControl, Pausable {
+contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -60,6 +61,7 @@ contract SoulProtocolHub is AccessControl, Pausable {
 
     /// @notice Component categories
     enum ComponentCategory {
+        CORE,
         VERIFIER,
         BRIDGE,
         PRIVACY,
@@ -206,6 +208,8 @@ contract SoulProtocolHub is AccessControl, Pausable {
     event PrivacyModuleRegistered(string indexed moduleName, address module);
 
     event SecurityModuleRegistered(string indexed moduleName, address module);
+
+    event ProtocolWired(address indexed caller, uint256 componentsUpdated);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -812,39 +816,195 @@ contract SoulProtocolHub is AccessControl, Pausable {
      */
     function wireAll(
         WireAllParams calldata p
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (p._verifierRegistry != address(0))
+    ) external onlyRole(OPERATOR_ROLE) nonReentrant {
+        uint256 updated;
+        if (p._verifierRegistry != address(0)) {
             verifierRegistry = p._verifierRegistry;
-        if (p._universalVerifier != address(0))
+            emit ComponentRegistered(
+                keccak256("verifierRegistry"),
+                ComponentCategory.CORE,
+                p._verifierRegistry,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._universalVerifier != address(0)) {
             universalVerifier = p._universalVerifier;
-        if (p._crossChainMessageRelay != address(0))
+            emit ComponentRegistered(
+                keccak256("universalVerifier"),
+                ComponentCategory.VERIFIER,
+                p._universalVerifier,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._crossChainMessageRelay != address(0)) {
             crossChainMessageRelay = p._crossChainMessageRelay;
-        if (p._crossChainPrivacyHub != address(0))
+            emit ComponentRegistered(
+                keccak256("crossChainMessageRelay"),
+                ComponentCategory.BRIDGE,
+                p._crossChainMessageRelay,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._crossChainPrivacyHub != address(0)) {
             crossChainPrivacyHub = p._crossChainPrivacyHub;
-        if (p._stealthAddressRegistry != address(0))
+            emit PrivacyModuleRegistered(
+                "CROSS_CHAIN_PRIVACY_HUB",
+                p._crossChainPrivacyHub
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._stealthAddressRegistry != address(0)) {
             stealthAddressRegistry = p._stealthAddressRegistry;
-        if (p._privateRelayerNetwork != address(0))
+            emit PrivacyModuleRegistered(
+                "STEALTH_REGISTRY",
+                p._stealthAddressRegistry
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._privateRelayerNetwork != address(0)) {
             privateRelayerNetwork = p._privateRelayerNetwork;
-        if (p._viewKeyRegistry != address(0))
+            emit PrivacyModuleRegistered(
+                "PRIVATE_RELAYER",
+                p._privateRelayerNetwork
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._viewKeyRegistry != address(0)) {
             viewKeyRegistry = p._viewKeyRegistry;
-        if (p._shieldedPool != address(0)) shieldedPool = p._shieldedPool;
-        if (p._nullifierManager != address(0))
+            emit PrivacyModuleRegistered(
+                "VIEW_KEY_REGISTRY",
+                p._viewKeyRegistry
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._shieldedPool != address(0)) {
+            shieldedPool = p._shieldedPool;
+            emit PrivacyModuleRegistered("SHIELDED_POOL", p._shieldedPool);
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._nullifierManager != address(0)) {
             nullifierManager = p._nullifierManager;
-        if (p._complianceOracle != address(0))
+            emit PrivacyModuleRegistered(
+                "NULLIFIER_MANAGER",
+                p._nullifierManager
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._complianceOracle != address(0)) {
             complianceOracle = p._complianceOracle;
-        if (p._proofTranslator != address(0))
+            emit SecurityModuleRegistered(
+                "COMPLIANCE_ORACLE",
+                p._complianceOracle
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._proofTranslator != address(0)) {
             proofTranslator = p._proofTranslator;
-        if (p._privacyRouter != address(0)) privacyRouter = p._privacyRouter;
-        if (p._bridgeProofValidator != address(0))
+            emit ComponentRegistered(
+                keccak256("proofTranslator"),
+                ComponentCategory.VERIFIER,
+                p._proofTranslator,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._privacyRouter != address(0)) {
+            privacyRouter = p._privacyRouter;
+            emit ComponentRegistered(
+                keccak256("privacyRouter"),
+                ComponentCategory.CORE,
+                p._privacyRouter,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._bridgeProofValidator != address(0)) {
             bridgeProofValidator = p._bridgeProofValidator;
-        if (p._zkBoundStateLocks != address(0))
+            emit SecurityModuleRegistered(
+                "BRIDGE_PROOF_VALIDATOR",
+                p._bridgeProofValidator
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._zkBoundStateLocks != address(0)) {
             zkBoundStateLocks = p._zkBoundStateLocks;
-        if (p._proofCarryingContainer != address(0))
+            emit ComponentRegistered(
+                keccak256("zkBoundStateLocks"),
+                ComponentCategory.CORE,
+                p._zkBoundStateLocks,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._proofCarryingContainer != address(0)) {
             proofCarryingContainer = p._proofCarryingContainer;
-        if (p._crossDomainNullifierAlgebra != address(0))
+            emit ComponentRegistered(
+                keccak256("proofCarryingContainer"),
+                ComponentCategory.CORE,
+                p._proofCarryingContainer,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._crossDomainNullifierAlgebra != address(0)) {
             crossDomainNullifierAlgebra = p._crossDomainNullifierAlgebra;
-        if (p._policyBoundProofs != address(0))
+            emit ComponentRegistered(
+                keccak256("crossDomainNullifierAlgebra"),
+                ComponentCategory.CORE,
+                p._crossDomainNullifierAlgebra,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._policyBoundProofs != address(0)) {
             policyBoundProofs = p._policyBoundProofs;
+            emit ComponentRegistered(
+                keccak256("policyBoundProofs"),
+                ComponentCategory.CORE,
+                p._policyBoundProofs,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+
+        emit ProtocolWired(msg.sender, updated);
     }
 
     /// @notice Check if all critical protocol components are configured

@@ -69,7 +69,9 @@ We take security seriously. If you discover a security vulnerability within Soul
 
 > **Note:** Bug bounty program in preparation. Third-party audits scheduled for Q2 2026.
 
-### Bug Bounty Program (Planned)
+### Bug Bounty Program
+
+> Full program details, scope, and submission process: **[BUG_BOUNTY.md](BUG_BOUNTY.md)**
 
 | Severity | Reward Range       | Examples                                        |
 | -------- | ------------------ | ----------------------------------------------- |

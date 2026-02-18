@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {INullifierRegistryV3} from "../interfaces/INullifierRegistryV3.sol";
 
@@ -16,7 +17,12 @@ import {INullifierRegistryV3} from "../interfaces/INullifierRegistryV3.sol";
 /// - Pre-computed role hashes (saves ~200 gas per access)
 /// - Unchecked arithmetic in safe contexts (saves ~40 gas per operation)
 /// - Packed NullifierData struct (saves ~20k gas on writes)
-contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
+contract NullifierRegistryV3 is
+    AccessControl,
+    Pausable,
+    ReentrancyGuard,
+    INullifierRegistryV3
+{
     using SafeCast for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -166,7 +172,13 @@ contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
     function registerNullifier(
         bytes32 nullifier,
         bytes32 commitment
-    ) external onlyRole(REGISTRAR_ROLE) whenNotPaused returns (uint256 index) {
+    )
+        external
+        onlyRole(REGISTRAR_ROLE)
+        whenNotPaused
+        nonReentrant
+        returns (uint256 index)
+    {
         return _registerNullifier(nullifier, commitment, msg.sender);
     }
 
@@ -182,6 +194,7 @@ contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
         external
         onlyRole(REGISTRAR_ROLE)
         whenNotPaused
+        nonReentrant
         returns (uint256 startIndex)
     {
         uint256 len = _nullifiers.length;
@@ -225,7 +238,7 @@ contract NullifierRegistryV3 is AccessControl, Pausable, INullifierRegistryV3 {
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments,
         bytes32 sourceMerkleRoot
-    ) external onlyRole(BRIDGE_ROLE) whenNotPaused {
+    ) external onlyRole(BRIDGE_ROLE) whenNotPaused nonReentrant {
         if (sourceChainId == CHAIN_ID) revert InvalidChainId();
 
         uint256 len = _nullifiers.length;

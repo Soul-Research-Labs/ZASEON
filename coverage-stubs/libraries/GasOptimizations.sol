@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free version of GasOptimizations library
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 library GasOptimizations {
     error ArrayLengthMismatch();

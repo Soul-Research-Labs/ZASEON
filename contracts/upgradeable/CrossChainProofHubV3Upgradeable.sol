@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SecurityModule} from "../security/SecurityModule.sol";
+import {ICrossChainProofHubV3, BatchProofInput} from "../interfaces/ICrossChainProofHubV3.sol";
 
 /// @title CrossChainProofHubV3Upgradeable
 /// @author Soul Protocol
@@ -24,57 +25,15 @@ contract CrossChainProofHubV3Upgradeable is
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
-    SecurityModule
+    SecurityModule,
+    ICrossChainProofHubV3
 {
     /*//////////////////////////////////////////////////////////////
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    enum ProofStatus {
-        Pending,
-        Verified,
-        Challenged,
-        Rejected,
-        Finalized
-    }
-
-    /// @notice Proof submission structure
-    struct ProofSubmission {
-        bytes32 proofHash;
-        bytes32 publicInputsHash;
-        bytes32 commitment;
-        uint64 sourceChainId;
-        uint64 destChainId;
-        uint64 submittedAt;
-        uint64 challengeDeadline;
-        address relayer;
-        ProofStatus status;
-        uint256 stake;
-    }
-
-    /// @notice Batch proof submission
-    struct BatchSubmission {
-        bytes32 batchId;
-        bytes32 merkleRoot;
-        uint256 proofCount;
-        uint64 submittedAt;
-        uint64 challengeDeadline;
-        address relayer;
-        ProofStatus status;
-        uint256 totalStake;
-    }
-
-    /// @notice Challenge structure
-    struct Challenge {
-        bytes32 proofId;
-        address challenger;
-        uint256 stake;
-        uint64 createdAt;
-        uint64 deadline;
-        bool resolved;
-        bool challengerWon;
-        string reason;
-    }
+    // Types (ProofStatus, ProofSubmission, BatchSubmission, Challenge)
+    // are inherited from ICrossChainProofHubV3 to prevent struct drift.
 
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -217,102 +176,14 @@ contract CrossChainProofHubV3Upgradeable is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event ProofSubmitted(
-        bytes32 indexed proofId,
-        bytes32 indexed commitment,
-        uint64 sourceChainId,
-        uint64 destChainId,
-        address indexed relayer
-    );
+    // Events inherited from ICrossChainProofHubV3
 
-    event ProofDataEmitted(
-        bytes32 indexed proofId,
-        bytes proof,
-        bytes publicInputs
-    );
-
-    event BatchSubmitted(
-        bytes32 indexed batchId,
-        bytes32 indexed merkleRoot,
-        uint256 indexed proofCount,
-        address relayer
-    );
-
-    event ProofVerified(bytes32 indexed proofId, ProofStatus status);
-    event ProofFinalized(bytes32 indexed proofId);
-    event ProofRejected(bytes32 indexed proofId, string reason);
-
-    event ChallengeCreated(
-        bytes32 indexed proofId,
-        address indexed challenger,
-        string reason
-    );
-
-    event ChallengeResolved(
-        bytes32 indexed proofId,
-        bool challengerWon,
-        address indexed winner,
-        uint256 reward
-    );
-
-    event RelayerStakeDeposited(
-        address indexed relayer,
-        uint256 indexed amount
-    );
-    event RelayerStakeWithdrawn(
-        address indexed relayer,
-        uint256 indexed amount
-    );
-    event RelayerSlashed(address indexed relayer, uint256 indexed amount);
-    event ChainAdded(uint256 indexed chainId);
-    event ChainRemoved(uint256 indexed chainId);
-    event TrustedRemoteSet(uint256 indexed chainId, address indexed remote);
-    event VerifierSet(bytes32 indexed proofType, address verifier);
-    event VerifierRegistryUpdated(
-        address indexed oldRegistry,
-        address indexed newRegistry
-    );
-    event ChallengePeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
-    event MinStakesUpdated(uint256 relayerStake, uint256 challengerStake);
-    event ProofSubmissionFeeUpdated(uint256 oldFee, uint256 newFee);
-    event RateLimitsUpdated(uint256 maxProofsPerHour, uint256 maxValuePerHour);
     event ContractUpgraded(
         uint256 indexed oldVersion,
         uint256 indexed newVersion
     );
 
-    /*//////////////////////////////////////////////////////////////
-                              CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InsufficientStake(uint256 provided, uint256 required);
-    error ProofNotFound(bytes32 proofId);
-    error ProofAlreadyExists(bytes32 proofId);
-    error InvalidProofStatus(
-        bytes32 proofId,
-        ProofStatus current,
-        ProofStatus expected
-    );
-    error ChallengePeriodNotOver(bytes32 proofId, uint256 deadline);
-    error ChallengePeriodOver(bytes32 proofId);
-    error ChallengeAlreadyExists(bytes32 proofId);
-    error ChallengeNotFound(bytes32 proofId);
-    error UnsupportedChain(uint256 chainId);
-    error VerifierNotSet(bytes32 proofType);
-    error InvalidProof();
-    error BatchTooLarge(uint256 size, uint256 maxSize);
-    error EmptyBatch();
-    error InvalidMerkleProof();
-    error UnauthorizedRelayer();
-    error WithdrawFailed();
-    error InsufficientFee(uint256 provided, uint256 required);
-    error ZeroAddress();
-    error InvalidChainId(uint256 chainId);
-    error InvalidChallengePeriod();
-    error AdminNotAllowed();
-    error RolesNotSeparated();
-    error TransferFailed();
-    error ProofRateLimitExceeded();
+    // Errors inherited from ICrossChainProofHubV3
 
     /*//////////////////////////////////////////////////////////////
                              INITIALIZER
@@ -516,7 +387,7 @@ contract CrossChainProofHubV3Upgradeable is
     /// @param merkleRoot Merkle root of all proofs
     /// @return batchId The unique batch identifier
     function submitBatch(
-        CCPHBatchProofInput[] calldata _proofs,
+        BatchProofInput[] calldata _proofs,
         bytes32 merkleRoot
     ) external payable nonReentrant whenNotPaused returns (bytes32 batchId) {
         if (!rolesSeparated) revert RolesNotSeparated();
@@ -644,10 +515,12 @@ contract CrossChainProofHubV3Upgradeable is
     /// @param proofId The challenged proof
     /// @param proof The original proof bytes
     /// @param publicInputs The original public inputs
+    /// @param /* proofType */ Ignored - uses stored proof type for security
     function resolveChallenge(
         bytes32 proofId,
         bytes calldata proof,
-        bytes calldata publicInputs
+        bytes calldata publicInputs,
+        bytes32 /* proofType */
     ) external nonReentrant {
         Challenge storage challenge = challenges[proofId];
         if (challenge.challenger == address(0))
@@ -1151,11 +1024,4 @@ interface ICCPHProofVerifier {
     ) external view returns (bool);
 }
 
-/// @notice Batch proof input structure for CrossChainProofHubV3Upgradeable
-struct CCPHBatchProofInput {
-    bytes32 proofHash;
-    bytes32 publicInputsHash;
-    bytes32 commitment;
-    uint64 sourceChainId;
-    uint64 destChainId;
-}
+// CCPHBatchProofInput removed — using BatchProofInput from ICrossChainProofHubV3 to avoid overload clash

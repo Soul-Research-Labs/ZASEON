@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2022 Aztec
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 uint256 constant N = 65536;
 uint256 constant LOG_N = 16;

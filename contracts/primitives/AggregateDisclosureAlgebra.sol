@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -472,7 +472,7 @@ contract AggregateDisclosureAlgebra is
 
             // Build aggregate proof hash
             aggregateProof = keccak256(
-                abi.encodePacked(aggregateProof, disclosure.proof)
+                abi.encode(aggregateProof, disclosure.proof)
             );
             unchecked {
                 ++i;
@@ -480,7 +480,7 @@ contract AggregateDisclosureAlgebra is
         }
 
         aggregateId = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 aggregateProof,
                 uint8(aggType),
                 threshold,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 /**
  * @title OptimizedGroth16Verifier
@@ -27,9 +27,9 @@ contract OptimizedGroth16Verifier {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @dev Precompile addresses
-    uint256 internal constant _PRECOMSoulE_ADD = 0x06;
-    uint256 internal constant _PRECOMSoulE_MUL = 0x07;
-    uint256 internal constant _PRECOMSoulE_PAIRING = 0x08;
+    uint256 internal constant _PRECOMPILE_ADD = 0x06;
+    uint256 internal constant _PRECOMPILE_MUL = 0x07;
+    uint256 internal constant _PRECOMPILE_PAIRING = 0x08;
 
     /// @dev G1 generator point
     uint256 internal constant _G1_X = 1;
@@ -324,7 +324,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             success := staticcall(
                 gas(),
-                _PRECOMSoulE_PAIRING,
+                _PRECOMPILE_PAIRING,
                 input,
                 768, // 24 * 32 bytes
                 result,
@@ -351,7 +351,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                _PRECOMSoulE_ADD,
+                _PRECOMPILE_ADD,
                 input,
                 128,
                 result,
@@ -379,7 +379,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                _PRECOMSoulE_MUL,
+                _PRECOMPILE_MUL,
                 input,
                 96,
                 result,
@@ -406,7 +406,7 @@ contract OptimizedGroth16Verifier {
         assembly {
             let success := staticcall(
                 gas(),
-                _PRECOMSoulE_PAIRING,
+                _PRECOMPILE_PAIRING,
                 input,
                 inputSize,
                 result,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free OptimizedGroth16Verifier
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 contract OptimizedGroth16Verifier {
     error InvalidProofLength();

@@ -278,6 +278,8 @@ contract StealthAddressRegistry is
     error InvalidEd25519Key();
     error InvalidBLSKey();
     error InvalidBN254Key();
+    error InvalidPallasVestaKey();
+    error ViewTagIndexFull();
 
     // =========================================================================
     // INITIALIZER
@@ -329,7 +331,7 @@ contract StealthAddressRegistry is
         bytes calldata viewingPubKey,
         CurveType curveType,
         uint256 schemeId
-    ) external {
+    ) external nonReentrant {
         if (spendingPubKey.length == 0 || viewingPubKey.length == 0) {
             revert InvalidPubKey();
         }
@@ -410,11 +412,7 @@ contract StealthAddressRegistry is
         // In practice, this needs off-chain EC point addition
         // Here we simulate with hashing
         bytes32 stealthKeyHash = keccak256(
-            abi.encodePacked(
-                STEALTH_DOMAIN,
-                meta.spendingPubKey,
-                sharedSecretHash
-            )
+            abi.encode(STEALTH_DOMAIN, meta.spendingPubKey, sharedSecretHash)
         );
 
         // Derive Ethereum address from stealth public key hash
@@ -433,30 +431,33 @@ contract StealthAddressRegistry is
      * @param ephemeralPrivKeyHash Hash of ephemeral private key (for off-chain use)
      * @param chainId Target chain ID
      */
+    /// @notice Maximum announcements per view tag to prevent unbounded growth
+    uint256 public constant MAX_ANNOUNCEMENTS_PER_TAG = 10_000;
+
     function computeDualKeyStealth(
         bytes32 spendingPubKeyHash,
         bytes32 viewingPubKeyHash,
         bytes32 ephemeralPrivKeyHash,
         uint256 chainId
-    ) external returns (bytes32 stealthHash, address derivedAddress) {
+    )
+        external
+        nonReentrant
+        returns (bytes32 stealthHash, address derivedAddress)
+    {
         // Compute shared secret: S = ephemeralPrivKey * viewingPubKey
         // Simulated with hashing
         bytes32 sharedSecretHash = keccak256(
-            abi.encodePacked(
-                ephemeralPrivKeyHash,
-                viewingPubKeyHash,
-                STEALTH_DOMAIN
-            )
+            abi.encode(ephemeralPrivKeyHash, viewingPubKeyHash, STEALTH_DOMAIN)
         );
 
         // Compute ephemeral public key hash: R = ephemeralPrivKey * G
         bytes32 ephemeralPubKeyHash = keccak256(
-            abi.encodePacked(ephemeralPrivKeyHash, "EPHEMERAL_PUBKEY")
+            abi.encode(ephemeralPrivKeyHash, "EPHEMERAL_PUBKEY")
         );
 
         // Derive stealth address: P' = P_spend + hash(S)*G
         stealthHash = keccak256(
-            abi.encodePacked(spendingPubKeyHash, sharedSecretHash)
+            abi.encode(spendingPubKeyHash, sharedSecretHash)
         );
 
         derivedAddress = address(uint160(uint256(stealthHash)));
@@ -516,7 +517,10 @@ contract StealthAddressRegistry is
 
         // Index by view tag for efficient scanning
         if (viewTag.length > 0) {
-            viewTagIndex[bytes1(viewTag[0])].push(stealthAddress);
+            bytes1 tag = bytes1(viewTag[0]);
+            if (viewTagIndex[tag].length >= MAX_ANNOUNCEMENTS_PER_TAG)
+                revert ViewTagIndexFull();
+            viewTagIndex[tag].push(stealthAddress);
         }
 
         emit StealthAnnouncement(
@@ -538,7 +542,7 @@ contract StealthAddressRegistry is
         bytes calldata ephemeralPubKey,
         bytes calldata viewTag,
         bytes calldata metadata
-    ) external payable {
+    ) external payable nonReentrant {
         if (msg.value < 0.0001 ether) revert InsufficientFee();
 
         if (stealthAddress == address(0)) revert ZeroAddress();
@@ -559,7 +563,10 @@ contract StealthAddressRegistry is
         totalAnnouncements++;
 
         if (viewTag.length > 0) {
-            viewTagIndex[bytes1(viewTag[0])].push(stealthAddress);
+            bytes1 tag = bytes1(viewTag[0]);
+            if (viewTagIndex[tag].length >= MAX_ANNOUNCEMENTS_PER_TAG)
+                revert ViewTagIndexFull();
+            viewTagIndex[tag].push(stealthAddress);
         }
 
         emit StealthAnnouncement(
@@ -678,7 +685,7 @@ contract StealthAddressRegistry is
         bytes32 sourceStealthKey,
         uint256 destChainId,
         bytes calldata derivationProof
-    ) external returns (bytes32 destStealthKey) {
+    ) external nonReentrant returns (bytes32 destStealthKey) {
         // Verify derivation proof
         if (
             !_verifyDerivationProof(
@@ -692,7 +699,7 @@ contract StealthAddressRegistry is
 
         // Derive destination stealth key with chain separation
         destStealthKey = keccak256(
-            abi.encodePacked(
+            abi.encode(
                 sourceStealthKey,
                 destChainId,
                 STEALTH_DOMAIN,
@@ -701,7 +708,7 @@ contract StealthAddressRegistry is
         );
 
         bytes32 bindingId = keccak256(
-            abi.encodePacked(sourceStealthKey, destStealthKey)
+            abi.encode(sourceStealthKey, destStealthKey)
         );
 
         if (crossChainBindings[bindingId].timestamp != 0) {
@@ -750,9 +757,11 @@ contract StealthAddressRegistry is
         } else if (curveType == CurveType.BN254) {
             if (pubKey.length != 32 && pubKey.length != 64)
                 revert InvalidBN254Key();
+        } else if (
+            curveType == CurveType.PALLAS || curveType == CurveType.VESTA
+        ) {
+            if (pubKey.length != 32) revert InvalidPallasVestaKey();
         }
-
-        // PALLAS/VESTA: 32 bytes
     }
 
     function _verifyDerivationProof(

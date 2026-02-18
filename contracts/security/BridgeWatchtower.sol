@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -257,6 +257,7 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
     error ExitDelayNotPassed();
     error TransferFailed();
     error NoRewardsAvailable();
+    error ZeroAddress();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -559,6 +560,17 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
                 totalSlashAmount += slashAmount;
 
                 emit WatchtowerSlashed(op, slashAmount, "Inactivity");
+
+                // Deactivate watchtowers that fall below minimum stake
+                if (wt.stake < MIN_STAKE) {
+                    wt.status = WatchtowerStatus.SLASHED;
+                    _removeFromActive(op);
+                    _revokeRole(WATCHTOWER_ROLE, op);
+                    // _removeFromActive swap-and-pops, so re-check the
+                    // current index and update length
+                    len = activeWatchtowers.length;
+                    continue;
+                }
             }
             unchecked {
                 ++i;
@@ -765,10 +777,14 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
             }
         } else if (action == ResponseAction.TRIGGER_CIRCUIT_BREAKER) {
             if (rateLimiterContract != address(0)) {
-                // Assuming RateLimiter has triggerCircuitBreaker(string)
-                (bool success,) = rateLimiterContract.call(
-                    abi.encodeWithSignature("triggerCircuitBreaker(string)", "Watchtower Alert")
-                );
+                // Non-fatal: best-effort circuit breaker trigger
+                try IPausable(rateLimiterContract).pause() {} catch {
+                    // Fallback to low-level call for triggerCircuitBreaker(string)
+                    (bool success, ) = rateLimiterContract.call(
+                        abi.encodeWithSignature("triggerCircuitBreaker(string)", "Watchtower Alert")
+                    );
+                    // success intentionally unchecked — action is best-effort
+                }
             }
         }
     }
@@ -779,6 +795,7 @@ contract BridgeWatchtower is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function setTargetContracts(address _bridge, address _rateLimiter) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_bridge == address(0) || _rateLimiter == address(0)) revert ZeroAddress();
         bridgeContract = _bridge;
         rateLimiterContract = _rateLimiter;
     }

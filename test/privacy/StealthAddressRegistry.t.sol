@@ -454,7 +454,7 @@ contract StealthAddressRegistryTest is Test {
 
         // Verify deterministic result
         bytes32 expectedHash = keccak256(
-            abi.encodePacked(STEALTH_DOMAIN, secp256k1Key33, sharedSecretHash)
+            abi.encode(STEALTH_DOMAIN, secp256k1Key33, sharedSecretHash)
         );
         address expectedAddr = address(uint160(uint256(expectedHash)));
         assertEq(stealthAddr, expectedAddr);
@@ -755,12 +755,7 @@ contract StealthAddressRegistryTest is Test {
 
         vm.expectEmit(true, true, false, true);
         bytes32 expectedDestKey = keccak256(
-            abi.encodePacked(
-                sourceKey,
-                destChainId,
-                STEALTH_DOMAIN,
-                "CROSS_CHAIN"
-            )
+            abi.encode(sourceKey, destChainId, STEALTH_DOMAIN, "CROSS_CHAIN")
         );
         emit StealthAddressRegistry.CrossChainStealthDerived(
             sourceKey,

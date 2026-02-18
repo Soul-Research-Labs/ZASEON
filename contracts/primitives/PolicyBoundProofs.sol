@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -210,7 +210,7 @@ contract PolicyBoundProofs is AccessControl, Pausable {
         if (bytes(policy.name).length == 0) revert EmptyPolicyName();
 
         policyId = keccak256(
-            abi.encodePacked(policy.name, policy.policyHash, block.timestamp)
+            abi.encode(policy.name, policy.policyHash, block.timestamp)
         );
 
         if (policies[policyId].createdAt != 0) {

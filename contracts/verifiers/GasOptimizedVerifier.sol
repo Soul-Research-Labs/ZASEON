@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 /**
  * @title GasOptimizedVerifier
@@ -19,10 +19,10 @@ library GasOptimizedVerifier {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice Precompile addresses
-    uint256 internal constant ECADD_PRECOMSoulE = 0x06;
-    uint256 internal constant ECMUL_PRECOMSoulE = 0x07;
-    uint256 internal constant ECPAIRING_PRECOMSoulE = 0x08;
-    uint256 internal constant MODEXP_PRECOMSoulE = 0x05;
+    uint256 internal constant ECADD_PRECOMPILE = 0x06;
+    uint256 internal constant ECMUL_PRECOMPILE = 0x07;
+    uint256 internal constant ECPAIRING_PRECOMPILE = 0x08;
+    uint256 internal constant MODEXP_PRECOMPILE = 0x05;
 
     /// @notice Generator points
     uint256 internal constant G1_X = 1;
@@ -60,7 +60,7 @@ library GasOptimizedVerifier {
 
             let success := staticcall(
                 gas(),
-                ECADD_PRECOMSoulE,
+                ECADD_PRECOMPILE,
                 ptr,
                 0x80,
                 ptr,
@@ -91,7 +91,7 @@ library GasOptimizedVerifier {
 
             let success := staticcall(
                 gas(),
-                ECMUL_PRECOMSoulE,
+                ECMUL_PRECOMPILE,
                 ptr,
                 0x60,
                 ptr,
@@ -180,7 +180,7 @@ library GasOptimizedVerifier {
         assembly {
             let success := staticcall(
                 gas(),
-                ECPAIRING_PRECOMSoulE,
+                ECPAIRING_PRECOMPILE,
                 input,
                 384, // 12 * 32 bytes
                 result,
@@ -255,7 +255,7 @@ library GasOptimizedVerifier {
         assembly {
             let success := staticcall(
                 gas(),
-                ECPAIRING_PRECOMSoulE,
+                ECPAIRING_PRECOMPILE,
                 input,
                 768, // 24 * 32 bytes
                 result,
@@ -459,7 +459,7 @@ library GasOptimizedVerifier {
 
             let success := staticcall(
                 gas(),
-                MODEXP_PRECOMSoulE,
+                MODEXP_PRECOMPILE,
                 ptr,
                 0xc0,
                 ptr,

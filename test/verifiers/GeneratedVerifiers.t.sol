@@ -77,7 +77,7 @@ contract GeneratedVerifiersTest is Test {
         );
         swapAddr = _deployContract("SwapProofVerifier.sol:SwapProofVerifier");
         ringSignatureAddr = _deployContract(
-            "RingSignatureVerifier.sol:RingSignatureVerifier"
+            "RingSignatureHonkVerifier.sol:RingSignatureHonkVerifier"
         );
 
         // Previously-deployed full UltraHonk verifiers

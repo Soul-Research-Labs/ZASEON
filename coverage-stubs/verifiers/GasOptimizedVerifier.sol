@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free GasOptimizedVerifier library + BatchProofVerifier
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 library GasOptimizedVerifier {
     uint256 internal constant PRIME_Q =
         21888242871839275222246405745257275088696311157297823662689037894645226208583;
     uint256 internal constant PRIME_R =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
-    uint256 internal constant ECADD_PRECOMSoulE = 0x06;
-    uint256 internal constant ECMUL_PRECOMSoulE = 0x07;
-    uint256 internal constant ECPAIRING_PRECOMSoulE = 0x08;
-    uint256 internal constant MODEXP_PRECOMSoulE = 0x05;
+    uint256 internal constant ECADD_PRECOMPILE = 0x06;
+    uint256 internal constant ECMUL_PRECOMPILE = 0x07;
+    uint256 internal constant ECPAIRING_PRECOMPILE = 0x08;
+    uint256 internal constant MODEXP_PRECOMPILE = 0x05;
     uint256 internal constant G1_X = 1;
     uint256 internal constant G1_Y = 2;
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – returns true for all proofs
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 contract CrossChainProofVerifier {
     function verifyProof(

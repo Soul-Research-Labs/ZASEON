@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -117,11 +117,20 @@ contract ExperimentalFeatureRegistry is AccessControl {
 
     /**
      * @notice Update the status of a feature.
+     * @dev Cannot downgrade from PRODUCTION status to prevent destabilizing live features.
      */
     function updateFeatureStatus(
         bytes32 featureId,
         FeatureStatus newStatus
     ) external onlyRole(FEATURE_ADMIN) {
+        FeatureStatus currentStatus = features[featureId].status;
+        // Prevent downgrading from PRODUCTION
+        if (
+            currentStatus == FeatureStatus.PRODUCTION &&
+            newStatus != FeatureStatus.PRODUCTION
+        ) {
+            revert("Cannot downgrade PRODUCTION feature");
+        }
         features[featureId].status = newStatus;
         emit FeatureStatusUpdated(featureId, newStatus);
     }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/governance/TimelockController.sol";
 
@@ -20,7 +20,16 @@ contract SoulGovernance is TimelockController {
     ) TimelockController(minDelay, proposers, executors, admin) {}
 
     /**
-     * @notice Update the minimum delay
+     * @notice Update the minimum delay for timelock execution
      * @param newDelay The new minimum delay in seconds
      */
+    function updateMinDelay(uint256 newDelay) external {
+        // Only callable via governance (self-call through timelock)
+        require(
+            msg.sender == address(this),
+            "SoulGovernance: caller must be timelock"
+        );
+        // TimelockController stores minDelay — schedule an updateDelay call
+        this.updateDelay(newDelay);
+    }
 }

@@ -6,15 +6,15 @@ Research-tier and non-priority contracts that are **not part of the core Soul Pr
 
 The following contracts were promoted to production after meeting all promotion criteria:
 
-| Contract | Graduated To | Criteria Met |
-|----------|-------------|-------------|
-| `HomomorphicHiding.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_homomorphic_hiding`) |
+| Contract                         | Graduated To            | Criteria Met                                                    |
+| -------------------------------- | ----------------------- | --------------------------------------------------------------- |
+| `HomomorphicHiding.sol`          | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_homomorphic_hiding`)   |
 | `AggregateDisclosureAlgebra.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_aggregate_disclosure`) |
-| `ComposableRevocationProofs.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_crp`) |
-| `ScrollBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_scroll_bridge`), integration tests |
-| `LineaBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_linea_bridge`), integration tests |
-| `zkSyncBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_zksync_bridge`), integration tests |
-| `PolygonZkEVMBridgeAdapter.sol` | `contracts/crosschain/` | Certora spec (`verify_polygon_zkevm_bridge`), integration tests |
+| `ComposableRevocationProofs.sol` | `contracts/primitives/` | Unit + fuzz tests, Certora spec (`verify_crp`)                  |
+| `ScrollBridgeAdapter.sol`        | `contracts/crosschain/` | Certora spec (`verify_scroll_bridge`), integration tests        |
+| `LineaBridgeAdapter.sol`         | `contracts/crosschain/` | Certora spec (`verify_linea_bridge`), integration tests         |
+| `zkSyncBridgeAdapter.sol`        | `contracts/crosschain/` | Certora spec (`verify_zksync_bridge`), integration tests        |
+| `PolygonZkEVMBridgeAdapter.sol`  | `contracts/crosschain/` | Certora spec (`verify_polygon_zkevm_bridge`), integration tests |
 
 ## Structure
 
@@ -38,14 +38,15 @@ experimental/
 
 ## Status
 
-| Category | Status | Notes |
-|----------|--------|-------|
-| Privacy Modules | Research | Mixnet, recursive proofs, relayer selection — needs further R&D |
-| Verifiers | Superseded | VerifierHub superseded by VerifierRegistryV2; others are experimental proof systems |
+| Category        | Status     | Notes                                                                               |
+| --------------- | ---------- | ----------------------------------------------------------------------------------- |
+| Privacy Modules | Research   | Mixnet, recursive proofs, relayer selection — needs further R&D                     |
+| Verifiers       | Superseded | VerifierHub superseded by VerifierRegistryV2; others are experimental proof systems |
 
 ## Promotion Criteria
 
 To move a contract back to core:
+
 1. Must have comprehensive unit + fuzz tests
 2. Must pass Certora formal verification (where applicable)
 3. Must have completed security audit

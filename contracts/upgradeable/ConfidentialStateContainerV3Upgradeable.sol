@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IConfidentialStateContainerV3, BatchStateInput} from "../interfaces/IConfidentialStateContainerV3.sol";
 
 /// @title ConfidentialStateContainerV3Upgradeable
 /// @author Soul Protocol
@@ -25,7 +26,8 @@ contract ConfidentialStateContainerV3Upgradeable is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    IConfidentialStateContainerV3
 {
     using ECDSA for bytes32;
 
@@ -52,36 +54,8 @@ contract ConfidentialStateContainerV3Upgradeable is
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice State status enum
-    enum StateStatus {
-        Active,
-        Locked,
-        Frozen,
-        Retired
-    }
-
-    /// @notice Encrypted state structure with gas-optimized packing
-    struct EncryptedState {
-        bytes32 commitment;
-        bytes32 nullifier;
-        bytes32 metadata;
-        address owner;
-        uint48 createdAt;
-        uint48 updatedAt;
-        uint32 version;
-        StateStatus status;
-        bytes encryptedState;
-    }
-
-    /// @notice State transition record for auditing
-    struct StateTransition {
-        bytes32 fromCommitment;
-        bytes32 toCommitment;
-        address fromOwner;
-        address toOwner;
-        uint256 timestamp;
-        bytes32 transactionHash;
-    }
+    // StateStatus, EncryptedState, and StateTransition types
+    // are inherited from IConfidentialStateContainerV3 to prevent struct drift.
 
     /// @notice Parameters for creating a new state (reduces stack depth)
     struct NewStateParams {
@@ -173,56 +147,14 @@ contract ConfidentialStateContainerV3Upgradeable is
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event StateRegistered(
-        bytes32 indexed commitment,
-        address indexed owner,
-        bytes32 nullifier,
-        uint256 timestamp
-    );
+    // Events inherited from IConfidentialStateContainerV3
 
-    event StateTransferred(
-        bytes32 indexed fromCommitment,
-        bytes32 indexed toCommitment,
-        address indexed newOwner,
-        uint256 version
-    );
-
-    event StateStatusChanged(
-        bytes32 indexed commitment,
-        StateStatus oldStatus,
-        StateStatus newStatus
-    );
-
-    event StateBatchRegistered(
-        bytes32[] commitments,
-        address indexed owner,
-        uint256 count
-    );
-
-    event ProofValidityWindowUpdated(uint256 oldWindow, uint256 newWindow);
-    event MaxStateSizeUpdated(uint256 oldSize, uint256 newSize);
     event ContractUpgraded(
         uint256 indexed oldVersion,
         uint256 indexed newVersion
     );
 
-    /*//////////////////////////////////////////////////////////////
-                              CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error NullifierAlreadyUsed(bytes32 nullifier);
-    error InvalidProof();
-    error NotStateOwner(address caller, address owner);
-    error ZeroAddress();
-    error EmptyEncryptedState();
-    error CommitmentAlreadyExists(bytes32 commitment);
-    error CommitmentNotFound(bytes32 commitment);
-    error StateSizeTooLarge(uint256 size, uint256 maxSize);
-    error StateNotActive(bytes32 commitment, StateStatus status);
-    error InvalidSignature();
-    error SignatureExpired();
-    error InvalidNonce();
-    error BatchTooLarge(uint256 size, uint256 maxSize);
+    // Errors inherited from IConfidentialStateContainerV3
 
     /*//////////////////////////////////////////////////////////////
                              INITIALIZER
@@ -422,7 +354,7 @@ contract ConfidentialStateContainerV3Upgradeable is
     /// @notice Batch registers multiple states
     /// @param stateInputs Array of state data to register
     function batchRegisterStates(
-        CSCBatchStateInput[] calldata stateInputs
+        BatchStateInput[] calldata stateInputs
     ) external nonReentrant whenNotPaused {
         uint256 len = stateInputs.length;
         if (len == 0) revert EmptyEncryptedState();
@@ -887,11 +819,4 @@ interface ICSCProofVerifier {
     ) external view returns (bool);
 }
 
-/// @notice Batch input structure for ConfidentialStateContainerV3Upgradeable
-struct CSCBatchStateInput {
-    bytes encryptedState;
-    bytes32 commitment;
-    bytes32 nullifier;
-    bytes proof;
-    bytes32 metadata;
-}
+// CSCBatchStateInput removed — using BatchStateInput from IConfidentialStateContainerV3 to avoid overload clash

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Coverage stub – assembly-free Groth16VerifierBN254
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "../../contracts/interfaces/IProofVerifier.sol";
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 /// @title MockOptimismOutputOracle
 /// @notice Mock output oracle for Optimism Bedrock fault proof verification in testing

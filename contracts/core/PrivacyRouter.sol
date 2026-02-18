@@ -531,15 +531,18 @@ contract PrivacyRouter is
 
     /// @notice Withdraw ETH accidentally sent to this contract
     /// @param to The recipient address for the withdrawn ETH
+    /// @param amount The amount of ETH to withdraw
     function withdrawETH(
-        address payable to
+        address payable to,
+        uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert ZeroAddress();
-        uint256 balance = address(this).balance;
-        if (balance == 0) revert ZeroAmount();
-        (bool success, ) = to.call{value: balance}("");
+        if (amount == 0) revert ZeroAmount();
+        if (amount > address(this).balance)
+            revert OperationFailed("Insufficient balance");
+        (bool success, ) = to.call{value: amount}("");
         if (!success) revert OperationFailed("ETH withdrawal failed");
-        emit ETHWithdrawn(to, balance);
+        emit ETHWithdrawn(to, amount);
     }
 
     /// @notice Emergency pause
@@ -548,7 +551,7 @@ contract PrivacyRouter is
     }
 
     /// @notice Unpause
-    function unpause() external onlyRole(EMERGENCY_ROLE) {
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -560,7 +563,12 @@ contract PrivacyRouter is
     function _nextOperationId() internal returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(msg.sender, block.chainid, operationNonce++)
+                abi.encode(
+                    msg.sender,
+                    block.chainid,
+                    block.number,
+                    operationNonce++
+                )
             );
     }
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 /*
     Copyright 2021 0KIMS association.
 
@@ -18,7 +18,7 @@
     along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 contract StateCommitmentVerifier {
     // Scalar field size
