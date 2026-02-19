@@ -7,6 +7,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IProofVerifier} from "../interfaces/IProofVerifier.sol";
 import {IConfidentialStateContainerV3, BatchStateInput} from "../interfaces/IConfidentialStateContainerV3.sol";
+import {SelectiveDisclosureManager} from "../compliance/SelectiveDisclosureManager.sol";
 
 /// @title ConfidentialStateContainerV3
 /// @author Soul Protocol
@@ -73,6 +74,9 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Verifier interface (immutable saves ~2100 gas per call)
     IProofVerifier public immutable verifier;
+
+    /// @notice Optional selective disclosure manager for compliance integration
+    SelectiveDisclosureManager public disclosureManager;
 
     /// @notice Mapping from commitment to encrypted state
     mapping(bytes32 => EncryptedState) internal _states;
@@ -437,6 +441,9 @@ contract ConfidentialStateContainerV3 is
         }
 
         emit StateRegistered(commitment, owner, nullifier, block.timestamp);
+
+        // Optional: register with disclosure manager for compliance tracking
+        _registerWithDisclosureManager(commitment, owner);
     }
 
     /// @dev Validates transfer parameters and state
@@ -796,6 +803,15 @@ contract ConfidentialStateContainerV3 is
         emit StateStatusChanged(commitment, oldStatus, StateStatus.Frozen);
     }
 
+    /// @notice Set the disclosure manager for compliance integration
+    /// @param _disclosureManager Address of the SelectiveDisclosureManager (address(0) to disable)
+    function setDisclosureManager(
+        address _disclosureManager
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        disclosureManager = SelectiveDisclosureManager(_disclosureManager);
+        emit DisclosureManagerUpdated(_disclosureManager);
+    }
+
     /// @notice Pauses the contract
     function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
@@ -804,5 +820,25 @@ contract ConfidentialStateContainerV3 is
     /// @notice Unpauses the contract
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
+    }
+
+    /// @dev Register state with disclosure manager if configured (non-reverting)
+    function _registerWithDisclosureManager(
+        bytes32 commitment,
+        address owner
+    ) internal {
+        SelectiveDisclosureManager dm = disclosureManager;
+        if (address(dm) == address(0)) return;
+
+        // Build txId from commitment + chain ID for uniqueness
+        bytes32 txId = keccak256(abi.encodePacked(commitment, block.chainid));
+
+        // Register with user's configured default level (non-reverting try/catch)
+        SelectiveDisclosureManager.DisclosureLevel level = dm.userDefaultLevel(
+            owner
+        );
+        try dm.registerTransactionFor(txId, commitment, owner, level) {} catch {
+            // Disclosure registration failure must not block state registration
+        }
     }
 }

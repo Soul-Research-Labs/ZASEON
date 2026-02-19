@@ -71,6 +71,7 @@ interface IConfidentialStateContainerV3 {
     );
     event ProofValidityWindowUpdated(uint256 oldWindow, uint256 newWindow);
     event MaxStateSizeUpdated(uint256 oldSize, uint256 newSize);
+    event DisclosureManagerUpdated(address indexed disclosureManager);
 
     /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
