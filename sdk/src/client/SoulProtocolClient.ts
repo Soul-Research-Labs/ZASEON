@@ -131,7 +131,7 @@ export class SoulProtocolClient {
     if (!deployedAddresses) {
       throw new Error(`Unsupported chain ID: ${this.chainId}. Use custom addresses.`);
     }
-    this.addresses = { ...deployedAddresses, ...config.addresses };
+    this.addresses = { ...deployedAddresses, ...config.addresses } as SoulContractAddresses;
 
     // Create public client for read operations
     this.publicClient = createPublicClient({

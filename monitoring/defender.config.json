@@ -188,6 +188,52 @@
         "soul-slack-ops"
       ],
       "riskCategory": "TECHNICAL"
+    },
+    "base_sepolia_bridge_monitoring": {
+      "name": "Base Sepolia Bridge Monitoring",
+      "description": "Monitor deployed bridge contracts on Base Sepolia testnet",
+      "type": "BLOCK",
+      "network": "base-sepolia",
+      "addresses": [
+        "0xDFBEe5bB4d4943715D4f8539cbad0a18aA75b602",
+        "0x65CDCdA5ba98bB0d784c3a69C826cb3B59C20251",
+        "0xBA63a3F3C5568eC6447FBe1b852a613743419D9f",
+        "0x23824cDbD8Ca773c5DA0202f8f41083F81aF1135",
+        "0x3E556432Ea021046ad4BE22cB94f713f98f4B76E",
+        "0x2472BDB087590e4F4F4bE1243ec9533828eC0D9d",
+        "0x583E650c0385FEd1E427dF68fa91b2d8E56Df20f"
+      ],
+      "abi": [],
+      "eventConditions": [
+        {
+          "eventSignature": "Paused(address)",
+          "expression": null
+        },
+        {
+          "eventSignature": "CircuitBreakerTriggered()",
+          "expression": null
+        },
+        {
+          "eventSignature": "RelayCreated(bytes32,address,address,uint256)",
+          "expression": null
+        },
+        {
+          "eventSignature": "RateLimitExceeded(address,uint256)",
+          "expression": null
+        },
+        {
+          "eventSignature": "FraudProofSubmitted(bytes32,address)",
+          "expression": null
+        }
+      ],
+      "alertThreshold": {
+        "amount": 1,
+        "windowSeconds": 1
+      },
+      "notificationChannels": [
+        "soul-slack-ops"
+      ],
+      "riskCategory": "TECHNICAL"
     }
   },
   "actions": {

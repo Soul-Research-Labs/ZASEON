@@ -164,7 +164,12 @@ describe("Retry Utilities", () => {
       const result = await retryWithFallback(
         alwaysFail(),
         async () => "fallback",
-        { maxAttempts: 2, initialDelayMs: 1, jitter: false, shouldRetry: () => true },
+        {
+          maxAttempts: 2,
+          initialDelayMs: 1,
+          jitter: false,
+          shouldRetry: () => true,
+        },
       );
       expect(result).to.equal("fallback");
     });
@@ -174,7 +179,12 @@ describe("Retry Utilities", () => {
         await retryWithFallback(
           alwaysFail("primary fails"),
           alwaysFail("fallback fails"),
-          { maxAttempts: 1, initialDelayMs: 1, jitter: false, shouldRetry: () => true },
+          {
+            maxAttempts: 1,
+            initialDelayMs: 1,
+            jitter: false,
+            shouldRetry: () => true,
+          },
         );
         expect.fail("should have thrown");
       } catch (e: any) {

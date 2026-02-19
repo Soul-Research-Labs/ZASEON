@@ -18,6 +18,39 @@
     "base": {
       "chainId": 8453,
       "contracts": []
+    },
+    "base-sepolia": {
+      "chainId": 84532,
+      "contracts": [
+        {
+          "name": "PrivacyZoneManager",
+          "address": "0xDFBEe5bB4d4943715D4f8539cbad0a18aA75b602"
+        },
+        {
+          "name": "SoulCrossChainRelay",
+          "address": "0x65CDCdA5ba98bB0d784c3a69C826cb3B59C20251"
+        },
+        {
+          "name": "OptimisticBridgeVerifier",
+          "address": "0xBA63a3F3C5568eC6447FBe1b852a613743419D9f"
+        },
+        {
+          "name": "BridgeRateLimiter",
+          "address": "0x23824cDbD8Ca773c5DA0202f8f41083F81aF1135"
+        },
+        {
+          "name": "BridgeWatchtower",
+          "address": "0x3E556432Ea021046ad4BE22cB94f713f98f4B76E"
+        },
+        {
+          "name": "DecentralizedRelayerRegistry",
+          "address": "0x2472BDB087590e4F4F4bE1243ec9533828eC0D9d"
+        },
+        {
+          "name": "BridgeFraudProof",
+          "address": "0x583E650c0385FEd1E427dF68fa91b2d8E56Df20f"
+        }
+      ]
     }
   },
   "alerts": {
