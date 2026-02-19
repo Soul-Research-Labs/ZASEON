@@ -56,10 +56,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-pagerduty",
-        "soul-slack-security"
-      ],
+      "notificationChannels": ["soul-pagerduty", "soul-slack-security"],
       "riskCategory": "FINANCIAL"
     },
     "proof_failures": {
@@ -79,9 +76,7 @@
         "amount": 5,
         "windowSeconds": 3600
       },
-      "notificationChannels": [
-        "soul-slack-alerts"
-      ],
+      "notificationChannels": ["soul-slack-alerts"],
       "riskCategory": "TECHNICAL"
     },
     "relayer_slashing": {
@@ -101,9 +96,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-slack-security"
-      ],
+      "notificationChannels": ["soul-slack-security"],
       "riskCategory": "FINANCIAL"
     },
     "large_transfers": {
@@ -123,10 +116,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-slack-security",
-        "soul-email-security"
-      ],
+      "notificationChannels": ["soul-slack-security", "soul-email-security"],
       "riskCategory": "FINANCIAL"
     },
     "admin_actions": {
@@ -154,9 +144,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-slack-admin"
-      ],
+      "notificationChannels": ["soul-slack-admin"],
       "riskCategory": "ACCESS-CONTROL"
     },
     "cross_chain_messages": {
@@ -184,9 +172,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-slack-ops"
-      ],
+      "notificationChannels": ["soul-slack-ops"],
       "riskCategory": "TECHNICAL"
     },
     "base_sepolia_bridge_monitoring": {
@@ -230,9 +216,7 @@
         "amount": 1,
         "windowSeconds": 1
       },
-      "notificationChannels": [
-        "soul-slack-ops"
-      ],
+      "notificationChannels": ["soul-slack-ops"],
       "riskCategory": "TECHNICAL"
     }
   },

@@ -11,7 +11,7 @@ import { CryptoModule } from "../src/utils/crypto";
  */
 function generateKeyPair(curve: string) {
   const ecdh = crypto.createECDH(
-    curve === "secp256k1" ? "secp256k1" : "prime256v1"
+    curve === "secp256k1" ? "secp256k1" : "prime256v1",
   );
   ecdh.generateKeys();
   return {
@@ -53,13 +53,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.toString()).to.equal("hello soul protocol");
@@ -72,13 +72,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.length).to.equal(0);
@@ -91,13 +91,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.equals(plaintext)).to.be.true;
@@ -130,13 +130,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.toString()).to.equal("cross-chain privacy");
@@ -230,13 +230,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        pubKeyHex
+        pubKeyHex,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.toString()).to.equal("hex key test");
@@ -250,13 +250,13 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        pubKeyHex
+        pubKeyHex,
       );
       const decrypted = await mod.decrypt(
         ciphertext,
         ephemeralKey,
         mac,
-        privateKey
+        privateKey,
       );
 
       expect(decrypted.toString()).to.equal("no prefix");
@@ -275,7 +275,7 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
 
       try {
@@ -293,7 +293,7 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
 
       // Tamper with ciphertext
@@ -315,7 +315,7 @@ describe("CryptoModule", () => {
 
       const { ciphertext, ephemeralKey, mac } = await mod.encrypt(
         plaintext,
-        publicKey
+        publicKey,
       );
 
       // Tamper with mac
@@ -355,7 +355,7 @@ describe("CryptoModule", () => {
         Buffer.alloc(16),
         Buffer.alloc(65),
         Buffer.alloc(16),
-        Buffer.alloc(32)
+        Buffer.alloc(32),
       );
       expect(result).to.be.instanceOf(Promise);
       // Clean up (will reject due to invalid input)

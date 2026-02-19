@@ -1,10 +1,5 @@
 import { expect } from "chai";
-import {
-  keccak256,
-  encodePacked,
-  zeroAddress,
-  type Hex,
-} from "viem";
+import { keccak256, encodePacked, zeroAddress, type Hex } from "viem";
 import {
   SoulProtocolClient,
   createSoulClient,
@@ -51,10 +46,10 @@ describe("SoulProtocolClient", () => {
       const nullifier = MOCK_NULLIFIER;
 
       const expectedCommitment = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret, nullifier])
+        encodePacked(["bytes32", "bytes32"], [secret, nullifier]),
       );
       const expectedNullifierHash = keccak256(
-        encodePacked(["bytes32"], [nullifier])
+        encodePacked(["bytes32"], [nullifier]),
       );
 
       // Since generateCommitment is an instance method, we need a client
@@ -71,10 +66,10 @@ describe("SoulProtocolClient", () => {
       const nullifier = MOCK_NULLIFIER;
 
       const c1 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret1, nullifier])
+        encodePacked(["bytes32", "bytes32"], [secret1, nullifier]),
       );
       const c2 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret2, nullifier])
+        encodePacked(["bytes32", "bytes32"], [secret2, nullifier]),
       );
 
       expect(c1).to.not.equal(c2);
@@ -85,22 +80,18 @@ describe("SoulProtocolClient", () => {
       const n1 = ("0x" + "aa".repeat(32)) as Hex;
       const n2 = ("0x" + "bb".repeat(32)) as Hex;
 
-      const c1 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret, n1])
-      );
-      const c2 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret, n2])
-      );
+      const c1 = keccak256(encodePacked(["bytes32", "bytes32"], [secret, n1]));
+      const c2 = keccak256(encodePacked(["bytes32", "bytes32"], [secret, n2]));
 
       expect(c1).to.not.equal(c2);
     });
 
     it("should be deterministic", () => {
       const result1 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [MOCK_SECRET, MOCK_NULLIFIER])
+        encodePacked(["bytes32", "bytes32"], [MOCK_SECRET, MOCK_NULLIFIER]),
       );
       const result2 = keccak256(
-        encodePacked(["bytes32", "bytes32"], [MOCK_SECRET, MOCK_NULLIFIER])
+        encodePacked(["bytes32", "bytes32"], [MOCK_SECRET, MOCK_NULLIFIER]),
       );
 
       expect(result1).to.equal(result2);
@@ -227,7 +218,7 @@ describe("SoulProtocolClient", () => {
       try {
         const client = createReadOnlySoulClient(
           "https://rpc.sepolia.org",
-          11155111
+          11155111,
         );
         expect(client.chainId).to.equal(11155111);
       } catch {
@@ -281,11 +272,9 @@ describe("SoulProtocolClient", () => {
       const nullifier = ("0x" + "02".repeat(32)) as Hex;
 
       const commitment = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret, nullifier])
+        encodePacked(["bytes32", "bytes32"], [secret, nullifier]),
       );
-      const nullifierHash = keccak256(
-        encodePacked(["bytes32"], [nullifier])
-      );
+      const nullifierHash = keccak256(encodePacked(["bytes32"], [nullifier]));
 
       // Both should be valid 32-byte hashes
       expect(commitment).to.match(/^0x[0-9a-f]{64}$/);
@@ -300,11 +289,9 @@ describe("SoulProtocolClient", () => {
       const nullifier = MOCK_NULLIFIER;
 
       const commitment = keccak256(
-        encodePacked(["bytes32", "bytes32"], [secret, nullifier])
+        encodePacked(["bytes32", "bytes32"], [secret, nullifier]),
       );
-      const nullifierHash = keccak256(
-        encodePacked(["bytes32"], [nullifier])
-      );
+      const nullifierHash = keccak256(encodePacked(["bytes32"], [nullifier]));
 
       expect(commitment).to.not.equal(nullifierHash);
     });
@@ -337,9 +324,7 @@ describe("SoulProtocolClient", () => {
         totalNullifiers: 200n,
         totalProofs: 150n,
       };
-      expect(stats.activeLocks).to.equal(
-        stats.totalLocks - stats.totalUnlocks
-      );
+      expect(stats.activeLocks).to.equal(stats.totalLocks - stats.totalUnlocks);
     });
 
     it("should handle zero protocol stats", () => {

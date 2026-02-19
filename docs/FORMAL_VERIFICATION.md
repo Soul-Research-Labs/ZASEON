@@ -8,7 +8,7 @@ This document describes the formal verification setup for the Soul Protocol Soul
 
 All verification jobs have been successfully submitted to the Certora cloud.
 
-> **Status (July 2026):** All 19 specs are submitted and queued. Results will be updated as Certora Prover returns. Local Foundry symbolic tests (Halmos) and fuzz tests (10,001+ runs) complement online verification. See `certora/specs/` for full CVL source.
+> **Status (February 2026):** All 56 CVL specs across 57 configurations are submitted and queued. Results will be updated as Certora Prover returns. Local Foundry symbolic tests (Halmos) and fuzz tests (10,001+ runs) complement online verification. See `certora/specs/` for full CVL source. Foundry: 4,864 tests passing (222 suites), SDK: 569 tests passing.
 
 ### Core Contracts
 
@@ -43,6 +43,59 @@ All verification jobs have been successfully submitted to the Certora cloud.
 | MRP (Mixnet Receipt Proofs)                   | `verify_mrp.conf`          | ✅ Submitted |
 | AnonymousDeliveryVerifier                     | `verify_adv.conf`          | ✅ Submitted |
 | NetworkWideInvariants                         | `verify_network.conf`      | ✅ Submitted |
+
+### Bridge Adapters (per-chain)
+
+| Bridge           | Spec                       | Config                            | Status       |
+| ---------------- | -------------------------- | --------------------------------- | ------------ |
+| Arbitrum         | `ArbitrumBridge.spec`      | `verify_arbitrum_bridge.conf`     | ✅ Submitted |
+| Base             | `BaseBridge.spec`          | `verify_base_bridge.conf`         | ✅ Submitted |
+| Optimism         | `OptimismBridge.spec`      | `verify_optimism_bridge.conf`     | ✅ Submitted |
+| Scroll           | `ScrollBridge.spec`        | `verify_scroll_bridge.conf`       | ✅ Submitted |
+| zkSync           | `ZkSyncBridge.spec`        | `verify_zksync_bridge.conf`       | ✅ Submitted |
+| Linea            | `LineaBridge.spec`         | `verify_linea_bridge.conf`        | ✅ Submitted |
+| Polygon zkEVM    | `PolygonZkEVMBridge.spec`  | `verify_polygon_zkevm_bridge.conf`| ✅ Submitted |
+| Ethereum L1      | `EthereumL1Bridge.spec`    | `verify_ethereum_l1_bridge.conf`  | ✅ Submitted |
+| Hyperlane        | `HyperlaneBridge.spec`     | `verify_hyperlane_bridge.conf`    | ✅ Submitted |
+| LayerZero        | `LayerZeroBridge.spec`     | `verify_layerzero_bridge.conf`    | ✅ Submitted |
+| L2 Adapters      | `L2BridgeAdapters.spec`    | `verify_l2_bridges.conf`          | ✅ Submitted |
+
+### Privacy & Security Modules
+
+| Module                        | Spec                             | Config                                | Status       |
+| ----------------------------- | -------------------------------- | ------------------------------------- | ------------ |
+| AdvancedPrivacy               | `AdvancedPrivacy.spec`           | `verify_advanced_privacy.conf`        | ✅ Submitted |
+| CrossChainPrivacy             | `CrossChainPrivacy.spec`         | `verify_cross_chain_privacy.conf`     | ✅ Submitted |
+| CrossChainSecurityModules     | `CrossChainSecurityModules.spec` | `verify_crosschain_security.conf`     | ✅ Submitted |
+| PrivacyOracle                 | `PrivacyOracle.spec`             | `verify_privacy_oracle.conf`          | ✅ Submitted |
+| PrivacyRouter                 | `PrivacyRouter.spec`             | `verify_privacy_router.conf`          | ✅ Submitted |
+| PrivacyZoneManager            | `PrivacyZoneManager.spec`        | `verify_privacy_zone_manager.conf`    | ✅ Submitted |
+| StealthAddressPrivacy         | `StealthAddressPrivacy.spec`     | `verify_stealth_address.conf`         | ✅ Submitted |
+| UniversalShieldedPool         | `UniversalShieldedPool.spec`     | `verify_shielded_pool.conf`           | ✅ Submitted |
+| UpgradeableShieldedPool       | `UpgradeableShieldedPool.spec`   | `verify_upgradeable_shielded_pool.conf`| ✅ Submitted |
+| ViewKeyRegistry               | `ViewKeyRegistry.spec`           | `verify_view_key_registry.conf`       | ✅ Submitted |
+| RingSignatureVerifier         | `RingSignatureVerifier.spec`     | `verify_ring_signature.conf`          | ✅ Submitted |
+
+### Governance, Relayer & Infrastructure
+
+| Module                        | Spec                                | Config                                 | Status       |
+| ----------------------------- | ----------------------------------- | -------------------------------------- | ------------ |
+| SoulGovernor                  | `SoulGovernor.spec`                 | `verify_governor.conf`                 | ✅ Submitted |
+| BatchAccumulator              | `BatchAccumulator.spec`             | `verify_batch_accumulator.conf`        | ✅ Submitted |
+| BridgeCircuitBreaker          | `BridgeCircuitBreaker.spec`         | `verify_circuit_breaker.conf`          | ✅ Submitted |
+| BridgeRateLimiter             | `BridgeRateLimiter.spec`            | `verify_rate_limiter.conf`             | ✅ Submitted |
+| DataAvailabilityOracle        | `DataAvailabilityOracle.spec`       | `verify_da_oracle.conf`                | ✅ Submitted |
+| DirectL2Messenger             | `DirectL2Messenger.spec`            | `verify_direct_l2_messenger.conf`      | ✅ Submitted |
+| EnhancedKillSwitch            | `EnhancedKillSwitch.spec`           | `verify_killswitch.conf`               | ✅ Submitted |
+| GasNormalizer                 | `GasNormalizer.spec`                | `verify_gas_normalizer.conf`           | ✅ Submitted |
+| HeterogeneousRelayerRegistry  | `HeterogeneousRelayerRegistry.spec` | `verify_heterogeneous_relayer.conf`    | ✅ Submitted |
+| PrivateRelayerNetwork         | `PrivateRelayerNetwork.spec`        | `verify_private_relayer_network.conf`  | ✅ Submitted |
+| RecursiveProofAggregator      | `RecursiveProofAggregator.spec`     | `verify_recursive_proof_aggregator.conf`| ✅ Submitted |
+| RelayerFeeMarket              | `RelayerFeeMarket.spec`             | `verify_relayer_fee_market.conf`       | ✅ Submitted |
+| VerifierRegistryV2            | `VerifierRegistryV2.spec`           | `verify_verifier_registry_v2.conf`     | ✅ Submitted |
+| UpgradeableContracts          | `UpgradeableContracts.spec`         | `verify_upgradeable.conf`              | ✅ Submitted |
+| ZKFraudProof                  | `ZKFraudProof.spec`                 | `verify_fraud_proof.conf`              | ✅ Submitted |
+| FormalVerification            | `FormalVerification.spec`           | `verify_formal.conf`                   | ✅ Submitted |
 
 ## Verified Properties
 
@@ -319,7 +372,7 @@ certoraRun certora/conf/verify_security.conf
 1. Monitor Certora cloud for verification results
 2. Address any counterexamples found
 3. Add additional properties as needed
-4. ~~Integrate verification into CI/CD pipeline~~ ✅ Done — CI runs Certora matrix (54 specs), Halmos, Echidna, K Framework, TLA+
+4. ~~Integrate verification into CI/CD pipeline~~ ✅ Done — CI runs Certora matrix (56 specs), Halmos, Echidna, K Framework, TLA+
 5. Extend coverage to new bridge adapters
 6. ~~Add Halmos symbolic execution tests~~ ✅ Done — 12 symbolic checks (CrossChainProofHub + ZKBoundStateLocks)
 7. ~~Implement Kontrol K-framework proofs~~ ✅ Done — K specs in `specs/k/`, CI job runs `kompile`

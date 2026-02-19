@@ -71,7 +71,7 @@ function makeClient(opts?: {
   const client = new PrivacyHubClient(
     makeConfig(),
     publicClient,
-    walletClient as any
+    walletClient as any,
   );
 
   // Override the hubContract's read/write proxies for testing
@@ -89,12 +89,10 @@ function makeClient(opts?: {
   (client as any).hubContract = {
     address: MOCK_HUB,
     read: new Proxy(hubRead, {
-      get: (target, prop: string) =>
-        target[prop] ?? (async () => undefined),
+      get: (target, prop: string) => target[prop] ?? (async () => undefined),
     }),
     write: new Proxy(hubWrite, {
-      get: (target, prop: string) =>
-        target[prop] ?? (async () => MOCK_TX_HASH),
+      get: (target, prop: string) => target[prop] ?? (async () => MOCK_TX_HASH),
     }),
   };
 

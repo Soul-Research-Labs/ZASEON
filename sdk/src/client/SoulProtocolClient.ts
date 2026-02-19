@@ -1,6 +1,6 @@
 /**
  * Soul Protocol Client
- * 
+ *
  * Main SDK client for interacting with Soul Protocol contracts.
  * Provides high-level APIs for ZK-SLocks, cross-chain transfers, and privacy features.
  */
@@ -19,7 +19,12 @@ import {
   zeroAddress,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia, arbitrumSepolia, baseSepolia, optimismSepolia } from "viem/chains";
+import {
+  sepolia,
+  arbitrumSepolia,
+  baseSepolia,
+  optimismSepolia,
+} from "viem/chains";
 
 import { SoulContractAddresses, getAddresses } from "../config/addresses";
 import {
@@ -120,18 +125,23 @@ export class SoulProtocolClient {
   public readonly publicClient: PublicClient;
   public readonly walletClient?: WalletClient;
   public readonly account?: Account;
-  
+
   private prover?: NoirProver;
 
   constructor(config: SoulProtocolConfig) {
     this.chainId = config.chainId ?? 11155111;
-    
+
     // Get deployed addresses, merge with custom overrides
     const deployedAddresses = getAddresses(this.chainId);
     if (!deployedAddresses) {
-      throw new Error(`Unsupported chain ID: ${this.chainId}. Use custom addresses.`);
+      throw new Error(
+        `Unsupported chain ID: ${this.chainId}. Use custom addresses.`,
+      );
     }
-    this.addresses = { ...deployedAddresses, ...config.addresses } as SoulContractAddresses;
+    this.addresses = {
+      ...deployedAddresses,
+      ...config.addresses,
+    } as SoulContractAddresses;
 
     // Create public client for read operations
     this.publicClient = createPublicClient({
@@ -165,8 +175,13 @@ export class SoulProtocolClient {
   /**
    * Generate a commitment and nullifier pair
    */
-  generateCommitment(secret: Hex, nullifier: Hex): { commitment: Hex; nullifierHash: Hex } {
-    const commitment = keccak256(encodePacked(["bytes32", "bytes32"], [secret, nullifier]));
+  generateCommitment(
+    secret: Hex,
+    nullifier: Hex,
+  ): { commitment: Hex; nullifierHash: Hex } {
+    const commitment = keccak256(
+      encodePacked(["bytes32", "bytes32"], [secret, nullifier]),
+    );
     const nullifierHash = keccak256(nullifier);
     return { commitment, nullifierHash };
   }
@@ -178,7 +193,9 @@ export class SoulProtocolClient {
     const randomBytes = (length: number): Hex => {
       const bytes = new Uint8Array(length);
       crypto.getRandomValues(bytes);
-      return `0x${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}` as Hex;
+      return `0x${Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")}` as Hex;
     };
     return {
       secret: randomBytes(32),
@@ -220,9 +237,9 @@ export class SoulProtocolClient {
 
     const hash = await this.walletClient.writeContract(request);
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
-    
+
     // Extract lockId from event logs
-    const lockId = receipt.logs[0]?.topics[1] as Hex ?? "0x0";
+    const lockId = (receipt.logs[0]?.topics[1] as Hex) ?? "0x0";
 
     return { lockId, txHash: hash };
   }
@@ -254,7 +271,7 @@ export class SoulProtocolClient {
   async initiateOptimisticUnlock(
     lockId: Hex,
     nullifier: Hex,
-    recipient: Hex
+    recipient: Hex,
   ): Promise<Hex> {
     if (!this.walletClient || !this.account) {
       throw new Error("Wallet client required for write operations");
@@ -298,12 +315,12 @@ export class SoulProtocolClient {
    * Get lock information
    */
   async getLock(lockId: Hex): Promise<LockInfo> {
-    const lock = await this.publicClient.readContract({
+    const lock = (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "locks",
       args: [lockId],
-    }) as any;
+    })) as any;
 
     return {
       commitment: lock.commitment,
@@ -322,45 +339,45 @@ export class SoulProtocolClient {
    * Check if a nullifier has been used
    */
   async isNullifierUsed(nullifier: Hex): Promise<boolean> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "nullifierUsed",
       args: [nullifier],
-    }) as boolean;
+    })) as boolean;
   }
 
   /**
    * Get total locks created
    */
   async getTotalLocksCreated(): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "totalLocksCreated",
-    }) as bigint;
+    })) as bigint;
   }
 
   /**
    * Get total locks unlocked
    */
   async getTotalLocksUnlocked(): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "totalLocksUnlocked",
-    }) as bigint;
+    })) as bigint;
   }
 
   /**
    * Get active lock count
    */
   async getActiveLockCount(): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "getActiveLockCount",
-    }) as bigint;
+    })) as bigint;
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -371,46 +388,46 @@ export class SoulProtocolClient {
    * Check if a nullifier exists in the registry
    */
   async nullifierExists(nullifier: Hex): Promise<boolean> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.nullifierRegistry,
       abi: NULLIFIER_REGISTRY_ABI,
       functionName: "exists",
       args: [nullifier],
-    }) as boolean;
+    })) as boolean;
   }
 
   /**
    * Get the current merkle root
    */
   async getMerkleRoot(): Promise<Hex> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.nullifierRegistry,
       abi: NULLIFIER_REGISTRY_ABI,
       functionName: "merkleRoot",
-    }) as Hex;
+    })) as Hex;
   }
 
   /**
    * Verify a merkle root is valid (current or historical)
    */
   async isValidRoot(root: Hex): Promise<boolean> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.nullifierRegistry,
       abi: NULLIFIER_REGISTRY_ABI,
       functionName: "isValidRoot",
       args: [root],
-    }) as boolean;
+    })) as boolean;
   }
 
   /**
    * Get total nullifiers registered
    */
   async getTotalNullifiers(): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.nullifierRegistry,
       abi: NULLIFIER_REGISTRY_ABI,
       functionName: "totalNullifiers",
-    }) as bigint;
+    })) as bigint;
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -421,24 +438,24 @@ export class SoulProtocolClient {
    * Check if a chain is supported
    */
   async isChainSupported(chainId: number): Promise<boolean> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.proofHub,
       abi: CROSS_CHAIN_PROOF_HUB_ABI,
       functionName: "supportedChains",
       args: [BigInt(chainId)],
-    }) as boolean;
+    })) as boolean;
   }
 
   /**
    * Get relayer stake
    */
   async getRelayerStake(relayer: Hex): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.proofHub,
       abi: CROSS_CHAIN_PROOF_HUB_ABI,
       functionName: "relayerStakes",
       args: [relayer],
-    }) as bigint;
+    })) as bigint;
   }
 
   /**
@@ -466,11 +483,11 @@ export class SoulProtocolClient {
    * Get total proofs submitted
    */
   async getTotalProofs(): Promise<bigint> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.proofHub,
       abi: CROSS_CHAIN_PROOF_HUB_ABI,
       functionName: "totalProofs",
-    }) as bigint;
+    })) as bigint;
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -498,14 +515,20 @@ export class SoulProtocolClient {
       address: this.addresses.atomicSwap,
       abi: ATOMIC_SWAP_ABI,
       functionName: "initiateSwap",
-      args: [params.participant, params.hashlock, BigInt(params.timelock), token, params.amount],
+      args: [
+        params.participant,
+        params.hashlock,
+        BigInt(params.timelock),
+        token,
+        params.amount,
+      ],
       value: isEth ? params.amount : 0n,
       account: this.account,
     });
 
     const hash = await this.walletClient.writeContract(request);
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
-    const swapId = receipt.logs[0]?.topics[1] as Hex ?? "0x0";
+    const swapId = (receipt.logs[0]?.topics[1] as Hex) ?? "0x0";
 
     return { swapId, txHash: hash };
   }
@@ -560,7 +583,13 @@ export class SoulProtocolClient {
    * Get protocol statistics
    */
   async getStats(): Promise<ProtocolStats> {
-    const [totalLocks, totalUnlocks, activeLocks, totalNullifiers, totalProofs] = await Promise.all([
+    const [
+      totalLocks,
+      totalUnlocks,
+      activeLocks,
+      totalNullifiers,
+      totalProofs,
+    ] = await Promise.all([
       this.getTotalLocksCreated(),
       this.getTotalLocksUnlocked(),
       this.getActiveLockCount(),
@@ -581,24 +610,29 @@ export class SoulProtocolClient {
    * Check if contracts are paused
    */
   async isPaused(): Promise<boolean> {
-    return await this.publicClient.readContract({
+    return (await this.publicClient.readContract({
       address: this.addresses.zkBoundStateLocks,
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "paused",
-    }) as boolean;
+    })) as boolean;
   }
 }
 
 /**
  * Create a Soul Protocol client
  */
-export function createSoulClient(config: SoulProtocolConfig): SoulProtocolClient {
+export function createSoulClient(
+  config: SoulProtocolConfig,
+): SoulProtocolClient {
   return new SoulProtocolClient(config);
 }
 
 /**
  * Create a read-only Soul Protocol client (no private key required)
  */
-export function createReadOnlySoulClient(rpcUrl: string, chainId?: number): SoulProtocolClient {
+export function createReadOnlySoulClient(
+  rpcUrl: string,
+  chainId?: number,
+): SoulProtocolClient {
   return new SoulProtocolClient({ rpcUrl, chainId });
 }
