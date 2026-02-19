@@ -8,6 +8,10 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title MultiBridgeRouter
  * @notice Routes messages through multiple bridges and enforces N-of-M verification
+ * @custom:deprecated Use contracts/bridge/MultiBridgeRouter.sol instead. This simplified N-of-M
+ *                    router lacks Pausable, health monitoring, value-based routing, and fallback
+ *                    cascade features present in the canonical bridge/MultiBridgeRouter. This
+ *                    contract will be removed in v2.0.
  */
 contract MultiBridgeRouter is AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");

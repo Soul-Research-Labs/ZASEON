@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../../contracts/core/PrivacyZoneManager.sol";
+import "../../contracts/privacy/PrivacyZoneManager.sol";
 import "../../contracts/crosschain/SoulCrossChainRelay.sol";
 import "../../contracts/security/OptimisticBridgeVerifier.sol";
 import "../../contracts/security/BridgeRateLimiter.sol";
@@ -12,49 +12,65 @@ import "../../contracts/relayer/DecentralizedRelayerRegistry.sol";
 
 /**
  * @title DeployMinimalCore
- * @notice Deploys the minimal core set of contracts for a secure, complexity-reduced launch.
+ * @notice Deploys the minimal core set of Soul Protocol contracts.
+ *
+ * Usage (dry-run):
+ *   forge script scripts/deploy/DeployMinimalCore.s.sol \
+ *     --rpc-url $BASE_SEPOLIA_RPC_URL -vvv
+ *
+ * Usage (broadcast):
+ *   forge script scripts/deploy/DeployMinimalCore.s.sol \
+ *     --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast -vvv
  */
 contract DeployMinimalCore is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        
+
+        console.log("Deployer:", deployer);
+        console.log("Chain ID:", block.chainid);
+
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. Deploy Core Protocol
-        PrivacyZoneManager zoneManager = new PrivacyZoneManager(deployer, 0); 
-        // 0 = logic, assumes proxy or direct use? 
-        // Wait, PrivacyZoneManager constructor might be different. 
-        // Let's assume standard OpenZeppelin style or check constructor.
-        // Actually, previous files show PrivacyZoneManager implementation used `initialize` pattern?
-        // I'll assume usage of `new` for simplicity here, or use Upgrades later.
-
-        SoulCrossChainRelay relay = new SoulCrossChainRelay(address(zoneManager), deployer);
-
-        // 2. Deploy Security Layer
+        // 1. Deploy Security Layer (needed as proofHub for relay)
         OptimisticBridgeVerifier verifier = new OptimisticBridgeVerifier(deployer);
         BridgeRateLimiter limiter = new BridgeRateLimiter(deployer);
         BridgeWatchtower watchtower = new BridgeWatchtower(deployer);
-        
-        // 3. Deploy Enhancements (Phase 3)
+
+        // 2. Deploy Core Protocol
+        // testMode=true for testnet deployment (relaxed constraints)
+        PrivacyZoneManager zoneManager = new PrivacyZoneManager(deployer, true);
+
+        // proofHub = verifier address, BridgeType.LAYERZERO for L2 testnets
+        SoulCrossChainRelay relay = new SoulCrossChainRelay(
+            address(verifier),
+            SoulCrossChainRelay.BridgeType.LAYERZERO
+        );
+
+        // 3. Deploy Enhancements
         DecentralizedRelayerRegistry registry = new DecentralizedRelayerRegistry(deployer);
         BridgeFraudProof fraudProof = new BridgeFraudProof(address(verifier), deployer);
 
         // 4. Configuration / Wiring
         verifier.grantRole(verifier.RESOLVER_ROLE(), address(fraudProof));
-        
         watchtower.setTargetContracts(address(relay), address(limiter));
-        
-        // 5. Output addresses
-        console.log("Deployed Minimal Core:");
-        console.log("PrivacyZoneManager:", address(zoneManager));
-        console.log("SoulCrossChainRelay:", address(relay));
-        console.log("OptimisticBridgeVerifier:", address(verifier));
-        console.log("BridgeRateLimiter:", address(limiter));
-        console.log("BridgeWatchtower:", address(watchtower));
-        console.log("DecentralizedRelayerRegistry:", address(registry));
-        console.log("BridgeFraudProof:", address(fraudProof));
 
         vm.stopBroadcast();
+
+        // 5. Output addresses
+        console.log("");
+        console.log("=== Deployed Minimal Core ===");
+        console.log("PrivacyZoneManager:           ", address(zoneManager));
+        console.log("SoulCrossChainRelay:          ", address(relay));
+        console.log("OptimisticBridgeVerifier:     ", address(verifier));
+        console.log("BridgeRateLimiter:            ", address(limiter));
+        console.log("BridgeWatchtower:             ", address(watchtower));
+        console.log("DecentralizedRelayerRegistry: ", address(registry));
+        console.log("BridgeFraudProof:             ", address(fraudProof));
+        console.log("");
+        console.log("Next steps:");
+        console.log("  1. Verify contracts on BaseScan");
+        console.log("  2. Fund relayer addresses with testnet ETH");
+        console.log("  3. Configure cross-chain peer chains");
     }
 }
