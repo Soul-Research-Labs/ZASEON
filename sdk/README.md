@@ -59,7 +59,10 @@ const client = createSoulClient({
 
 // Generate secrets
 const { secret, nullifier } = client.generateSecrets();
-const { commitment, nullifierHash } = client.generateCommitment(secret, nullifier);
+const { commitment, nullifierHash } = client.generateCommitment(
+  secret,
+  nullifier,
+);
 
 // Create a lock
 const { lockId, txHash } = await client.createLock({
@@ -96,18 +99,18 @@ await client.unlockWithProof({
 
 Main entry point for Soul Protocol interactions.
 
-| Method | Description |
-|--------|-------------|
-| `createLock(params)` | Create a new ZK-bound state lock |
-| `unlockWithProof(params)` | Unlock with ZK proof |
-| `initiateOptimisticUnlock(lockId, nullifier, recipient)` | Start optimistic unlock |
-| `refundExpiredLock(lockId)` | Refund an expired lock |
-| `getLock(lockId)` | Get lock information |
-| `isNullifierUsed(nullifier)` | Check if nullifier is used |
-| `getMerkleRoot()` | Get current Merkle root |
-| `getStats()` | Get protocol statistics |
-| `generateSecrets()` | Generate secret/nullifier pair |
-| `generateCommitment(secret, nullifier)` | Compute commitment |
+| Method                                                   | Description                      |
+| -------------------------------------------------------- | -------------------------------- |
+| `createLock(params)`                                     | Create a new ZK-bound state lock |
+| `unlockWithProof(params)`                                | Unlock with ZK proof             |
+| `initiateOptimisticUnlock(lockId, nullifier, recipient)` | Start optimistic unlock          |
+| `refundExpiredLock(lockId)`                              | Refund an expired lock           |
+| `getLock(lockId)`                                        | Get lock information             |
+| `isNullifierUsed(nullifier)`                             | Check if nullifier is used       |
+| `getMerkleRoot()`                                        | Get current Merkle root          |
+| `getStats()`                                             | Get protocol statistics          |
+| `generateSecrets()`                                      | Generate secret/nullifier pair   |
+| `generateCommitment(secret, nullifier)`                  | Compute commitment               |
 
 ### NoirProver
 
@@ -121,11 +124,11 @@ await prover.initialize();
 
 // Available circuits
 const circuits = [
-  Circuit.StateCommitment,  // Commitment proof
-  Circuit.StateTransfer,    // Cross-chain transfer
-  Circuit.MerkleProof,      // Merkle inclusion
-  Circuit.Nullifier,        // Nullifier derivation
-  Circuit.BalanceProof,     // Balance range proof
+  Circuit.StateCommitment, // Commitment proof
+  Circuit.StateTransfer, // Cross-chain transfer
+  Circuit.MerkleProof, // Merkle inclusion
+  Circuit.Nullifier, // Nullifier derivation
+  Circuit.BalanceProof, // Balance range proof
 ];
 
 // Generate proof
@@ -153,11 +156,11 @@ const addresses = getAddresses(11155111);
 
 ## Supported Networks
 
-| Network | Chain ID | Status |
-|---------|----------|--------|
-| Sepolia | 11155111 | ✅ Deployed |
-| Arbitrum Sepolia | 421614 | 🚧 Coming Soon |
-| Base Sepolia | 84532 | 🚧 Coming Soon |
+| Network          | Chain ID | Status         |
+| ---------------- | -------- | -------------- |
+| Sepolia          | 11155111 | ✅ Deployed    |
+| Arbitrum Sepolia | 421614   | 🚧 Coming Soon |
+| Base Sepolia     | 84532    | ✅ Live        |
 | Optimism Sepolia | 11155420 | 🚧 Coming Soon |
 
 ---
@@ -167,27 +170,27 @@ const addresses = getAddresses(11155111);
 ### Post-Quantum Cryptography
 
 ```typescript
-import { PQCRegistryClient, PQCAlgorithm, TransitionPhase } from '@soul/sdk';
+import { PQCRegistryClient, PQCAlgorithm, TransitionPhase } from "@soul/sdk";
 
 const pqcClient = new PQCRegistryClient(
-  '0xRegistryAddress',
+  "0xRegistryAddress",
   publicClient,
-  walletClient
+  walletClient,
 );
 
 // Configure account with PQC
 await pqcClient.registerHybridKey(
   classicalPublicKey,
   pqcPublicKey,
-  pqcAlgorithm
+  pqcAlgorithm,
 );
 ```
 
 ### Cross-Chain Bridges
 
 ```typescript
-import { BridgeFactory, SupportedChain } from '@soul/sdk';
-import { parseEther } from 'viem';
+import { BridgeFactory, SupportedChain } from "@soul/sdk";
+import { parseEther } from "viem";
 
 // Create a bridge adapter
 const cardanoBridge = BridgeFactory.createAdapter(
@@ -196,15 +199,15 @@ const cardanoBridge = BridgeFactory.createAdapter(
   walletClient,
   {
     chainId: 1,
-    bridgeAddress: '0x...'
-  }
+    bridgeAddress: "0x...",
+  },
 );
 
 // Start bridge transfer
 const result = await cardanoBridge.bridgeTransfer({
   targetChainId: 1,
-  recipient: 'addr1...',
-  amount: parseEther('1.0'),
+  recipient: "addr1...",
+  amount: parseEther("1.0"),
 });
 
 // Get bridge status
@@ -214,11 +217,11 @@ const status = await cardanoBridge.getStatus(result.transferId);
 ### React Hooks
 
 ```tsx
-import { SoulProvider, useSoul, useContainer } from '@soul/react';
+import { SoulProvider, useSoul, useContainer } from "@soul/react";
 
 function MyComponent() {
   const { client, connect, isConnected } = useSoul();
-  const { container, isLoading } = useContainer('0xContainerId');
+  const { container, isLoading } = useContainer("0xContainerId");
 
   if (!isConnected) return <button onClick={connect}>Connect Soul</button>;
   if (isLoading) return <div>Loading container...</div>;
@@ -228,7 +231,7 @@ function MyComponent() {
 
 function App() {
   return (
-    <SoulProvider config={{ orchestrator: '0x...' }}>
+    <SoulProvider config={{ orchestrator: "0x..." }}>
       <MyComponent />
     </SoulProvider>
   );
@@ -238,11 +241,13 @@ function App() {
 ## Modules
 
 ### Core
+
 - `SoulSDK` - Main SDK entry point
 - `Soulv2ClientFactory` - Unified factory for Soul v2 primitives
 - `CryptoModule` - Cryptographic utilities
 
 ### Bridges
+
 - `CardanoBridgeAdapterSDK` - Cardano bridge
 - `CosmosBridgeAdapterSDK` - Cosmos IBC bridge
 - `PolkadotBridgeAdapterSDK` - Polkadot/Substrate bridge
@@ -251,18 +256,21 @@ function App() {
 - `ArbitrumBridgeAdapterSDK` - Arbitrum bridge
 
 ### Post-Quantum Cryptography
+
 - `PQCRegistryClient` - Main PQC interface
 - `DilithiumClient` - Dilithium signatures
 - `KyberKEMClient` - Kyber KEM
 - `encodeHybridSignature` / `decodeHybridSignature` - Hybrid signature encoding
 
 ### ZK Systems
+
 - `ZKSystems.SP1` - Succinct SP1 integration
 - `ZKSystems.Plonky3` - Plonky3 integration
 - `ZKSystems.Jolt` - Jolt zkVM integration
 - `ZKSystems.Binius` - Binius integration
 
 ### Advanced
+
 - `MPC` - Threshold signatures, DKG
 - `FHE` - Fully homomorphic encryption
 - `RecursiveProofs` - Nova-style IVC, proof aggregation

@@ -6,7 +6,9 @@ This document describes the formal verification setup for the Soul Protocol Soul
 
 ## Verification Jobs Submitted
 
-All verification jobs have been successfully submitted to the Certora cloud:
+All verification jobs have been successfully submitted to the Certora cloud.
+
+> **Status (July 2026):** All 19 specs are submitted and queued. Results will be updated as Certora Prover returns. Local Foundry symbolic tests (Halmos) and fuzz tests (10,001+ runs) complement online verification. See `certora/specs/` for full CVL source.
 
 ### Core Contracts
 

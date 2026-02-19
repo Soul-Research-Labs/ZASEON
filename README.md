@@ -269,7 +269,7 @@ contracts/           # Production Solidity contracts
 ├── upgradeable/     # UUPS proxy implementations (ConfidentialState, NullifierRegistry, ProofHub)
 ├── relayer/         # RelayerFeeMarket (incentivized relaying)
 ├── bridge/          # AtomicSwap, CrossChainProofHub
-├── verifiers/       # Groth16 BN254, PLONK, FRI, CLSAG ring signature verifiers + VerifierRegistry
+├── verifiers/       # 20 UltraHonk verifiers (Noir-generated), CLSAG ring signature, VerifierRegistry
 ├── libraries/       # BN254, CryptoLib, PoseidonYul, GasOptimizations, ValidationLib
 ├── interfaces/      # Contract interfaces
 ├── adapters/        # External protocol adapters
@@ -281,7 +281,7 @@ sdk/                 # TypeScript SDK (viem-based clients, 84 test files)
 sdk/experimental/    # Experimental modules (fhe, pqc, mpc, recursive, zkSystems)
 certora/             # Formal verification specs (54 CVL specs)
 specs/               # K Framework + TLA+ formal specifications
-test/                # Foundry + Hardhat tests (4400+ passing, 189 suites)
+test/                # Foundry + Hardhat tests (4864+ passing, 222 suites)
 scripts/             # Deployment + security scripts (storage layout checker, mutation testing)
 ```
 
@@ -358,6 +358,7 @@ Soul provides adapters for major cross-chain messaging:
 **Signatures:** ECDSA with signature malleability protection  
 **Privacy:** Stealth addresses, domain-separated nullifiers (CDNA)  
 **Circuits:** 20 Noir circuits (nullifiers, transfers, commitments, PC³, PBP, EASC, ring signatures, compliance, shielded pool, balance proofs)  
+**On-chain Verifiers:** 20 of 21 UltraHonk verifiers generated from Noir VKs (AggregatorVerifier pending `bb >= 3.1.0`)  
 **Curve Library:** BN254.sol — compressed points, hash-to-curve, point arithmetic via precompiles
 
 ---
@@ -382,10 +383,10 @@ Soul provides adapters for major cross-chain messaging:
 
 ### Testing & Verification
 
-**4400+ tests passing** across 189 test suites — unit, integration, fuzz, formal, invariant, attack simulation, and stress testing.
+**4864+ Foundry tests + 483 SDK tests passing** across 222 test suites — unit, integration, fuzz, formal, invariant, attack simulation, and stress testing.
 
 ```bash
-forge test -vv                                          # All tests (4400+ passing)
+forge test -vv                                          # All tests (4864+ passing)
 forge test --match-path "test/fuzz/*" --fuzz-runs 10000  # Fuzz tests
 forge test --match-path "test/formal/*"                  # Halmos symbolic tests
 forge test --match-path "test/verifiers/*"               # Verifier + CLSAG tests
@@ -524,7 +525,7 @@ await feeMarket.submitRelayRequest(1, 42161, proofData, deadline, fee);
 | ---------------- | -------- | ---------- |
 | Sepolia          | 11155111 | ✅ Live    |
 | Arbitrum Sepolia | 421614   | 🔄 Planned |
-| Base Sepolia     | 84532    | 🔄 Planned |
+| Base Sepolia     | 84532    | ✅ Live    |
 
 > **Note:** Experimental modules (`fhe`, `pqc`, `mpc`, `recursive`, `zkSystems`) have been moved to `@soul/sdk/experimental`. Import from `@soul/sdk/experimental` to use them. See [sdk/experimental/README.md](sdk/experimental/README.md) for details.
 
@@ -548,6 +549,22 @@ See [sdk/README.md](sdk/README.md) for full documentation.
 | SoulAtomicSwapV2             | [`0xdefb9a66dc14a6d247b282555b69da7745b0ab57`](https://sepolia.etherscan.io/address/0xdefb9a66dc14a6d247b282555b69da7745b0ab57) |
 
 **Full deployment:** See [`deployments/`](deployments/)
+
+### Base Sepolia Testnet ✅
+
+**Deployed:** July 22, 2026 | **Chain ID:** 84532
+
+| Contract                     | Address                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| PrivacyZoneManager           | [`0xDFBEe5bB4d4943715D4f8539cbad0a18aA75b602`](https://sepolia.basescan.org/address/0xDFBEe5bB4d4943715D4f8539cbad0a18aA75b602) |
+| SoulCrossChainRelay          | [`0x65CDCdA5ba98bB0d784c3a69C826cb3B59C20251`](https://sepolia.basescan.org/address/0x65CDCdA5ba98bB0d784c3a69C826cb3B59C20251) |
+| OptimisticBridgeVerifier     | [`0xBA63a3F3C5568eC6447FBe1b852a613743419D9f`](https://sepolia.basescan.org/address/0xBA63a3F3C5568eC6447FBe1b852a613743419D9f) |
+| BridgeRateLimiter            | [`0x23824cDbD8Ca773c5DA0202f8f41083F81aF1135`](https://sepolia.basescan.org/address/0x23824cDbD8Ca773c5DA0202f8f41083F81aF1135) |
+| BridgeWatchtower             | [`0x3E556432Ea021046ad4BE22cB94f713f98f4B76E`](https://sepolia.basescan.org/address/0x3E556432Ea021046ad4BE22cB94f713f98f4B76E) |
+| DecentralizedRelayerRegistry | [`0x2472BDB087590e4F4F4bE1243ec9533828eC0D9d`](https://sepolia.basescan.org/address/0x2472BDB087590e4F4F4bE1243ec9533828eC0D9d) |
+| BridgeFraudProof             | [`0x583E650c0385FEd1E427dF68fa91b2d8E56Df20f`](https://sepolia.basescan.org/address/0x583E650c0385FEd1E427dF68fa91b2d8E56Df20f) |
+
+**Full deployment:** See [`deployments/base-sepolia-84532.json`](deployments/base-sepolia-84532.json)
 
 ### Deploy to Testnet
 
