@@ -373,12 +373,9 @@ contract SelfRelayAdapterTest is Test {
             vm.expectRevert();
             adapter.relayMessage(address(target), payload, gasLimit);
         } else {
-            // Skip the ambiguous 21_000–99_999 range where the adapter accepts
-            // the gas limit but the target call may or may not have enough gas
-            // to execute, making the outcome non-deterministic.  We test the
-            // boundary revert behaviour above; here we only test valid-and-
-            // sufficient gas limits.
-            vm.assume(gasLimit >= 100_000);
+            // Use bound to avoid rejecting too many inputs in the ambiguous
+            // 21_000–99_999 range where target may not have enough gas
+            gasLimit = bound(gasLimit, 100_000, adapter.MAX_GAS_LIMIT());
             vm.prank(user);
             adapter.relayMessage(address(target), payload, gasLimit);
             assertEq(target.lastValue(), 1);
