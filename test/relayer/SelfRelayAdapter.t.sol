@@ -362,24 +362,14 @@ contract SelfRelayAdapterTest is Test {
     }
 
     function testFuzz_RelayMessage_GasLimitBounds(uint256 gasLimit) public {
+        // Bound to the safe success range — revert cases are covered by
+        // test_RelayMessage_RevertGasLimitTooLow / TooHigh unit tests.
+        gasLimit = bound(gasLimit, 100_000, adapter.MAX_GAS_LIMIT());
         bytes memory payload = abi.encodeCall(MockTarget.doSomething, (1));
 
-        if (gasLimit < adapter.MIN_GAS_LIMIT()) {
-            vm.prank(user);
-            vm.expectRevert();
-            adapter.relayMessage(address(target), payload, gasLimit);
-        } else if (gasLimit > adapter.MAX_GAS_LIMIT()) {
-            vm.prank(user);
-            vm.expectRevert();
-            adapter.relayMessage(address(target), payload, gasLimit);
-        } else {
-            // Use bound to avoid rejecting too many inputs in the ambiguous
-            // 21_000–99_999 range where target may not have enough gas
-            gasLimit = bound(gasLimit, 100_000, adapter.MAX_GAS_LIMIT());
-            vm.prank(user);
-            adapter.relayMessage(address(target), payload, gasLimit);
-            assertEq(target.lastValue(), 1);
-        }
+        vm.prank(user);
+        adapter.relayMessage(address(target), payload, gasLimit);
+        assertEq(target.lastValue(), 1);
     }
 
     // ================================================================

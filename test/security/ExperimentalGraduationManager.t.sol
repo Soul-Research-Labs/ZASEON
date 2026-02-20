@@ -46,37 +46,56 @@ abstract contract GraduationTestBase is Test {
         mpcId = registry.MPC_THRESHOLD();
     }
 
-    function _stdCriteria() internal pure returns (ExperimentalGraduationManager.GraduationCriteria memory) {
-        return ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: 7 days,
-            minTestCount: 20,
-            minFuzzRuns: 1000,
-            requiresAuditAttestation: true,
-            requiresSecurityReview: true,
-            requiresCertoraSpec: false
-        });
+    function _stdCriteria()
+        internal
+        pure
+        returns (ExperimentalGraduationManager.GraduationCriteria memory)
+    {
+        return
+            ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: 7 days,
+                minTestCount: 20,
+                minFuzzRuns: 1000,
+                requiresAuditAttestation: true,
+                requiresSecurityReview: true,
+                requiresCertoraSpec: false
+            });
     }
 
-    function _easyCriteria() internal pure returns (ExperimentalGraduationManager.GraduationCriteria memory) {
-        return ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: 1 hours,
-            minTestCount: 0,
-            minFuzzRuns: 0,
-            requiresAuditAttestation: false,
-            requiresSecurityReview: false,
-            requiresCertoraSpec: false
-        });
+    function _easyCriteria()
+        internal
+        pure
+        returns (ExperimentalGraduationManager.GraduationCriteria memory)
+    {
+        return
+            ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: 1 hours,
+                minTestCount: 0,
+                minFuzzRuns: 0,
+                requiresAuditAttestation: false,
+                requiresSecurityReview: false,
+                requiresCertoraSpec: false
+            });
     }
 
-    function _getFeatureStatus(bytes32 fid) internal view returns (ExperimentalFeatureRegistry.FeatureStatus) {
-        (, ExperimentalFeatureRegistry.FeatureStatus s,,,,,,,) = registry.features(fid);
+    function _getFeatureStatus(
+        bytes32 fid
+    ) internal view returns (ExperimentalFeatureRegistry.FeatureStatus) {
+        (, ExperimentalFeatureRegistry.FeatureStatus s, , , , , , , ) = registry
+            .features(fid);
         return s;
     }
 
     function _moveToBeta(bytes32 fid) internal {
         vm.startPrank(admin);
-        registry.updateFeatureStatus(fid, ExperimentalFeatureRegistry.FeatureStatus.EXPERIMENTAL);
-        registry.updateFeatureStatus(fid, ExperimentalFeatureRegistry.FeatureStatus.BETA);
+        registry.updateFeatureStatus(
+            fid,
+            ExperimentalFeatureRegistry.FeatureStatus.EXPERIMENTAL
+        );
+        registry.updateFeatureStatus(
+            fid,
+            ExperimentalFeatureRegistry.FeatureStatus.BETA
+        );
         manager.recordBetaEntry(fid);
         vm.stopPrank();
     }
@@ -95,7 +114,9 @@ abstract contract GraduationTestBase is Test {
         manager.attestSecurityReview(fid, keccak256("security-review"));
     }
 
-    function _prepareGraduation(bytes32 fid) internal returns (uint256 proposalId) {
+    function _prepareGraduation(
+        bytes32 fid
+    ) internal returns (uint256 proposalId) {
         _moveToBeta(fid);
         _fullyAttest(fid);
         vm.warp(block.timestamp + 7 days + 1);
@@ -103,15 +124,20 @@ abstract contract GraduationTestBase is Test {
         proposalId = manager.proposeGraduation(fid);
     }
 
-    function _graduateFeature(bytes32 fid) internal returns (uint256 proposalId) {
+    function _graduateFeature(
+        bytes32 fid
+    ) internal returns (uint256 proposalId) {
         proposalId = _prepareGraduation(fid);
         vm.warp(block.timestamp + 3 days + 1);
         vm.prank(executor);
         manager.executeGraduation(proposalId);
     }
 
-    function _getProposalStatus(uint256 pid) internal view returns (ExperimentalGraduationManager.ProposalStatus) {
-        (, ExperimentalGraduationManager.ProposalStatus s,,,) = manager.proposals(pid);
+    function _getProposalStatus(
+        uint256 pid
+    ) internal view returns (ExperimentalGraduationManager.ProposalStatus) {
+        (, ExperimentalGraduationManager.ProposalStatus s, , , ) = manager
+            .proposals(pid);
         return s;
     }
 }
@@ -152,8 +178,14 @@ contract GraduationCriteriaTest is GraduationTestBase {
         manager.setCriteria(fheId, _stdCriteria());
 
         assertTrue(manager.criteriaConfigured(fheId));
-        (uint48 minTime, uint32 minTests, uint32 minFuzz, bool rAudit, bool rSec, bool rCert) =
-            manager.criteria(fheId);
+        (
+            uint48 minTime,
+            uint32 minTests,
+            uint32 minFuzz,
+            bool rAudit,
+            bool rSec,
+            bool rCert
+        ) = manager.criteria(fheId);
 
         assertEq(minTime, 7 days);
         assertEq(minTests, 20);
@@ -173,18 +205,19 @@ contract GraduationCriteriaTest is GraduationTestBase {
         vm.startPrank(admin);
         manager.setCriteria(fheId, _stdCriteria());
 
-        ExperimentalGraduationManager.GraduationCriteria memory strict = ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: 30 days,
-            minTestCount: 100,
-            minFuzzRuns: 50000,
-            requiresAuditAttestation: true,
-            requiresSecurityReview: true,
-            requiresCertoraSpec: true
-        });
+        ExperimentalGraduationManager.GraduationCriteria
+            memory strict = ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: 30 days,
+                minTestCount: 100,
+                minFuzzRuns: 50000,
+                requiresAuditAttestation: true,
+                requiresSecurityReview: true,
+                requiresCertoraSpec: true
+            });
         manager.setCriteria(fheId, strict);
         vm.stopPrank();
 
-        (uint48 minTime,,,,, bool certora) = manager.criteria(fheId);
+        (uint48 minTime, , , , , bool certora) = manager.criteria(fheId);
         assertEq(minTime, 30 days);
         assertTrue(certora);
     }
@@ -193,7 +226,8 @@ contract GraduationCriteriaTest is GraduationTestBase {
         vm.prank(admin);
         manager.recordBetaEntry(fheId);
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.betaEntryTimestamp, uint48(block.timestamp));
     }
 
@@ -214,7 +248,8 @@ contract GraduationAttestationTest is GraduationTestBase {
         vm.prank(auditor);
         manager.attestAudit(fheId, reportHash);
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.auditAttestation.attester, auditor);
         assertEq(grad.auditAttestation.evidenceHash, reportHash);
         assertGt(grad.auditAttestation.attestedAt, 0);
@@ -230,7 +265,8 @@ contract GraduationAttestationTest is GraduationTestBase {
         vm.prank(ciBot);
         manager.attestTestCoverage(fheId, 100, 10000, keccak256("ci-log"));
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.reportedTestCount, 100);
         assertEq(grad.reportedFuzzRuns, 10000);
         assertEq(grad.testAttestation.attester, ciBot);
@@ -246,7 +282,8 @@ contract GraduationAttestationTest is GraduationTestBase {
         vm.prank(securityReviewer);
         manager.attestSecurityReview(fheId, keccak256("review"));
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.securityAttestation.attester, securityReviewer);
     }
 
@@ -254,7 +291,8 @@ contract GraduationAttestationTest is GraduationTestBase {
         vm.prank(securityReviewer);
         manager.attestCertoraSpec(fheId, keccak256("spec"));
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.certoraAttestation.attester, securityReviewer);
     }
 
@@ -264,7 +302,8 @@ contract GraduationAttestationTest is GraduationTestBase {
         manager.attestAudit(fheId, keccak256("v2"));
         vm.stopPrank();
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.auditAttestation.evidenceHash, keccak256("v2"));
     }
 }
@@ -285,7 +324,10 @@ contract GraduationProposalTest is GraduationTestBase {
         assertEq(pid, 1);
         assertEq(manager.proposalCount(), 1);
         assertEq(manager.activeProposal(fheId), 1);
-        assertTrue(_getProposalStatus(pid) == ExperimentalGraduationManager.ProposalStatus.PENDING);
+        assertTrue(
+            _getProposalStatus(pid) ==
+                ExperimentalGraduationManager.ProposalStatus.PENDING
+        );
     }
 
     function test_proposeGraduation_proposalFields() public {
@@ -296,7 +338,13 @@ contract GraduationProposalTest is GraduationTestBase {
         vm.prank(proposer);
         uint256 pid = manager.proposeGraduation(fheId);
 
-        (bytes32 fid,, address prop, uint48 proposedAt, uint48 execAfter) = manager.proposals(pid);
+        (
+            bytes32 fid,
+            ,
+            address prop,
+            uint48 proposedAt,
+            uint48 execAfter
+        ) = manager.proposals(pid);
         assertEq(fid, fheId);
         assertEq(prop, proposer);
         assertEq(execAfter, proposedAt + 3 days);
@@ -307,9 +355,12 @@ contract GraduationProposalTest is GraduationTestBase {
         manager.setCriteria(fheId, _stdCriteria());
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.FeatureNotInBeta.selector, fheId
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.FeatureNotInBeta.selector,
+                fheId
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -317,9 +368,12 @@ contract GraduationProposalTest is GraduationTestBase {
         _moveToBeta(fheId);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.CriteriaNotSet.selector, fheId
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.CriteriaNotSet.selector,
+                fheId
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -328,11 +382,13 @@ contract GraduationProposalTest is GraduationTestBase {
         _fullyAttest(fheId);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.CriteriaNotMet.selector,
-            fheId,
-            "Insufficient time in beta"
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.CriteriaNotMet.selector,
+                fheId,
+                "Insufficient time in beta"
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -351,11 +407,13 @@ contract GraduationProposalTest is GraduationTestBase {
         vm.warp(block.timestamp + 7 days + 1);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.CriteriaNotMet.selector,
-            fheId,
-            "Missing audit attestation"
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.CriteriaNotMet.selector,
+                fheId,
+                "Missing audit attestation"
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -377,11 +435,13 @@ contract GraduationProposalTest is GraduationTestBase {
         vm.warp(block.timestamp + 7 days + 1);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.CriteriaNotMet.selector,
-            fheId,
-            "Insufficient test count"
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.CriteriaNotMet.selector,
+                fheId,
+                "Insufficient test count"
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -389,9 +449,12 @@ contract GraduationProposalTest is GraduationTestBase {
         _prepareGraduation(fheId);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.ProposalAlreadyActive.selector, fheId
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.ProposalAlreadyActive.selector,
+                fheId
+            )
+        );
         manager.proposeGraduation(fheId);
     }
 
@@ -414,15 +477,22 @@ contract GraduationExecutionTest is GraduationTestBase {
     function test_executeGraduation_success() public {
         uint256 pid = _graduateFeature(fheId);
 
-        assertTrue(_getProposalStatus(pid) == ExperimentalGraduationManager.ProposalStatus.EXECUTED);
-        assertTrue(_getFeatureStatus(fheId) == ExperimentalFeatureRegistry.FeatureStatus.PRODUCTION);
+        assertTrue(
+            _getProposalStatus(pid) ==
+                ExperimentalGraduationManager.ProposalStatus.EXECUTED
+        );
+        assertTrue(
+            _getFeatureStatus(fheId) ==
+                ExperimentalFeatureRegistry.FeatureStatus.PRODUCTION
+        );
         assertEq(manager.activeProposal(fheId), 0);
     }
 
     function test_executeGraduation_setsMetadata() public {
         _graduateFeature(fheId);
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertGt(grad.graduatedAt, 0);
         assertEq(grad.graduationCount, 1);
     }
@@ -445,9 +515,12 @@ contract GraduationExecutionTest is GraduationTestBase {
         vm.warp(block.timestamp + 3 days + 1);
 
         vm.prank(executor);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.ProposalNotPending.selector, pid
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.ProposalNotPending.selector,
+                pid
+            )
+        );
         manager.executeGraduation(pid);
     }
 
@@ -466,7 +539,10 @@ contract GraduationExecutionTest is GraduationTestBase {
         vm.prank(admin);
         manager.cancelGraduation(pid, "Security concern");
 
-        assertTrue(_getProposalStatus(pid) == ExperimentalGraduationManager.ProposalStatus.CANCELLED);
+        assertTrue(
+            _getProposalStatus(pid) ==
+                ExperimentalGraduationManager.ProposalStatus.CANCELLED
+        );
         assertEq(manager.activeProposal(fheId), 0);
     }
 
@@ -483,9 +559,12 @@ contract GraduationExecutionTest is GraduationTestBase {
 
     function test_cancelGraduation_revertsIfNotPending() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.ProposalNotPending.selector, 999
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.ProposalNotPending.selector,
+                999
+            )
+        );
         manager.cancelGraduation(999, "doesn't exist");
     }
 
@@ -509,7 +588,10 @@ contract GraduationDemotionTest is GraduationTestBase {
         vm.prank(admin);
         manager.demoteFeature(fheId, "Vulnerability found");
 
-        assertTrue(_getFeatureStatus(fheId) == ExperimentalFeatureRegistry.FeatureStatus.BETA);
+        assertTrue(
+            _getFeatureStatus(fheId) ==
+                ExperimentalFeatureRegistry.FeatureStatus.BETA
+        );
     }
 
     function test_demoteFeature_setsMetadata() public {
@@ -518,10 +600,14 @@ contract GraduationDemotionTest is GraduationTestBase {
         vm.prank(admin);
         manager.demoteFeature(fheId, "Vulnerability found");
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertGt(grad.demotedAt, 0);
         assertEq(grad.demotionCount, 1);
-        assertEq(keccak256(bytes(grad.demotionReason)), keccak256("Vulnerability found"));
+        assertEq(
+            keccak256(bytes(grad.demotionReason)),
+            keccak256("Vulnerability found")
+        );
     }
 
     function test_demoteFeature_clearsAttestations() public {
@@ -530,7 +616,8 @@ contract GraduationDemotionTest is GraduationTestBase {
         vm.prank(admin);
         manager.demoteFeature(fheId, "Vulnerability found");
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.auditAttestation.attestedAt, 0);
         assertEq(grad.testAttestation.attestedAt, 0);
         assertEq(grad.securityAttestation.attestedAt, 0);
@@ -540,9 +627,12 @@ contract GraduationDemotionTest is GraduationTestBase {
         _moveToBeta(fheId);
 
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.FeatureNotInProduction.selector, fheId
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.FeatureNotInProduction.selector,
+                fheId
+            )
+        );
         manager.demoteFeature(fheId, "not in production");
     }
 
@@ -573,7 +663,8 @@ contract GraduationDemotionTest is GraduationTestBase {
         vm.prank(executor);
         manager.executeGraduation(p2);
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.graduationCount, 2);
         assertEq(grad.demotionCount, 1);
     }
@@ -592,13 +683,17 @@ contract GraduationTimelockViewTest is GraduationTestBase {
 
     function test_setTimelockDuration_revertsOnTooShort() public {
         vm.prank(admin);
-        vm.expectRevert(ExperimentalGraduationManager.InvalidTimelockDuration.selector);
+        vm.expectRevert(
+            ExperimentalGraduationManager.InvalidTimelockDuration.selector
+        );
         manager.setTimelockDuration(30 minutes);
     }
 
     function test_setTimelockDuration_revertsOnTooLong() public {
         vm.prank(admin);
-        vm.expectRevert(ExperimentalGraduationManager.InvalidTimelockDuration.selector);
+        vm.expectRevert(
+            ExperimentalGraduationManager.InvalidTimelockDuration.selector
+        );
         manager.setTimelockDuration(60 days);
     }
 
@@ -644,8 +739,14 @@ contract GraduationTimelockViewTest is GraduationTestBase {
         vm.prank(ciBot);
         manager.attestTestCoverage(fheId, 50, 10000, keccak256("ci"));
 
-        (bool timeMet, bool testsMet, bool fuzzMet, bool auditMet, bool securityMet, bool certoraMet) =
-            manager.getGraduationProgress(fheId);
+        (
+            bool timeMet,
+            bool testsMet,
+            bool fuzzMet,
+            bool auditMet,
+            bool securityMet,
+            bool certoraMet
+        ) = manager.getGraduationProgress(fheId);
 
         assertFalse(timeMet);
         assertTrue(testsMet);
@@ -660,8 +761,14 @@ contract GraduationTimelockViewTest is GraduationTestBase {
         _fullyAttest(fheId);
         vm.warp(block.timestamp + 7 days + 1);
 
-        (bool timeMet, bool testsMet, bool fuzzMet, bool auditMet, bool securityMet, bool certoraMet) =
-            manager.getGraduationProgress(fheId);
+        (
+            bool timeMet,
+            bool testsMet,
+            bool fuzzMet,
+            bool auditMet,
+            bool securityMet,
+            bool certoraMet
+        ) = manager.getGraduationProgress(fheId);
 
         assertTrue(timeMet);
         assertTrue(testsMet);
@@ -675,7 +782,8 @@ contract GraduationTimelockViewTest is GraduationTestBase {
         _moveToBeta(fheId);
         _fullyAttest(fheId);
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertGt(grad.betaEntryTimestamp, 0);
         assertEq(grad.auditAttestation.attester, auditor);
         assertEq(grad.reportedTestCount, 50);
@@ -691,14 +799,15 @@ contract GraduationAdvancedTest is GraduationTestBase {
     function test_proposeGraduation_revertsWithoutCertoraSpec() public {
         _moveToBeta(pqcId);
 
-        ExperimentalGraduationManager.GraduationCriteria memory strict = ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: 1 days,
-            minTestCount: 1,
-            minFuzzRuns: 1,
-            requiresAuditAttestation: false,
-            requiresSecurityReview: false,
-            requiresCertoraSpec: true
-        });
+        ExperimentalGraduationManager.GraduationCriteria
+            memory strict = ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: 1 days,
+                minTestCount: 1,
+                minFuzzRuns: 1,
+                requiresAuditAttestation: false,
+                requiresSecurityReview: false,
+                requiresCertoraSpec: true
+            });
 
         vm.prank(admin);
         manager.setCriteria(pqcId, strict);
@@ -709,25 +818,28 @@ contract GraduationAdvancedTest is GraduationTestBase {
         vm.warp(block.timestamp + 1 days + 1);
 
         vm.prank(proposer);
-        vm.expectRevert(abi.encodeWithSelector(
-            ExperimentalGraduationManager.CriteriaNotMet.selector,
-            pqcId,
-            "Missing Certora spec"
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExperimentalGraduationManager.CriteriaNotMet.selector,
+                pqcId,
+                "Missing Certora spec"
+            )
+        );
         manager.proposeGraduation(pqcId);
     }
 
     function test_proposeGraduation_passesWithCertoraSpec() public {
         _moveToBeta(pqcId);
 
-        ExperimentalGraduationManager.GraduationCriteria memory strict = ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: 1 days,
-            minTestCount: 1,
-            minFuzzRuns: 1,
-            requiresAuditAttestation: false,
-            requiresSecurityReview: false,
-            requiresCertoraSpec: true
-        });
+        ExperimentalGraduationManager.GraduationCriteria
+            memory strict = ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: 1 days,
+                minTestCount: 1,
+                minFuzzRuns: 1,
+                requiresAuditAttestation: false,
+                requiresSecurityReview: false,
+                requiresCertoraSpec: true
+            });
 
         vm.prank(admin);
         manager.setCriteria(pqcId, strict);
@@ -761,7 +873,10 @@ contract GraduationAdvancedTest is GraduationTestBase {
         vm.prank(executor);
         manager.executeGraduation(pid);
 
-        assertTrue(_getFeatureStatus(mpcId) == ExperimentalFeatureRegistry.FeatureStatus.PRODUCTION);
+        assertTrue(
+            _getFeatureStatus(mpcId) ==
+                ExperimentalFeatureRegistry.FeatureStatus.PRODUCTION
+        );
     }
 
     function test_multipleFeatures_independentProposals() public {
@@ -793,14 +908,18 @@ contract GraduationAdvancedTest is GraduationTestBase {
         assertEq(manager.timelockDuration(), duration);
     }
 
-    function testFuzz_attestTestCoverage_variousValues(uint32 tests, uint32 fuzz) public {
+    function testFuzz_attestTestCoverage_variousValues(
+        uint32 tests,
+        uint32 fuzz
+    ) public {
         tests = uint32(bound(tests, 0, 10000));
         fuzz = uint32(bound(fuzz, 0, 100000));
 
         vm.prank(ciBot);
         manager.attestTestCoverage(fheId, tests, fuzz, keccak256("ci"));
 
-        ExperimentalGraduationManager.FeatureGraduation memory grad = manager.getGraduation(fheId);
+        ExperimentalGraduationManager.FeatureGraduation memory grad = manager
+            .getGraduation(fheId);
         assertEq(grad.reportedTestCount, tests);
         assertEq(grad.reportedFuzzRuns, fuzz);
     }
@@ -809,7 +928,7 @@ contract GraduationAdvancedTest is GraduationTestBase {
         extraWait = uint48(bound(extraWait, 0, 30 days));
 
         uint256 pid = _prepareGraduation(fheId);
-        (,,,, uint48 executableAfter) = manager.proposals(pid);
+        (, , , , uint48 executableAfter) = manager.proposals(pid);
 
         vm.warp(executableAfter - 1);
         vm.prank(executor);
@@ -820,7 +939,10 @@ contract GraduationAdvancedTest is GraduationTestBase {
         vm.prank(executor);
         manager.executeGraduation(pid);
 
-        assertTrue(_getProposalStatus(pid) == ExperimentalGraduationManager.ProposalStatus.EXECUTED);
+        assertTrue(
+            _getProposalStatus(pid) ==
+                ExperimentalGraduationManager.ProposalStatus.EXECUTED
+        );
     }
 
     function testFuzz_minTimeInBeta_boundary(uint48 betaTime) public {
@@ -828,25 +950,26 @@ contract GraduationAdvancedTest is GraduationTestBase {
 
         _moveToBeta(fheId);
 
-        ExperimentalGraduationManager.GraduationCriteria memory crit = ExperimentalGraduationManager.GraduationCriteria({
-            minTimeInBeta: betaTime,
-            minTestCount: 0,
-            minFuzzRuns: 0,
-            requiresAuditAttestation: false,
-            requiresSecurityReview: false,
-            requiresCertoraSpec: false
-        });
+        ExperimentalGraduationManager.GraduationCriteria
+            memory crit = ExperimentalGraduationManager.GraduationCriteria({
+                minTimeInBeta: betaTime,
+                minTestCount: 0,
+                minFuzzRuns: 0,
+                requiresAuditAttestation: false,
+                requiresSecurityReview: false,
+                requiresCertoraSpec: false
+            });
 
         vm.prank(admin);
         manager.setCriteria(fheId, crit);
 
         // Before time passes — should fail
-        (bool timeMet1,,,,,) = manager.getGraduationProgress(fheId);
+        (bool timeMet1, , , , , ) = manager.getGraduationProgress(fheId);
         assertFalse(timeMet1);
 
         // After time passes — should pass
         vm.warp(block.timestamp + betaTime + 1);
-        (bool timeMet2,,,,,) = manager.getGraduationProgress(fheId);
+        (bool timeMet2, , , , , ) = manager.getGraduationProgress(fheId);
         assertTrue(timeMet2);
     }
 }

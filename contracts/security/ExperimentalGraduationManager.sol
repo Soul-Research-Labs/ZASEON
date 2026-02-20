@@ -10,9 +10,16 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  *         graduation manager.
  */
 interface IExperimentalFeatureRegistry {
-    enum FeatureStatus { DISABLED, EXPERIMENTAL, BETA, PRODUCTION }
+    enum FeatureStatus {
+        DISABLED,
+        EXPERIMENTAL,
+        BETA,
+        PRODUCTION
+    }
 
-    function features(bytes32 featureId)
+    function features(
+        bytes32 featureId
+    )
         external
         view
         returns (
@@ -27,7 +34,10 @@ interface IExperimentalFeatureRegistry {
             uint256 lastStatusChange
         );
 
-    function updateFeatureStatus(bytes32 featureId, FeatureStatus newStatus) external;
+    function updateFeatureStatus(
+        bytes32 featureId,
+        FeatureStatus newStatus
+    ) external;
 }
 
 /**
@@ -88,7 +98,12 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
                               ENUMS
     //////////////////////////////////////////////////////////////*/
 
-    enum ProposalStatus { NONE, PENDING, EXECUTED, CANCELLED }
+    enum ProposalStatus {
+        NONE,
+        PENDING,
+        EXECUTED,
+        CANCELLED
+    }
 
     /*//////////////////////////////////////////////////////////////
                               STRUCTS
@@ -96,19 +111,19 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
 
     /// @notice Graduation criteria for a feature
     struct GraduationCriteria {
-        uint48 minTimeInBeta;               // Minimum seconds in BETA before graduation
-        uint32 minTestCount;                // Minimum unit + integration test count
-        uint32 minFuzzRuns;                 // Minimum fuzz runs per test
-        bool   requiresAuditAttestation;    // Must be signed off by auditor
-        bool   requiresSecurityReview;      // Must be reviewed by security team
-        bool   requiresCertoraSpec;         // Must have formal verification spec
+        uint48 minTimeInBeta; // Minimum seconds in BETA before graduation
+        uint32 minTestCount; // Minimum unit + integration test count
+        uint32 minFuzzRuns; // Minimum fuzz runs per test
+        bool requiresAuditAttestation; // Must be signed off by auditor
+        bool requiresSecurityReview; // Must be reviewed by security team
+        bool requiresCertoraSpec; // Must have formal verification spec
     }
 
     /// @notice Attestation record
     struct Attestation {
-        address attester;           // Who attested
-        uint48 attestedAt;          // When
-        bytes32 evidenceHash;       // Hash of evidence (report hash, CI log hash, etc.)
+        address attester; // Who attested
+        uint48 attestedAt; // When
+        bytes32 evidenceHash; // Hash of evidence (report hash, CI log hash, etc.)
     }
 
     /// @notice Graduation proposal
@@ -117,7 +132,7 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
         ProposalStatus status;
         address proposer;
         uint48 proposedAt;
-        uint48 executableAfter;     // Timelock expiry timestamp
+        uint48 executableAfter; // Timelock expiry timestamp
     }
 
     /// @notice Feature graduation state (attestations + metadata)
@@ -128,12 +143,12 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
         Attestation certoraAttestation;
         uint32 reportedTestCount;
         uint32 reportedFuzzRuns;
-        uint48 betaEntryTimestamp;       // When feature entered BETA
-        uint48 graduatedAt;              // When graduated to PRODUCTION (0 if never)
-        uint48 demotedAt;                // Last demotion timestamp (0 if never)
-        string demotionReason;           // Reason for last demotion
-        uint16 graduationCount;          // Times graduated
-        uint16 demotionCount;            // Times demoted
+        uint48 betaEntryTimestamp; // When feature entered BETA
+        uint48 graduatedAt; // When graduated to PRODUCTION (0 if never)
+        uint48 demotedAt; // Last demotion timestamp (0 if never)
+        string demotionReason; // Reason for last demotion
+        uint16 graduationCount; // Times graduated
+        uint16 demotionCount; // Times demoted
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -142,13 +157,41 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
 
     event CriteriaSet(bytes32 indexed featureId, GraduationCriteria criteria);
     event BetaEntryRecorded(bytes32 indexed featureId, uint48 timestamp);
-    event AuditAttested(bytes32 indexed featureId, address indexed auditor, bytes32 evidenceHash);
-    event TestCoverageAttested(bytes32 indexed featureId, address indexed ci, uint32 testCount, uint32 fuzzRuns);
-    event SecurityReviewAttested(bytes32 indexed featureId, address indexed reviewer, bytes32 evidenceHash);
-    event CertoraSpecAttested(bytes32 indexed featureId, address indexed attester, bytes32 specHash);
-    event GraduationProposed(bytes32 indexed featureId, uint256 indexed proposalId, uint48 executableAfter);
-    event GraduationExecuted(bytes32 indexed featureId, uint256 indexed proposalId);
-    event GraduationCancelled(bytes32 indexed featureId, uint256 indexed proposalId, string reason);
+    event AuditAttested(
+        bytes32 indexed featureId,
+        address indexed auditor,
+        bytes32 evidenceHash
+    );
+    event TestCoverageAttested(
+        bytes32 indexed featureId,
+        address indexed ci,
+        uint32 testCount,
+        uint32 fuzzRuns
+    );
+    event SecurityReviewAttested(
+        bytes32 indexed featureId,
+        address indexed reviewer,
+        bytes32 evidenceHash
+    );
+    event CertoraSpecAttested(
+        bytes32 indexed featureId,
+        address indexed attester,
+        bytes32 specHash
+    );
+    event GraduationProposed(
+        bytes32 indexed featureId,
+        uint256 indexed proposalId,
+        uint48 executableAfter
+    );
+    event GraduationExecuted(
+        bytes32 indexed featureId,
+        uint256 indexed proposalId
+    );
+    event GraduationCancelled(
+        bytes32 indexed featureId,
+        uint256 indexed proposalId,
+        string reason
+    );
     event FeatureDemoted(bytes32 indexed featureId, string reason);
     event TimelockUpdated(uint48 oldTimelock, uint48 newTimelock);
 
@@ -201,7 +244,8 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     constructor(address _registry, address admin) {
-        if (_registry == address(0) || admin == address(0)) revert ZeroAddress();
+        if (_registry == address(0) || admin == address(0))
+            revert ZeroAddress();
 
         registry = IExperimentalFeatureRegistry(_registry);
 
@@ -240,7 +284,9 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      *      Can also be called retrospectively by admin.
      * @param featureId The feature ID
      */
-    function recordBetaEntry(bytes32 featureId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function recordBetaEntry(
+        bytes32 featureId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _graduations[featureId].betaEntryTimestamp = uint48(block.timestamp);
         emit BetaEntryRecorded(featureId, uint48(block.timestamp));
     }
@@ -345,13 +391,12 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      * @param featureId The feature to graduate
      * @return proposalId The new proposal ID
      */
-    function proposeGraduation(bytes32 featureId)
-        external
-        onlyRole(PROPOSER_ROLE)
-        returns (uint256 proposalId)
-    {
+    function proposeGraduation(
+        bytes32 featureId
+    ) external onlyRole(PROPOSER_ROLE) returns (uint256 proposalId) {
         // Must not have an active proposal
-        if (activeProposal[featureId] != 0) revert ProposalAlreadyActive(featureId);
+        if (activeProposal[featureId] != 0)
+            revert ProposalAlreadyActive(featureId);
 
         // Feature must be in BETA
         _requireBetaStatus(featureId);
@@ -383,13 +428,12 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      * @notice Execute a graduation proposal after timelock expires
      * @param proposalId The proposal to execute
      */
-    function executeGraduation(uint256 proposalId)
-        external
-        onlyRole(EXECUTOR_ROLE)
-        nonReentrant
-    {
+    function executeGraduation(
+        uint256 proposalId
+    ) external onlyRole(EXECUTOR_ROLE) nonReentrant {
         GraduationProposal storage proposal = proposals[proposalId];
-        if (proposal.status != ProposalStatus.PENDING) revert ProposalNotPending(proposalId);
+        if (proposal.status != ProposalStatus.PENDING)
+            revert ProposalNotPending(proposalId);
 
         // Timelock must have expired
         if (block.timestamp < proposal.executableAfter) {
@@ -421,12 +465,13 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      * @param proposalId The proposal to cancel
      * @param reason Reason for cancellation
      */
-    function cancelGraduation(uint256 proposalId, string calldata reason)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function cancelGraduation(
+        uint256 proposalId,
+        string calldata reason
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         GraduationProposal storage proposal = proposals[proposalId];
-        if (proposal.status != ProposalStatus.PENDING) revert ProposalNotPending(proposalId);
+        if (proposal.status != ProposalStatus.PENDING)
+            revert ProposalNotPending(proposalId);
 
         proposal.status = ProposalStatus.CANCELLED;
         activeProposal[proposal.featureId] = 0;
@@ -443,13 +488,22 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      * @param featureId The feature to demote
      * @param reason Reason for demotion
      */
-    function demoteFeature(bytes32 featureId, string calldata reason)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        nonReentrant
-    {
+    function demoteFeature(
+        bytes32 featureId,
+        string calldata reason
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         // Verify feature is in PRODUCTION
-        (, IExperimentalFeatureRegistry.FeatureStatus status,,,,,,,) = registry.features(featureId);
+        (
+            ,
+            IExperimentalFeatureRegistry.FeatureStatus status,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+
+        ) = registry.features(featureId);
         if (status != IExperimentalFeatureRegistry.FeatureStatus.PRODUCTION) {
             revert FeatureNotInProduction(featureId);
         }
@@ -482,7 +536,9 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
      * @notice Update the graduation timelock duration
      * @param newDuration New timelock in seconds
      */
-    function setTimelockDuration(uint48 newDuration) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTimelockDuration(
+        uint48 newDuration
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newDuration < MIN_TIMELOCK || newDuration > MAX_TIMELOCK) {
             revert InvalidTimelockDuration();
         }
@@ -497,7 +553,9 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get the full graduation state for a feature
-    function getGraduation(bytes32 featureId) external view returns (FeatureGraduation memory) {
+    function getGraduation(
+        bytes32 featureId
+    ) external view returns (FeatureGraduation memory) {
         return _graduations[featureId];
     }
 
@@ -513,7 +571,9 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Get a breakdown of which criteria are met/unmet
-    function getGraduationProgress(bytes32 featureId)
+    function getGraduationProgress(
+        bytes32 featureId
+    )
         external
         view
         returns (
@@ -528,20 +588,24 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
         GraduationCriteria storage crit = criteria[featureId];
         FeatureGraduation storage grad = _graduations[featureId];
 
-        timeMet = grad.betaEntryTimestamp > 0 &&
+        timeMet =
+            grad.betaEntryTimestamp > 0 &&
             block.timestamp >= grad.betaEntryTimestamp + crit.minTimeInBeta;
 
         testsMet = grad.reportedTestCount >= crit.minTestCount;
 
         fuzzMet = grad.reportedFuzzRuns >= crit.minFuzzRuns;
 
-        auditMet = !crit.requiresAuditAttestation ||
+        auditMet =
+            !crit.requiresAuditAttestation ||
             grad.auditAttestation.attestedAt > 0;
 
-        securityMet = !crit.requiresSecurityReview ||
+        securityMet =
+            !crit.requiresSecurityReview ||
             grad.securityAttestation.attestedAt > 0;
 
-        certoraMet = !crit.requiresCertoraSpec ||
+        certoraMet =
+            !crit.requiresCertoraSpec ||
             grad.certoraAttestation.attestedAt > 0;
     }
 
@@ -558,7 +622,17 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     function _requireBetaStatus(bytes32 featureId) internal view {
-        (, IExperimentalFeatureRegistry.FeatureStatus status,,,,,,,) = registry.features(featureId);
+        (
+            ,
+            IExperimentalFeatureRegistry.FeatureStatus status,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+
+        ) = registry.features(featureId);
         if (status != IExperimentalFeatureRegistry.FeatureStatus.BETA) {
             revert FeatureNotInBeta(featureId);
         }
@@ -573,13 +647,17 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
             if (grad.betaEntryTimestamp == 0) {
                 revert CriteriaNotMet(featureId, "Beta entry not recorded");
             }
-            if (block.timestamp < grad.betaEntryTimestamp + crit.minTimeInBeta) {
+            if (
+                block.timestamp < grad.betaEntryTimestamp + crit.minTimeInBeta
+            ) {
                 revert CriteriaNotMet(featureId, "Insufficient time in beta");
             }
         }
 
         // 2. Test count check
-        if (crit.minTestCount > 0 && grad.reportedTestCount < crit.minTestCount) {
+        if (
+            crit.minTestCount > 0 && grad.reportedTestCount < crit.minTestCount
+        ) {
             revert CriteriaNotMet(featureId, "Insufficient test count");
         }
 
@@ -589,17 +667,25 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
         }
 
         // 4. Audit attestation check
-        if (crit.requiresAuditAttestation && grad.auditAttestation.attestedAt == 0) {
+        if (
+            crit.requiresAuditAttestation &&
+            grad.auditAttestation.attestedAt == 0
+        ) {
             revert CriteriaNotMet(featureId, "Missing audit attestation");
         }
 
         // 5. Security review check
-        if (crit.requiresSecurityReview && grad.securityAttestation.attestedAt == 0) {
+        if (
+            crit.requiresSecurityReview &&
+            grad.securityAttestation.attestedAt == 0
+        ) {
             revert CriteriaNotMet(featureId, "Missing security review");
         }
 
         // 6. Certora spec check
-        if (crit.requiresCertoraSpec && grad.certoraAttestation.attestedAt == 0) {
+        if (
+            crit.requiresCertoraSpec && grad.certoraAttestation.attestedAt == 0
+        ) {
             revert CriteriaNotMet(featureId, "Missing Certora spec");
         }
     }
