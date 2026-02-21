@@ -806,6 +806,8 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
         address _proofCarryingContainer;
         address _crossDomainNullifierAlgebra;
         address _policyBoundProofs;
+        address _multiProver;
+        address _bridgeWatchtower;
     }
 
     /**
@@ -1003,6 +1005,28 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
                 ++updated;
             }
         }
+        if (p._multiProver != address(0)) {
+            multiProver = p._multiProver;
+            emit ComponentRegistered(
+                keccak256("multiProver"),
+                ComponentCategory.VERIFIER,
+                p._multiProver,
+                1
+            );
+            unchecked {
+                ++updated;
+            }
+        }
+        if (p._bridgeWatchtower != address(0)) {
+            bridgeWatchtower = p._bridgeWatchtower;
+            emit SecurityModuleRegistered(
+                "BRIDGE_WATCHTOWER",
+                p._bridgeWatchtower
+            );
+            unchecked {
+                ++updated;
+            }
+        }
 
         emit ProtocolWired(msg.sender, updated);
     }
@@ -1026,8 +1050,8 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
         view
         returns (string[] memory names, address[] memory addresses)
     {
-        names = new string[](17);
-        addresses = new address[](17);
+        names = new string[](19);
+        addresses = new address[](19);
         names[0] = "verifierRegistry";
         addresses[0] = verifierRegistry;
         names[1] = "universalVerifier";
@@ -1062,6 +1086,10 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
         addresses[15] = crossDomainNullifierAlgebra;
         names[16] = "policyBoundProofs";
         addresses[16] = policyBoundProofs;
+        names[17] = "multiProver";
+        addresses[17] = multiProver;
+        names[18] = "bridgeWatchtower";
+        addresses[18] = bridgeWatchtower;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -60,14 +60,12 @@ contract GelatoRelayAdapter is IRelayerAdapter, Ownable {
      *      msg.value should cover the Gelato relay fee.
      * @param target The destination contract to call
      * @param payload The calldata to forward to the target
-     * @param gasLimit The gas limit for the relay execution (unused in current Gelato API,
-     *        reserved for future use)
      * @return taskId The Gelato task ID for tracking the relayed transaction
      */
     function relayMessage(
         address target,
         bytes calldata payload,
-        uint256 gasLimit
+        uint256 /* gasLimit */
     ) external payable override returns (bytes32) {
         if (target == address(0)) revert InvalidTarget();
         return IGelatoRelay(GELATO_RELAY).callWithSyncFee(target, payload, ETH);
@@ -77,10 +75,9 @@ contract GelatoRelayAdapter is IRelayerAdapter, Ownable {
      * @notice Get the estimated fee for relaying a message
      * @dev Returns a fixed fee estimate. Production implementations should query
      *      Gelato's fee oracle for dynamic pricing based on gas costs.
-     * @param gasLimit The gas limit to estimate the fee for (currently unused)
      * @return fee The estimated relay fee in wei
      */
-    function getFee(uint256 gasLimit) external view override returns (uint256) {
+    function getFee(uint256 /* gasLimit */) external pure override returns (uint256) {
         return 0.001 ether;
     }
 }

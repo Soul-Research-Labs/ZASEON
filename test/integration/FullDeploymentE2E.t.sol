@@ -150,7 +150,9 @@ contract FullDeploymentE2E is Test {
                 _zkBoundStateLocks: address(zkBoundStateLocks),
                 _proofCarryingContainer: address(proofCarryingContainer),
                 _crossDomainNullifierAlgebra: address(cdna),
-                _policyBoundProofs: address(policyBoundProofs)
+                _policyBoundProofs: address(policyBoundProofs),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
@@ -191,8 +193,8 @@ contract FullDeploymentE2E is Test {
     function test_GetComponentStatusReturns17() public view {
         (string[] memory names, address[] memory addrs) = hub
             .getComponentStatus();
-        assertEq(names.length, 17);
-        assertEq(addrs.length, 17);
+        assertEq(names.length, 19);
+        assertEq(addrs.length, 19);
         // First component is verifierRegistry
         assertEq(addrs[0], address(verifierRegistry));
     }
@@ -573,7 +575,9 @@ contract FullDeploymentE2E is Test {
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
-                _policyBoundProofs: address(0)
+                _policyBoundProofs: address(0),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
@@ -1094,7 +1098,9 @@ contract FullDeploymentE2E is Test {
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
-                _policyBoundProofs: address(0)
+                _policyBoundProofs: address(0),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
     }

@@ -3,7 +3,7 @@ import {
   SoulPrivacySDK,
   type SoulPrivacySDKConfig,
   type DepositNote,
-} from "../src/client/SoulPrivacySDK";
+} from "../src/client/_deprecated/SoulPrivacySDK";
 import {
   createPublicClient,
   createWalletClient,

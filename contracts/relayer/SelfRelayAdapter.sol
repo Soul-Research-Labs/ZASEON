@@ -172,10 +172,9 @@ contract SelfRelayAdapter is
 
     /**
      * @notice Get the fee for self-relaying (always zero — user pays gas directly)
-     * @param gasLimit Unused, included for interface compatibility
      * @return fee Always returns 0
      */
-    function getFee(uint256 gasLimit) external pure override returns (uint256) {
+    function getFee(uint256 /* gasLimit */) external pure override returns (uint256) {
         return 0;
     }
 

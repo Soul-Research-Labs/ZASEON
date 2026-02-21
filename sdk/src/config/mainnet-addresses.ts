@@ -109,9 +109,12 @@ export function getAddressesForChain(chainId: number): typeof MAINNET_ADDRESSES 
 }
 
 /**
- * Verify all addresses are set (not zero address)
+ * Check which addresses are set (not zero address).
+ * Returns a non-throwing result with missing keys.
+ *
+ * For a throwing variant, use `verifyAddressesConfigured` from `@soul/sdk/privacy`.
  */
-export function verifyAddressesConfigured(
+export function checkAddressesConfigured(
   addresses: typeof MAINNET_ADDRESSES
 ): { valid: boolean; missing: string[] } {
   const zeroAddress = '0x0000000000000000000000000000000000000000';

@@ -4,7 +4,7 @@ This directory contains all Soul ZK circuits implemented in Noir.
 
 ## Poseidon Migration (Feb 2026)
 
-All 19 circuits have been migrated from the external `poseidon` crate (`v0.2.3`)
+All 20 circuits have been migrated from the external `poseidon` crate (`v0.2.3`)
 to the **Noir standard library** (`std::hash::poseidon::bn254`). This resolves
 the compilation failure with nargo ≥1.0.0-beta.18 caused by the deprecated
 third-party Poseidon package.
@@ -30,7 +30,7 @@ third-party Poseidon package.
 
 ```
 noir/
-├── Nargo.toml                    # Workspace configuration
+├── Nargo.toml                    # Workspace configuration (20 circuits)
 ├── merkle_proof/                 # Merkle tree inclusion proofs
 ├── nullifier/                    # Cross-domain nullifier derivation (CDNA)
 ├── state_commitment/             # State preimage commitment proofs
@@ -41,8 +41,16 @@ noir/
 ├── cross_domain_nullifier/       # Domain-separated nullifiers
 ├── container/                    # PC³ container validity
 ├── state_transfer/               # State ownership transfer
-├── proof_carrying_container/     # Self-authenticating containers (PC³)
-└── policy_bound_proof/           # Policy-bound proofs (PBP)
+├── policy_bound_proof/           # Policy-bound proofs (PBP)
+├── balance_proof/                # Balance range proofs
+├── swap_proof/                   # Atomic swap proofs
+├── shielded_pool/                # Shielded pool deposit/withdraw
+├── sanctions_check/              # OFAC/sanctions compliance
+├── accredited_investor/          # Accredited investor verification
+├── encrypted_transfer/           # Encrypted transfer proofs
+├── ring_signature/               # Ring signature proofs (CLSAG)
+├── private_transfer/             # Private transfer proofs
+└── aggregator/                   # Recursive 4-proof batch aggregation
 ```
 
 ## Circuit Descriptions
@@ -77,7 +85,30 @@ noir/
 | -------------------------- | ------------------------ | -------------------- |
 | `container`                | Basic container validity | ~2,500               |
 | `state_transfer`           | State ownership transfer | ~3,500               |
-| `proof_carrying_container` | Full PC³ with policy     | ~7,000               |
+
+### Privacy & Transfers
+
+| Circuit              | Description                      | Constraints (approx) |
+| -------------------- | -------------------------------- | -------------------- |
+| `balance_proof`      | Balance range proof              | ~3,200               |
+| `swap_proof`         | Atomic swap proof                | ~4,000               |
+| `shielded_pool`      | Shielded pool deposit/withdraw   | ~6,500               |
+| `encrypted_transfer` | Encrypted transfer proof         | ~5,800               |
+| `private_transfer`   | Private transfer proof           | ~5,500               |
+| `ring_signature`     | Ring signature proof (CLSAG)     | ~7,500               |
+
+### Compliance Extensions
+
+| Circuit               | Description                        | Constraints (approx) |
+| --------------------- | ---------------------------------- | -------------------- |
+| `sanctions_check`     | OFAC/sanctions compliance check    | ~4,000               |
+| `accredited_investor` | Accredited investor verification   | ~3,800               |
+
+### Aggregation
+
+| Circuit      | Description                          | Constraints (approx) |
+| ------------ | ------------------------------------ | -------------------- |
+| `aggregator` | Recursive 4-proof batch aggregation  | ~45,000              |
 
 ## Installation
 
@@ -198,18 +229,19 @@ The Noir circuits generate proofs compatible with on-chain verification via
 cd noir/<circuit>
 nargo compile
 
-# 2. Generate the verification key (UltraHonk)
-bb write_vk_ultra_honk -b target/<circuit>.json -o target/vk
+# 2. Generate the verification key (UltraHonk, bb v3)
+bb write_vk -b target/<circuit>.json -o target/vk -t evm
 
 # 3. Generate the Solidity verifier contract
-bb contract_ultra_honk -k target/vk -o ../../contracts/verifiers/generated/<Circuit>Verifier.sol
+#    (Use scripts/generate_verifiers_from_vk.py for the workaround pipeline)
+python3 ../../scripts/generate_verifiers_from_vk.py
 ```
 
-The helper script `scripts/generate_verifiers.sh` automates this for all circuits
-in the workspace. Run it via:
+The helper script `scripts/generate_vks.sh` automates VK generation for all 20 circuits.
+Run it via:
 
 ```bash
-npm run noir:codegen
+bash scripts/generate_vks.sh
 ```
 
 ### Current status (Feb 2026)

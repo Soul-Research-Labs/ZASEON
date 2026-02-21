@@ -58,7 +58,9 @@ contract SoulProtocolHubWiringTest is Test {
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
-                _policyBoundProofs: PBP
+                _policyBoundProofs: PBP,
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
@@ -102,7 +104,9 @@ contract SoulProtocolHubWiringTest is Test {
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: CDNA,
-                _policyBoundProofs: address(0)
+                _policyBoundProofs: address(0),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
@@ -133,7 +137,9 @@ contract SoulProtocolHubWiringTest is Test {
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
-                _policyBoundProofs: address(0)
+                _policyBoundProofs: address(0),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
@@ -163,14 +169,16 @@ contract SoulProtocolHubWiringTest is Test {
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
-                _policyBoundProofs: PBP
+                _policyBoundProofs: PBP,
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
 
         (string[] memory names, address[] memory addrs) = hub
             .getComponentStatus();
-        assertEq(names.length, 17);
-        assertEq(addrs.length, 17);
+        assertEq(names.length, 19);
+        assertEq(addrs.length, 19);
 
         // Spot check a few
         assertEq(addrs[0], VERIFIER_REG); // verifierRegistry
@@ -201,7 +209,9 @@ contract SoulProtocolHubWiringTest is Test {
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
-                _policyBoundProofs: address(0)
+                _policyBoundProofs: address(0),
+                _multiProver: address(0),
+                _bridgeWatchtower: address(0)
             })
         );
     }

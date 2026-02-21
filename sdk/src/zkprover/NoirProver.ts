@@ -90,6 +90,30 @@ export enum Circuit {
   BalanceProof = "balance_proof",
   /** Swap proof */
   SwapProof = "swap_proof",
+  /** Proof-carrying container */
+  Container = "container",
+  /** Cross-domain nullifier algebra (CDNA) */
+  CrossDomainNullifier = "cross_domain_nullifier",
+  /** Pedersen commitment scheme */
+  PedersenCommitment = "pedersen_commitment",
+  /** Policy-bound proof verification */
+  PolicyBoundProof = "policy_bound_proof",
+  /** Privacy policy proof */
+  Policy = "policy",
+  /** Shielded pool deposit/withdraw */
+  ShieldedPool = "shielded_pool",
+  /** OFAC/sanctions compliance check */
+  SanctionsCheck = "sanctions_check",
+  /** Accredited investor verification */
+  AccreditedInvestor = "accredited_investor",
+  /** Recursive proof aggregation */
+  Aggregator = "aggregator",
+  /** Encrypted transfer proof */
+  EncryptedTransfer = "encrypted_transfer",
+  /** Ring signature proof */
+  RingSignature = "ring_signature",
+  /** Private transfer proof */
+  PrivateTransfer = "private_transfer",
 }
 
 /**
@@ -128,6 +152,91 @@ export interface BalanceProofInputs {
   maxBalance: bigint;
   commitment: Hex;
   secret: Hex;
+}
+
+export interface ContainerInputs {
+  stateRoot: Hex;
+  nullifierHash: Hex;
+  commitment: Hex;
+  proof: Hex;
+  sourceChainId: number;
+  destChainId: number;
+}
+
+export interface CrossDomainNullifierInputs {
+  nullifier: Hex;
+  sourceChainId: number;
+  destChainId: number;
+  secret: Hex;
+}
+
+export interface PedersenCommitmentInputs {
+  value: bigint;
+  blinding: Hex;
+}
+
+export interface PolicyBoundProofInputs {
+  policyHash: Hex;
+  commitment: Hex;
+  secret: Hex;
+  policyData: Hex;
+}
+
+export interface PolicyInputs {
+  policyId: bigint;
+  subject: Hex;
+  attributes: Hex[];
+}
+
+export interface ShieldedPoolInputs {
+  amount: bigint;
+  secret: Hex;
+  nullifier: Hex;
+  root: Hex;
+  pathElements: Hex[];
+  pathIndices: number[];
+}
+
+export interface SanctionsCheckInputs {
+  address: Hex;
+  sanctionsListRoot: Hex;
+  proof: Hex;
+}
+
+export interface AccreditedInvestorInputs {
+  investorId: Hex;
+  credentialHash: Hex;
+  expiryTimestamp: bigint;
+  issuerPubkey: Hex;
+}
+
+export interface AggregatorInputs {
+  proofs: Hex[];
+  publicInputs: Hex[][];
+  verificationKeys: Hex[];
+}
+
+export interface EncryptedTransferInputs {
+  senderSecret: Hex;
+  recipientPubkey: Hex;
+  amount: bigint;
+  encryptedNote: Hex;
+}
+
+export interface RingSignatureInputs {
+  ring: Hex[];
+  keyImage: Hex;
+  message: Hex;
+  secret: Hex;
+  ringIndex: number;
+}
+
+export interface PrivateTransferInputs {
+  senderCommitment: Hex;
+  recipientCommitment: Hex;
+  amount: bigint;
+  senderSecret: Hex;
+  nullifier: Hex;
 }
 
 /*//////////////////////////////////////////////////////////////

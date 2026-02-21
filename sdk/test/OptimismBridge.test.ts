@@ -232,7 +232,7 @@ describe("Optimism Bridge Adapter", () => {
 
     it("should handle large amounts", () => {
       const fee = calculateOptimismBridgeFee(1_000_000n * WEI_PER_OP);
-      expect(fee).to.be.greaterThan(0n);
+      expect(fee > 0n).to.be.true;
     });
   });
 

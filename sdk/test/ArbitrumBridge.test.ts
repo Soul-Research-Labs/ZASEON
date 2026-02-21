@@ -129,8 +129,8 @@ describe("Arbitrum Bridge Adapter", () => {
         100_000_000n, // gas price (0.1 gwei)
       );
 
-      expect(result.fee).to.be.greaterThan(0n);
-      expect(result.gasEstimate).to.be.greaterThan(0n);
+      expect(result.fee > 0n).to.be.true;
+      expect(result.gasEstimate > 0n).to.be.true;
       expect(result.total).to.equal(result.fee + result.gasEstimate);
     });
   });

@@ -56,7 +56,7 @@ contract FailingAdapter {
         bytes calldata,
         uint8,
         bytes32
-    ) external returns (bytes32) {
+    ) external pure returns (bytes32) {
         revert("adapter fail");
     }
 }
@@ -128,7 +128,7 @@ contract L2ProofRouterExtendedTest is Test {
         );
 
         // Submit a proof to create a batch
-        bytes32 proofId = _submitProof(
+        _submitProof(
             L2ProofRouter.ProofType.GROTH16,
             DEST_CHAIN
         );
@@ -411,7 +411,7 @@ contract L2ProofRouterExtendedTest is Test {
 
         bytes32 firstBatch;
         for (uint256 i = 0; i < 100; i++) {
-            bytes32 proofId = router.submitProof(
+            router.submitProof(
                 L2ProofRouter.ProofType.GROTH16,
                 DEST_CHAIN,
                 abi.encodePacked(hex"deadbeef", i),
@@ -460,7 +460,6 @@ contract L2ProofRouterExtendedTest is Test {
         router.routeBatch(batchId);
 
         // Proof should be marked as processed
-        L2ProofRouter.Proof memory p = router.getProof(proofId);
         // proofId is processed — we verify by checking if the batch completed
         L2ProofRouter.ProofBatch memory b = router.getBatch(batchId);
         assertEq(uint8(b.status), uint8(L2ProofRouter.BatchStatus.COMPLETED));
@@ -511,8 +510,8 @@ contract L2ProofRouterExtendedTest is Test {
         );
 
         (
-            L2ProofRouter.RoutingPath defaultPath,
-            address routeAdapter,
+            ,
+            ,
             uint256 rBaseCost,
             uint256 rGasPerProof,
             uint256 rMaxBatch,

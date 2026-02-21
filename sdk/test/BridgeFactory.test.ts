@@ -128,11 +128,9 @@ describe("Bridge Adapters Module (index.ts)", () => {
         expect(adapter.config.chainId).to.equal(EXPECTED_CHAIN_IDS[chain]);
         expect(adapter.config.nativeToken).to.equal("ETH");
         expect(adapter.config.finality).to.be.greaterThan(0);
-        expect(adapter.config.maxAmount).to.be.greaterThan(0n);
-        expect(adapter.config.minAmount).to.be.greaterThan(0n);
-        expect(adapter.config.maxAmount).to.be.greaterThan(
-          adapter.config.minAmount,
-        );
+        expect(adapter.config.maxAmount > 0n).to.be.true;
+        expect(adapter.config.minAmount > 0n).to.be.true;
+        expect(adapter.config.maxAmount > adapter.config.minAmount).to.be.true;
       });
     }
   });

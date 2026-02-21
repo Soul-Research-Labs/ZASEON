@@ -259,7 +259,7 @@ contract ScrollBridgeAdapterExtendedTest is Test {
         assertTrue(adapter.verifyMessage(msgHash, hex"aabbccdd"));
     }
 
-    function test_verifyMessage_pendingMessage_invalid() public {
+    function test_verifyMessage_pendingMessage_invalid() public view {
         // Random hash has PENDING status and non-empty proof
         bytes32 randomHash = keccak256("random");
         assertFalse(

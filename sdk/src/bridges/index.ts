@@ -25,6 +25,27 @@ import {
     getAddress,
 } from "viem";
 import { ARB_ONE_CHAIN_ID, ARBITRUM_BRIDGE_ADAPTER_ABI, estimateDepositCost } from "./arbitrum";
+import { BASE_BRIDGE_ADAPTER_ABI } from "./base";
+import { OPTIMISM_BRIDGE_ABI } from "./optimism";
+import { SCROLL_BRIDGE_ADAPTER_ABI } from "./scroll";
+import { LINEA_BRIDGE_ADAPTER_ABI } from "./linea";
+import { ZKSYNC_BRIDGE_ADAPTER_ABI } from "./zksync";
+import { POLYGON_ZKEVM_BRIDGE_ADAPTER_ABI } from "./polygon-zkevm";
+import { ETHEREUM_L1_BRIDGE_ABI } from "./ethereum";
+
+/** Maps chain names to their chain-specific bridge ABIs */
+const CHAIN_ABI_MAP: Record<string, readonly any[]> = {
+  "arbitrum": ARBITRUM_BRIDGE_ADAPTER_ABI,
+  "arbitrum-one": ARBITRUM_BRIDGE_ADAPTER_ABI,
+  "base": BASE_BRIDGE_ADAPTER_ABI,
+  "optimism": OPTIMISM_BRIDGE_ABI,
+  "scroll": SCROLL_BRIDGE_ADAPTER_ABI,
+  "linea": LINEA_BRIDGE_ADAPTER_ABI,
+  "zksync": ZKSYNC_BRIDGE_ADAPTER_ABI,
+  "zksync-era": ZKSYNC_BRIDGE_ADAPTER_ABI,
+  "polygon-zkevm": POLYGON_ZKEVM_BRIDGE_ADAPTER_ABI,
+  "ethereum": ETHEREUM_L1_BRIDGE_ABI,
+};
 
 // ============================================
 // Types & Interfaces
@@ -368,6 +389,7 @@ export class BridgeFactory {
       publicClient,
       walletClient,
       getAddress(bridgeAddress),
+      CHAIN_ABI_MAP[chain] ?? ARBITRUM_BRIDGE_ADAPTER_ABI,
     );
   }
 }

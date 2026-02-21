@@ -110,7 +110,7 @@ export {
   OPTIMISM_ADDRESSES,
   CHAIN_ADDRESSES,
   getAddressesForChain,
-  verifyAddressesConfigured,
+  checkAddressesConfigured,
 } from "./config/mainnet-addresses";
 
 export {

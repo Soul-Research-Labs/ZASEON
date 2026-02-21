@@ -267,7 +267,9 @@ contract DeployMainnet is Script {
                 _zkBoundStateLocks: address(zkBoundStateLocks),
                 _proofCarryingContainer: address(proofCarryingContainer),
                 _crossDomainNullifierAlgebra: address(cdna),
-                _policyBoundProofs: address(policyBoundProofs)
+                _policyBoundProofs: address(policyBoundProofs),
+                _multiProver: address(0), // deployed separately
+                _bridgeWatchtower: address(0) // deployed separately
             })
         );
         console.log("Hub wired with core components");
