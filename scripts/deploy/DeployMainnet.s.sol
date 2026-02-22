@@ -25,6 +25,7 @@ import {PolicyBoundProofs} from "../../contracts/primitives/PolicyBoundProofs.so
 
 // ── Phase 4: Hub ──
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 
 // ── Phase 5: Governance ──
 import {SoulToken} from "../../contracts/governance/SoulToken.sol";
@@ -250,7 +251,7 @@ contract DeployMainnet is Script {
 
         // Wire the Hub with all component addresses
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(verifierRegistry),
                 _universalVerifier: address(universalVerifier),
                 _crossChainMessageRelay: address(0), // deployed separately per L2

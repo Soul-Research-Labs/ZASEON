@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 
 /**
  * @title WireRemainingComponents
@@ -71,7 +72,7 @@ contract WireRemainingComponents is Script {
 
         // wireAll with zero-address for already-wired components (Hub skips them)
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0), // already set
                 _universalVerifier: address(0), // already set
                 _crossChainMessageRelay: relay,

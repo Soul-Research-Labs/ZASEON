@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/EthereumL1Bridge.sol";
+import "../../contracts/interfaces/IEthereumL1Bridge.sol";
 
 /// @title EthereumL1Bridge Unit Tests
 /// @notice Comprehensive tests for state commitment relay, deposits, withdrawals, challenges, and admin functions
@@ -56,14 +57,14 @@ contract EthereumL1BridgeTest is Test {
     }
 
     function test_constructor_arbitrumConfig() public view {
-        EthereumL1Bridge.L2Config memory config = bridge.getL2Config(ARBITRUM);
+        IEthereumL1Bridge.L2Config memory config = bridge.getL2Config(ARBITRUM);
         assertEq(config.chainId, ARBITRUM);
         assertTrue(config.enabled);
         assertEq(config.challengePeriod, 7 days);
     }
 
     function test_constructor_zkSyncConfigFinalizesImmediately() public view {
-        EthereumL1Bridge.L2Config memory config = bridge.getL2Config(ZKSYNC);
+        IEthereumL1Bridge.L2Config memory config = bridge.getL2Config(ZKSYNC);
         assertEq(config.chainId, ZKSYNC);
         assertTrue(config.enabled);
         assertEq(config.challengePeriod, 0); // ZK rollups finalize immediately
@@ -82,10 +83,10 @@ contract EthereumL1BridgeTest is Test {
     // ============ L2 Chain Management Tests ============
 
     function test_configureL2Chain_success() public {
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: 7777777,
             name: "TestChain",
-            rollupType: EthereumL1Bridge.RollupType.ZK_ROLLUP,
+            rollupType: IEthereumL1Bridge.RollupType.ZK_ROLLUP,
             canonicalBridge: address(0),
             messenger: address(0),
             stateCommitmentChain: address(0),
@@ -103,10 +104,10 @@ contract EthereumL1BridgeTest is Test {
     }
 
     function test_configureL2Chain_revertsNotOperator() public {
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: 7777777,
             name: "TestChain",
-            rollupType: EthereumL1Bridge.RollupType.ZK_ROLLUP,
+            rollupType: IEthereumL1Bridge.RollupType.ZK_ROLLUP,
             canonicalBridge: address(0),
             messenger: address(0),
             stateCommitmentChain: address(0),
@@ -127,7 +128,7 @@ contract EthereumL1BridgeTest is Test {
         vm.prank(operator);
         bridge.setCanonicalBridge(ARBITRUM, newBridge);
 
-        EthereumL1Bridge.L2Config memory config = bridge.getL2Config(ARBITRUM);
+        IEthereumL1Bridge.L2Config memory config = bridge.getL2Config(ARBITRUM);
         assertEq(config.canonicalBridge, newBridge);
     }
 
@@ -295,11 +296,11 @@ contract EthereumL1BridgeTest is Test {
             keccak256("reason")
         );
 
-        (, , , , , , EthereumL1Bridge.CommitmentStatus status, , , ) = bridge
+        (, , , , , , IEthereumL1Bridge.CommitmentStatus status, , , ) = bridge
             .stateCommitments(commitmentId);
         assertEq(
             uint256(status),
-            uint256(EthereumL1Bridge.CommitmentStatus.CHALLENGED)
+            uint256(IEthereumL1Bridge.CommitmentStatus.CHALLENGED)
         );
     }
 
@@ -404,11 +405,11 @@ contract EthereumL1BridgeTest is Test {
         // Challenger gets submitter bond + challenge bond
         assertGt(alice.balance, aliceBalBefore);
 
-        (, , , , , , EthereumL1Bridge.CommitmentStatus status, , , ) = bridge
+        (, , , , , , IEthereumL1Bridge.CommitmentStatus status, , , ) = bridge
             .stateCommitments(commitmentId);
         assertEq(
             uint256(status),
-            uint256(EthereumL1Bridge.CommitmentStatus.REJECTED)
+            uint256(IEthereumL1Bridge.CommitmentStatus.REJECTED)
         );
     }
 
@@ -430,11 +431,11 @@ contract EthereumL1BridgeTest is Test {
         assertGt(relayer.balance, relayerBalBefore);
 
         // Status reset to PENDING for finalization
-        (, , , , , , EthereumL1Bridge.CommitmentStatus status, , , ) = bridge
+        (, , , , , , IEthereumL1Bridge.CommitmentStatus status, , , ) = bridge
             .stateCommitments(commitmentId);
         assertEq(
             uint256(status),
-            uint256(EthereumL1Bridge.CommitmentStatus.PENDING)
+            uint256(IEthereumL1Bridge.CommitmentStatus.PENDING)
         );
     }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/EthereumL1Bridge.sol";
+import "../../contracts/interfaces/IEthereumL1Bridge.sol";
 
 /// @dev Expose internal/virtual helper for testing blob hash (EIP-4844)
 contract TestableEthereumL1Bridge is EthereumL1Bridge {
@@ -61,17 +62,17 @@ contract EthereumL1BridgeExtendedFuzz is Test {
     function test_constructorConfigures7Chains() public view {
         uint256[] memory chains = bridge.getSupportedChainIds();
         assertGe(chains.length, 7, "should configure >= 7 L2s");
-        EthereumL1Bridge.L2Config memory arb = bridge.getL2Config(42161);
+        IEthereumL1Bridge.L2Config memory arb = bridge.getL2Config(42161);
         assertEq(arb.chainId, 42161);
         assertTrue(arb.enabled);
     }
 
     function testFuzz_configureL2Chain(uint256 chainId) public {
         chainId = bound(chainId, 1_000_000, 9_999_999);
-        EthereumL1Bridge.L2Config memory cfg = _makeL2Config(chainId);
+        IEthereumL1Bridge.L2Config memory cfg = _makeL2Config(chainId);
         vm.prank(operator);
         bridge.configureL2Chain(cfg);
-        EthereumL1Bridge.L2Config memory stored = bridge.getL2Config(chainId);
+        IEthereumL1Bridge.L2Config memory stored = bridge.getL2Config(chainId);
         assertEq(stored.chainId, chainId);
         assertTrue(stored.enabled);
     }
@@ -515,7 +516,7 @@ contract EthereumL1BridgeExtendedFuzz is Test {
         vm.expectRevert();
         bridge.finalizeWithdrawal(wId);
 
-        EthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(42161);
+        IEthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(42161);
         vm.warp(block.timestamp + cfg.challengePeriod + 1);
         bridge.finalizeWithdrawal(wId);
 
@@ -537,7 +538,7 @@ contract EthereumL1BridgeExtendedFuzz is Test {
 
     function test_claimWithdrawal_doubleClaimReverts() public {
         (bytes32 wId, ) = _setupWithdrawal(42161, 1 ether);
-        EthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(42161);
+        IEthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(42161);
         vm.warp(block.timestamp + cfg.challengePeriod + 1);
         bridge.finalizeWithdrawal(wId);
         bridge.claimWithdrawal(wId);
@@ -723,12 +724,12 @@ contract EthereumL1BridgeExtendedFuzz is Test {
 
     function _makeL2Config(
         uint256 chainId
-    ) internal pure returns (EthereumL1Bridge.L2Config memory) {
+    ) internal pure returns (IEthereumL1Bridge.L2Config memory) {
         return
-            EthereumL1Bridge.L2Config({
+            IEthereumL1Bridge.L2Config({
                 chainId: chainId,
                 name: "TestL2",
-                rollupType: EthereumL1Bridge.RollupType.OPTIMISTIC,
+                rollupType: IEthereumL1Bridge.RollupType.OPTIMISTIC,
                 canonicalBridge: address(0x1),
                 messenger: address(0x2),
                 stateCommitmentChain: address(0x3),
@@ -769,7 +770,7 @@ contract EthereumL1BridgeExtendedFuzz is Test {
     function _finalizeStateRoot(uint256 chainId, bytes32 stateRoot) internal {
         bytes32 proofRoot = keccak256(abi.encodePacked(stateRoot, "finalize"));
         uint256 blockNum = 50;
-        EthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(chainId);
+        IEthereumL1Bridge.L2Config memory cfg = bridge.getL2Config(chainId);
 
         vm.prank(relayer);
         bridge.submitStateCommitment{value: 0.1 ether}(
@@ -779,7 +780,7 @@ contract EthereumL1BridgeExtendedFuzz is Test {
             blockNum
         );
 
-        if (cfg.rollupType != EthereumL1Bridge.RollupType.ZK_ROLLUP) {
+        if (cfg.rollupType != IEthereumL1Bridge.RollupType.ZK_ROLLUP) {
             bytes32 cId = keccak256(
                 abi.encodePacked(
                     chainId,

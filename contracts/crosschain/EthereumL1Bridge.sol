@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "../interfaces/IEthereumL1Bridge.sol";
 
 /**
  * @title EthereumL1Bridge
@@ -36,7 +37,12 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - Supports EIP-4844 blob data for cost efficiency
  * - Rate limiting and circuit breakers for attack mitigation
  */
-contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
+contract EthereumL1Bridge is
+    IEthereumL1Bridge,
+    AccessControl,
+    ReentrancyGuard,
+    Pausable
+{
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -49,75 +55,8 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Supported L2 rollup types
-    enum RollupType {
-        OPTIMISTIC, // Arbitrum, Optimism, Base
-        ZK_ROLLUP, // zkSync Era, Scroll, Linea, Polygon zkEVM
-        VALIDIUM // Data availability off-chain
-    }
-
-    /// @notice State commitment status
-    enum CommitmentStatus {
-        PENDING,
-        CHALLENGED,
-        FINALIZED,
-        REJECTED
-    }
-
-    /// @notice L2 chain configuration
-    struct L2Config {
-        uint256 chainId;
-        string name;
-        RollupType rollupType;
-        address canonicalBridge;
-        address messenger;
-        address stateCommitmentChain;
-        uint256 challengePeriod; // For optimistic rollups
-        uint256 confirmationBlocks;
-        bool enabled;
-        uint256 gasLimit;
-        uint256 lastSyncedBlock;
-    }
-
-    /// @notice Cross-chain state commitment
-    struct StateCommitment {
-        bytes32 commitmentId;
-        uint256 sourceChainId;
-        bytes32 stateRoot;
-        bytes32 proofRoot;
-        uint256 blockNumber;
-        uint256 timestamp;
-        CommitmentStatus status;
-        uint256 challengeDeadline;
-        address submitter;
-        bytes32 blobVersionedHash; // EIP-4844 support
-    }
-
-    /// @notice Deposit record for L1 -> L2 transfers
-    struct Deposit {
-        bytes32 depositId;
-        address depositor;
-        uint256 targetChainId;
-        address token;
-        uint256 amount;
-        bytes32 commitment; // Soul commitment for privacy
-        uint256 timestamp;
-        bool claimed;
-    }
-
-    /// @notice Withdrawal record for L2 -> L1 transfers
-    struct Withdrawal {
-        bytes32 withdrawalId;
-        address recipient;
-        uint256 sourceChainId;
-        address token;
-        uint256 amount;
-        bytes32 nullifier; // Soul nullifier to prevent double-spend
-        bytes32[] proof; // Merkle proof from L2
-        uint256 timestamp;
-        bool finalized;
-        bool claimed;
-    }
+    // RollupType, CommitmentStatus, L2Config, StateCommitment, Deposit, Withdrawal
+    // are inherited from IEthereumL1Bridge
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -186,22 +125,10 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event L2ChainConfigured(
-        uint256 indexed chainId,
-        string name,
-        RollupType rollupType,
-        address canonicalBridge
-    );
+    // L2ChainConfigured, StateCommitmentSubmitted, DepositInitiated, WithdrawalFinalized
+    // are inherited from IEthereumL1Bridge
 
     event L2ChainUpdated(uint256 indexed chainId, bool enabled);
-
-    event StateCommitmentSubmitted(
-        bytes32 indexed commitmentId,
-        uint256 indexed sourceChainId,
-        bytes32 stateRoot,
-        address submitter,
-        bytes32 blobVersionedHash
-    );
 
     event StateCommitmentChallenged(
         bytes32 indexed commitmentId,
@@ -225,25 +152,10 @@ contract EthereumL1Bridge is AccessControl, ReentrancyGuard, Pausable {
         address bondRecipient
     );
 
-    event DepositInitiated(
-        bytes32 indexed depositId,
-        address indexed depositor,
-        uint256 indexed targetChainId,
-        address token,
-        uint256 amount,
-        bytes32 commitment
-    );
-
     event WithdrawalInitiated(
         bytes32 indexed withdrawalId,
         address indexed recipient,
         uint256 indexed sourceChainId,
-        uint256 amount
-    );
-
-    event WithdrawalFinalized(
-        bytes32 indexed withdrawalId,
-        address recipient,
         uint256 amount
     );
 

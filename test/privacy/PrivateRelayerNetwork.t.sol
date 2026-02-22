@@ -208,12 +208,10 @@ contract PrivateRelayerNetworkTest is Test {
         intent.relayType = PrivateRelayerNetwork.RelayType.STANDARD;
         intent.encryptedMetadata = "encrypted";
 
-        // Compute commitment hash = H(intentHash, secret, block.timestamp)
+        // Compute commitment hash = H(intentHash, secret)
         bytes32 secret = keccak256("secret");
         bytes32 intentHash = keccak256(abi.encode(intent));
-        bytes32 commitHash = keccak256(
-            abi.encodePacked(intentHash, secret, block.timestamp)
-        );
+        bytes32 commitHash = keccak256(abi.encodePacked(intentHash, secret));
 
         vm.prank(relayer1);
         network.submitCommitment(commitHash);

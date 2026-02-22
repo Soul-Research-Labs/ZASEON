@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 import {IntentSettlementLayer} from "../../contracts/core/IntentSettlementLayer.sol";
 import {InstantSettlementGuarantee} from "../../contracts/core/InstantSettlementGuarantee.sol";
 import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrchestrator.sol";
@@ -89,7 +90,7 @@ contract WireIntentComponents is Script {
 
         // 4. Wire all three into the Hub (zero-address for pre-existing components)
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0),
                 _universalVerifier: address(0),
                 _crossChainMessageRelay: address(0),

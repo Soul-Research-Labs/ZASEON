@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {EnhancedKillSwitch} from "../../contracts/security/EnhancedKillSwitch.sol";
+import "../../contracts/interfaces/IEnhancedKillSwitch.sol";
 
 contract EnhancedKillSwitchTest is Test {
     EnhancedKillSwitch public killSwitch;
@@ -26,7 +27,7 @@ contract EnhancedKillSwitchTest is Test {
     function test_initialLevel() public view {
         assertEq(
             uint256(killSwitch.currentLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.NONE)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.NONE)
         );
     }
 
@@ -37,13 +38,13 @@ contract EnhancedKillSwitchTest is Test {
 
     function test_initialPermissions() public view {
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.DEPOSIT)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.DEPOSIT)
         );
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.WITHDRAWAL)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.WITHDRAWAL)
         );
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.BRIDGE)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.BRIDGE)
         );
     }
 
@@ -52,31 +53,31 @@ contract EnhancedKillSwitchTest is Test {
     function test_escalateToWarning() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "suspicious activity"
         );
 
         assertEq(
             uint256(killSwitch.currentLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.WARNING)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.WARNING)
         );
     }
 
     function test_warningAllowsAllActions() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "test"
         );
 
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.DEPOSIT)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.DEPOSIT)
         );
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.WITHDRAWAL)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.WITHDRAWAL)
         );
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.BRIDGE)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.BRIDGE)
         );
     }
 
@@ -85,19 +86,19 @@ contract EnhancedKillSwitchTest is Test {
     function test_escalateToDegraded() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "step1"
         );
 
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.DEGRADED,
+            IEnhancedKillSwitch.EmergencyLevel.DEGRADED,
             "step2"
         );
 
         assertEq(
             uint256(killSwitch.currentLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.DEGRADED)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.DEGRADED)
         );
     }
 
@@ -105,14 +106,14 @@ contract EnhancedKillSwitchTest is Test {
         _escalateToDegraded();
 
         assertFalse(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.DEPOSIT)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.DEPOSIT)
         );
         assertTrue(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.WITHDRAWAL)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.WITHDRAWAL)
         );
         assertTrue(
             killSwitch.isActionAllowed(
-                EnhancedKillSwitch.ActionType.EMERGENCY_WITHDRAWAL
+                IEnhancedKillSwitch.ActionType.EMERGENCY_WITHDRAWAL
             )
         );
     }
@@ -121,7 +122,7 @@ contract EnhancedKillSwitchTest is Test {
         _escalateToDegraded();
 
         assertFalse(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.BRIDGE)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.BRIDGE)
         );
     }
 
@@ -132,14 +133,14 @@ contract EnhancedKillSwitchTest is Test {
 
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.HALTED,
+            IEnhancedKillSwitch.EmergencyLevel.HALTED,
             "critical"
         );
 
         // Level should still be DEGRADED (pending)
         assertEq(
             uint256(killSwitch.pendingLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.HALTED)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.HALTED)
         );
     }
 
@@ -148,12 +149,12 @@ contract EnhancedKillSwitchTest is Test {
 
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.HALTED,
+            IEnhancedKillSwitch.EmergencyLevel.HALTED,
             "critical"
         );
 
         vm.prank(guardian2);
-        killSwitch.confirmEscalation(EnhancedKillSwitch.EmergencyLevel.HALTED);
+        killSwitch.confirmEscalation(IEnhancedKillSwitch.EmergencyLevel.HALTED);
 
         vm.warp(block.timestamp + killSwitch.LEVEL_3_COOLDOWN() + 1);
 
@@ -162,7 +163,7 @@ contract EnhancedKillSwitchTest is Test {
 
         assertEq(
             uint256(killSwitch.currentLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.HALTED)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.HALTED)
         );
     }
 
@@ -170,17 +171,17 @@ contract EnhancedKillSwitchTest is Test {
         _escalateToHalted();
 
         assertFalse(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.DEPOSIT)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.DEPOSIT)
         );
         assertFalse(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.WITHDRAWAL)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.WITHDRAWAL)
         );
         assertFalse(
-            killSwitch.isActionAllowed(EnhancedKillSwitch.ActionType.BRIDGE)
+            killSwitch.isActionAllowed(IEnhancedKillSwitch.ActionType.BRIDGE)
         );
         assertTrue(
             killSwitch.isActionAllowed(
-                EnhancedKillSwitch.ActionType.EMERGENCY_WITHDRAWAL
+                IEnhancedKillSwitch.ActionType.EMERGENCY_WITHDRAWAL
             )
         );
     }
@@ -189,17 +190,17 @@ contract EnhancedKillSwitchTest is Test {
 
     function test_initiateRecovery() public {
         _escalateToDegraded();
-        killSwitch.initiateRecovery(EnhancedKillSwitch.EmergencyLevel.NONE);
+        killSwitch.initiateRecovery(IEnhancedKillSwitch.EmergencyLevel.NONE);
     }
 
     function test_executeRecovery_fromWarning() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "test"
         );
 
-        killSwitch.initiateRecovery(EnhancedKillSwitch.EmergencyLevel.NONE);
+        killSwitch.initiateRecovery(IEnhancedKillSwitch.EmergencyLevel.NONE);
 
         vm.prank(guardian1);
         killSwitch.confirmRecovery();
@@ -212,20 +213,20 @@ contract EnhancedKillSwitchTest is Test {
 
         assertEq(
             uint256(killSwitch.currentLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.NONE)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.NONE)
         );
     }
 
     function test_executeRecovery_reverts_beforeDelay() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "test"
         );
 
-        killSwitch.initiateRecovery(EnhancedKillSwitch.EmergencyLevel.NONE);
+        killSwitch.initiateRecovery(IEnhancedKillSwitch.EmergencyLevel.NONE);
 
-        vm.expectRevert(EnhancedKillSwitch.RecoveryDelayNotPassed.selector);
+        vm.expectRevert(IEnhancedKillSwitch.RecoveryDelayNotPassed.selector);
         killSwitch.executeRecovery();
     }
 
@@ -233,9 +234,9 @@ contract EnhancedKillSwitchTest is Test {
 
     function test_onlyGuardianCanEscalate() public {
         vm.prank(address(0xDEAD));
-        vm.expectRevert(EnhancedKillSwitch.NotGuardian.selector);
+        vm.expectRevert(IEnhancedKillSwitch.NotGuardian.selector);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "unauth"
         );
     }
@@ -279,7 +280,7 @@ contract EnhancedKillSwitchTest is Test {
 
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.HALTED,
+            IEnhancedKillSwitch.EmergencyLevel.HALTED,
             "cancel test"
         );
 
@@ -287,14 +288,14 @@ contract EnhancedKillSwitchTest is Test {
 
         assertEq(
             uint256(killSwitch.pendingLevel()),
-            uint256(EnhancedKillSwitch.EmergencyLevel.NONE)
+            uint256(IEnhancedKillSwitch.EmergencyLevel.NONE)
         );
     }
 
     // ======= View =======
 
     function test_getProtocolState() public view {
-        EnhancedKillSwitch.ProtocolState memory state = killSwitch
+        IEnhancedKillSwitch.ProtocolState memory state = killSwitch
             .getProtocolState();
         assertTrue(state.depositsEnabled);
         assertTrue(state.withdrawalsEnabled);
@@ -302,7 +303,7 @@ contract EnhancedKillSwitchTest is Test {
     }
 
     function test_getIncidents_empty() public view {
-        EnhancedKillSwitch.EmergencyIncident[] memory incidents = killSwitch
+        IEnhancedKillSwitch.EmergencyIncident[] memory incidents = killSwitch
             .getIncidents();
         assertEq(incidents.length, 0);
     }
@@ -310,11 +311,11 @@ contract EnhancedKillSwitchTest is Test {
     function test_getIncidents_afterEscalation() public {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "test incident"
         );
 
-        EnhancedKillSwitch.EmergencyIncident[] memory incidents = killSwitch
+        IEnhancedKillSwitch.EmergencyIncident[] memory incidents = killSwitch
             .getIncidents();
         assertEq(incidents.length, 1);
     }
@@ -325,14 +326,14 @@ contract EnhancedKillSwitchTest is Test {
         level = uint8(bound(level, 1, 2));
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel(level),
+            IEnhancedKillSwitch.EmergencyLevel(level),
             "test"
         );
 
         vm.prank(guardian1);
-        vm.expectRevert(EnhancedKillSwitch.InvalidLevel.selector);
+        vm.expectRevert(IEnhancedKillSwitch.InvalidLevel.selector);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.NONE,
+            IEnhancedKillSwitch.EmergencyLevel.NONE,
             "downgrade"
         );
     }
@@ -342,12 +343,12 @@ contract EnhancedKillSwitchTest is Test {
     function _escalateToDegraded() internal {
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.WARNING,
+            IEnhancedKillSwitch.EmergencyLevel.WARNING,
             "w"
         );
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.DEGRADED,
+            IEnhancedKillSwitch.EmergencyLevel.DEGRADED,
             "d"
         );
     }
@@ -357,12 +358,12 @@ contract EnhancedKillSwitchTest is Test {
 
         vm.prank(guardian1);
         killSwitch.escalateEmergency(
-            EnhancedKillSwitch.EmergencyLevel.HALTED,
+            IEnhancedKillSwitch.EmergencyLevel.HALTED,
             "h"
         );
 
         vm.prank(guardian2);
-        killSwitch.confirmEscalation(EnhancedKillSwitch.EmergencyLevel.HALTED);
+        killSwitch.confirmEscalation(IEnhancedKillSwitch.EmergencyLevel.HALTED);
 
         vm.warp(block.timestamp + killSwitch.LEVEL_3_COOLDOWN() + 1);
 

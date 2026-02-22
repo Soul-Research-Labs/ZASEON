@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "../interfaces/IEnhancedKillSwitch.sol";
 
 /**
  * @title EnhancedKillSwitch
@@ -12,7 +13,12 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author Soul Protocol Team
  * @custom:security-contact security@soul.network
  */
-contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
+contract EnhancedKillSwitch is
+    IEnhancedKillSwitch,
+    AccessControl,
+    ReentrancyGuard,
+    Pausable
+{
     // ============ Constants ============
 
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
@@ -38,34 +44,10 @@ contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant LEVEL_4_CONFIRMATIONS = 3;
     uint256 public constant LEVEL_5_CONFIRMATIONS = 5;
 
-    // ============ Enums ============
+    // ============ Types ============
 
-    /**
-     * @notice Emergency levels
-     * NONE: Normal operation
-     * WARNING: Increased monitoring, no restrictions
-     * DEGRADED: Pause new deposits, allow withdrawals
-     * HALTED: Pause all operations except emergency withdrawals
-     * LOCKED: Lock all funds, requires DAO vote to unlock
-     * PERMANENT: Irrecoverable lockdown (catastrophic scenario only)
-     */
-    enum EmergencyLevel {
-        NONE,
-        WARNING,
-        DEGRADED,
-        HALTED,
-        LOCKED,
-        PERMANENT
-    }
-
-    enum ActionType {
-        DEPOSIT,
-        WITHDRAWAL,
-        BRIDGE,
-        GOVERNANCE,
-        UPGRADE,
-        EMERGENCY_WITHDRAWAL
-    }
+    // EmergencyLevel, ActionType, RecoveryRequest, EmergencyIncident, ProtocolState
+    // are inherited from IEnhancedKillSwitch
 
     // ============ State Variables ============
 
@@ -115,107 +97,18 @@ contract EnhancedKillSwitch is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Tracks which guardians have confirmed a recovery (keyed by requestedAt timestamp)
     mapping(uint256 => mapping(address => bool)) public recoveryConfirmed;
 
-    // ============ Structs ============
+    // Structs (RecoveryRequest, EmergencyIncident, ProtocolState) inherited from IEnhancedKillSwitch
 
-    struct RecoveryRequest {
-        EmergencyLevel targetLevel;
-        address initiator;
-        uint256 requestedAt;
-        uint256 executableAt;
-        uint256 confirmations;
-        bool executed;
-        bool cancelled;
-    }
+    // Events inherited from IEnhancedKillSwitch:
+    // EmergencyLevelChanged, EscalationInitiated, EscalationConfirmed, EscalationExecuted,
+    // EscalationCancelled, RecoveryInitiated, RecoveryExecuted, RecoveryCancelled,
+    // GuardianAdded, GuardianRemoved, ContractProtected, ActionRestrictionUpdated
 
-    struct EmergencyIncident {
-        uint256 id;
-        EmergencyLevel fromLevel;
-        EmergencyLevel toLevel;
-        address initiator;
-        uint256 timestamp;
-        string reason;
-        bytes32 evidenceHash;
-    }
-
-    struct ProtocolState {
-        bool depositsEnabled;
-        bool withdrawalsEnabled;
-        bool bridgingEnabled;
-        bool governanceEnabled;
-        bool upgradesEnabled;
-        bool emergencyWithdrawalsEnabled;
-    }
-
-    // ============ Events ============
-
-    event EmergencyLevelChanged(
-        EmergencyLevel indexed fromLevel,
-        EmergencyLevel indexed toLevel,
-        address indexed initiator,
-        string reason
-    );
-
-    event EscalationInitiated(
-        EmergencyLevel indexed targetLevel,
-        address indexed initiator,
-        uint256 executableAt
-    );
-
-    event EscalationConfirmed(
-        EmergencyLevel indexed level,
-        address indexed confirmer,
-        uint256 totalConfirmations
-    );
-
-    event EscalationExecuted(
-        EmergencyLevel indexed level,
-        address indexed executor
-    );
-
-    event EscalationCancelled(
-        EmergencyLevel indexed level,
-        address indexed canceller
-    );
-
-    event RecoveryInitiated(
-        EmergencyLevel indexed targetLevel,
-        address indexed initiator,
-        uint256 executableAt
-    );
-
-    event RecoveryExecuted(
-        EmergencyLevel indexed toLevel,
-        address indexed executor
-    );
-
-    event RecoveryCancelled(address indexed canceller);
-
-    event GuardianAdded(address indexed guardian);
-    event GuardianRemoved(address indexed guardian);
-    event ContractProtected(address indexed contractAddr, bool status);
-    event ActionRestrictionUpdated(
-        EmergencyLevel level,
-        ActionType action,
-        bool allowed
-    );
-
-    // ============ Errors ============
-
-    error InvalidLevel();
-    error LevelAlreadySet();
-    error CooldownNotPassed();
-    error InsufficientConfirmations();
-    error AlreadyConfirmed();
-    error NoRecoveryPending();
-    error RecoveryNotExecutable();
-    error PermanentLockdown();
-    error ActionNotAllowed();
-    error TooManyGuardians();
-    error NotGuardian();
-    error RecoveryDelayNotPassed();
-    error EscalationPending();
-    error NoEscalationPending();
-    error AlreadyConfirmedRecovery();
+    // Errors inherited from IEnhancedKillSwitch:
+    // InvalidLevel, LevelAlreadySet, CooldownNotPassed, InsufficientConfirmations,
+    // AlreadyConfirmed, NoRecoveryPending, RecoveryNotExecutable, PermanentLockdown,
+    // ActionNotAllowed, TooManyGuardians, NotGuardian, RecoveryDelayNotPassed,
+    // EscalationPending, NoEscalationPending, AlreadyConfirmedRecovery
 
     // ============ Modifiers ============
 

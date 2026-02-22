@@ -736,11 +736,20 @@ contract CrossChainBridgeIntegration is
         // Require ECDSA signature from a RELAYER_ROLE holder
         if (proof.length < 65) revert("Transfer proof too short");
 
+        // SECURITY FIX: Include block.chainid to prevent cross-chain signature replay.
+        // Without chain ID, a valid signature on chain A can be replayed on chain B
+        // where the same contract is deployed with the same role setup.
         bytes32 messageHash = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(
-                    abi.encodePacked(transferId, recipient, token, amount)
+                    abi.encodePacked(
+                        transferId,
+                        recipient,
+                        token,
+                        amount,
+                        block.chainid
+                    )
                 )
             )
         );

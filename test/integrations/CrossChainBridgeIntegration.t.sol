@@ -508,7 +508,13 @@ contract CrossChainBridgeIntegrationTest is Test {
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(
-                    abi.encodePacked(transferId, recipient, NATIVE, amount)
+                    abi.encodePacked(
+                        transferId,
+                        recipient,
+                        NATIVE,
+                        amount,
+                        block.chainid
+                    )
                 )
             )
         );
@@ -526,7 +532,13 @@ contract CrossChainBridgeIntegrationTest is Test {
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(
-                    abi.encodePacked(transferId, recipient, NATIVE, amount)
+                    abi.encodePacked(
+                        transferId,
+                        recipient,
+                        NATIVE,
+                        amount,
+                        block.chainid
+                    )
                 )
             )
         );
@@ -553,7 +565,13 @@ contract CrossChainBridgeIntegrationTest is Test {
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(
-                    abi.encodePacked(transferId, recipient, NATIVE, amount)
+                    abi.encodePacked(
+                        transferId,
+                        recipient,
+                        NATIVE,
+                        amount,
+                        block.chainid
+                    )
                 )
             )
         );

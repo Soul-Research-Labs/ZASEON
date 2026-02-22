@@ -7,6 +7,7 @@ import "../../contracts/core/InstantSettlementGuarantee.sol";
 import "../../contracts/relayer/InstantRelayerRewards.sol";
 import "../../contracts/core/DynamicRoutingOrchestrator.sol";
 import "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 import {IIntentSettlementLayer} from "../../contracts/interfaces/IIntentSettlementLayer.sol";
 import {IInstantSettlementGuarantee} from "../../contracts/interfaces/IInstantSettlementGuarantee.sol";
 import {IDynamicRoutingOrchestrator} from "../../contracts/interfaces/IDynamicRoutingOrchestrator.sol";
@@ -538,7 +539,7 @@ contract IntentSettlementE2E is Test {
         hub = new SoulProtocolHub();
 
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0),
                 _universalVerifier: address(0),
                 _crossChainMessageRelay: address(0),

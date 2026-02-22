@@ -246,6 +246,14 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Unlock receipts for auditing
     mapping(bytes32 => UnlockReceipt) public unlockReceipts;
 
+    /// @notice Queue of nullifiers that failed to propagate to the registry
+    /// @dev Operators can retry via retryNullifierPropagation(). This prevents
+    ///      cross-chain double-spend when the registry is temporarily unavailable.
+    bytes32[] public pendingNullifiers;
+
+    /// @notice Commitment associated with each pending nullifier
+    mapping(bytes32 => bytes32) public pendingNullifierCommitments;
+
     /// @notice Reference to external proof verifier
     /// @dev Immutable saves ~2100 gas per external call by avoiding SLOAD
     IProofVerifier public immutable proofVerifier;
@@ -259,6 +267,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant MIN_BOND_AMOUNT = 0.01 ether;
     uint256 public constant MIN_CHALLENGER_STAKE = 0.01 ether;
     uint256 public constant MAX_ACTIVE_LOCKS = 1000000;
+
+    /// @notice Maximum locks any single address can create (DoS prevention)
+    /// @dev Prevents a single address from filling the global lock cap
+    uint256 public constant MAX_LOCKS_PER_ADDRESS = 100;
 
     /// @notice Packed statistics (saves 3 storage slots = ~6000 gas on updates)
     /// @dev Layout: totalLocksCreated (64) | totalLocksUnlocked (64) | totalOptimisticUnlocks (64) | totalDisputes (64)
@@ -457,6 +469,13 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
         // M-23: Enforce maximum active locks to prevent unbounded growth
         if (_activeLockIds.length >= MAX_ACTIVE_LOCKS) {
+            revert TooManyActiveLocks();
+        }
+
+        // SECURITY FIX: Per-address rate limit to prevent a single address from
+        // filling the global lock cap (DoS). Without this, anyone can create
+        // up to MAX_ACTIVE_LOCKS (1M) locks, blocking legitimate users.
+        if (userLockCount[msg.sender] >= MAX_LOCKS_PER_ADDRESS) {
             revert TooManyActiveLocks();
         }
 
@@ -978,7 +997,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         );
     }
 
-    /// @dev Propagate nullifier to canonical NullifierRegistryV3 if configured
+    /// @dev Propagate nullifier to canonical NullifierRegistryV3 if configured.
+    ///      If propagation fails, the nullifier is queued for retry via
+    ///      retryNullifierPropagation(). This prevents a cross-chain double-spend
+    ///      window when the registry is temporarily unavailable.
     /// @param nullifier The nullifier to register
     /// @param commitment The associated state commitment
     function _propagateNullifier(
@@ -996,11 +1018,65 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
                     commitment
                 )
             );
-            // Emit event on failure for off-chain monitoring (local nullifier is still recorded)
+            // On failure, queue for retry instead of silently dropping
             if (!success) {
+                pendingNullifiers.push(nullifier);
+                pendingNullifierCommitments[nullifier] = commitment;
                 emit NullifierPropagationFailed(nullifier, registry);
             }
         }
+    }
+
+    /// @notice Retry propagation of failed nullifiers to the registry
+    /// @dev Callable by OPERATOR_ROLE. Processes up to `maxRetries` pending nullifiers.
+    ///      Successfully propagated nullifiers are removed from the queue.
+    /// @param maxRetries Maximum number of pending nullifiers to retry
+    function retryNullifierPropagation(
+        uint256 maxRetries
+    ) external onlyRole(OPERATOR_ROLE) {
+        address registry = nullifierRegistry;
+        if (registry == address(0)) return;
+
+        uint256 len = pendingNullifiers.length;
+        if (len == 0) return;
+        if (maxRetries > len) maxRetries = len;
+
+        uint256 retried = 0;
+        // Process from the end to allow efficient removal via swap-and-pop
+        for (uint256 i = len; i > 0 && retried < maxRetries; ) {
+            unchecked {
+                --i;
+            }
+            bytes32 nullifier = pendingNullifiers[i];
+            bytes32 commitment = pendingNullifierCommitments[nullifier];
+
+            (bool success, ) = registry.call(
+                abi.encodeWithSignature(
+                    "registerNullifier(bytes32,bytes32)",
+                    nullifier,
+                    commitment
+                )
+            );
+
+            if (success) {
+                // Swap-and-pop removal
+                uint256 lastIdx = pendingNullifiers.length - 1;
+                if (i != lastIdx) {
+                    pendingNullifiers[i] = pendingNullifiers[lastIdx];
+                }
+                pendingNullifiers.pop();
+                delete pendingNullifierCommitments[nullifier];
+            }
+
+            unchecked {
+                ++retried;
+            }
+        }
+    }
+
+    /// @notice Get the number of pending (failed) nullifier propagations
+    function pendingNullifierCount() external view returns (uint256) {
+        return pendingNullifiers.length;
     }
 
     function _removeActiveLock(bytes32 lockId) internal {

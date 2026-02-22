@@ -19,9 +19,9 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │                                                                          │
  * │  COMMIT-REVEAL MEV PROTECTION:                                          │
- * │  1. Relayer commits: H(intent || secret || timestamp)                   │
+ * │  1. Relayer commits: H(intentHash || secret)                            │
  * │  2. Wait commitment period (1-3 blocks)                                 │
- * │  3. Relayer reveals: (intent, secret, timestamp)                        │
+ * │  3. Relayer reveals: (intent, secret) → verifies H matches             │
  * │  4. Execute if valid, slash if invalid/late                             │
  * │                                                                          │
  * │  STAKE-WEIGHTED VRF SELECTION:                                          │
@@ -453,7 +453,7 @@ contract PrivateRelayerNetwork is
 
     /**
      * @notice Submit a commitment for relay intent
-     * @param commitmentHash Hash of (intent || secret || timestamp)
+     * @param commitmentHash Hash of (intentHash || secret)
      */
     function submitCommitment(
         bytes32 commitmentHash
@@ -479,6 +479,10 @@ contract PrivateRelayerNetwork is
 
     /**
      * @notice Reveal a previously committed intent
+     * @dev Commitment scheme: commitmentHash = keccak256(abi.encodePacked(intentHash, secret))
+     *      The intentHash is computed as keccak256(abi.encode(intent)).
+     *      SECURITY FIX: Removed block.timestamp from hash — it differs between commit and reveal
+     *      blocks, making the original scheme permanently non-functional.
      * @param secret The secret used in commitment
      * @param intent The relay intent
      */
@@ -488,7 +492,7 @@ contract PrivateRelayerNetwork is
     ) external onlyActiveRelayer nonReentrant {
         bytes32 intentHash = keccak256(abi.encode(intent));
         bytes32 commitmentHash = keccak256(
-            abi.encodePacked(intentHash, secret, block.timestamp)
+            abi.encodePacked(intentHash, secret)
         );
 
         Commitment storage commitment = commitments[commitmentHash];

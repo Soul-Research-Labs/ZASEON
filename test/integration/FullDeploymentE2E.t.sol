@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 // Core
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 import {NullifierRegistryV3} from "../../contracts/core/NullifierRegistryV3.sol";
 
 // Verifiers
@@ -133,7 +134,7 @@ contract FullDeploymentE2E is Test {
 
         // ════════ PHASE 3: Wire Hub ════════
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(verifierRegistry),
                 _universalVerifier: address(universalVerifier),
                 _crossChainMessageRelay: address(0),
@@ -181,14 +182,20 @@ contract FullDeploymentE2E is Test {
     }
 
     function test_HubIsFullyConfiguredWithCriticalComponents() public {
-        // isFullyConfigured checks: verifierRegistry, nullifierManager, shieldedPool, privacyRouter,
-        // zkBoundStateLocks, crossDomainNullifierAlgebra
-        // We're missing shieldedPool and privacyRouter, so it should not be fully configured yet
+        // isFullyConfigured now checks 16 components (core privacy, cross-chain, privacy features)
+        // We're missing several components, so it should not be fully configured yet
         assertFalse(hub.isFullyConfigured());
 
         // Wire the missing critical components
         hub.setShieldedPool(address(0xBEEF));
         hub.setPrivacyRouter(address(0xCAFE));
+        hub.setCrossChainMessageRelay(address(0xA001));
+        hub.setCrossChainPrivacyHub(address(0xA002));
+        hub.setStealthAddressRegistry(address(0xA003));
+        hub.setPrivateRelayerNetwork(address(0xA004));
+        hub.setComplianceOracle(address(0xA005));
+        hub.setBridgeWatchtower(address(0xA006));
+        hub.setMultiProver(address(0xA007));
 
         assertTrue(hub.isFullyConfigured());
     }
@@ -554,14 +561,14 @@ contract FullDeploymentE2E is Test {
         hub.deactivateBridge(42161);
 
         // Bridge should show as inactive
-        SoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
+        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
         assertFalse(info.isActive);
     }
 
     function test_MultiPhaseWiringPreservesExisting() public {
         // Phase 1: wire primitives
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0),
                 _universalVerifier: address(0),
                 _crossChainMessageRelay: address(0),
@@ -1087,7 +1094,7 @@ contract FullDeploymentE2E is Test {
             )
         );
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0),
                 _universalVerifier: address(0),
                 _crossChainMessageRelay: address(0),
@@ -1221,7 +1228,7 @@ contract FullDeploymentE2E is Test {
         assertEq(hub.privacyRouter(), address(0xCAFE));
 
         hub.registerBridgeAdapter(42161, address(0xA0B1), true, 12);
-        SoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
+        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
         assertEq(info.adapter, address(0xA0B1));
 
         hub.pause();

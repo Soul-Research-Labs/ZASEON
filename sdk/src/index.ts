@@ -215,6 +215,22 @@ export type {
   ThresholdsConfig,
 } from "./bridge/MultiBridgeRouterClient";
 
+// Cross-Chain Proof Hub SDK Client
+export {
+  CrossChainProofHubV3Client,
+  ProofStatus,
+} from "./bridge/CrossChainProofHubV3Client";
+export type {
+  ProofSubmission,
+  BatchSubmission,
+  ChallengeInfo,
+  BatchProofInput,
+  RelayerStats,
+  SubmitProofResult,
+  SubmitBatchResult,
+  ProofHubConfig,
+} from "./bridge/CrossChainProofHubV3Client";
+
 // ZK-Bound State Locks SDK Client
 export { ZKBoundStateLocksClient } from "./primitives/ZKBoundStateLocksClient";
 export type {
@@ -275,3 +291,15 @@ export type {
   BridgeTransferParams,
   BridgeTransferResult,
 } from "./bridges";
+
+// Protocol Emergency Coordinator SDK Client
+export {
+  ProtocolEmergencyCoordinatorClient,
+  Severity,
+} from "./security/ProtocolEmergencyCoordinatorClient";
+export type {
+  Incident,
+  SubsystemStatus,
+  RecoveryValidation,
+  OpenIncidentResult,
+} from "./security/ProtocolEmergencyCoordinatorClient";

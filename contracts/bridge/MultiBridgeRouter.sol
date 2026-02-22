@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "../crosschain/IBridgeAdapter.sol";
+import "../interfaces/IMultiBridgeRouter.sol";
 
 /**
  * @title MultiBridgeRouter
@@ -41,7 +42,12 @@ import "../crosschain/IBridgeAdapter.sol";
  * │                └────────────────────┘                                 │
  * └────────────────────────────────────────────────────────────────────────┘
  */
-contract MultiBridgeRouter is AccessControl, ReentrancyGuard, Pausable {
+contract MultiBridgeRouter is
+    IMultiBridgeRouter,
+    AccessControl,
+    ReentrancyGuard,
+    Pausable
+{
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -50,38 +56,10 @@ contract MultiBridgeRouter is AccessControl, ReentrancyGuard, Pausable {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /*//////////////////////////////////////////////////////////////
-                                 ENUMS
+                                 TYPES
     //////////////////////////////////////////////////////////////*/
 
-    enum BridgeType {
-        NATIVE_L2, // Optimism, Arbitrum native bridges
-        LAYERZERO, // LayerZero V2
-        HYPERLANE, // Hyperlane
-        CHAINLINK_CCIP, // Chainlink CCIP
-        AXELAR // Axelar Network
-    }
-
-    enum BridgeStatus {
-        ACTIVE,
-        DEGRADED,
-        PAUSED,
-        DISABLED
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
-    struct BridgeConfig {
-        address adapter;
-        uint256 securityScore; // 0-100
-        uint256 maxValuePerTx;
-        uint256 successCount;
-        uint256 failureCount;
-        uint256 lastFailureTime;
-        BridgeStatus status;
-        uint256 avgResponseTime; // milliseconds
-    }
+    // BridgeType, BridgeStatus, BridgeConfig, RoutingDecision inherited from IMultiBridgeRouter
 
     struct MessageVerification {
         bytes32 messageHash;
@@ -90,13 +68,6 @@ contract MultiBridgeRouter is AccessControl, ReentrancyGuard, Pausable {
         mapping(BridgeType => bool) verified;
         bool finalized;
         bool approved;
-    }
-
-    struct RoutingDecision {
-        BridgeType primaryBridge;
-        BridgeType[] fallbackBridges;
-        bool requireMultiVerification;
-        uint256 minConfirmations;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -125,63 +96,11 @@ contract MultiBridgeRouter is AccessControl, ReentrancyGuard, Pausable {
     uint256 public constant DEGRADED_THRESHOLD = 1000; // 10%
     uint256 public constant HEALTH_CHECK_WINDOW = 1 hours;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event BridgeRegistered(BridgeType indexed bridgeType, address adapter);
-    event BridgeStatusChanged(
-        BridgeType indexed bridgeType,
-        BridgeStatus oldStatus,
-        BridgeStatus newStatus
-    );
-    event MessageRouted(
-        bytes32 indexed messageHash,
-        BridgeType primaryBridge,
-        uint256 value
-    );
-    event MessageVerified(
-        bytes32 indexed messageHash,
-        BridgeType bridge,
-        bool approved
-    );
-    event MessageFinalized(
-        bytes32 indexed messageHash,
-        bool approved,
-        uint256 confirmations
-    );
-    event BridgeFallback(
-        bytes32 indexed messageHash,
-        BridgeType failedBridge,
-        BridgeType fallbackBridge
-    );
-    event HealthCheckFailed(BridgeType indexed bridgeType, uint256 failureRate);
-    event SupportedChainAdded(
-        BridgeType indexed bridgeType,
-        uint256 indexed chainId
-    );
-    event BridgeSuccessRecorded(
-        BridgeType indexed bridgeType,
-        uint256 newSuccessCount
-    );
-    event ThresholdsUpdated(
-        uint256 highValueThreshold,
-        uint256 mediumValueThreshold,
-        uint256 multiVerificationThreshold
-    );
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error BridgeNotConfigured(BridgeType bridgeType);
-    error BridgeNotActive(BridgeType bridgeType);
-    error NoBridgeAvailable(uint256 chainId);
-    error AllBridgesFailed(bytes32 messageHash);
-    error InvalidSecurityScore(uint256 score);
-    error ChainNotSupported(BridgeType bridgeType, uint256 chainId);
-    error MessageAlreadyFinalized(bytes32 messageHash);
-    error InsufficientConfirmations(uint256 current, uint256 required);
+    // Events and errors inherited from IMultiBridgeRouter:
+    // BridgeRegistered, BridgeStatusChanged, MessageRouted, MessageVerified, MessageFinalized,
+    // BridgeFallback, HealthCheckFailed, SupportedChainAdded, BridgeSuccessRecorded, ThresholdsUpdated,
+    // BridgeNotConfigured, BridgeNotActive, NoBridgeAvailable, AllBridgesFailed,
+    // InvalidSecurityScore, ChainNotSupported, MessageAlreadyFinalized, InsufficientConfirmations
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

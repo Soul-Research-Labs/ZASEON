@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/EthereumL1Bridge.sol";
+import "../../contracts/interfaces/IEthereumL1Bridge.sol";
 
 contract BridgeSolvencyFormalTest is Test {
     EthereumL1Bridge public bridge;
@@ -52,10 +53,10 @@ contract BridgeSolvencyFormalTest is Test {
         bridge.grantRole(RELAYER_ROLE, relayer);
 
         bridge.grantRole(OPERATOR_ROLE, address(this));
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: sourceChainId,
             name: "TestChain",
-            rollupType: EthereumL1Bridge.RollupType.ZK_ROLLUP,
+            rollupType: IEthereumL1Bridge.RollupType.ZK_ROLLUP,
             canonicalBridge: address(0),
             messenger: address(0),
             stateCommitmentChain: address(0),
@@ -122,10 +123,10 @@ contract BridgeSolvencyFormalTest is Test {
         uint256 sourceChainId = 10; // Optimism
 
         bridge.grantRole(OPERATOR_ROLE, address(this));
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: sourceChainId,
             name: "Optimism",
-            rollupType: EthereumL1Bridge.RollupType.OPTIMISTIC,
+            rollupType: IEthereumL1Bridge.RollupType.OPTIMISTIC,
             canonicalBridge: address(0x1),
             messenger: address(0x2),
             stateCommitmentChain: address(0x3),
@@ -226,10 +227,10 @@ contract BridgeSolvencyFormalTest is Test {
         uint256 chainId = 10; // Optimism
 
         bridge.grantRole(OPERATOR_ROLE, address(this));
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: chainId,
             name: "Optimism",
-            rollupType: EthereumL1Bridge.RollupType.OPTIMISTIC,
+            rollupType: IEthereumL1Bridge.RollupType.OPTIMISTIC,
             canonicalBridge: address(0x1),
             messenger: address(0x2),
             stateCommitmentChain: address(0x3),

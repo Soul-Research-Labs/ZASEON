@@ -47,6 +47,7 @@ interface IEthereumL1Bridge {
         CommitmentStatus status;
         uint256 challengeDeadline;
         address submitter;
+        bytes32 blobVersionedHash; // EIP-4844 support
     }
 
     /// @notice Deposit record
@@ -87,7 +88,8 @@ interface IEthereumL1Bridge {
         bytes32 indexed commitmentId,
         uint256 indexed sourceChainId,
         bytes32 stateRoot,
-        address submitter
+        address submitter,
+        bytes32 blobVersionedHash
     );
 
     event DepositInitiated(
@@ -113,7 +115,10 @@ interface IEthereumL1Bridge {
         uint256 blockNumber
     ) external payable;
 
-    function challengeCommitment(bytes32 commitmentId, bytes32 reason) external;
+    function challengeCommitment(
+        bytes32 commitmentId,
+        bytes32 reason
+    ) external payable;
 
     function finalizeCommitment(bytes32 commitmentId) external;
 

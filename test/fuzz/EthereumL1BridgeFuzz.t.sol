@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/crosschain/EthereumL1Bridge.sol";
+import "../../contracts/interfaces/IEthereumL1Bridge.sol";
 
 contract EthereumL1BridgeFuzz is Test {
     EthereumL1Bridge public bridge;
@@ -106,10 +107,10 @@ contract EthereumL1BridgeFuzz is Test {
     // --- Access Control ---
     function testFuzz_onlyOperatorConfiguresChain(address caller) public {
         vm.assume(caller != admin && caller != operator);
-        EthereumL1Bridge.L2Config memory config = EthereumL1Bridge.L2Config({
+        IEthereumL1Bridge.L2Config memory config = IEthereumL1Bridge.L2Config({
             chainId: 777,
             name: "Test",
-            rollupType: EthereumL1Bridge.RollupType.ZK_ROLLUP,
+            rollupType: IEthereumL1Bridge.RollupType.ZK_ROLLUP,
             canonicalBridge: address(1),
             messenger: address(2),
             stateCommitmentChain: address(3),

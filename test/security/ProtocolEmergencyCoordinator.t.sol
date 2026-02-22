@@ -518,6 +518,9 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
     MockCircuitBreaker cb;
     MockProtocolHub hub;
     address admin = address(0xAD);
+    address guardian = address(0xCC);
+    address responder = address(0xBB);
+    address recovery = address(0xDD);
 
     function setUp() public {
         ha = new MockHealthAggregator();
@@ -533,12 +536,23 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             address(hub),
             admin
         );
+
+        // Set up role separation for RED/BLACK emergency plan execution
+        vm.startPrank(admin);
+        coordinator.grantRole(coordinator.GUARDIAN_ROLE(), guardian);
+        coordinator.grantRole(coordinator.RESPONDER_ROLE(), responder);
+        coordinator.grantRole(coordinator.RECOVERY_ROLE(), recovery);
+        coordinator.revokeRole(coordinator.GUARDIAN_ROLE(), admin);
+        coordinator.revokeRole(coordinator.RESPONDER_ROLE(), admin);
+        coordinator.revokeRole(coordinator.RECOVERY_ROLE(), admin);
+        coordinator.confirmRoleSeparation();
+        vm.stopPrank();
     }
 
     function _openIncident(
         IProtocolEmergencyCoordinator.Severity sev
     ) internal returns (uint256) {
-        vm.prank(admin);
+        vm.prank(responder);
         return coordinator.openIncident(sev, "Plan test", bytes32(0));
     }
 
@@ -547,7 +561,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             IProtocolEmergencyCoordinator.Severity.YELLOW
         );
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // KillSwitch should be at WARNING
@@ -563,7 +577,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             IProtocolEmergencyCoordinator.Severity.ORANGE
         );
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // KillSwitch called twice: WARNING then DEGRADED
@@ -575,7 +589,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
     function test_ExecutePlan_RED() public {
         uint256 id = _openIncident(IProtocolEmergencyCoordinator.Severity.RED);
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // Hub paused
@@ -593,7 +607,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             IProtocolEmergencyCoordinator.Severity.BLACK
         );
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // All RED actions plus LOCKED
@@ -608,10 +622,10 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             IProtocolEmergencyCoordinator.Severity.YELLOW
         );
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
-        vm.prank(admin);
+        vm.prank(guardian);
         vm.expectRevert();
         coordinator.executeEmergencyPlan(id);
     }
@@ -621,19 +635,19 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
             IProtocolEmergencyCoordinator.Severity.YELLOW
         );
 
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // Escalate
         vm.warp(block.timestamp + 5 minutes + 1);
-        vm.prank(admin);
+        vm.prank(responder);
         coordinator.escalateIncident(
             id,
             IProtocolEmergencyCoordinator.Severity.RED
         );
 
         // Should allow executing the plan at the new severity
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         assertTrue(hub.isPaused());
@@ -649,7 +663,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
     }
 
     function test_ExecutePlan_RevertsNoActiveIncident() public {
-        vm.prank(admin);
+        vm.prank(guardian);
         vm.expectRevert();
         coordinator.executeEmergencyPlan(999);
     }
@@ -661,7 +675,7 @@ contract ProtocolEmergencyCoordinatorPlanTest is Test {
         uint256 id = _openIncident(IProtocolEmergencyCoordinator.Severity.RED);
 
         // Should still succeed (try/catch in the coordinator)
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         // Hub still paused (independent of health aggregator)
@@ -684,6 +698,9 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     MockCircuitBreaker cb;
     MockProtocolHub hub;
     address admin = address(0xAD);
+    address guardian = address(0xCC);
+    address responder = address(0xBB);
+    address recovery = address(0xDD);
 
     function setUp() public {
         ha = new MockHealthAggregator();
@@ -699,6 +716,17 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
             address(hub),
             admin
         );
+
+        // Set up role separation for RED/BLACK emergency plan execution
+        vm.startPrank(admin);
+        coordinator.grantRole(coordinator.GUARDIAN_ROLE(), guardian);
+        coordinator.grantRole(coordinator.RESPONDER_ROLE(), responder);
+        coordinator.grantRole(coordinator.RECOVERY_ROLE(), recovery);
+        coordinator.revokeRole(coordinator.GUARDIAN_ROLE(), admin);
+        coordinator.revokeRole(coordinator.RESPONDER_ROLE(), admin);
+        coordinator.revokeRole(coordinator.RECOVERY_ROLE(), admin);
+        coordinator.confirmRoleSeparation();
+        vm.stopPrank();
     }
 
     function test_GetSubsystemStatus_AllHealthy() public view {
@@ -730,7 +758,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_ValidateRecovery_AllClear() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Test",
@@ -747,7 +775,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_ValidateRecovery_NotClear() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.RED,
             "Test",
@@ -755,7 +783,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
         );
 
         // Execute plan (pauses things)
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
 
         (bool allClear, ) = coordinator.validateRecovery(id);
@@ -763,7 +791,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_ExecuteRecovery_Success() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Test",
@@ -773,7 +801,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
         // Advance past recovery cooldown (1 hour from last escalation)
         vm.warp(block.timestamp + 1 hours + 1);
 
-        vm.prank(admin);
+        vm.prank(recovery);
         coordinator.executeRecovery(id);
 
         assertFalse(coordinator.hasActiveIncident());
@@ -789,7 +817,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_ExecuteRecovery_RevertsCooldown() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Test",
@@ -797,13 +825,13 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
         );
 
         // Don't advance time
-        vm.prank(admin);
+        vm.prank(recovery);
         vm.expectRevert();
         coordinator.executeRecovery(id);
     }
 
     function test_ExecuteRecovery_RevertsNotClear() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Test",
@@ -815,7 +843,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
 
         vm.warp(block.timestamp + 1 hours + 1);
 
-        vm.prank(admin);
+        vm.prank(recovery);
         vm.expectRevert(
             IProtocolEmergencyCoordinator.RecoveryNotClear.selector
         );
@@ -823,7 +851,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_ExecuteRecovery_RevertsUnauthorized() public {
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Test",
@@ -840,7 +868,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
 
     function test_FullLifecycle() public {
         // 1. Open incident
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.YELLOW,
             "Bridge anomaly",
@@ -850,14 +878,14 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
 
         // 2. Escalate to RED
         vm.warp(block.timestamp + 5 minutes + 1);
-        vm.prank(admin);
+        vm.prank(responder);
         coordinator.escalateIncident(
             id,
             IProtocolEmergencyCoordinator.Severity.RED
         );
 
         // 3. Execute emergency plan
-        vm.prank(admin);
+        vm.prank(guardian);
         coordinator.executeEmergencyPlan(id);
         assertTrue(hub.isPaused());
         assertTrue(cb.halted());
@@ -874,7 +902,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
 
         // 6. Execute recovery
         vm.warp(block.timestamp + 1 hours + 1);
-        vm.prank(admin);
+        vm.prank(recovery);
         coordinator.executeRecovery(id);
 
         assertFalse(coordinator.hasActiveIncident());
@@ -884,7 +912,7 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
         );
 
         // 7. Can open a new incident after resolution
-        vm.prank(admin);
+        vm.prank(responder);
         uint256 id2 = coordinator.openIncident(
             IProtocolEmergencyCoordinator.Severity.ORANGE,
             "New alert",
@@ -894,18 +922,19 @@ contract ProtocolEmergencyCoordinatorRecoveryTest is Test {
     }
 
     function test_GetIncidents_Range() public {
-        vm.startPrank(admin);
         // Open and resolve 3 incidents (recovery cooldown is 1 hr from last escalation)
         for (uint256 i = 0; i < 3; i++) {
+            vm.prank(responder);
             coordinator.openIncident(
                 IProtocolEmergencyCoordinator.Severity.YELLOW,
                 "Test",
                 bytes32(0)
             );
             skip(1 hours + 1);
-            coordinator.executeRecovery(coordinator.activeIncidentId());
+            uint256 incId = coordinator.activeIncidentId();
+            vm.prank(recovery);
+            coordinator.executeRecovery(incId);
         }
-        vm.stopPrank();
 
         IProtocolEmergencyCoordinator.Incident[] memory incidents = coordinator
             .getIncidents(1, 3);

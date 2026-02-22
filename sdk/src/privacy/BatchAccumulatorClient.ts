@@ -374,7 +374,7 @@ export class BatchAccumulatorClient {
   constructor(
     publicClient: PublicClient,
     address: Hex,
-    walletClient?: WalletClient
+    walletClient?: WalletClient,
   ) {
     this.publicClient = publicClient;
     this.walletClient = walletClient;
@@ -388,7 +388,9 @@ export class BatchAccumulatorClient {
         : publicClient,
     };
 
-    this.contract = getContract(contractConfig) as unknown as ViemReadonlyContract;
+    this.contract = getContract(
+      contractConfig,
+    ) as unknown as ViemReadonlyContract;
   }
 
   // ─── Configuration (OPERATOR_ROLE) ───────────────────────────────
@@ -405,9 +407,10 @@ export class BatchAccumulatorClient {
     sourceChainId: bigint,
     targetChainId: bigint,
     minBatchSize: bigint,
-    maxWaitTime: bigint
+    maxWaitTime: bigint,
   ): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -428,9 +431,10 @@ export class BatchAccumulatorClient {
    */
   async deactivateRoute(
     sourceChainId: bigint,
-    targetChainId: bigint
+    targetChainId: bigint,
   ): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -457,9 +461,10 @@ export class BatchAccumulatorClient {
     commitment: Hex,
     nullifierHash: Hex,
     encryptedPayload: Hex,
-    targetChainId: bigint
+    targetChainId: bigint,
   ): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -480,7 +485,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async releaseBatch(batchId: Hex): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -499,7 +505,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async forceReleaseBatch(batchId: Hex): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -521,7 +528,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async processBatch(batchId: Hex, aggregateProof: Hex): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -548,7 +556,7 @@ export class BatchAccumulatorClient {
       bigint,
       number,
       boolean,
-      bigint
+      bigint,
     ];
 
     return {
@@ -568,7 +576,7 @@ export class BatchAccumulatorClient {
    */
   async getActiveBatch(
     sourceChainId: bigint,
-    targetChainId: bigint
+    targetChainId: bigint,
   ): Promise<ActiveBatchInfo> {
     const result = await this.contract.read.getActiveBatch([
       sourceChainId,
@@ -578,7 +586,7 @@ export class BatchAccumulatorClient {
       Hex,
       bigint,
       bigint,
-      bigint
+      bigint,
     ];
 
     return { batchId, currentSize, minSize, timeRemaining };
@@ -589,9 +597,7 @@ export class BatchAccumulatorClient {
    * @param commitment - The commitment to search for
    * @returns TransactionInfo with batch ID, submission time, processed status
    */
-  async getTransactionByCommitment(
-    commitment: Hex
-  ): Promise<TransactionInfo> {
+  async getTransactionByCommitment(commitment: Hex): Promise<TransactionInfo> {
     const result = await this.contract.read.getTransactionByCommitment([
       commitment,
     ]);
@@ -599,7 +605,7 @@ export class BatchAccumulatorClient {
       Hex,
       bigint,
       boolean,
-      number
+      number,
     ];
 
     return {
@@ -642,14 +648,19 @@ export class BatchAccumulatorClient {
    * @returns AccumulatorStats with totals, verifier/hub addresses, pause state
    */
   async getStats(): Promise<AccumulatorStats> {
-    const [totalBatches, totalTransactionsBatched, proofVerifier, crossChainHub, isPaused] =
-      await Promise.all([
-        this.contract.read.totalBatches() as Promise<bigint>,
-        this.contract.read.totalTransactionsBatched() as Promise<bigint>,
-        this.contract.read.proofVerifier() as Promise<Hex>,
-        this.contract.read.crossChainHub() as Promise<Hex>,
-        this.contract.read.paused() as Promise<boolean>,
-      ]);
+    const [
+      totalBatches,
+      totalTransactionsBatched,
+      proofVerifier,
+      crossChainHub,
+      isPaused,
+    ] = await Promise.all([
+      this.contract.read.totalBatches() as Promise<bigint>,
+      this.contract.read.totalTransactionsBatched() as Promise<bigint>,
+      this.contract.read.proofVerifier() as Promise<Hex>,
+      this.contract.read.crossChainHub() as Promise<Hex>,
+      this.contract.read.paused() as Promise<boolean>,
+    ]);
 
     return {
       totalBatches,
@@ -665,13 +676,17 @@ export class BatchAccumulatorClient {
    * @returns AccumulatorConstants with default batch size, max batch size, etc.
    */
   async getConstants(): Promise<AccumulatorConstants> {
-    const [defaultMinBatchSize, maxBatchSize, defaultMaxWaitTime, fixedPayloadSize] =
-      await Promise.all([
-        this.contract.read.DEFAULT_MIN_BATCH_SIZE() as Promise<bigint>,
-        this.contract.read.MAX_BATCH_SIZE() as Promise<bigint>,
-        this.contract.read.DEFAULT_MAX_WAIT_TIME() as Promise<bigint>,
-        this.contract.read.FIXED_PAYLOAD_SIZE() as Promise<bigint>,
-      ]);
+    const [
+      defaultMinBatchSize,
+      maxBatchSize,
+      defaultMaxWaitTime,
+      fixedPayloadSize,
+    ] = await Promise.all([
+      this.contract.read.DEFAULT_MIN_BATCH_SIZE() as Promise<bigint>,
+      this.contract.read.MAX_BATCH_SIZE() as Promise<bigint>,
+      this.contract.read.DEFAULT_MAX_WAIT_TIME() as Promise<bigint>,
+      this.contract.read.FIXED_PAYLOAD_SIZE() as Promise<bigint>,
+    ]);
 
     return {
       defaultMinBatchSize,
@@ -689,7 +704,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async setProofVerifier(verifierAddress: Hex): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -708,7 +724,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async setCrossChainHub(hubAddress: Hex): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -726,7 +743,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async pause(): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -743,7 +761,8 @@ export class BatchAccumulatorClient {
    * @returns Transaction hash
    */
   async unpause(): Promise<Hex> {
-    if (!this.walletClient) throw new Error("Wallet client required for write operations");
+    if (!this.walletClient)
+      throw new Error("Wallet client required for write operations");
 
     const { request } = await this.publicClient.simulateContract({
       address: this.address,
@@ -762,9 +781,7 @@ export class BatchAccumulatorClient {
    * @param logs - Raw transaction logs
    * @returns Parsed batch creation events
    */
-  parseBatchCreatedEvents(
-    logs: Log[]
-  ): Array<{
+  parseBatchCreatedEvents(logs: Log[]): Array<{
     batchId: Hex;
     sourceChainId: bigint;
     targetChainId: bigint;
@@ -800,9 +817,7 @@ export class BatchAccumulatorClient {
    * @param logs - Raw transaction logs
    * @returns Parsed transaction added events
    */
-  parseTransactionAddedEvents(
-    logs: Log[]
-  ): Array<{
+  parseTransactionAddedEvents(logs: Log[]): Array<{
     batchId: Hex;
     commitment: Hex;
     batchSize: bigint;
@@ -836,9 +851,7 @@ export class BatchAccumulatorClient {
    * @param logs - Raw transaction logs
    * @returns Parsed batch completed events
    */
-  parseBatchCompletedEvents(
-    logs: Log[]
-  ): Array<{
+  parseBatchCompletedEvents(logs: Log[]): Array<{
     batchId: Hex;
     aggregateProofHash: Hex;
     processedCount: bigint;
@@ -871,7 +884,7 @@ export class BatchAccumulatorClient {
    * @returns Unwatch function
    */
   watchBatchReady(
-    callback: (batchId: Hex, size: bigint, reason: string) => void
+    callback: (batchId: Hex, size: bigint, reason: string) => void,
   ): () => void {
     return this.publicClient.watchContractEvent({
       address: this.address,
@@ -883,7 +896,7 @@ export class BatchAccumulatorClient {
           callback(
             args.batchId as Hex,
             args.size as bigint,
-            args.reason as string
+            args.reason as string,
           );
         }
       },
@@ -900,8 +913,8 @@ export class BatchAccumulatorClient {
       batchId: Hex,
       commitment: Hex,
       batchSize: bigint,
-      remaining: bigint
-    ) => void
+      remaining: bigint,
+    ) => void,
   ): () => void {
     return this.publicClient.watchContractEvent({
       address: this.address,
@@ -914,7 +927,7 @@ export class BatchAccumulatorClient {
             args.batchId as Hex,
             args.commitment as Hex,
             args.batchSize as bigint,
-            args.remaining as bigint
+            args.remaining as bigint,
           );
         }
       },

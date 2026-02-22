@@ -87,9 +87,13 @@ contract DecentralizedRelayerRegistry is AccessControl, ReentrancyGuard {
     /// @notice Relayer state indexed by address
     mapping(address => RelayerInfo) public relayers;
 
-    /// @notice Array of all relayer addresses that have ever registered
-    /// @dev Used for off-chain enumeration; entries are not removed on unregister
+    /// @notice Array of all currently active relayer addresses
+    /// @dev Cleaned on withdraw via swap-and-pop using relayerIndex
     address[] public activeRelayers;
+
+    /// @notice Index of each relayer in the activeRelayers array
+    /// @dev Used for O(1) removal via swap-and-pop pattern
+    mapping(address => uint256) private relayerIndex;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -197,6 +201,7 @@ contract DecentralizedRelayerRegistry is AccessControl, ReentrancyGuard {
             isRegistered: true
         });
 
+        relayerIndex[msg.sender] = activeRelayers.length;
         activeRelayers.push(msg.sender);
         emit RelayerRegistered(msg.sender, msg.value);
     }
@@ -260,6 +265,17 @@ contract DecentralizedRelayerRegistry is AccessControl, ReentrancyGuard {
         info.stake = 0;
         info.isRegistered = false;
         info.unlockTime = 0;
+
+        // Remove from activeRelayers via swap-and-pop (O(1))
+        uint256 idx = relayerIndex[msg.sender];
+        uint256 lastIdx = activeRelayers.length - 1;
+        if (idx != lastIdx) {
+            address lastRelayer = activeRelayers[lastIdx];
+            activeRelayers[idx] = lastRelayer;
+            relayerIndex[lastRelayer] = idx;
+        }
+        activeRelayers.pop();
+        delete relayerIndex[msg.sender];
 
         (bool success, ) = msg.sender.call{value: amount}("");
         if (!success) revert TransferFailed(msg.sender, amount);

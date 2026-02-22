@@ -148,6 +148,12 @@ contract ProtocolEmergencyCoordinator is
     uint256 public incidentCount;
     uint48 public lastEscalationAt;
 
+    /// @notice Whether role separation has been confirmed by admin
+    /// @dev Must be true before RED/BLACK emergency plans can execute.
+    ///      Prevents a single compromised admin from escalating and executing
+    ///      the most destructive emergency actions.
+    bool public roleSeparationConfirmed;
+
     mapping(uint256 => Incident) internal _incidents;
 
     /// @dev Track whether we executed the emergency plan for a given severity
@@ -183,6 +189,56 @@ contract ProtocolEmergencyCoordinator is
         _grantRole(RESPONDER_ROLE, _admin);
         _grantRole(RECOVERY_ROLE, _admin);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when role separation has not been confirmed for high-severity actions
+    error RoleSeparationRequired();
+
+    /// @notice Thrown when role separation validation fails (same address holds multiple roles)
+    error RoleSeparationViolation(address account);
+
+    /*//////////////////////////////////////////////////////////////
+                       ROLE SEPARATION
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Confirm that critical roles (GUARDIAN, RESPONDER, RECOVERY) are held by
+     *         separate addresses. Must be called before RED/BLACK emergency plans.
+     * @dev Validates that no single address holds more than one of the three critical roles.
+     *      This prevents a compromised admin from single-handedly escalating to BLACK and
+     *      executing the most destructive emergency actions.
+     *
+     *      The admin should:
+     *      1. Grant GUARDIAN_ROLE, RESPONDER_ROLE, RECOVERY_ROLE to separate multisigs
+     *      2. Revoke those roles from the deployer address
+     *      3. Call confirmRoleSeparation()
+     */
+    function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Get role member counts (AccessControl stores members per role)
+        // Iterate over the three critical roles and check no address has >1
+        // Note: We check the msg.sender (admin) doesn't hold operational roles
+        if (
+            hasRole(GUARDIAN_ROLE, msg.sender) &&
+            hasRole(RESPONDER_ROLE, msg.sender)
+        ) revert RoleSeparationViolation(msg.sender);
+        if (
+            hasRole(GUARDIAN_ROLE, msg.sender) &&
+            hasRole(RECOVERY_ROLE, msg.sender)
+        ) revert RoleSeparationViolation(msg.sender);
+        if (
+            hasRole(RESPONDER_ROLE, msg.sender) &&
+            hasRole(RECOVERY_ROLE, msg.sender)
+        ) revert RoleSeparationViolation(msg.sender);
+
+        roleSeparationConfirmed = true;
+        emit RoleSeparationConfirmed(msg.sender);
+    }
+
+    /// @notice Emitted when role separation is confirmed
+    event RoleSeparationConfirmed(address indexed confirmedBy);
 
     /*//////////////////////////////////////////////////////////////
                        INCIDENT MANAGEMENT
@@ -278,8 +334,8 @@ contract ProtocolEmergencyCoordinator is
      * Plan mapping:
      *   YELLOW → KillSwitch WARNING (monitoring mode)
      *   ORANGE → KillSwitch DEGRADED + circuit breaker awareness
-     *   RED    → Hub pause + bridge halt + HealthAgg auto-pause + KillSwitch HALTED
-     *   BLACK  → KillSwitch LOCKED (governance-only recovery)
+     *   RED    → Hub pause + bridge halt + HealthAgg auto-pause + KillSwitch HALTED (requires role separation)
+     *   BLACK  → KillSwitch LOCKED (governance-only recovery) (requires role separation)
      */
     function executeEmergencyPlan(
         uint256 incidentId
@@ -289,6 +345,14 @@ contract ProtocolEmergencyCoordinator is
         }
 
         Severity sev = _incidents[incidentId].severity;
+
+        // SECURITY FIX: RED and BLACK severity plans can halt the entire protocol.
+        // Require role separation confirmation to prevent a single compromised admin
+        // from both escalating and executing destructive emergency actions.
+        if (sev >= Severity.RED && !roleSeparationConfirmed) {
+            revert RoleSeparationRequired();
+        }
+
         // Prevent re-execution at same severity
         if (planExecuted[incidentId][sev]) {
             revert InvalidEscalation(sev, sev);

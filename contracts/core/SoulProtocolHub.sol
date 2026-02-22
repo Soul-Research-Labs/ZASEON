@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ISoulProtocolHub} from "../interfaces/ISoulProtocolHub.sol";
 
 /**
  * @title SoulProtocolHub
@@ -40,7 +41,12 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  * 3. Supports versioning for upgradeable components
  * 4. Emits events for all registrations for off-chain indexing
  */
-contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
+contract SoulProtocolHub is
+    ISoulProtocolHub,
+    AccessControl,
+    Pausable,
+    ReentrancyGuard
+{
     /*//////////////////////////////////////////////////////////////
                                  ROLES
     //////////////////////////////////////////////////////////////*/
@@ -59,44 +65,8 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Component categories
-    enum ComponentCategory {
-        CORE,
-        VERIFIER,
-        BRIDGE,
-        PRIVACY,
-        SECURITY,
-        PRIMITIVE,
-        GOVERNANCE,
-        INFRASTRUCTURE
-    }
-
-    /// @notice Component registration info
-    struct ComponentInfo {
-        address contractAddress;
-        ComponentCategory category;
-        uint256 version;
-        bool isActive;
-        uint256 registeredAt;
-        bytes32 configHash;
-    }
-
-    /// @notice Bridge adapter info
-    struct BridgeInfo {
-        address adapter;
-        uint256 chainId;
-        bool supportsPrivacy;
-        bool isActive;
-        uint256 minConfirmations;
-    }
-
-    /// @notice Verifier info
-    struct VerifierInfo {
-        address verifier;
-        bytes32 proofType;
-        uint256 gasLimit;
-        bool isActive;
-    }
+    // Types (ComponentCategory, ComponentInfo, BridgeInfo, VerifierInfo, WireAllParams)
+    // are inherited from ISoulProtocolHub
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -184,55 +154,11 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
     address public timelock;
     address public upgradeTimelock;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event ComponentRegistered(
-        bytes32 indexed componentId,
-        ComponentCategory indexed category,
-        address contractAddress,
-        uint256 version
-    );
-
-    event ComponentUpdated(
-        bytes32 indexed componentId,
-        address oldAddress,
-        address newAddress,
-        uint256 newVersion
-    );
-
-    event ComponentDeactivated(bytes32 indexed componentId);
-
-    event VerifierRegistered(
-        bytes32 indexed verifierType,
-        address verifier,
-        uint256 gasLimit
-    );
-
-    event BridgeAdapterRegistered(
-        uint256 indexed chainId,
-        address adapter,
-        bool supportsPrivacy
-    );
-
-    event PrivacyModuleRegistered(string indexed moduleName, address module);
-
-    event SecurityModuleRegistered(string indexed moduleName, address module);
-
-    event ProtocolWired(address indexed caller, uint256 componentsUpdated);
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error ZeroAddress();
-    error ComponentNotFound(bytes32 componentId);
-    error ComponentAlreadyRegistered(bytes32 componentId);
-    error ChainNotSupported(uint256 chainId);
-    error InvalidConfiguration();
-    error UnauthorizedCaller();
-    error BatchTooLarge(uint256 provided, uint256 max);
+    // Events and errors inherited from ISoulProtocolHub:
+    // ComponentRegistered, ComponentUpdated, ComponentDeactivated, VerifierRegistered,
+    // BridgeAdapterRegistered, PrivacyModuleRegistered, SecurityModuleRegistered, ProtocolWired
+    // ZeroAddress, ComponentNotFound, ComponentAlreadyRegistered, ChainNotSupported,
+    // InvalidConfiguration, UnauthorizedCaller, BatchTooLarge
 
     /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -799,30 +725,7 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
 
     /// @notice Wire all core protocol components in a single transaction
     /// @dev Reduces deployment setup from 20+ calls to 1. All addresses must be non-zero.
-    struct WireAllParams {
-        address _verifierRegistry;
-        address _universalVerifier;
-        address _crossChainMessageRelay;
-        address _crossChainPrivacyHub;
-        address _stealthAddressRegistry;
-        address _privateRelayerNetwork;
-        address _viewKeyRegistry;
-        address _shieldedPool;
-        address _nullifierManager;
-        address _complianceOracle;
-        address _proofTranslator;
-        address _privacyRouter;
-        address _bridgeProofValidator;
-        address _zkBoundStateLocks;
-        address _proofCarryingContainer;
-        address _crossDomainNullifierAlgebra;
-        address _policyBoundProofs;
-        address _multiProver;
-        address _bridgeWatchtower;
-        address _intentSettlementLayer;
-        address _instantSettlementGuarantee;
-        address _dynamicRoutingOrchestrator;
-    }
+    // WireAllParams struct is inherited from ISoulProtocolHub
 
     /**
      * @notice Wire all core protocol components in a single transaction
@@ -1082,14 +985,31 @@ contract SoulProtocolHub is AccessControl, Pausable, ReentrancyGuard {
     }
 
     /// @notice Check if all critical protocol components are configured
+    /// @dev Checks 16 core components required for full protocol operation.
+    ///      Optional/auxiliary components (viewKeyRegistry, policyBoundProofs,
+    ///      instantSettlementGuarantee, dynamicRoutingOrchestrator, proofTranslator,
+    ///      intentSettlementLayer) are not required.
     /// @return configured True if all required components have non-zero addresses
     function isFullyConfigured() external view returns (bool configured) {
-        return (verifierRegistry != address(0) &&
+        return (// Core privacy infrastructure
+        verifierRegistry != address(0) &&
+            universalVerifier != address(0) &&
             nullifierManager != address(0) &&
             shieldedPool != address(0) &&
             privacyRouter != address(0) &&
             zkBoundStateLocks != address(0) &&
-            crossDomainNullifierAlgebra != address(0));
+            crossDomainNullifierAlgebra != address(0) &&
+            // Cross-chain infrastructure
+            crossChainMessageRelay != address(0) &&
+            crossChainPrivacyHub != address(0) &&
+            bridgeProofValidator != address(0) &&
+            bridgeWatchtower != address(0) &&
+            multiProver != address(0) &&
+            proofCarryingContainer != address(0) &&
+            // Privacy features
+            stealthAddressRegistry != address(0) &&
+            privateRelayerNetwork != address(0) &&
+            complianceOracle != address(0));
     }
 
     /// @notice Get a summary of which components are configured

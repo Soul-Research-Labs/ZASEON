@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 
 /**
  * @title SoulProtocolHubTest
@@ -90,7 +91,7 @@ contract SoulProtocolHubTest is Test {
 
         assertEq(hub.getVerifier(verifierType), verifier);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+        ISoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
             verifierType
         );
         assertEq(info.verifier, verifier);
@@ -106,7 +107,7 @@ contract SoulProtocolHubTest is Test {
         vm.prank(operator);
         hub.registerVerifier(verifierType, verifier, 0);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+        ISoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
             verifierType
         );
         assertEq(info.gasLimit, 500_000, "Should default to 500k");
@@ -154,7 +155,7 @@ contract SoulProtocolHubTest is Test {
         vm.prank(operator);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SoulProtocolHub.BatchTooLarge.selector,
+                ISoulProtocolHub.BatchTooLarge.selector,
                 size,
                 50
             )
@@ -165,7 +166,7 @@ contract SoulProtocolHubTest is Test {
     function test_RevertVerifierZeroAddress() public {
         vm.prank(operator);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+            abi.encodeWithSelector(ISoulProtocolHub.ZeroAddress.selector)
         );
         hub.setVerifierRegistry(address(0));
     }
@@ -184,7 +185,7 @@ contract SoulProtocolHubTest is Test {
         assertEq(hub.getBridgeAdapter(chainId), adapter);
         assertTrue(hub.isChainSupported(chainId));
 
-        SoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(chainId);
+        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(chainId);
         assertEq(info.adapter, adapter);
         assertEq(info.chainId, chainId);
         assertTrue(info.supportsPrivacy);
@@ -250,7 +251,7 @@ contract SoulProtocolHubTest is Test {
     function test_RevertBridgeZeroAddress() public {
         vm.prank(operator);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+            abi.encodeWithSelector(ISoulProtocolHub.ZeroAddress.selector)
         );
         hub.registerBridgeAdapter(42161, address(0), true, 12);
     }
@@ -278,7 +279,7 @@ contract SoulProtocolHubTest is Test {
     function test_RevertPrivacyModuleZeroAddress() public {
         vm.prank(operator);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+            abi.encodeWithSelector(ISoulProtocolHub.ZeroAddress.selector)
         );
         hub.setStealthAddressRegistry(address(0));
     }
@@ -314,7 +315,7 @@ contract SoulProtocolHubTest is Test {
     function test_RevertShieldedPoolZeroAddress() public {
         vm.prank(operator);
         vm.expectRevert(
-            abi.encodeWithSelector(SoulProtocolHub.ZeroAddress.selector)
+            abi.encodeWithSelector(ISoulProtocolHub.ZeroAddress.selector)
         );
         hub.setShieldedPool(address(0));
     }
@@ -420,7 +421,7 @@ contract SoulProtocolHubTest is Test {
         vm.prank(guardian);
         hub.deactivateVerifier(verifierType);
 
-        SoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
+        ISoulProtocolHub.VerifierInfo memory info = hub.getVerifierInfo(
             verifierType
         );
         assertFalse(info.isActive);

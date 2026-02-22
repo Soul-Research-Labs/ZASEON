@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
+import "../../contracts/interfaces/ISoulProtocolHub.sol";
 
 /// @title SoulProtocolHubWiringTest
 /// @notice Tests SoulProtocolHub wireAll, isFullyConfigured, getComponentStatus
@@ -28,6 +29,8 @@ contract SoulProtocolHubWiringTest is Test {
     address constant PC3 = address(0x100F);
     address constant CDNA = address(0x1010);
     address constant PBP = address(0x1011);
+    address constant MULTI_PROVER = address(0x1012);
+    address constant BRIDGE_WATCH = address(0x1013);
 
     function setUp() public {
         hub = new SoulProtocolHub();
@@ -41,7 +44,7 @@ contract SoulProtocolHubWiringTest is Test {
     /// @notice wireAll sets all components in a single tx
     function test_WireAll() public {
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: VERIFIER_REG,
                 _universalVerifier: UNIVERSAL_VER,
                 _crossChainMessageRelay: MSG_RELAY,
@@ -87,29 +90,29 @@ contract SoulProtocolHubWiringTest is Test {
         assertEq(hub.policyBoundProofs(), PBP);
     }
 
-    /// @notice isFullyConfigured returns true after wireAll with critical components
+    /// @notice isFullyConfigured returns true after wireAll with all 16 critical components
     function test_IsFullyConfiguredAfterWire() public {
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: VERIFIER_REG,
-                _universalVerifier: address(0), // optional
-                _crossChainMessageRelay: address(0),
-                _crossChainPrivacyHub: address(0),
-                _stealthAddressRegistry: address(0),
-                _privateRelayerNetwork: address(0),
+                _universalVerifier: UNIVERSAL_VER,
+                _crossChainMessageRelay: MSG_RELAY,
+                _crossChainPrivacyHub: PRIVACY_HUB,
+                _stealthAddressRegistry: STEALTH_REG,
+                _privateRelayerNetwork: RELAYER_NET,
                 _viewKeyRegistry: address(0),
                 _shieldedPool: SHIELDED,
                 _nullifierManager: NULLIFIER_MGR,
-                _complianceOracle: address(0),
+                _complianceOracle: COMPLIANCE,
                 _proofTranslator: address(0),
                 _privacyRouter: PRIVACY_ROUTER,
-                _bridgeProofValidator: address(0),
+                _bridgeProofValidator: BRIDGE_VALIDATOR,
                 _zkBoundStateLocks: ZK_SLOCKS,
-                _proofCarryingContainer: address(0),
+                _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
                 _policyBoundProofs: address(0),
-                _multiProver: address(0),
-                _bridgeWatchtower: address(0),
+                _multiProver: MULTI_PROVER,
+                _bridgeWatchtower: BRIDGE_WATCH,
                 _intentSettlementLayer: address(0),
                 _instantSettlementGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
@@ -126,7 +129,7 @@ contract SoulProtocolHubWiringTest is Test {
 
         // Then wireAll with partial addresses (zeros are skipped)
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: address(0), // skip — keep existing
                 _universalVerifier: UNIVERSAL_VER,
                 _crossChainMessageRelay: address(0),
@@ -161,7 +164,7 @@ contract SoulProtocolHubWiringTest is Test {
     /// @notice getComponentStatus returns all 17 components
     function test_GetComponentStatus() public {
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: VERIFIER_REG,
                 _universalVerifier: UNIVERSAL_VER,
                 _crossChainMessageRelay: MSG_RELAY,
@@ -204,7 +207,7 @@ contract SoulProtocolHubWiringTest is Test {
         vm.prank(attacker);
         vm.expectRevert();
         hub.wireAll(
-            SoulProtocolHub.WireAllParams({
+            ISoulProtocolHub.WireAllParams({
                 _verifierRegistry: attacker,
                 _universalVerifier: address(0),
                 _crossChainMessageRelay: address(0),
@@ -239,7 +242,7 @@ contract SoulProtocolHubWiringTest is Test {
 
     /// @notice setPrivacyRouter reverts on zero address
     function test_SetPrivacyRouterRevertsZero() public {
-        vm.expectRevert(SoulProtocolHub.ZeroAddress.selector);
+        vm.expectRevert(ISoulProtocolHub.ZeroAddress.selector);
         hub.setPrivacyRouter(address(0));
     }
 }
