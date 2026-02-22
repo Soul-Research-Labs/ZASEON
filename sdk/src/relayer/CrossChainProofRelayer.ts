@@ -8,9 +8,10 @@ import {
   type Hex,
   type Log,
   type Chain,
-} from 'viem';
-import { arbitrumSepolia, baseSepolia } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
+} from "viem";
+import { arbitrumSepolia, baseSepolia } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+import type { DecodedEventArgs } from "../types/contracts";
 
 /**
  * Soul Protocol — Cross-Chain Proof Relayer MVP
@@ -39,23 +40,23 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 // ─── ABI: CrossChainProofHubV3 ─────────────────────────────────
 const PROOF_HUB_ABI = parseAbi([
-  'event ProofSubmitted(bytes32 indexed proofId, bytes32 commitment, uint64 sourceChainId, uint64 destChainId, address relayer)',
-  'event ProofDataEmitted(bytes32 indexed proofId, bytes proof, bytes publicInputs)',
-  'event ProofVerified(bytes32 indexed proofId, uint8 status)',
-  'event ProofFinalized(bytes32 indexed proofId)',
-  'event ProofRejected(bytes32 indexed proofId, string reason)',
-  'event ChallengeCreated(bytes32 indexed proofId, address indexed challenger, string reason)',
-  'event ChallengeResolved(bytes32 indexed proofId, bool challengerWon, address winner, uint256 reward)',
-  'event RelayerSlashed(address indexed relayer, uint256 amount)',
-  'function getProofStatus(bytes32 proofId) external view returns (uint8)',
-  'function proofCount() external view returns (uint256)',
+  "event ProofSubmitted(bytes32 indexed proofId, bytes32 commitment, uint64 sourceChainId, uint64 destChainId, address relayer)",
+  "event ProofDataEmitted(bytes32 indexed proofId, bytes proof, bytes publicInputs)",
+  "event ProofVerified(bytes32 indexed proofId, uint8 status)",
+  "event ProofFinalized(bytes32 indexed proofId)",
+  "event ProofRejected(bytes32 indexed proofId, string reason)",
+  "event ChallengeCreated(bytes32 indexed proofId, address indexed challenger, string reason)",
+  "event ChallengeResolved(bytes32 indexed proofId, bool challengerWon, address winner, uint256 reward)",
+  "event RelayerSlashed(address indexed relayer, uint256 amount)",
+  "function getProofStatus(bytes32 proofId) external view returns (uint8)",
+  "function proofCount() external view returns (uint256)",
 ]);
 
 // ─── ABI: SoulCrossChainRelay ───────────────────────────────────
 const RELAY_ABI = parseAbi([
-  'function relayProof(bytes32 proofId, bytes calldata proof, bytes calldata publicInputs, uint256 destChainId) external',
-  'event ProofRelayed(bytes32 indexed proofId, uint256 indexed destChainId, bytes32 messageId)',
-  'event ProofReceived(bytes32 indexed proofId, uint256 indexed sourceChainId)',
+  "function relayProof(bytes32 proofId, bytes calldata proof, bytes calldata publicInputs, uint256 destChainId) external",
+  "event ProofRelayed(bytes32 indexed proofId, uint256 indexed destChainId, bytes32 messageId)",
+  "event ProofReceived(bytes32 indexed proofId, uint256 indexed sourceChainId)",
 ]);
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -80,7 +81,14 @@ export interface RelayerMVPConfig {
 }
 
 export interface RelayerEvent {
-  type: 'proof_submitted' | 'proof_relayed' | 'proof_finalized' | 'proof_rejected' | 'challenge' | 'slashed' | 'error';
+  type:
+    | "proof_submitted"
+    | "proof_relayed"
+    | "proof_finalized"
+    | "proof_rejected"
+    | "challenge"
+    | "slashed"
+    | "error";
   proofId?: string;
   message: string;
   timestamp: number;
@@ -157,7 +165,7 @@ export class CrossChainProofRelayer {
     this.running = true;
     this.stats.startedAt = Date.now();
     this.emit({
-      type: 'proof_submitted',
+      type: "proof_submitted",
       message: `Relayer started: ${this.config.sourceChain.chainId} → ${this.config.destChain.chainId}`,
       timestamp: Date.now(),
     });
@@ -175,8 +183,8 @@ export class CrossChainProofRelayer {
   stop(): void {
     this.running = false;
     this.emit({
-      type: 'proof_submitted',
-      message: 'Relayer stopped',
+      type: "proof_submitted",
+      message: "Relayer stopped",
       timestamp: Date.now(),
     });
   }
@@ -197,7 +205,7 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'ProofSubmitted',
+      eventName: "ProofSubmitted",
       onLogs: async (logs) => {
         for (const log of logs) {
           await this.handleProofSubmitted(log);
@@ -205,7 +213,7 @@ export class CrossChainProofRelayer {
       },
       onError: (error) => {
         this.emit({
-          type: 'error',
+          type: "error",
           message: `ProofSubmitted watch error: ${error.message}`,
           timestamp: Date.now(),
         });
@@ -216,7 +224,7 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'ProofDataEmitted',
+      eventName: "ProofDataEmitted",
       onLogs: async (logs) => {
         for (const log of logs) {
           await this.handleProofData(log);
@@ -224,7 +232,7 @@ export class CrossChainProofRelayer {
       },
       onError: (error) => {
         this.emit({
-          type: 'error',
+          type: "error",
           message: `ProofDataEmitted watch error: ${error.message}`,
           timestamp: Date.now(),
         });
@@ -237,13 +245,13 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'ProofFinalized',
+      eventName: "ProofFinalized",
       onLogs: (logs) => {
         for (const log of logs) {
-          const args = (log as any).args;
+          const args = (log as unknown as { args: DecodedEventArgs }).args;
           this.emit({
-            type: 'proof_finalized',
-            proofId: args?.proofId,
+            type: "proof_finalized",
+            proofId: args?.proofId as string | undefined,
             message: `Proof finalized: ${args?.proofId}`,
             timestamp: Date.now(),
           });
@@ -255,16 +263,16 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'ProofRejected',
+      eventName: "ProofRejected",
       onLogs: (logs) => {
         for (const log of logs) {
-          const args = (log as any).args;
+          const args = (log as unknown as { args: DecodedEventArgs }).args;
           this.emit({
-            type: 'proof_rejected',
-            proofId: args?.proofId,
+            type: "proof_rejected",
+            proofId: args?.proofId as string | undefined,
             message: `Proof rejected: ${args?.proofId} — ${args?.reason}`,
             timestamp: Date.now(),
-            data: { reason: args?.reason },
+            data: { reason: args?.reason as string | undefined },
           });
         }
       },
@@ -274,16 +282,19 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'ChallengeCreated',
+      eventName: "ChallengeCreated",
       onLogs: (logs) => {
         for (const log of logs) {
-          const args = (log as any).args;
+          const args = (log as unknown as { args: DecodedEventArgs }).args;
           this.emit({
-            type: 'challenge',
-            proofId: args?.proofId,
+            type: "challenge",
+            proofId: args?.proofId as string | undefined,
             message: `Challenge on proof ${args?.proofId}: ${args?.reason}`,
             timestamp: Date.now(),
-            data: { challenger: args?.challenger, reason: args?.reason },
+            data: {
+              challenger: args?.challenger as string | undefined,
+              reason: args?.reason as string | undefined,
+            },
           });
         }
       },
@@ -293,12 +304,12 @@ export class CrossChainProofRelayer {
     this.sourceClient.watchContractEvent({
       address: this.config.proofHubAddress,
       abi: PROOF_HUB_ABI,
-      eventName: 'RelayerSlashed',
+      eventName: "RelayerSlashed",
       onLogs: (logs) => {
         for (const log of logs) {
-          const args = (log as any).args;
+          const args = (log as unknown as { args: DecodedEventArgs }).args;
           this.emit({
-            type: 'slashed',
+            type: "slashed",
             message: `Relayer slashed: ${args?.relayer} for ${args?.amount}`,
             timestamp: Date.now(),
             data: { relayer: args?.relayer, amount: args?.amount?.toString() },
@@ -311,11 +322,11 @@ export class CrossChainProofRelayer {
   // ─── Event Handlers ─────────────────────────────────────────
 
   private async handleProofSubmitted(log: Log): Promise<void> {
-    const args = (log as any).args;
+    const args = (log as unknown as { args: DecodedEventArgs }).args;
     if (!args) return;
 
-    const proofId: string = args.proofId;
-    const destChainId: bigint = args.destChainId;
+    const proofId: string = args.proofId as string;
+    const destChainId: bigint = args.destChainId as bigint;
 
     // Only relay proofs targeting our destination chain
     if (Number(destChainId) !== this.config.destChain.chainId) return;
@@ -325,7 +336,7 @@ export class CrossChainProofRelayer {
 
     this.stats.proofsDetected++;
     this.emit({
-      type: 'proof_submitted',
+      type: "proof_submitted",
       proofId,
       message: `New proof for dest chain ${destChainId}: ${proofId}`,
       timestamp: Date.now(),
@@ -339,10 +350,10 @@ export class CrossChainProofRelayer {
   }
 
   private async handleProofData(log: Log): Promise<void> {
-    const args = (log as any).args;
+    const args = (log as unknown as { args: DecodedEventArgs }).args;
     if (!args) return;
 
-    const proofId: string = args.proofId;
+    const proofId: string = args.proofId as string;
 
     // Skip already-processed proofs
     if (this.processedProofs.has(proofId)) return;
@@ -368,11 +379,11 @@ export class CrossChainProofRelayer {
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
         const hash = await this.walletClient.writeContract({
-            chain: this.walletClient!.chain ?? null,
-            account: this.walletClient!.account!,
+          chain: this.walletClient!.chain ?? null,
+          account: this.walletClient!.account!,
           address: this.config.relayAddress,
           abi: RELAY_ABI,
-          functionName: 'relayProof',
+          functionName: "relayProof",
           args: [
             proofId as Hex,
             proof,
@@ -387,10 +398,10 @@ export class CrossChainProofRelayer {
           confirmations: 1,
         });
 
-        if (receipt.status === 'success') {
+        if (receipt.status === "success") {
           this.stats.proofsRelayed++;
           this.emit({
-            type: 'proof_relayed',
+            type: "proof_relayed",
             proofId,
             message: `Proof relayed successfully: ${proofId} (tx: ${hash})`,
             timestamp: Date.now(),
@@ -403,7 +414,7 @@ export class CrossChainProofRelayer {
       } catch (error) {
         lastError = error as Error;
         this.emit({
-          type: 'error',
+          type: "error",
           proofId,
           message: `Relay attempt ${attempt}/${this.config.maxRetries} failed: ${lastError.message}`,
           timestamp: Date.now(),
@@ -418,7 +429,7 @@ export class CrossChainProofRelayer {
 
     this.stats.proofsFailed++;
     this.emit({
-      type: 'error',
+      type: "error",
       proofId,
       message: `Relay failed after ${this.config.maxRetries} attempts: ${lastError?.message}`,
       timestamp: Date.now(),
@@ -440,16 +451,18 @@ export class CrossChainProofRelayer {
 // ─── CLI Entry Point ──────────────────────────────────────────
 
 export async function startRelayerCLI(): Promise<void> {
-  const sourceRpc = process.env.SOURCE_RPC || 'http://localhost:8545';
-  const destRpc = process.env.DEST_RPC || 'http://localhost:8546';
-  const sourceChainId = parseInt(process.env.SOURCE_CHAIN_ID || '421614', 10);
-  const destChainId = parseInt(process.env.DEST_CHAIN_ID || '84532', 10);
+  const sourceRpc = process.env.SOURCE_RPC || "http://localhost:8545";
+  const destRpc = process.env.DEST_RPC || "http://localhost:8546";
+  const sourceChainId = parseInt(process.env.SOURCE_CHAIN_ID || "421614", 10);
+  const destChainId = parseInt(process.env.DEST_CHAIN_ID || "84532", 10);
   const proofHub = process.env.PROOF_HUB_ADDRESS as Address;
   const relayAddr = process.env.RELAY_ADDRESS as Address;
   const pk = process.env.RELAYER_PRIVATE_KEY as Hex;
 
   if (!proofHub || !relayAddr || !pk) {
-    console.error('Missing required env vars: PROOF_HUB_ADDRESS, RELAY_ADDRESS, RELAYER_PRIVATE_KEY');
+    console.error(
+      "Missing required env vars: PROOF_HUB_ADDRESS, RELAY_ADDRESS, RELAYER_PRIVATE_KEY",
+    );
     process.exit(1);
   }
 
@@ -462,11 +475,13 @@ export async function startRelayerCLI(): Promise<void> {
   });
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\nShutting down relayer...');
+  process.on("SIGINT", () => {
+    console.log("\nShutting down relayer...");
     relayer.stop();
     const stats = relayer.getStats();
-    console.log(`Final stats: ${stats.proofsRelayed} relayed, ${stats.proofsFailed} failed out of ${stats.proofsDetected} detected`);
+    console.log(
+      `Final stats: ${stats.proofsRelayed} relayed, ${stats.proofsFailed} failed out of ${stats.proofsDetected} detected`,
+    );
     process.exit(0);
   });
 
@@ -475,6 +490,6 @@ export async function startRelayerCLI(): Promise<void> {
 }
 
 // Run if invoked directly
-if (typeof require !== 'undefined' && require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   startRelayerCLI().catch(console.error);
 }

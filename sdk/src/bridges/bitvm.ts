@@ -4,7 +4,14 @@
  * and not yet available for production. This stub allows test compilation.
  */
 
-import { type Hex, type Address, keccak256, encodePacked } from "viem";
+import {
+  type Hex,
+  type Address,
+  type PublicClient,
+  type WalletClient,
+  keccak256,
+  encodePacked,
+} from "viem";
 
 export interface BitVMProofResponse {
   proofHash: Hex;
@@ -14,10 +21,14 @@ export interface BitVMProofResponse {
 
 export class BitVMBridgeClient {
   private bridgeAddress: Address;
-  private publicClient: any;
-  private walletClient: any;
+  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient | undefined;
 
-  constructor(bridgeAddress: Address, publicClient?: any, walletClient?: any) {
+  constructor(
+    bridgeAddress: Address,
+    publicClient?: PublicClient,
+    walletClient?: WalletClient,
+  ) {
     this.bridgeAddress = bridgeAddress;
     this.publicClient = publicClient;
     this.walletClient = walletClient;
@@ -38,7 +49,7 @@ export class BitVMBridgeClient {
     }
     // Attempt the contract call — will fail on dummy RPC but tests the path
     try {
-      await this.publicClient.readContract({
+      await this.publicClient?.readContract({
         address: this.bridgeAddress,
         abi: [
           {

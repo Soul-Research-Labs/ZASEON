@@ -320,7 +320,7 @@ export class SoulProtocolClient {
       abi: ZK_BOUND_STATE_LOCKS_ABI,
       functionName: "locks",
       args: [lockId],
-    })) as any;
+    })) as unknown as LockInfo;
 
     return {
       commitment: lock.commitment,

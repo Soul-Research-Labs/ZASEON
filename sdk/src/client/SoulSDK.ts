@@ -1,11 +1,18 @@
-import { CryptoModule, SoulConfig, SendParams, Receipt, CircuitInputs, CircuitWitnesses } from "../utils/crypto";
-import { 
-  SoulError, 
-  SoulErrorCode, 
-  withRetry, 
-  withTimeout, 
+import {
+  CryptoModule,
+  SoulConfig,
+  SendParams,
+  Receipt,
+  CircuitInputs,
+  CircuitWitnesses,
+} from "../utils/crypto";
+import {
+  SoulError,
+  SoulErrorCode,
+  withRetry,
+  withTimeout,
   withRetryAndTimeout,
-  RetryOptions 
+  RetryOptions,
 } from "../utils/errors";
 
 /** Proof generation result */
@@ -50,7 +57,7 @@ export class ProverModule {
    */
   async generateProof(
     params: ProofParams,
-    retryOptions?: RetryOptions
+    retryOptions?: RetryOptions,
   ): Promise<ProofResult> {
     return withRetryAndTimeout(
       async () => {
@@ -58,7 +65,7 @@ export class ProverModule {
           throw new SoulError(
             "Circuit identifier is required",
             SoulErrorCode.INVALID_INPUT,
-            { context: { params } }
+            { context: { params } },
           );
         }
 
@@ -78,7 +85,7 @@ export class ProverModule {
           throw new SoulError(
             `Prover service returned ${res.status}: ${body}`,
             SoulErrorCode.PROOF_GENERATION_FAILED,
-            { context: { status: res.status } }
+            { context: { status: res.status } },
           );
         }
 
@@ -96,11 +103,11 @@ export class ProverModule {
         onRetry: (error, attempt, delay) => {
           console.warn(
             `Proof generation failed (attempt ${attempt}), retrying in ${delay}ms:`,
-            error.message
+            error.message,
           );
           retryOptions?.onRetry?.(error, attempt, delay);
         },
-      }
+      },
     );
   }
 
@@ -117,7 +124,7 @@ export class ProverModule {
         if (!proof.proof || proof.proof.length === 0) {
           throw new SoulError(
             "Invalid proof: empty proof buffer",
-            SoulErrorCode.INVALID_PROOF
+            SoulErrorCode.INVALID_PROOF,
           );
         }
 
@@ -134,7 +141,7 @@ export class ProverModule {
         if (!res.ok) {
           throw new SoulError(
             `Verification service returned ${res.status}`,
-            SoulErrorCode.INVALID_PROOF
+            SoulErrorCode.INVALID_PROOF,
           );
         }
 
@@ -142,7 +149,7 @@ export class ProverModule {
         return data.valid === true;
       },
       10000, // 10 second timeout for verification
-      "proof verification"
+      "proof verification",
     );
   }
 }
@@ -169,7 +176,7 @@ export class RelayerClient {
   async send(
     packet: RelayerPacket,
     opts: RelayerOptions,
-    retryOptions?: RetryOptions
+    retryOptions?: RetryOptions,
   ): Promise<Receipt> {
     return withRetryAndTimeout(
       async () => {
@@ -177,13 +184,13 @@ export class RelayerClient {
         if (!packet.encryptedState || packet.encryptedState.length === 0) {
           throw new SoulError(
             "Invalid packet: empty encrypted state",
-            SoulErrorCode.INVALID_INPUT
+            SoulErrorCode.INVALID_INPUT,
           );
         }
         if (!packet.destChain) {
           throw new SoulError(
             "Invalid packet: destination chain is required",
-            SoulErrorCode.INVALID_INPUT
+            SoulErrorCode.INVALID_INPUT,
           );
         }
 
@@ -196,7 +203,9 @@ export class RelayerClient {
             mac: packet.mac.toString("hex"),
             proof: {
               proof: Buffer.from(packet.proof.proof).toString("hex"),
-              publicInputs: Buffer.from(packet.proof.publicInputs).toString("hex"),
+              publicInputs: Buffer.from(packet.proof.publicInputs).toString(
+                "hex",
+              ),
             },
             sourceChain: packet.sourceChain,
             destChain: packet.destChain,
@@ -228,11 +237,11 @@ export class RelayerClient {
         onRetry: (error, attempt, delay) => {
           console.warn(
             `Relay failed (attempt ${attempt}), retrying in ${delay}ms:`,
-            error.message
+            error.message,
           );
           retryOptions?.onRetry?.(error, attempt, delay);
         },
-      }
+      },
     );
   }
 
@@ -244,17 +253,18 @@ export class RelayerClient {
    */
   async subscribe(
     chainId: string,
-    callback: (packet: RelayerPacket) => void
+    callback: (packet: RelayerPacket) => void,
   ): Promise<Subscription> {
     if (!chainId) {
       throw new SoulError(
         "Chain ID is required for subscription",
-        SoulErrorCode.INVALID_INPUT
+        SoulErrorCode.INVALID_INPUT,
       );
     }
 
     // Subscribe via WebSocket for real-time packet delivery
-    const wsUrl = this.endpoint.replace(/^http/, "ws") + `/subscribe/${chainId}`;
+    const wsUrl =
+      this.endpoint.replace(/^http/, "ws") + `/subscribe/${chainId}`;
     let ws: WebSocket | null = null;
 
     try {
@@ -316,7 +326,10 @@ export class SoulSDK {
   async sendPrivateState(params: SendParams): Promise<Receipt> {
     // 1. Serialize and encrypt state
     const serializedState = Buffer.from(JSON.stringify(params.payload));
-    const { ciphertext, ephemeralKey, mac } = await this.crypto.encrypt(serializedState, params.destChain);
+    const { ciphertext, ephemeralKey, mac } = await this.crypto.encrypt(
+      serializedState,
+      params.destChain,
+    );
 
     // 2. Generate validity proof
     const proof = await this.prover.generateProof({
@@ -342,20 +355,28 @@ export class SoulSDK {
     });
   }
 
-  async receivePrivateState(chainId: string, callback: StateCallback): Promise<Subscription> {
+  async receivePrivateState(
+    chainId: string,
+    callback: StateCallback,
+  ): Promise<Subscription> {
     return this.relayer.subscribe(chainId, async (packet: RelayerPacket) => {
       // Decrypt with ECIES using receiver's private key
       let decrypted: Buffer;
       try {
-        const privateKeyBuf = Buffer.from(this.config.privateKey.replace(/^0x/, ''), 'hex');
+        const privateKeyBuf = Buffer.from(
+          this.config.privateKey.replace(/^0x/, ""),
+          "hex",
+        );
         decrypted = await this.crypto.decrypt(
           packet.encryptedState,
           packet.ephemeralKey,
           packet.mac,
-          privateKeyBuf
+          privateKeyBuf,
         );
-      } catch (e: any) {
-        console.error(`Decryption failed: ${e.message}`);
+      } catch (e: unknown) {
+        console.error(
+          `Decryption failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
         return; // Skip this packet — cannot decrypt
       }
 

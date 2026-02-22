@@ -36,9 +36,13 @@ try {
     throw new Error("React is required to use Soul SDK hooks");
   };
   React = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useState: missing as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useCallback: missing as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useRef: missing as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useEffect: missing as any,
   };
 }
@@ -124,6 +128,7 @@ export interface UseSoulProverReturn {
 
 /** Lazily create a SoulProtocolClient, memoised by rpcUrl+chainId+signer */
 function useSoulClient(config: SoulConfig) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientRef = React.useRef<any>(null);
 
   if (!clientRef.current) {
@@ -280,6 +285,7 @@ export function useSoulBridge(config: SoulConfig): UseSoulBridgeReturn {
 export function useSoulProver(config: SoulConfig): UseSoulProverReturn {
   const [isProving, setIsProving] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const proverRef = React.useRef<any>(null);
 
   // Initialise the NoirProver on first mount

@@ -4,7 +4,20 @@
  *
  * @title Shielded Pool Invariants and Rules
  * @notice Verifies TVL safety, nullifier uniqueness, Merkle tree monotonicity,
- *         and test mode security properties.
+ *         commitment uniqueness, test mode security, and pausability properties.
+ *
+ * @dev Contract function signatures (actual):
+ *   - depositETH(bytes32 commitment) external payable
+ *   - depositERC20(bytes32 assetId, uint256 amount, bytes32 commitment) external
+ *   - withdraw(WithdrawalProof calldata wp) external
+ *   - insertCrossChainCommitments(CrossChainCommitmentBatch calldata batch) external
+ *   - disableTestMode() external
+ *   - registerAsset(bytes32 assetId, address tokenAddress) external
+ *   - pause() / unpause() external
+ *
+ * WithdrawalProof struct:
+ *   (bytes proof, bytes32 merkleRoot, bytes32 nullifier, address recipient,
+ *    address relayerAddress, uint256 amount, uint256 relayerFee, bytes32 assetId, bytes32 destChainId)
  */
 
 // =============================================================================
@@ -12,51 +25,52 @@
 // =============================================================================
 
 methods {
-    // View functions
+    // View functions (envfree)
     function nextLeafIndex() external returns (uint256) envfree;
-    function getCurrentRoot() external returns (bytes32) envfree;
+    function currentRoot() external returns (bytes32) envfree;
+    function getLastRoot() external returns (bytes32) envfree;
     function isKnownRoot(bytes32) external returns (bool) envfree;
     function isSpent(bytes32) external returns (bool) envfree;
-    function totalDeposited() external returns (uint256) envfree;
-    function totalWithdrawn() external returns (uint256) envfree;
+    function commitmentExists(bytes32) external returns (bool) envfree;
     function testMode() external returns (bool) envfree;
     function paused() external returns (bool) envfree;
+    function totalDeposits() external returns (uint256) envfree;
+    function totalWithdrawals() external returns (uint256) envfree;
+    function totalCrossChainDeposits() external returns (uint256) envfree;
     function TREE_DEPTH() external returns (uint256) envfree;
-    function MAX_DEPOSIT_AMOUNT() external returns (uint256) envfree;
+    function MAX_DEPOSIT() external returns (uint256) envfree;
+    function MIN_DEPOSIT() external returns (uint256) envfree;
+    function ROOT_HISTORY_SIZE() external returns (uint256) envfree;
 
     // State-changing functions
-    function deposit(bytes32, address, uint256) external;
-    function withdraw(bytes32, address, address, uint256, bytes32, bytes) external;
+    function depositETH(bytes32) external;
+    function depositERC20(bytes32, uint256, bytes32) external;
+    function withdraw(IUniversalShieldedPool.WithdrawalProof) external;
     function disableTestMode() external;
     function pause() external;
     function unpause() external;
+    function registerAsset(bytes32, address) external;
+    function deactivateAsset(bytes32) external;
+    function setWithdrawalVerifier(address) external;
+    function setBatchVerifier(address) external;
+    function setSanctionsOracle(address) external;
 }
 
 // =============================================================================
-// GHOSTS
+// GHOSTS & HOOKS
 // =============================================================================
 
-// Track total value deposited
-ghost uint256 ghostTotalDeposited {
-    init_state axiom ghostTotalDeposited == 0;
-}
-
-// Track total value withdrawn
-ghost uint256 ghostTotalWithdrawn {
-    init_state axiom ghostTotalWithdrawn == 0;
-}
-
-// Track nullifier consumption
+/// @dev Ghost tracking the nullifier mapping state
 ghost mapping(bytes32 => bool) ghostNullifierSpent {
     init_state axiom forall bytes32 n. ghostNullifierSpent[n] == false;
 }
 
-// Track leaf index monotonicity
+/// @dev Ghost tracking the leaf index (monotonic)
 ghost uint256 ghostLeafIndex {
     init_state axiom ghostLeafIndex == 0;
 }
 
-// Track test mode state
+/// @dev Ghost tracking test mode state
 ghost bool ghostTestMode;
 
 // =============================================================================
@@ -64,61 +78,70 @@ ghost bool ghostTestMode;
 // =============================================================================
 
 /**
- * INV-POOL-001: TVL Safety - Total withdrawals never exceed total deposits.
- * This is the most critical invariant: the pool cannot lose more than it received.
- */
-invariant tvlSafety()
-    totalWithdrawn() <= totalDeposited()
-    {
-        preserved withdraw(bytes32 n, address r, address rel, uint256 fee, bytes32 root, bytes proof)
-            with (env e) {
-            require totalWithdrawn() <= totalDeposited();
-        }
-    }
-
-/**
- * INV-POOL-002: Leaf index monotonicity - The next leaf index only increases.
- * Merkle tree is append-only.
+ * INV-POOL-001: Leaf index monotonicity — nextLeafIndex only increases.
+ * The Merkle tree is append-only; commitments can never be removed.
  */
 invariant leafIndexMonotonicity()
-    nextLeafIndex() >= 0
+    to_mathint(nextLeafIndex()) >= 0
     {
-        preserved deposit(bytes32 c, address a, uint256 amt) with (env e) {
-            require nextLeafIndex() < 2^32 - 1; // Capacity check
+        preserved depositETH(bytes32 c) with (env e) {
+            require to_mathint(nextLeafIndex()) < 2^32 - 1;
+        }
+        preserved depositERC20(bytes32 a, uint256 amt, bytes32 c) with (env e) {
+            require to_mathint(nextLeafIndex()) < 2^32 - 1;
         }
     }
 
 /**
- * INV-POOL-003: Tree depth is constant (32).
+ * INV-POOL-002: Tree depth constant.
+ * TREE_DEPTH immutable must always be 32.
  */
 invariant treeDepthConstant()
     TREE_DEPTH() == 32;
+
+/**
+ * INV-POOL-003: Root history size constant.
+ * ROOT_HISTORY_SIZE immutable must always be 100.
+ */
+invariant rootHistorySizeConstant()
+    ROOT_HISTORY_SIZE() == 100;
+
+/**
+ * INV-POOL-004: Deposit bounds are constant.
+ * MAX_DEPOSIT = 10000 ether, MIN_DEPOSIT = 0.001 ether.
+ */
+invariant depositBoundsConstant()
+    MAX_DEPOSIT() == 10000000000000000000000 && MIN_DEPOSIT() == 1000000000000000;
+
+/**
+ * INV-POOL-005: Deposit count consistency.
+ * totalDeposits is always <= nextLeafIndex (some leaves may come from cross-chain insertions).
+ */
+invariant depositCountConsistency()
+    to_mathint(totalDeposits()) + to_mathint(totalCrossChainDeposits()) <= to_mathint(nextLeafIndex());
 
 // =============================================================================
 // NULLIFIER RULES
 // =============================================================================
 
 /**
- * RULE-POOL-001: Nullifier uniqueness - A nullifier can only be consumed once.
- * This prevents double-spend attacks.
+ * RULE-POOL-001: Nullifier uniqueness — a withdrawal with an already-spent nullifier reverts.
+ * Prevents double-spend attacks which are the primary threat to shielded pools.
  */
-rule nullifierUniqueness(bytes32 nullifierHash) {
-    require isSpent(nullifierHash) == true;
-
+rule nullifierDoubleSpendReverts() {
     env e;
-    bytes32 root;
-    address recipient;
-    address relayer;
-    uint256 fee;
-    bytes proof;
+    IUniversalShieldedPool.WithdrawalProof wp;
 
-    withdraw@withrevert(e, nullifierHash, recipient, relayer, fee, root, proof);
+    require isSpent(wp.nullifier) == true;
+
+    withdraw@withrevert(e, wp);
 
     assert lastReverted, "Must revert when nullifier already spent";
 }
 
 /**
- * RULE-POOL-002: Nullifier permanence - Once spent, always spent.
+ * RULE-POOL-002: Nullifier permanence — once spent, always spent.
+ * No function call should ever clear a spent nullifier.
  */
 rule nullifierPermanence(bytes32 nullifierHash, method f) filtered { f -> !f.isView } {
     require isSpent(nullifierHash) == true;
@@ -130,52 +153,106 @@ rule nullifierPermanence(bytes32 nullifierHash, method f) filtered { f -> !f.isV
     assert isSpent(nullifierHash) == true, "Spent nullifier must remain spent";
 }
 
+/**
+ * RULE-POOL-003: Successful withdrawal marks nullifier as spent.
+ */
+rule withdrawalMarksNullifierSpent() {
+    env e;
+    IUniversalShieldedPool.WithdrawalProof wp;
+
+    require isSpent(wp.nullifier) == false;
+
+    withdraw(e, wp);
+
+    assert isSpent(wp.nullifier) == true, "Withdrawal must mark nullifier as spent";
+}
+
 // =============================================================================
 // DEPOSIT RULES
 // =============================================================================
 
 /**
- * RULE-POOL-003: Deposit increases leaf index.
+ * RULE-POOL-004: ETH deposit increments leaf index by exactly 1.
  */
-rule depositIncreasesLeafIndex(bytes32 commitment, address asset, uint256 amount) {
+rule depositETHIncreasesLeafIndex(bytes32 commitment) {
     uint256 indexBefore = nextLeafIndex();
-    
+
     env e;
-    deposit(e, commitment, asset, amount);
-    
+    depositETH(e, commitment);
+
     uint256 indexAfter = nextLeafIndex();
-    
-    assert indexAfter == indexBefore + 1, "Deposit must increment leaf index by 1";
+
+    assert to_mathint(indexAfter) == to_mathint(indexBefore) + 1,
+        "depositETH must increment leaf index by exactly 1";
 }
 
 /**
- * RULE-POOL-004: Deposit increases total deposited.
+ * RULE-POOL-005: ERC20 deposit increments leaf index by exactly 1.
  */
-rule depositIncreasesTotalDeposited(bytes32 commitment, address asset, uint256 amount) {
-    uint256 totalBefore = totalDeposited();
-    
+rule depositERC20IncreasesLeafIndex(bytes32 assetId, uint256 amount, bytes32 commitment) {
+    uint256 indexBefore = nextLeafIndex();
+
     env e;
-    require amount > 0;
-    deposit(e, commitment, asset, amount);
-    
-    uint256 totalAfter = totalDeposited();
-    
-    assert totalAfter > totalBefore, "Deposit must increase total deposited";
+    depositERC20(e, assetId, amount, commitment);
+
+    uint256 indexAfter = nextLeafIndex();
+
+    assert to_mathint(indexAfter) == to_mathint(indexBefore) + 1,
+        "depositERC20 must increment leaf index by exactly 1";
 }
 
 /**
- * RULE-POOL-005: Deposit changes Merkle root.
+ * RULE-POOL-006: ETH deposit increments totalDeposits counter.
  */
-rule depositChangesRoot(bytes32 commitment, address asset, uint256 amount) {
-    bytes32 rootBefore = getCurrentRoot();
-    
+rule depositETHIncrementsTotalDeposits(bytes32 commitment) {
+    uint256 countBefore = totalDeposits();
+
     env e;
-    require amount > 0;
-    deposit(e, commitment, asset, amount);
-    
-    bytes32 rootAfter = getCurrentRoot();
-    
-    assert rootAfter != rootBefore, "Deposit must change Merkle root";
+    depositETH(e, commitment);
+
+    uint256 countAfter = totalDeposits();
+
+    assert to_mathint(countAfter) == to_mathint(countBefore) + 1,
+        "depositETH must increment totalDeposits by exactly 1";
+}
+
+/**
+ * RULE-POOL-007: ETH deposit changes the Merkle root.
+ */
+rule depositETHChangesRoot(bytes32 commitment) {
+    bytes32 rootBefore = getLastRoot();
+
+    env e;
+    depositETH(e, commitment);
+
+    bytes32 rootAfter = getLastRoot();
+
+    assert rootAfter != rootBefore, "depositETH must change Merkle root";
+}
+
+/**
+ * RULE-POOL-008: After any deposit, the new root is a known root.
+ */
+rule depositMakesRootKnown(bytes32 commitment) {
+    env e;
+    depositETH(e, commitment);
+
+    bytes32 newRoot = getLastRoot();
+
+    assert isKnownRoot(newRoot) == true,
+        "New root after deposit must be recognized as known";
+}
+
+/**
+ * RULE-POOL-009: Commitment uniqueness — depositing a duplicate commitment reverts.
+ */
+rule commitmentUniqueness(bytes32 commitment) {
+    require commitmentExists(commitment) == true;
+
+    env e;
+    depositETH@withrevert(e, commitment);
+
+    assert lastReverted, "Duplicate commitment must revert";
 }
 
 // =============================================================================
@@ -183,33 +260,33 @@ rule depositChangesRoot(bytes32 commitment, address asset, uint256 amount) {
 // =============================================================================
 
 /**
- * RULE-POOL-006: Withdrawal requires known root.
+ * RULE-POOL-010: Withdrawal requires a known Merkle root.
  */
-rule withdrawalRequiresKnownRoot(
-    bytes32 nullifierHash, address recipient, address relayer,
-    uint256 fee, bytes32 root, bytes proof
-) {
-    require isKnownRoot(root) == false;
-
+rule withdrawalRequiresKnownRoot() {
     env e;
-    withdraw@withrevert(e, nullifierHash, recipient, relayer, fee, root, proof);
+    IUniversalShieldedPool.WithdrawalProof wp;
 
-    assert lastReverted, "Withdrawal must revert with unknown root";
+    require isKnownRoot(wp.merkleRoot) == false;
+
+    withdraw@withrevert(e, wp);
+
+    assert lastReverted, "Withdrawal must revert with unknown Merkle root";
 }
 
 /**
- * RULE-POOL-007: Withdrawal marks nullifier as spent.
+ * RULE-POOL-011: Successful withdrawal increments totalWithdrawals counter.
  */
-rule withdrawalMarksNullifierSpent(
-    bytes32 nullifierHash, address recipient, address relayer,
-    uint256 fee, bytes32 root, bytes proof
-) {
-    require isSpent(nullifierHash) == false;
+rule withdrawalIncrementsTotalWithdrawals() {
+    uint256 countBefore = totalWithdrawals();
 
     env e;
-    withdraw(e, nullifierHash, recipient, relayer, fee, root, proof);
+    IUniversalShieldedPool.WithdrawalProof wp;
+    withdraw(e, wp);
 
-    assert isSpent(nullifierHash) == true, "Withdrawal must mark nullifier as spent";
+    uint256 countAfter = totalWithdrawals();
+
+    assert to_mathint(countAfter) == to_mathint(countBefore) + 1,
+        "withdraw must increment totalWithdrawals by exactly 1";
 }
 
 // =============================================================================
@@ -217,7 +294,7 @@ rule withdrawalMarksNullifierSpent(
 // =============================================================================
 
 /**
- * RULE-POOL-008: disableTestMode is irreversible.
+ * RULE-POOL-012: disableTestMode is irreversible — once false, no function can set it back.
  */
 rule testModeIrreversible(method f) filtered { f -> !f.isView } {
     require testMode() == false;
@@ -230,7 +307,7 @@ rule testModeIrreversible(method f) filtered { f -> !f.isView } {
 }
 
 /**
- * RULE-POOL-009: disableTestMode transitions from true to false.
+ * RULE-POOL-013: disableTestMode transitions from true to false.
  */
 rule disableTestModeTransition() {
     require testMode() == true;
@@ -241,33 +318,129 @@ rule disableTestModeTransition() {
     assert testMode() == false, "disableTestMode must set testMode to false";
 }
 
+/**
+ * RULE-POOL-014: Deposits revert when test mode is active.
+ * This prevents loss of real funds when proof verification is bypassed.
+ */
+rule depositsBlockedInTestMode(bytes32 commitment) {
+    require testMode() == true;
+
+    env e;
+    depositETH@withrevert(e, commitment);
+
+    assert lastReverted, "depositETH must revert when testMode is true";
+}
+
 // =============================================================================
 // PAUSABILITY RULES
 // =============================================================================
 
 /**
- * RULE-POOL-010: Deposits revert when paused.
+ * RULE-POOL-015: ETH deposits revert when paused.
  */
-rule depositRevertsWhenPaused(bytes32 commitment, address asset, uint256 amount) {
+rule depositETHRevertsWhenPaused(bytes32 commitment) {
     require paused() == true;
 
     env e;
-    deposit@withrevert(e, commitment, asset, amount);
+    depositETH@withrevert(e, commitment);
 
-    assert lastReverted, "Deposit must revert when contract is paused";
+    assert lastReverted, "depositETH must revert when contract is paused";
 }
 
 /**
- * RULE-POOL-011: Withdrawals revert when paused.
+ * RULE-POOL-016: ERC20 deposits revert when paused.
  */
-rule withdrawRevertsWhenPaused(
-    bytes32 nullifierHash, address recipient, address relayer,
-    uint256 fee, bytes32 root, bytes proof
-) {
+rule depositERC20RevertsWhenPaused(bytes32 assetId, uint256 amount, bytes32 commitment) {
     require paused() == true;
 
     env e;
-    withdraw@withrevert(e, nullifierHash, recipient, relayer, fee, root, proof);
+    depositERC20@withrevert(e, assetId, amount, commitment);
+
+    assert lastReverted, "depositERC20 must revert when contract is paused";
+}
+
+/**
+ * RULE-POOL-017: Withdrawals revert when paused.
+ */
+rule withdrawRevertsWhenPaused() {
+    require paused() == true;
+
+    env e;
+    IUniversalShieldedPool.WithdrawalProof wp;
+    withdraw@withrevert(e, wp);
 
     assert lastReverted, "Withdrawal must revert when contract is paused";
+}
+
+// =============================================================================
+// ADMIN SECURITY RULES
+// =============================================================================
+
+/**
+ * RULE-POOL-018: setWithdrawalVerifier rejects zero address.
+ */
+rule verifierRejectsZeroAddress() {
+    env e;
+    setWithdrawalVerifier@withrevert(e, 0);
+
+    assert lastReverted, "setWithdrawalVerifier must reject zero address";
+}
+
+/**
+ * RULE-POOL-019: setBatchVerifier rejects zero address.
+ */
+rule batchVerifierRejectsZeroAddress() {
+    env e;
+    setBatchVerifier@withrevert(e, 0);
+
+    assert lastReverted, "setBatchVerifier must reject zero address";
+}
+
+/**
+ * RULE-POOL-020: Leaf index never decreases across any state transition.
+ * Strengthened monotonicity: checks all non-view functions.
+ */
+rule leafIndexNeverDecreases(method f) filtered { f -> !f.isView } {
+    uint256 indexBefore = nextLeafIndex();
+
+    env e;
+    calldataarg args;
+    f(e, args);
+
+    uint256 indexAfter = nextLeafIndex();
+
+    assert to_mathint(indexAfter) >= to_mathint(indexBefore),
+        "Leaf index must never decrease";
+}
+
+/**
+ * RULE-POOL-021: totalDeposits counter never decreases.
+ */
+rule totalDepositsNeverDecreases(method f) filtered { f -> !f.isView } {
+    uint256 before = totalDeposits();
+
+    env e;
+    calldataarg args;
+    f(e, args);
+
+    uint256 after = totalDeposits();
+
+    assert to_mathint(after) >= to_mathint(before),
+        "totalDeposits must never decrease";
+}
+
+/**
+ * RULE-POOL-022: totalWithdrawals counter never decreases.
+ */
+rule totalWithdrawalsNeverDecreases(method f) filtered { f -> !f.isView } {
+    uint256 before = totalWithdrawals();
+
+    env e;
+    calldataarg args;
+    f(e, args);
+
+    uint256 after = totalWithdrawals();
+
+    assert to_mathint(after) >= to_mathint(before),
+        "totalWithdrawals must never decrease";
 }

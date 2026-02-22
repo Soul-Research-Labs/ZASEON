@@ -12,6 +12,18 @@ export {
   type PaymentAnnouncement,
 } from "./StealthAddressClient";
 
+// Stealth Address Registry client (full contract API)
+export {
+  StealthAddressRegistryClient,
+  CurveType,
+  KeyStatus,
+  type StealthMetaAddressRecord,
+  type AnnouncementRecord,
+  type DualKeyStealthRecord,
+  type CrossChainStealthBinding,
+  type RegistryStats,
+} from "./StealthAddressRegistryClient";
+
 // RingCT exports
 export {
   RingCTClient,

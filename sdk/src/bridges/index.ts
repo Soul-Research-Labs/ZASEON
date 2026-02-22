@@ -38,6 +38,7 @@ import { POLYGON_ZKEVM_BRIDGE_ADAPTER_ABI } from "./polygon-zkevm";
 import { ETHEREUM_L1_BRIDGE_ABI } from "./ethereum";
 
 /** Maps chain names to their chain-specific bridge ABIs */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CHAIN_ABI_MAP: Record<string, readonly any[]> = {
   arbitrum: ARBITRUM_BRIDGE_ADAPTER_ABI,
   "arbitrum-one": ARBITRUM_BRIDGE_ADAPTER_ABI,
@@ -247,6 +248,7 @@ const CHAIN_CONFIGS: Record<SupportedChain, BridgeAdapterConfig> = {
  */
 export class L2BridgeAdapter extends BaseBridgeAdapter {
   private readonly bridgeAddress: Address;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly abi: readonly any[];
 
   constructor(
@@ -254,6 +256,7 @@ export class L2BridgeAdapter extends BaseBridgeAdapter {
     publicClient: PublicClient,
     walletClient: WalletClient | undefined,
     bridgeAddress: Address,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     abi: readonly any[] = ARBITRUM_BRIDGE_ADAPTER_ABI,
   ) {
     super(config, publicClient, walletClient);

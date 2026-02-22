@@ -11,13 +11,30 @@ import {ICrossChainProofHubV3, BatchProofInput} from "../interfaces/ICrossChainP
 /// @title CrossChainProofHubV3
 /// @author Soul Protocol
 /// @notice Production-ready cross-chain proof relay with optimistic verification and dispute resolution
-/// @dev Implements batching, challenge periods, and gas-efficient proof storage
+/// @dev Implements a stake-and-slash model for proof submission with a configurable challenge period.
 ///
-/// Security Features:
-/// - Manual circuit breaker (maxProofsPerHour, maxValuePerHour)
-/// - SecurityModule integration (rate limiting, flash loan guard)
-/// - TOCTOU protection via relayerPendingProofs
-/// - Challenge period for optimistic verification
+/// ARCHITECTURE:
+///   Relayer submits proof → Pending (challenge period) → Verified → Finalized
+///   If challenged during Pending → Challenged → resolveChallenge() → Verified or Rejected
+///
+/// PROOF LIFECYCLE:
+///   1. Relayer deposits stake via `depositStake()`
+///   2. Relayer submits proof via `submitProof()` (optimistic) or `submitProofInstant()` (instant)
+///   3. During the challenge period, anyone with `CHALLENGER_ROLE` can call `challengeProof()`
+///   4. If challenged, the challenger calls `resolveChallenge()` which invokes the on-chain verifier
+///   5. After the challenge period (or successful challenge resolution), `finalizeProof()` marks
+///      the proof as finalized, incrementing the relayer's success count
+///
+/// SECURITY FEATURES:
+///   - Role separation: `confirmRoleSeparation()` must be called before accepting proofs,
+///     ensuring RELAYER, CHALLENGER, and ADMIN roles are held by different addresses
+///   - Circuit breaker: `maxProofsPerHour` and `maxValuePerHour` rate limits
+///   - TOCTOU protection: `relayerPendingProofs` prevents stake withdrawal while proofs are pending
+///   - SecurityModule integration: configurable rate limiting, flash loan guard, circuit breakers
+///   - Verifier pinning: challenges use proof-type-specific verifiers without fallback to default,
+///     preventing verifier bypass attacks
+///
+/// @custom:security-contact security@soul.network
 contract CrossChainProofHubV3 is
     AccessControl,
     ReentrancyGuard,
@@ -181,7 +198,10 @@ contract CrossChainProofHubV3 is
     }
 
     /// @notice Mark roles as properly separated (must be called before enabling full operations)
-    /// @dev Prevents accidental mainnet deployment with centralized control
+    /// @dev Prevents accidental mainnet deployment with centralized control (Ronin-style attack
+    ///      prevention). Verifies that the calling admin does NOT hold RELAYER_ROLE or
+    ///      CHALLENGER_ROLE — these must be assigned to independent parties before any proof
+    ///      submissions are accepted. Irreversible: once set, `rolesSeparated` cannot be reset.
     function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
         // Verify critical roles are NOT held by admin
         if (hasRole(RELAYER_ROLE, msg.sender)) revert AdminNotAllowed();
@@ -193,16 +213,21 @@ contract CrossChainProofHubV3 is
                         RELAYER STAKE MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Deposits stake as a relayer
-    /// @dev Uses nonReentrant for defense-in-depth against reentrancy attacks
+    /// @notice Deposits ETH as relayer stake, enabling proof submission
+    /// @dev Stake can be slashed if submitted proofs are proved invalid via challenge.
+    ///      Uses nonReentrant for defense-in-depth. No minimum deposit required, but
+    ///      total stake must be >= `minRelayerStake` to submit proofs.
     function depositStake() external payable nonReentrant {
         relayerStakes[msg.sender] += msg.value;
         emit RelayerStakeDeposited(msg.sender, msg.value);
     }
 
-    /// @notice Withdraws relayer stake
-    /// @param amount Amount to withdraw
-    /// @dev Includes TOCTOU protection: cannot withdraw while proofs are pending
+    /// @notice Withdraws relayer stake back to the caller
+    /// @dev TOCTOU protection: if the relayer has pending (unchallengeable) proofs, the
+    ///      remaining stake after withdrawal must still meet `minRelayerStake`. This prevents
+    ///      relayers from submitting a bad proof and immediately withdrawing stake before it
+    ///      can be slashed. Uses CEI pattern: state updated before ETH transfer.
+    /// @param amount Amount of stake to withdraw (must be <= current stake)
     function withdrawStake(uint256 amount) external nonReentrant {
         if (relayerStakes[msg.sender] < amount)
             revert InsufficientStake(relayerStakes[msg.sender], amount);
@@ -223,8 +248,10 @@ contract CrossChainProofHubV3 is
         emit RelayerStakeWithdrawn(msg.sender, amount);
     }
 
-    /// @notice Withdraws claimable rewards (for challengers who won disputes)
-    /// @param amount Amount to withdraw
+    /// @notice Withdraws claimable rewards earned from winning challenges
+    /// @dev Rewards are credited to `claimableRewards` (not `relayerStakes`) so that
+    ///      non-relayer challengers can withdraw their winnings independently.
+    /// @param amount Amount to withdraw (must be <= claimable balance)
     function withdrawRewards(uint256 amount) external nonReentrant {
         if (claimableRewards[msg.sender] < amount)
             revert InsufficientStake(claimableRewards[msg.sender], amount);
@@ -241,13 +268,21 @@ contract CrossChainProofHubV3 is
                           PROOF SUBMISSION
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Submits a proof with optimistic verification
-    /// @param proof The ZK proof bytes
-    /// @param publicInputs The public inputs
-    /// @param commitment Associated state commitment
-    /// @param sourceChainId Origin chain
-    /// @param destChainId Destination chain
-    /// @return proofId The unique proof identifier
+    /// @notice Submits a proof with optimistic verification (subject to challenge period)
+    /// @dev The proof enters `Pending` status and remains challengeable for `challengePeriod`
+    ///      seconds. If unchallenged, it can be finalized via `finalizeProof()`. Requires:
+    ///      - `rolesSeparated` must be true
+    ///      - Caller must have `RELAYER_ROLE`
+    ///      - `msg.value >= proofSubmissionFee`
+    ///      - `relayerStakes[msg.sender] >= minRelayerStake`
+    ///      - Both `sourceChainId` and `destChainId` must be supported
+    ///      Excess ETH is refunded to the caller.
+    /// @param proof The serialized ZK proof bytes
+    /// @param publicInputs The serialized public inputs for the proof
+    /// @param commitment Associated state commitment (app-specific meaning)
+    /// @param sourceChainId Origin chain ID where the proof was generated
+    /// @param destChainId Destination chain ID where the proof will be consumed
+    /// @return proofId Unique identifier derived from keccak256(proofHash, commitment, chains)
     function submitProof(
         bytes calldata proof,
         bytes calldata publicInputs,
@@ -271,14 +306,18 @@ contract CrossChainProofHubV3 is
             );
     }
 
-    /// @notice Submits a proof with instant verification (higher fee)
-    /// @param proof The ZK proof bytes
-    /// @param publicInputs The public inputs
+    /// @notice Submits a proof with instant on-chain verification (3x fee, no challenge period)
+    /// @dev Unlike `submitProof()`, this immediately verifies the proof against the on-chain
+    ///      verifier for `proofType`. If verification passes, the proof is marked `Verified`
+    ///      with a zero challenge deadline, allowing immediate finalization. The verifier is
+    ///      looked up first in the local `verifiers` mapping, then in `verifierRegistry`.
+    /// @param proof The serialized ZK proof bytes
+    /// @param publicInputs The serialized public inputs for the proof
     /// @param commitment Associated state commitment
-    /// @param sourceChainId Origin chain
-    /// @param destChainId Destination chain
-    /// @param proofType The type of proof for verifier selection
-    /// @return proofId The unique proof identifier
+    /// @param sourceChainId Origin chain ID
+    /// @param destChainId Destination chain ID
+    /// @param proofType The proof type identifier for verifier selection (e.g., keccak256("groth16"))
+    /// @return proofId Unique identifier for the submitted and verified proof
     function submitProofInstant(
         bytes calldata proof,
         bytes calldata publicInputs,
@@ -327,10 +366,14 @@ contract CrossChainProofHubV3 is
         emit ProofVerified(proofId, ProofStatus.Verified);
     }
 
-    /// @notice Submits a batch of proofs
-    /// @param _proofs Array of proof data
-    /// @param merkleRoot Merkle root of all proofs
-    /// @return batchId The unique batch identifier
+    /// @notice Submits a batch of proofs atomically with a shared Merkle root
+    /// @dev Each proof in the batch is individually registered and enters `Pending` status.
+    ///      The total fee is `proofSubmissionFee * len` and the required stake is
+    ///      `minRelayerStake * len` — preventing under-collateralized batch submissions.
+    ///      Rate limits are enforced for the entire batch. Duplicate proof IDs revert.
+    /// @param _proofs Array of proof data (proof hash, public inputs hash, commitment, chains)
+    /// @param merkleRoot Merkle root of all proof hashes in the batch (for off-chain verification)
+    /// @return batchId Unique batch identifier derived from (merkleRoot, relayer, timestamp, batchNum)
     function submitBatch(
         BatchProofInput[] calldata _proofs,
         bytes32 merkleRoot
@@ -432,9 +475,14 @@ contract CrossChainProofHubV3 is
                           CHALLENGE SYSTEM
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Challenges a proof submission
-    /// @param proofId The proof to challenge
-    /// @param reason The challenge reason
+    /// @notice Challenges a pending proof during its challenge period
+    /// @dev Anyone with sufficient stake can challenge. The proof moves to `Challenged` status
+    ///      and a 1-hour resolution window opens. Only one challenge per proof is allowed.
+    ///      The challenger's stake is held in escrow via `msg.value`. If the challenger wins
+    ///      (proof is invalid), they receive their stake back plus the relayer's slashed stake.
+    ///      If the relayer wins (proof is valid), the relayer receives the challenger's stake.
+    /// @param proofId The proof ID to challenge (must be in `Pending` status)
+    /// @param reason Human-readable reason for the challenge (stored on-chain for auditing)
     function challengeProof(
         bytes32 proofId,
         string calldata reason
@@ -470,12 +518,19 @@ contract CrossChainProofHubV3 is
         emit ChallengeCreated(proofId, msg.sender, reason);
     }
 
-    /// @notice Resolves a challenge by verifying the proof
-    /// @dev SECURITY: Only the challenger can call this to prevent front-running
-    /// @param proofId The challenged proof
-    /// @param proof The original proof bytes
-    /// @param publicInputs The original public inputs
-    /// @param proofType The proof type for verifier selection
+    /// @notice Resolves a challenge by invoking the on-chain proof verifier
+    /// @dev SECURITY: Only the original challenger can resolve the challenge to prevent
+    ///      front-running attacks where a relayer or operator submits correct proof data.
+    ///      The verifier is looked up via `proofType` — no fallback to default verifier is
+    ///      used, preventing proof-type bypass attacks. If the verifier is not configured,
+    ///      the proof is treated as invalid and the challenger wins.
+    ///
+    ///      On relayer win: Proof → Verified, challenger's stake → relayer
+    ///      On challenger win: Proof → Rejected, relayer's stake → claimableRewards[challenger]
+    /// @param proofId The challenged proof ID
+    /// @param proof The original serialized proof bytes (hash must match submission)
+    /// @param publicInputs The original serialized public inputs (hash must match submission)
+    /// @param proofType The proof type identifier for verifier selection
     function resolveChallenge(
         bytes32 proofId,
         bytes calldata proof,
@@ -589,9 +644,12 @@ contract CrossChainProofHubV3 is
         }
     }
 
-    /// @notice Expires a stale challenge after its deadline, resolving in the relayer's favor
-    /// @dev Callable by anyone after the challenge deadline passes without resolution
-    /// @param proofId The proof with a stale challenge
+    /// @notice Expires a stale challenge after its 1-hour deadline, resolving in the relayer's favor
+    /// @dev Callable by anyone after the challenge deadline passes without the challenger calling
+    ///      `resolveChallenge()`. The challenger's stake is forfeited to the relayer as a penalty
+    ///      for filing a challenge without following through. This incentivizes challengers to
+    ///      resolve promptly and prevents griefing via perpetually-open challenges.
+    /// @param proofId The proof with an expired, unresolved challenge
     function expireChallenge(
         bytes32 proofId
     ) external nonReentrant whenNotPaused {
@@ -621,8 +679,12 @@ contract CrossChainProofHubV3 is
                           FINALIZATION
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Finalizes a proof after challenge period
-    /// @param proofId The proof to finalize
+    /// @notice Finalizes a proof after its challenge period, transitioning to Finalized status
+    /// @dev State transitions: Pending (past deadline) → Verified → Finalized, or
+    ///      Verified (already resolved) → Finalized. Increments the relayer's success count
+    ///      and decrements their pending proof counter. Callable by anyone — no role restriction
+    ///      since finalization benefits the relayer and has no economic impact on others.
+    /// @param proofId The proof to finalize (must be Pending+past deadline, or Verified)
     function finalizeProof(
         bytes32 proofId
     ) external nonReentrant whenNotPaused {
@@ -770,47 +832,47 @@ contract CrossChainProofHubV3 is
                          VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Gets proof submission details
-    /// @param proofId The proof ID
-    /// @return submission The proof submission struct
+    /// @notice Gets the full proof submission details including status and stake
+    /// @param proofId The unique proof identifier
+    /// @return submission The complete ProofSubmission struct (zero relayer = not found)
     function getProof(
         bytes32 proofId
     ) external view returns (ProofSubmission memory submission) {
         return proofs[proofId];
     }
 
-    /// @notice Gets batch details
-    /// @param batchId The batch ID
-    /// @return batch The batch submission struct
+    /// @notice Gets the full batch submission details
+    /// @param batchId The unique batch identifier
+    /// @return batch The complete BatchSubmission struct (zero relayer = not found)
     function getBatch(
         bytes32 batchId
     ) external view returns (BatchSubmission memory batch) {
         return batches[batchId];
     }
 
-    /// @notice Gets challenge details
-    /// @param proofId The proof ID
-    /// @return challenge The challenge struct
+    /// @notice Gets challenge details for a proof
+    /// @param proofId The proof that was challenged
+    /// @return challenge The Challenge struct (zero challenger = no challenge exists)
     function getChallenge(
         bytes32 proofId
     ) external view returns (Challenge memory) {
         return challenges[proofId];
     }
 
-    /// @notice Checks if a proof is finalized
-    /// @param proofId The proof ID
-    /// @return finalized True if finalized
+    /// @notice Checks if a proof has completed its full lifecycle (Finalized status)
+    /// @param proofId The proof to check
+    /// @return finalized True if the proof is in Finalized status and safe to consume
     function isProofFinalized(
         bytes32 proofId
     ) external view returns (bool finalized) {
         return proofs[proofId].status == ProofStatus.Finalized;
     }
 
-    /// @notice Gets relayer statistics
-    /// @param relayer The relayer address
-    /// @return stake Current stake
-    /// @return successCount Successful submissions
-    /// @return slashCount Times slashed
+    /// @notice Gets aggregated relayer performance statistics
+    /// @param relayer The relayer address to query
+    /// @return stake Current deposited stake balance (ETH)
+    /// @return successCount Total proofs successfully finalized
+    /// @return slashCount Total times the relayer has been slashed via lost challenges
     function getRelayerStats(
         address relayer
     )
@@ -829,9 +891,11 @@ contract CrossChainProofHubV3 is
                          ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Sets a verifier for a proof type
-    /// @param proofType The proof type identifier
-    /// @param _verifier The verifier address
+    /// @notice Registers or updates a verifier contract for a proof type
+    /// @dev The verifier must implement `IProofVerifier.verifyProof(bytes, bytes) returns (bool)`.
+    ///      Used during both instant verification and challenge resolution.
+    /// @param proofType The proof type identifier (e.g., keccak256("groth16"), keccak256("ultraplonk"))
+    /// @param _verifier The IProofVerifier contract address (must be non-zero)
     function setVerifier(
         bytes32 proofType,
         address _verifier
@@ -841,8 +905,10 @@ contract CrossChainProofHubV3 is
         emit VerifierSet(proofType, _verifier);
     }
 
-    /// @notice Adds a supported chain
-    /// @param chainId The chain ID to add
+    /// @notice Registers a chain as a valid proof source or destination
+    /// @dev Both source and destination chains must be registered before proof submission.
+    ///      The deploying chain is auto-registered in the constructor.
+    /// @param chainId The EVM chain ID to register as supported
     function addSupportedChain(
         uint256 chainId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -850,8 +916,9 @@ contract CrossChainProofHubV3 is
         emit ChainAdded(chainId);
     }
 
-    /// @notice Removes a supported chain
-    /// @param chainId The chain ID to remove
+    /// @notice Removes a chain from the supported set, blocking future proof submissions for it
+    /// @dev Does not invalidate already-submitted proofs for the chain.
+    /// @param chainId The EVM chain ID to remove
     function removeSupportedChain(
         uint256 chainId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -859,9 +926,11 @@ contract CrossChainProofHubV3 is
         emit ChainRemoved(chainId);
     }
 
-    /// @notice Sets the trusted remote contract address for a given chain
-    /// @param chainId The chain ID to set the trusted remote for
-    /// @param remote The trusted remote contract address on the target chain
+    /// @notice Sets the trusted remote CrossChainProofHubV3 address for a peer chain
+    /// @dev Used by messaging adapters (Hyperlane, LayerZero) to validate inbound messages.
+    ///      Only accepts messages from the registered remote address on each chain.
+    /// @param chainId The peer chain's EVM chain ID (must be non-zero)
+    /// @param remote The CrossChainProofHubV3 contract address on the peer chain (must be non-zero)
     function setTrustedRemote(
         uint256 chainId,
         address remote
@@ -885,9 +954,10 @@ contract CrossChainProofHubV3 is
         emit VerifierRegistryUpdated(oldRegistry, _registry);
     }
 
-    /// @notice Updates challenge period
-    /// @param _period New period in seconds
-    /// @dev M-8: Added minimum period validation and event emission
+    /// @notice Updates the challenge period for newly submitted proofs
+    /// @dev Bounded to [10 minutes, 30 days] to prevent both griefing (too long) and
+    ///      insufficient challenge windows (too short). Does not affect existing proofs.
+    /// @param _period New challenge period in seconds (must be >= 10 min, <= 30 days)
     function setChallengePeriod(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -898,10 +968,11 @@ contract CrossChainProofHubV3 is
         emit ChallengePeriodUpdated(oldPeriod, _period);
     }
 
-    /// @notice Updates minimum stakes
-    /// @param _relayerStake New relayer stake
-    /// @param _challengerStake New challenger stake
-    /// @dev M-9: Added event emission
+    /// @notice Updates the minimum stake requirements for relayers and challengers
+    /// @dev Affects all future submissions and challenges. Existing proofs retain their
+    ///      original stake amounts. Both values must be non-zero.
+    /// @param _relayerStake New minimum relayer stake per proof (in wei)
+    /// @param _challengerStake New minimum challenger stake per challenge (in wei)
     function setMinStakes(
         uint256 _relayerStake,
         uint256 _challengerStake
@@ -915,8 +986,9 @@ contract CrossChainProofHubV3 is
         emit MinStakesUpdated(_relayerStake, _challengerStake);
     }
 
-    /// @notice Updates proof submission fee
-    /// @param _fee New fee in wei
+    /// @notice Updates the fee charged per proof submission
+    /// @dev Instant submissions are charged 3x this fee. Setting to 0 makes submissions free.
+    /// @param _fee New fee per proof in wei
     function setProofSubmissionFee(
         uint256 _fee
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -925,10 +997,11 @@ contract CrossChainProofHubV3 is
         emit ProofSubmissionFeeUpdated(oldFee, _fee);
     }
 
-    /// @notice Updates circuit breaker limits (admin only)
-    /// @param _maxProofsPerHour Maximum proofs per hour
-    /// @param _maxValuePerHour Maximum value per hour
-    /// @dev M-24: Added event emission
+    /// @notice Updates the circuit breaker rate limits to prevent mass exploitation
+    /// @dev These are first-line defense limits (separate from SecurityModule limits).
+    ///      Counters reset every hour automatically upon the next submission.
+    /// @param _maxProofsPerHour Maximum number of proofs allowed per hour (0 = disabled)
+    /// @param _maxValuePerHour Maximum cumulative value relayed per hour in wei (0 = disabled)
     function setRateLimits(
         uint256 _maxProofsPerHour,
         uint256 _maxValuePerHour
@@ -938,9 +1011,10 @@ contract CrossChainProofHubV3 is
         emit RateLimitsUpdated(_maxProofsPerHour, _maxValuePerHour);
     }
 
-    /// @notice Withdraws accumulated fees
-    /// @param to Recipient address
-    /// @dev Uses nonReentrant to prevent race condition
+    /// @notice Withdraws all accumulated proof submission fees to a designated address
+    /// @dev CEI pattern: `accumulatedFees` is zeroed before the ETH transfer to prevent
+    ///      reentrancy. Also protected by `nonReentrant` for defense-in-depth.
+    /// @param to Recipient address for the accumulated fees (must be non-zero)
     /// @dev Slither: arbitrary-send-eth is expected - admin-only function with role protection
     // slither-disable-next-line arbitrary-send-eth
     function withdrawFees(
@@ -957,21 +1031,23 @@ contract CrossChainProofHubV3 is
         if (!success) revert WithdrawFailed();
     }
 
-    /// @notice Pauses the contract
+    /// @notice Emergency pause — blocks all proof submissions, finalization, and challenges
+    /// @dev Only EMERGENCY_ROLE can pause; only DEFAULT_ADMIN_ROLE can unpause.
     function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
-    /// @notice Unpauses the contract
+    /// @notice Unpauses the contract, resuming all operations
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     // ============ Security Admin Functions ============
 
-    /// @notice Configure SecurityModule rate limiting parameters
-    /// @param window Window duration in seconds
-    /// @param maxActions Max actions per window
+    /// @notice Configure SecurityModule rate limiting (separate from circuit breaker limits)
+    /// @dev SecurityModule rate limits apply per-user, while circuit breaker limits are global.
+    /// @param window Sliding window duration in seconds
+    /// @param maxActions Maximum allowed actions within each window
     function setSecurityRateLimitConfig(
         uint256 window,
         uint256 maxActions
@@ -979,9 +1055,10 @@ contract CrossChainProofHubV3 is
         _setRateLimitConfig(window, maxActions);
     }
 
-    /// @notice Configure SecurityModule circuit breaker parameters
-    /// @param threshold Volume threshold
-    /// @param cooldown Cooldown period after trip
+    /// @notice Configure SecurityModule circuit breaker (automatic trip on volume spike)
+    /// @dev Separate from the manual `maxProofsPerHour` / `maxValuePerHour` limits.
+    /// @param threshold Volume threshold that triggers the circuit breaker
+    /// @param cooldown Cooldown period in seconds after the breaker trips
     function setSecurityCircuitBreakerConfig(
         uint256 threshold,
         uint256 cooldown
@@ -989,7 +1066,11 @@ contract CrossChainProofHubV3 is
         _setCircuitBreakerConfig(threshold, cooldown);
     }
 
-    /// @notice Toggle SecurityModule features on/off
+    /// @notice Enable or disable individual SecurityModule features
+    /// @param rateLimiting Enable per-user rate limiting
+    /// @param circuitBreakers Enable automatic volume-based circuit breakers
+    /// @param flashLoanGuard Enable flash loan detection guard
+    /// @param withdrawalLimits Enable per-period withdrawal limits
     function setSecurityModuleFeatures(
         bool rateLimiting,
         bool circuitBreakers,
@@ -1004,11 +1085,11 @@ contract CrossChainProofHubV3 is
         );
     }
 
-    /// @notice Emergency reset SecurityModule circuit breaker
+    /// @notice Emergency reset of the SecurityModule circuit breaker after a false positive
     function resetSecurityCircuitBreaker() external onlyRole(EMERGENCY_ROLE) {
         _resetCircuitBreaker();
     }
 
-    /// @notice Allows contract to receive ETH
+    /// @notice Allows contract to receive ETH for stake deposits, proof fees, and challenge stakes
     receive() external payable {}
 }

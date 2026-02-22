@@ -7,6 +7,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPrivacyRouter} from "../interfaces/IPrivacyRouter.sol";
+import {IUniversalShieldedPool} from "../interfaces/IUniversalShieldedPool.sol";
 
 /// @notice Minimal interface for SoulProtocolHub address resolution
 interface ISoulProtocolHub {
@@ -21,6 +22,34 @@ interface ISoulProtocolHub {
     function complianceOracle() external view returns (address);
 
     function proofTranslator() external view returns (address);
+}
+
+/// @notice Minimal interface for StealthAddressRegistry operations
+interface IStealthRegistryMinimal {
+    function registerMetaAddress(
+        bytes calldata spendingPubKey,
+        bytes calldata viewingPubKey,
+        uint8 curveType,
+        uint256 schemeId
+    ) external;
+
+    function deriveStealthAddress(
+        address recipient,
+        bytes calldata ephemeralPubKey,
+        bytes32 sharedSecretHash
+    ) external view returns (address stealthAddress, bytes1 viewTag);
+}
+
+/// @notice Minimal interface for compliance oracle queries
+interface IComplianceOracleMinimal {
+    function isKYCValid(address user) external view returns (bool);
+
+    function sanctionedAddresses(address user) external view returns (bool);
+
+    function meetsKYCTier(
+        address user,
+        uint8 tier
+    ) external view returns (bool);
 }
 
 /**
@@ -178,8 +207,12 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deposit native ETH into the shielded pool
+    /// @dev Compliance-gated: the sender must pass KYC + sanctions checks before the deposit
+    ///      is forwarded. ETH is sent via low-level `call` to the shielded pool's `depositETH(bytes32)`
+    ///      selector. If the forwarded call reverts, the entire transaction reverts, ensuring
+    ///      atomicity. A unique operation ID is derived from `(msg.sender, chainId, block.number, nonce)`.
     /// @param commitment The Pedersen commitment: H(secret, nullifier, amount)
-    /// @return operationId Unique operation identifier
+    /// @return operationId Unique operation identifier for tracking via `getReceipt()`
     function depositETH(
         bytes32 commitment
     )
@@ -196,11 +229,10 @@ contract PrivacyRouter is
 
         operationId = _nextOperationId();
 
-        // Forward to shielded pool
-        (bool success, ) = shieldedPool.call{value: msg.value}(
-            abi.encodeWithSignature("depositETH(bytes32)", commitment)
+        // Forward to shielded pool via typed interface
+        IUniversalShieldedPool(shieldedPool).depositETH{value: msg.value}(
+            commitment
         );
-        if (!success) revert OperationFailed("ETH deposit failed");
 
         _recordReceipt(operationId, OperationType.DEPOSIT, commitment);
 
@@ -208,10 +240,15 @@ contract PrivacyRouter is
     }
 
     /// @notice Deposit ERC20 tokens into the shielded pool
-    /// @param assetId The registered asset identifier
-    /// @param amount Token amount to deposit
-    /// @param commitment The Pedersen commitment
-    /// @return operationId Unique operation identifier
+    /// @dev Security fix C-6: tokens are first pulled from the user to this router via
+    ///      `safeTransferFrom`, then approved to the shielded pool via `forceApprove`.
+    ///      This two-step pattern prevents approval front-running and ensures the pool
+    ///      can only pull the exact deposit amount. The token address is resolved from
+    ///      the shielded pool's asset registry via `assetAddresses(bytes32)`.
+    /// @param assetId The registered asset identifier (maps to an ERC20 token in the shielded pool)
+    /// @param amount Token amount to deposit (must be > 0)
+    /// @param commitment The Pedersen commitment: H(secret, nullifier, amount)
+    /// @return operationId Unique operation identifier for tracking via `getReceipt()`
     function depositERC20(
         bytes32 assetId,
         uint256 amount,
@@ -227,7 +264,8 @@ contract PrivacyRouter is
         // SECURITY FIX C-6: Transfer tokens from user to router,
         // then approve and forward to shielded pool.
         // Resolve the token address from the shielded pool's asset registry.
-        // For safety, pull tokens to router first, then forward via approval.
+        // NOTE: Uses raw staticcall because `assetAddresses` is an auto-generated
+        // mapping getter not present in IUniversalShieldedPool.
         (bool success, bytes memory returnData) = shieldedPool.staticcall(
             abi.encodeWithSignature("assetAddresses(bytes32)", assetId)
         );
@@ -240,15 +278,12 @@ contract PrivacyRouter is
         // Approve shielded pool to pull from router
         IERC20(token).forceApprove(shieldedPool, amount);
 
-        (bool depositSuccess, ) = shieldedPool.call(
-            abi.encodeWithSignature(
-                "depositERC20(bytes32,uint256,bytes32)",
-                assetId,
-                amount,
-                commitment
-            )
+        // Forward to shielded pool via typed interface
+        IUniversalShieldedPool(shieldedPool).depositERC20(
+            assetId,
+            amount,
+            commitment
         );
-        if (!depositSuccess) revert OperationFailed("ERC20 deposit failed");
 
         _recordReceipt(operationId, OperationType.DEPOSIT, commitment);
 
@@ -260,8 +295,13 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Withdraw from the shielded pool with a ZK proof
-    /// @param params Withdrawal parameters including proof and nullifier
-    /// @return operationId Unique operation identifier
+    /// @dev Compliance is checked on `params.recipient` (not `msg.sender`) because the caller
+    ///      may be a relayer submitting on behalf of the actual recipient. The withdrawal proof
+    ///      is forwarded to the shielded pool which verifies it against the Merkle root and
+    ///      nullifier. The nullifier is recorded to prevent double-spending.
+    /// @param params Withdrawal parameters including ZK proof, Merkle root, nullifier,
+    ///        recipient, relayer details, amount, fees, asset ID, and destination chain ID
+    /// @return operationId Unique operation identifier for tracking via `getReceipt()`
     function withdraw(
         WithdrawParams calldata params
     ) external nonReentrant whenNotPaused returns (bytes32 operationId) {
@@ -272,22 +312,20 @@ contract PrivacyRouter is
 
         operationId = _nextOperationId();
 
-        // Encode the WithdrawalProof struct for the shielded pool
-        (bool success, ) = shieldedPool.call(
-            abi.encodeWithSignature(
-                "withdraw((bytes,bytes32,bytes32,address,address,uint256,uint256,bytes32,bytes32))",
-                params.proof,
-                params.merkleRoot,
-                params.nullifier,
-                params.recipient,
-                params.relayerAddress,
-                params.amount,
-                params.relayerFee,
-                params.assetId,
-                params.destChainId
-            )
-        );
-        if (!success) revert OperationFailed("Withdrawal failed");
+        // Forward withdrawal to shielded pool via typed interface
+        IUniversalShieldedPool.WithdrawalProof
+            memory wp = IUniversalShieldedPool.WithdrawalProof({
+                proof: params.proof,
+                merkleRoot: params.merkleRoot,
+                nullifier: params.nullifier,
+                recipient: params.recipient,
+                relayerAddress: params.relayerAddress,
+                amount: params.amount,
+                relayerFee: params.relayerFee,
+                assetId: params.assetId,
+                destChainId: params.destChainId
+            });
+        IUniversalShieldedPool(shieldedPool).withdraw(wp);
 
         _recordReceipt(operationId, OperationType.WITHDRAW, params.nullifier);
 
@@ -304,8 +342,13 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Initiate a private cross-chain transfer via the Privacy Hub
-    /// @param params Transfer parameters
-    /// @return operationId Operation identifier
+    /// @dev Composes a cross-chain private transfer through CrossChainPrivacyHub. The caller
+    ///      provides a ZK proof of sufficient balance which is forwarded along with transfer
+    ///      details. `msg.value` covers bridge fees (Hyperlane, LayerZero, etc.). The privacy
+    ///      level parameter controls the anonymity set size on the destination chain.
+    /// @param params Transfer parameters including destination chain, stealth recipient,
+    ///        amount, privacy level, proof system type, and the ZK proof itself
+    /// @return operationId Unique operation identifier for tracking via `getReceipt()`
     function initiatePrivateTransfer(
         CrossChainTransferParams calldata params
     )
@@ -322,6 +365,9 @@ contract PrivacyRouter is
 
         operationId = _nextOperationId();
 
+        // NOTE: Uses raw call because CrossChainPrivacyHub has a complex nested
+        // struct signature that varies across versions. A typed interface would
+        // couple PrivacyRouter to a specific hub implementation.
         // Compose the PrivacyProof struct for CrossChainPrivacyHub
         (bool success, ) = crossChainHub.call{value: msg.value}(
             abi.encodeWithSignature(
@@ -357,10 +403,14 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Register a stealth meta-address for receiving private payments
-    /// @param spendingPubKey The spending public key
-    /// @param viewingPubKey The viewing public key
-    /// @param curveType Elliptic curve type (0=SECP256K1, 1=ED25519, etc.)
-    /// @param schemeId Stealth address scheme identifier
+    /// @dev Forwards to StealthAddressRegistry.registerMetaAddress(). The meta-address
+    ///      consists of a spending key (controls funds) and viewing key (enables scanning)
+    ///      per ERC-5564. Once registered, senders can derive one-time stealth addresses
+    ///      for this user without on-chain interaction.
+    /// @param spendingPubKey The spending public key (controls stealth address funds)
+    /// @param viewingPubKey The viewing public key (enables recipient to scan for payments)
+    /// @param curveType Elliptic curve type (0=SECP256K1, 1=ED25519, 2=BN254, etc.)
+    /// @param schemeId Stealth address scheme identifier (per ERC-5564 scheme registry)
     function registerStealthMetaAddress(
         bytes calldata spendingPubKey,
         bytes calldata viewingPubKey,
@@ -370,24 +420,25 @@ contract PrivacyRouter is
         _requireComponent(stealthRegistry, "stealthRegistry");
         _checkCompliance(msg.sender);
 
-        (bool success, ) = stealthRegistry.call(
-            abi.encodeWithSignature(
-                "registerMetaAddress(bytes,bytes,uint8,uint256)",
-                spendingPubKey,
-                viewingPubKey,
-                curveType,
-                schemeId
-            )
+        // Forward to stealth registry via typed interface
+        IStealthRegistryMinimal(stealthRegistry).registerMetaAddress(
+            spendingPubKey,
+            viewingPubKey,
+            curveType,
+            schemeId
         );
-        if (!success) revert OperationFailed("Stealth registration failed");
     }
 
     /// @notice Derive a one-time stealth address for a recipient
-    /// @param recipient The intended recipient address
-    /// @param ephemeralPubKey Ephemeral public key for DKSAP
-    /// @param sharedSecretHash Hash of the DH shared secret
-    /// @return stealthAddress The derived stealth address
-    /// @return viewTag Single-byte view tag for scanning
+    /// @dev Uses the Dual-Key Stealth Address Protocol (DKSAP). The sender generates an
+    ///      ephemeral keypair, computes a shared secret with the recipient's viewing key,
+    ///      and derives a unique stealth address. The view tag allows the recipient to
+    ///      efficiently filter announcements without full decryption.
+    /// @param recipient The intended recipient address (must have a registered meta-address)
+    /// @param ephemeralPubKey Ephemeral public key for DKSAP (generated per-payment)
+    /// @param sharedSecretHash Hash of the Diffie-Hellman shared secret
+    /// @return stealthAddress The derived one-time stealth address for this payment
+    /// @return viewTag Single-byte view tag for efficient announcement scanning
     function deriveStealthAddress(
         address recipient,
         bytes calldata ephemeralPubKey,
@@ -395,16 +446,9 @@ contract PrivacyRouter is
     ) external view returns (address stealthAddress, bytes1 viewTag) {
         _requireComponent(stealthRegistry, "stealthRegistry");
 
-        (bool success, bytes memory result) = stealthRegistry.staticcall(
-            abi.encodeWithSignature(
-                "deriveStealthAddress(address,bytes,bytes32)",
-                recipient,
-                ephemeralPubKey,
-                sharedSecretHash
-            )
-        );
-        require(success, "Stealth derivation failed");
-        (stealthAddress, viewTag) = abi.decode(result, (address, bytes1));
+        // Derive via typed interface
+        (stealthAddress, viewTag) = IStealthRegistryMinimal(stealthRegistry)
+            .deriveStealthAddress(recipient, ephemeralPubKey, sharedSecretHash);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -412,7 +456,12 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Check if a nullifier has been spent
-    /// @dev Tries isNullifierSpent(bytes32) first (UnifiedNullifierManager), then exists(bytes32) (NullifierRegistryV3)
+    /// @dev Uses a two-step fallback pattern to support both UnifiedNullifierManager and legacy
+    ///      NullifierRegistryV3. Tries `isNullifierSpent(bytes32)` first, then falls back to
+    ///      `exists(bytes32)`. Returns `false` if the nullifier manager is not configured or
+    ///      both calls fail (fail-open for read-only queries; state-changing ops use fail-closed).
+    /// @param nullifier The nullifier hash to check (derived from the note's secret)
+    /// @return True if the nullifier has already been spent, false otherwise
     function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         if (nullifierManager == address(0)) return false;
 
@@ -432,16 +481,21 @@ contract PrivacyRouter is
     }
 
     /// @notice Check if a user passes compliance requirements
+    /// @dev Non-reverting read-only compliance check. Returns `true` if compliance is disabled
+    ///      or the compliance oracle is not configured. Unlike `_checkCompliance()`, this does
+    ///      not revert on failure — it returns `false` instead, making it safe for UI queries.
     /// @param user The address to check compliance for
-    /// @return passes True if the user passes all compliance checks
+    /// @return passes True if the user passes all compliance checks (KYC valid + not sanctioned)
     function checkCompliance(address user) external view returns (bool passes) {
         if (!complianceEnabled || compliance == address(0)) return true;
 
-        (bool success, bytes memory result) = compliance.staticcall(
-            abi.encodeWithSignature("isKYCValid(address)", user)
-        );
-        if (!success) return false;
-        passes = abi.decode(result, (bool));
+        try IComplianceOracleMinimal(compliance).isKYCValid(user) returns (
+            bool valid
+        ) {
+            passes = valid;
+        } catch {
+            passes = false;
+        }
     }
 
     /// @notice Get total operations by type
@@ -467,8 +521,12 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Update a protocol component address
-    /// @param name The component name (e.g. "shieldedPool", "crossChainHub")
-    /// @param addr The new address for the component
+    /// @dev Component names are matched via `keccak256` against pre-computed hashes
+    ///      to save gas. Valid names: "shieldedPool", "crossChainHub", "stealthRegistry",
+    ///      "nullifierManager", "compliance", "proofTranslator". Reverts with `InvalidParams()`
+    ///      if the name is not recognized. Use `syncFromHub()` to batch-update from SoulProtocolHub.
+    /// @param name The component name (must match one of the six supported components)
+    /// @param addr The new non-zero address for the component
     function setComponent(
         string calldata name,
         address addr
@@ -489,7 +547,11 @@ contract PrivacyRouter is
     }
 
     /// @notice Sync all component addresses from SoulProtocolHub
-    /// @param hub The SoulProtocolHub contract address
+    /// @dev Reads all six component addresses from the hub and updates local storage.
+    ///      Only updates a component if the hub returns a non-zero address, preserving
+    ///      any manually-configured value. This is the preferred way to keep PrivacyRouter
+    ///      in sync after hub component upgrades.
+    /// @param hub The SoulProtocolHub contract address to read component addresses from
     function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
         if (hub == address(0)) revert ZeroAddress();
         ISoulProtocolHub h = ISoulProtocolHub(hub);
@@ -530,8 +592,10 @@ contract PrivacyRouter is
     }
 
     /// @notice Withdraw ETH accidentally sent to this contract
-    /// @param to The recipient address for the withdrawn ETH
-    /// @param amount The amount of ETH to withdraw
+    /// @dev Admin-only rescue function. Sends ETH via low-level `call` to support
+    ///      both EOA and contract recipients. Reverts if the transfer fails.
+    /// @param to The recipient address for the withdrawn ETH (must be non-zero)
+    /// @param amount The amount of ETH to withdraw (must be > 0 and <= contract balance)
     function withdrawETH(
         address payable to,
         uint256 amount
@@ -560,6 +624,9 @@ contract PrivacyRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Generate next unique operation ID
+    /// @dev Deterministic: hash of `(msg.sender, chainId, block.number, nonce++)`. The nonce
+    ///      is incremented atomically to ensure uniqueness within the same block.
+    /// @return A unique bytes32 operation identifier
     function _nextOperationId() internal returns (bytes32) {
         return
             keccak256(
@@ -573,6 +640,11 @@ contract PrivacyRouter is
     }
 
     /// @notice Record an operation receipt
+    /// @dev Stores an immutable receipt for the operation and increments the per-type counter.
+    ///      Receipts are queryable via `getReceipt()` and operation counts via `getOperationCount()`.
+    /// @param operationId The unique operation identifier from `_nextOperationId()`
+    /// @param opType The operation type (DEPOSIT, WITHDRAW, CROSS_CHAIN_TRANSFER)
+    /// @param commitmentOrNullifier The commitment (for deposits) or nullifier (for withdrawals)
     function _recordReceipt(
         bytes32 operationId,
         OperationType opType,
@@ -588,7 +660,10 @@ contract PrivacyRouter is
         operationCounts[opType]++;
     }
 
-    /// @notice Require a component to be configured
+    /// @notice Require a component to be configured (non-zero address)
+    /// @dev Reverts with `ComponentNotSet(name)` if the component address is zero.
+    /// @param component The component address to validate
+    /// @param name Human-readable component name for the revert message
     function _requireComponent(
         address component,
         string memory name
@@ -596,51 +671,45 @@ contract PrivacyRouter is
         if (component == address(0)) revert ComponentNotSet(name);
     }
 
-    /// @notice Check compliance for a user (KYC + sanctions)
-    /// @dev Fail-closed: reverts if compliance oracle is unreachable
+    /// @notice Check compliance for a user (KYC + sanctions + minimum tier)
+    /// @dev Fail-closed design: reverts if the compliance oracle is unreachable or returns
+    ///      unexpected data. Performs three sequential checks:
+    ///      1. Sanctions screening — reverts with `SanctionedAddress` if flagged
+    ///      2. KYC validity — reverts with `ComplianceCheckFailed` if not valid
+    ///      3. Minimum KYC tier (if configured) — reverts with `InsufficientKYCTier`
+    ///      Short-circuits if compliance is disabled or the oracle is not configured.
+    /// @param user The address to verify against compliance requirements
     function _checkCompliance(address user) internal view {
         if (!complianceEnabled || compliance == address(0)) return;
 
+        IComplianceOracleMinimal oracle = IComplianceOracleMinimal(compliance);
+
         // Check sanctions — fail-closed on oracle failure
-        (bool sSuccess, bytes memory sResult) = compliance.staticcall(
-            abi.encodeWithSignature("sanctionedAddresses(address)", user)
-        );
-        if (!sSuccess || sResult.length < 32)
-            revert ComplianceCheckFailed(user);
-        {
-            bool sanctioned = abi.decode(sResult, (bool));
+        try oracle.sanctionedAddresses(user) returns (bool sanctioned) {
             if (sanctioned) revert SanctionedAddress(user);
+        } catch {
+            revert ComplianceCheckFailed(user);
         }
 
         // Check KYC validity — fail-closed on oracle failure
-        (bool kSuccess, bytes memory kResult) = compliance.staticcall(
-            abi.encodeWithSignature("isKYCValid(address)", user)
-        );
-        if (!kSuccess || kResult.length < 32)
-            revert ComplianceCheckFailed(user);
-        {
-            bool valid = abi.decode(kResult, (bool));
+        try oracle.isKYCValid(user) returns (bool valid) {
             if (!valid) revert ComplianceCheckFailed(user);
+        } catch {
+            revert ComplianceCheckFailed(user);
         }
 
         // Check minimum KYC tier if required — fail-closed
         if (minimumKYCTier > 0) {
-            (bool tSuccess, bytes memory tResult) = compliance.staticcall(
-                abi.encodeWithSignature(
-                    "meetsKYCTier(address,uint8)",
-                    user,
-                    minimumKYCTier
-                )
-            );
-            if (!tSuccess || tResult.length < 32)
-                revert ComplianceCheckFailed(user);
-            {
-                bool meets = abi.decode(tResult, (bool));
+            try oracle.meetsKYCTier(user, minimumKYCTier) returns (bool meets) {
                 if (!meets) revert InsufficientKYCTier(user, minimumKYCTier, 0);
+            } catch {
+                revert ComplianceCheckFailed(user);
             }
         }
     }
 
-    /// @notice Accept ETH for deposits
+    /// @notice Accept ETH for deposits and bridge fee top-ups
+    /// @dev Required for `depositETH()` and `initiatePrivateTransfer()` which forward
+    ///      `msg.value` to downstream contracts. Also allows pre-funding the router.
     receive() external payable {}
 }

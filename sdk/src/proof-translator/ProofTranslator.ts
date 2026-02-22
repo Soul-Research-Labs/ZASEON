@@ -148,10 +148,59 @@ function bigintToHex(value: bigint): string {
 // PROOF PARSING
 // =========================================================================
 
+/** Raw proof output from snarkjs */
+export interface SnarkjsRawProof {
+  pi_a: string[];
+  pi_b: string[][];
+  pi_c: string[];
+  protocol?: string;
+  curve?: string;
+}
+
+/** Raw G1/G2 point from gnark JSON (supports multiple field naming conventions) */
+interface RawPoint {
+  X?: string | string[];
+  Y?: string | string[];
+  x?: string | string[];
+  y?: string | string[];
+  [key: number]: string | string[];
+}
+
+/** Raw proof output from gnark */
+export interface GnarkRawProof {
+  Ar?: RawPoint;
+  ar?: RawPoint;
+  Bs?: RawPoint;
+  bs?: RawPoint;
+  Krs?: RawPoint;
+  krs?: RawPoint;
+  pi_a?: RawPoint;
+  pi_b?: RawPoint;
+  pi_c?: RawPoint;
+  protocol?: string;
+  curve?: string;
+}
+
+/** Gnark-formatted proof output */
+export interface GnarkFormattedProof {
+  Ar: { X: string; Y: string };
+  Bs: { X: string[]; Y: string[] };
+  Krs: { X: string; Y: string };
+}
+
+/** Snarkjs-formatted proof output */
+export interface SnarkjsFormattedProof {
+  pi_a: string[];
+  pi_b: string[][];
+  pi_c: string[];
+  protocol: string;
+  curve: string;
+}
+
 /**
  * Parse snarkjs proof format
  */
-export function parseSnarkjsProof(proof: any): Groth16Proof {
+export function parseSnarkjsProof(proof: SnarkjsRawProof): Groth16Proof {
   // snarkjs format: pi_a = [x, y, "1"], pi_b = [[x0, x1], [y0, y1], ["1","0"]], pi_c = [x, y, "1"]
   return {
     pi_a: {
@@ -174,30 +223,48 @@ export function parseSnarkjsProof(proof: any): Groth16Proof {
 /**
  * Parse gnark proof format (JSON)
  */
-export function parseGnarkProof(proofJson: any): Groth16Proof {
+export function parseGnarkProof(proofJson: GnarkRawProof): Groth16Proof {
   // gnark format uses Ar, Bs, Krs naming and hex strings
-  const parseG1 = (p: any): G1Point => ({
-    x: BigInt(p.X || p.x || p[0]),
-    y: BigInt(p.Y || p.y || p[1]),
+  const parseG1 = (p: RawPoint): G1Point => ({
+    x: BigInt(String(p.X || p.x || p[0])),
+    y: BigInt(String(p.Y || p.y || p[1])),
   });
 
-  const parseG2 = (p: any): G2Point => {
+  const parseG2 = (p: RawPoint): G2Point => {
     if (p.X && Array.isArray(p.X)) {
+      const yArr = p.Y as string[];
       return {
         x: [BigInt(p.X[0]), BigInt(p.X[1])],
-        y: [BigInt(p.Y[0]), BigInt(p.Y[1])],
+        y: [BigInt(yArr[0]), BigInt(yArr[1])],
       };
     }
+    const xArr = p.x as string[] | undefined;
+    const yArr = p.y as string[] | undefined;
+    const p0 = p[0] as string[] | undefined;
+    const p1 = p[1] as string[] | undefined;
     return {
-      x: [BigInt(p.x?.[0] || p[0][0]), BigInt(p.x?.[1] || p[0][1])],
-      y: [BigInt(p.y?.[0] || p[1][0]), BigInt(p.y?.[1] || p[1][1])],
+      x: [
+        BigInt(xArr?.[0] || p0?.[0] || "0"),
+        BigInt(xArr?.[1] || p0?.[1] || "0"),
+      ],
+      y: [
+        BigInt(yArr?.[0] || p1?.[0] || "0"),
+        BigInt(yArr?.[1] || p1?.[1] || "0"),
+      ],
     };
   };
 
+  const pi_a_raw = proofJson.Ar || proofJson.ar || proofJson.pi_a;
+  const pi_b_raw = proofJson.Bs || proofJson.bs || proofJson.pi_b;
+  const pi_c_raw = proofJson.Krs || proofJson.krs || proofJson.pi_c;
+  if (!pi_a_raw || !pi_b_raw || !pi_c_raw) {
+    throw new Error("Missing proof fields (Ar/Bs/Krs or pi_a/pi_b/pi_c)");
+  }
+
   return {
-    pi_a: parseG1(proofJson.Ar || proofJson.ar || proofJson.pi_a),
-    pi_b: parseG2(proofJson.Bs || proofJson.bs || proofJson.pi_b),
-    pi_c: parseG1(proofJson.Krs || proofJson.krs || proofJson.pi_c),
+    pi_a: parseG1(pi_a_raw),
+    pi_b: parseG2(pi_b_raw),
+    pi_c: parseG1(pi_c_raw),
     protocol: "groth16",
     curve: (proofJson.curve as CurveType) || "bn254",
   };
@@ -208,7 +275,7 @@ export function parseGnarkProof(proofJson: any): Groth16Proof {
  */
 export function parseArkworksProof(
   proofBytes: Uint8Array,
-  curve: CurveType = "bn254"
+  curve: CurveType = "bn254",
 ): Groth16Proof {
   const params = CURVE_PARAMS[curve];
   const coordSize = params.g1Size / 2;
@@ -339,7 +406,7 @@ export function toBytesBLS12381(proof: Groth16Proof): Uint8Array {
 /**
  * Convert snarkjs proof format to gnark format
  */
-export function snarkjsToGnark(proof: any): any {
+export function snarkjsToGnark(proof: SnarkjsRawProof): GnarkFormattedProof {
   return {
     Ar: {
       X: proof.pi_a[0],
@@ -359,7 +426,7 @@ export function snarkjsToGnark(proof: any): any {
 /**
  * Convert gnark proof format to snarkjs format
  */
-export function gnarkToSnarkjs(proof: any): any {
+export function gnarkToSnarkjs(proof: GnarkRawProof): SnarkjsFormattedProof {
   return {
     pi_a: [
       String(proof.Ar?.X || proof.ar?.X),
@@ -397,7 +464,7 @@ export function gnarkToSnarkjs(proof: any): any {
 export function translateForChain(
   proof: Groth16Proof,
   publicSignals: bigint[],
-  targetChain: string
+  targetChain: string,
 ): TranslationResult {
   const chainConfig = CHAIN_CONFIGS[targetChain];
   if (!chainConfig) {
@@ -444,7 +511,7 @@ export function translateForChain(
 export function createVerifyCalldata(
   proof: Groth16Proof,
   publicSignals: bigint[],
-  curve: CurveType = "bn254"
+  curve: CurveType = "bn254",
 ): string {
   const solidityProof = toSolidityBN254(proof);
 
@@ -464,7 +531,7 @@ export function createVerifyCalldata(
       ],
       solidityProof.pC.map(BigInt) as [bigint, bigint],
       publicSignals,
-    ]
+    ],
   );
 
   return encoded;
@@ -475,7 +542,7 @@ export function createVerifyCalldata(
  */
 export function createBatchProofData(
   proofs: Groth16Proof[],
-  publicSignalsArray: bigint[][]
+  publicSignalsArray: bigint[][],
 ): {
   batchProofBytes: Uint8Array;
   batchSignalsBytes: Uint8Array;
@@ -491,13 +558,13 @@ export function createBatchProofData(
 
   // Serialize all proofs
   const proofBytesArray = proofs.map((p) =>
-    p.curve === "bn254" ? toBytesBN254(p) : toBytesBLS12381(p)
+    p.curve === "bn254" ? toBytesBN254(p) : toBytesBLS12381(p),
   );
 
   // Concatenate proof bytes with length prefix
   const totalProofBytes = proofBytesArray.reduce(
     (acc, pb) => acc + 4 + pb.length,
-    0
+    0,
   );
   const batchProofBytes = new Uint8Array(totalProofBytes);
   let offset = 0;
@@ -511,13 +578,13 @@ export function createBatchProofData(
 
   // Serialize public signals
   const signalsJson = JSON.stringify(
-    publicSignalsArray.map((signals) => signals.map((s) => s.toString()))
+    publicSignalsArray.map((signals) => signals.map((s) => s.toString())),
   );
   const batchSignalsBytes = new TextEncoder().encode(signalsJson);
 
   // Compute Merkle root of proof hashes
   const leaves = proofBytesArray.map((pb) =>
-    keccak256(encodePacked(["bytes"], [toHex(pb) as `0x${string}`]))
+    keccak256(encodePacked(["bytes"], [toHex(pb) as `0x${string}`])),
   );
   const merkleRoot = computeMerkleRoot(leaves);
 
@@ -544,7 +611,7 @@ function computeMerkleRoot(leaves: string[]): string {
       const left = layer[i] as `0x${string}`;
       const right = layer[i + 1] as `0x${string}`;
       const hash = keccak256(
-        encodePacked(["bytes32", "bytes32"], [left, right])
+        encodePacked(["bytes32", "bytes32"], [left, right]),
       );
       nextLayer.push(hash);
     }
