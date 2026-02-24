@@ -64,6 +64,21 @@ export interface SoulContractAddresses {
   governor?: Hex;
   soulToken?: Hex;
   timelock?: Hex;
+
+  // Intent Settlement & Dynamic Routing (Tachyon-derived)
+  intentSettlementLayer?: Hex;
+  instantSettlementGuarantee?: Hex;
+  dynamicRoutingOrchestrator?: Hex;
+  liquidityAwareRouter?: Hex;
+
+  // Compliance
+  selectiveDisclosureManager?: Hex;
+  complianceReportingModule?: Hex;
+  configurablePrivacyLevels?: Hex;
+  crossChainSanctionsOracle?: Hex;
+
+  // Experimental Feature Registry
+  experimentalFeatureRegistry?: Hex;
 }
 
 /**

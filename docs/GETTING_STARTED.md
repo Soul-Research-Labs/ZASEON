@@ -183,6 +183,17 @@ const unlockTx = await client.unlockWithProof({
 | **PBP**       | `PolicyBoundProofs`                 | Policy-bound proofs for compliant privacy (KYC/AML)               |
 | **EASC**      | `ExecutionAgnosticStateCommitments` | Backend-agnostic state commitments for multi-backend verification |
 
+### V2 Additions
+
+| Component                 | Contract                      | Purpose                                                           |
+| ------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| **Intent Settlement**     | `IntentSettlementLayer`       | Solver marketplace for cross-chain intent fulfillment             |
+| **Instant Settlement**    | `InstantSettlementGuarantee`  | Collateralized guarantees for sub-block settlement                |
+| **Dynamic Routing**       | `DynamicRoutingOrchestrator`  | Optimal cross-chain path selection based on liquidity/cost/speed  |
+| **Liquidity Router**      | `LiquidityAwareRouter`        | Liquidity-aware transfer routing with pool management             |
+| **Compliance**            | `SelectiveDisclosureManager`  | Privacy-preserving compliance with selective attribute disclosure |
+| **Experimental Registry** | `ExperimentalFeatureRegistry` | Feature flags with risk limits and graduation pipeline            |
+
 ### ZK Backend: Noir + UltraHonk
 
 Soul uses **Noir** circuits compiled to **UltraHonk** proofs (no trusted setup required). Generated Solidity verifiers are deployed on-chain and integrated via `UltraHonkAdapter.sol`.

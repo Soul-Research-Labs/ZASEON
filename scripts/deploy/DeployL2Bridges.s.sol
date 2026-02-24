@@ -7,6 +7,8 @@ import {ArbitrumBridgeAdapter} from "../../contracts/crosschain/ArbitrumBridgeAd
 import {BaseBridgeAdapter} from "../../contracts/crosschain/BaseBridgeAdapter.sol";
 import {ScrollBridgeAdapter} from "../../contracts/crosschain/ScrollBridgeAdapter.sol";
 import {LineaBridgeAdapter} from "../../contracts/crosschain/LineaBridgeAdapter.sol";
+import {zkSyncBridgeAdapter} from "../../contracts/crosschain/zkSyncBridgeAdapter.sol";
+import {PolygonZkEVMBridgeAdapter} from "../../contracts/crosschain/PolygonZkEVMBridgeAdapter.sol";
 
 /**
  * @title Soul Protocol L2 Bridge Deployment Script
@@ -57,6 +59,14 @@ import {LineaBridgeAdapter} from "../../contracts/crosschain/LineaBridgeAdapter.
  *   # Linea
  *   DEPLOY_TARGET=linea forge script scripts/deploy/DeployL2Bridges.s.sol \
  *     --rpc-url $LINEA_RPC --broadcast --verify -vvv
+ *
+ *   # zkSync Era
+ *   DEPLOY_TARGET=zksync forge script scripts/deploy/DeployL2Bridges.s.sol \
+ *     --rpc-url $ZKSYNC_RPC --broadcast --verify -vvv
+ *
+ *   # Polygon zkEVM
+ *   DEPLOY_TARGET=polygon-zkevm forge script scripts/deploy/DeployL2Bridges.s.sol \
+ *     --rpc-url $POLYGON_ZKEVM_RPC --broadcast --verify -vvv
  */
 contract DeployL2Bridges is Script {
     function run() external {
@@ -84,6 +94,10 @@ contract DeployL2Bridges is Script {
             _deployScroll(admin, deployer);
         } else if (_strEq(target, "linea")) {
             _deployLinea(admin, deployer);
+        } else if (_strEq(target, "zksync")) {
+            _deployZkSync(admin, deployer);
+        } else if (_strEq(target, "polygon-zkevm")) {
+            _deployPolygonZkEVM(admin, deployer);
         } else {
             revert(string.concat("Unknown deploy target: ", target));
         }
@@ -277,6 +291,80 @@ contract DeployL2Bridges is Script {
         console.log(
             "  Post-deploy: configure proof relay and anchoring via multisig"
         );
+    }
+
+    function _deployZkSync(address admin, address deployer) internal {
+        require(block.chainid == 324, "Expected zkSync Era chainId 324");
+
+        address zkSyncDiamond = vm.envAddress("ZKSYNC_DIAMOND");
+
+        zkSyncBridgeAdapter adapter = new zkSyncBridgeAdapter(
+            deployer,
+            zkSyncDiamond
+        );
+        console.log("zkSyncBridgeAdapter:", address(adapter));
+
+        // Transfer roles to multisig
+        adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
+        adapter.grantRole(adapter.OPERATOR_ROLE(), admin);
+        adapter.grantRole(adapter.GUARDIAN_ROLE(), admin);
+
+        // Grant relayer role if configured
+        address relayer = vm.envOr("RELAYER_ADDRESS", address(0));
+        if (relayer != address(0)) {
+            adapter.grantRole(adapter.RELAYER_ROLE(), relayer);
+            console.log("Relayer granted:", relayer);
+        }
+
+        // Renounce deployer roles
+        adapter.renounceRole(adapter.GUARDIAN_ROLE(), deployer);
+        adapter.renounceRole(adapter.OPERATOR_ROLE(), deployer);
+        adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
+
+        console.log("zkSync Era bridge deployed. Admin:", admin);
+        console.log("  Post-deploy: call configureZkSyncBridge() via multisig");
+    }
+
+    function _deployPolygonZkEVM(address admin, address deployer) internal {
+        require(block.chainid == 1101, "Expected Polygon zkEVM chainId 1101");
+
+        address polygonBridge = vm.envAddress("POLYGON_ZKEVM_BRIDGE");
+        address exitRootManager = vm.envAddress(
+            "POLYGON_ZKEVM_EXIT_ROOT_MANAGER"
+        );
+        address polygonZkEVM = vm.envAddress("POLYGON_ZKEVM_CONTRACT");
+        uint32 networkId = uint32(
+            vm.envOr("POLYGON_ZKEVM_NETWORK_ID", uint256(1))
+        );
+
+        PolygonZkEVMBridgeAdapter adapter = new PolygonZkEVMBridgeAdapter(
+            polygonBridge,
+            exitRootManager,
+            polygonZkEVM,
+            networkId,
+            deployer
+        );
+        console.log("PolygonZkEVMBridgeAdapter:", address(adapter));
+
+        // Transfer roles to multisig
+        adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
+        adapter.grantRole(adapter.OPERATOR_ROLE(), admin);
+        adapter.grantRole(adapter.GUARDIAN_ROLE(), admin);
+
+        // Grant relayer role if configured
+        address relayer = vm.envOr("RELAYER_ADDRESS", address(0));
+        if (relayer != address(0)) {
+            adapter.grantRole(adapter.RELAYER_ROLE(), relayer);
+            console.log("Relayer granted:", relayer);
+        }
+
+        // Renounce deployer roles
+        adapter.renounceRole(adapter.GUARDIAN_ROLE(), deployer);
+        adapter.renounceRole(adapter.OPERATOR_ROLE(), deployer);
+        adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
+
+        console.log("Polygon zkEVM bridge deployed. Admin:", admin);
+        console.log("  Post-deploy: configure soulHubL2 via multisig");
     }
 
     function _strEq(

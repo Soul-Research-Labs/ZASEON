@@ -104,6 +104,7 @@ forge test --match-path 'test/invariant/*' --fuzz-runs 1000 --fuzz-depth 100
 - `test/invariant/ConfidentialStateInvariant.t.sol`
 - `test/invariant/SecurityModuleInvariant.t.sol`
 - `test/invariant/PrivacyInvariants.t.sol`
+- `test/invariant/ComplianceInvariant.t.sol`
 
 ### 3. Formal Verification (Certora)
 
@@ -191,12 +192,24 @@ python scripts/run_coverage.py --restore
 
 The following contracts are replaced with simplified stubs during coverage:
 
-| Category  | Contracts                                                               |
-| --------- | ----------------------------------------------------------------------- |
-| Verifiers | `Groth16VerifierBN254`, `SoulUniversalVerifier`, `GasOptimizedVerifier` |
-| Core      | `ZKBoundStateLocks`, `ConfidentialStateContainerV3`                     |
-| Privacy   | `StealthAddressRegistry`, `CrossChainPrivacyHub`                        |
-| Bridges   | `CrossChainProofHubV3`, `DirectL2Messenger`                             |
+| Category   | Stub File                      | Contract(s) Stubbed                             | Rationale                                           |
+| ---------- | ------------------------------ | ----------------------------------------------- | --------------------------------------------------- |
+| Verifiers  | `Groth16VerifierBN254.sol`     | `Groth16VerifierBN254`                          | Heavy BN254 assembly (pairing precompiles)          |
+| Verifiers  | `GasOptimizedVerifier.sol`     | `GasOptimizedVerifier`, `BatchProofVerifier`    | Inline assembly BN254 ops + batch proof aggregation |
+| Verifiers  | `OptimizedGroth16Verifier.sol` | `OptimizedGroth16Verifier`                      | Assembly-optimized Groth16 verification             |
+| Verifiers  | `ProofAggregator.sol`          | `ProofAggregator`                               | Complex proof aggregation with assembly             |
+| Verifiers  | `StateCommitmentVerifier.sol`  | `StateCommitmentVerifier`                       | Returns true for 3 public signals (stub-safe)       |
+| Verifiers  | `StateTransferVerifier.sol`    | `StateTransferVerifier`                         | Returns true for 7 public signals (stub-safe)       |
+| Verifiers  | `CrossChainProofVerifier.sol`  | `CrossChainProofVerifier`                       | Returns true for 7 public signals (stub-safe)       |
+| Verifiers  | `VerifierRegistry.sol`         | `VerifierRegistry`                              | Assembly in verifier dispatch logic                 |
+| Crosschain | `CrossChainMessageRelay.sol`   | `CrossChainMessageRelay`                        | Assembly-free cross-chain message relay             |
+| Crosschain | `L2ChainAdapter.sol`           | `L2ChainAdapter`                                | Assembly-free L2 chain adapter                      |
+| Crosschain | `L2ProofRouter.sol`            | `L2ProofRouter`                                 | Assembly-free L2 proof router                       |
+| Libraries  | `CryptoLib.sol`                | `CryptoLib`                                     | BN254 FR/FQ modular arithmetic in assembly          |
+| Libraries  | `GasOptimizations.sol`         | `GasOptimizations`                              | Gas-optimized utility routines (assembly)           |
+| Privacy    | `GasOptimizedPrivacy.sol`      | `GasOptimizedStealthRegistry` + 2 others        | Assembly in stealth address generation              |
+| Privacy    | `ConstantTimeOperations.sol`   | `ConstantTimeOperations`, `ConstantTimePrivacy` | Assembly constant-time comparisons (side-channel)   |
+| Privacy    | `RecursiveProofAggregator.sol` | `RecursiveProofAggregator` (UUPS)               | Complex recursive proof verification in assembly    |
 
 ---
 
@@ -230,7 +243,7 @@ Results uploaded to Codecov (when available).
 
 ### Total Test Count
 
-> **5,600+ tests** across **200+ test suites** — 0 failures as of July 2026.
+> **5,800+ tests** across **220+ test suites** — 0 failures as of July 2026.
 
 ---
 

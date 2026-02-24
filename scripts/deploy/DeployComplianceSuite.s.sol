@@ -5,6 +5,8 @@ import {Script, console} from "forge-std/Script.sol";
 import {SelectiveDisclosureManager} from "../../contracts/compliance/SelectiveDisclosureManager.sol";
 import {ConfigurablePrivacyLevels} from "../../contracts/compliance/ConfigurablePrivacyLevels.sol";
 import {ComplianceReportingModule} from "../../contracts/compliance/ComplianceReportingModule.sol";
+import {SoulComplianceV2} from "../../contracts/compliance/SoulComplianceV2.sol";
+import {CrossChainSanctionsOracle} from "../../contracts/compliance/CrossChainSanctionsOracle.sol";
 
 /**
  * @title DeployComplianceSuite
@@ -54,6 +56,18 @@ contract DeployComplianceSuite is Script {
         );
         console.log("ComplianceReportingModule:", address(crm));
 
+        // 4. Deploy SoulComplianceV2 (Ownable — deployer is owner, transfer later)
+        SoulComplianceV2 scv2 = new SoulComplianceV2();
+        console.log("SoulComplianceV2:", address(scv2));
+
+        // 5. Deploy CrossChainSanctionsOracle
+        uint256 quorum = vm.envOr("SANCTIONS_QUORUM", uint256(2));
+        CrossChainSanctionsOracle sanctions = new CrossChainSanctionsOracle(
+            admin,
+            quorum
+        );
+        console.log("CrossChainSanctionsOracle:", address(sanctions));
+
         vm.stopBroadcast();
 
         // Save deployment addresses
@@ -77,6 +91,12 @@ contract DeployComplianceSuite is Script {
             '",\n',
             '    "ComplianceReportingModule": "',
             vm.toString(address(crm)),
+            '",\n',
+            '    "SoulComplianceV2": "',
+            vm.toString(address(scv2)),
+            '",\n',
+            '    "CrossChainSanctionsOracle": "',
+            vm.toString(address(sanctions)),
             '"\n',
             "  }\n",
             "}"

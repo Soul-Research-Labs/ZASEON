@@ -18,6 +18,10 @@
 - [Proof Generation](#proof-generation)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
+- [Intent Settlement](#intent-settlement)
+- [Dynamic Routing](#dynamic-routing)
+- [Compliance & Selective Disclosure](#compliance--selective-disclosure)
+- [Experimental Features](#experimental-features)
 - [Production](#production)
 
 ---
@@ -555,6 +559,224 @@ const client = createSoulClient({
   privateKey: process.env.PRIVATE_KEY as `0x${string}`,
 });
 ```
+
+---
+
+## Intent Settlement
+
+### Overview
+
+The Intent Settlement Layer provides a solver-marketplace for cross-chain operations. Users submit intents (desired outcomes), and registered solvers competitively claim and fulfill them.
+
+### Submit an Intent
+
+```typescript
+import { createSoulClient } from "@soul/sdk";
+
+const client = createSoulClient({
+  rpcUrl: process.env.RPC_URL!,
+  chainId: 11155111,
+  privateKey: "0x...",
+});
+
+// Submit an intent for a cross-chain transfer
+const intent = await client.submitIntent({
+  sourceChainId: 11155111, // Sepolia
+  destChainId: 42161, // Arbitrum
+  token: "0x...", // ERC-20 token address
+  amount: 1000000000000000000n, // 1 token
+  maxFee: 50000000000000000n, // 0.05 ETH max solver fee
+  deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+  data: "0x", // Optional calldata
+});
+
+console.log("Intent ID:", intent.intentId);
+```
+
+### Register as a Solver
+
+Solvers stake tokens to participate in the intent marketplace:
+
+```typescript
+// Register as a solver (requires minimum stake)
+await client.registerSolver({
+  stake: 10000000000000000000n, // 10 ETH
+});
+
+// Claim an intent
+await client.claimIntent(intent.intentId);
+
+// Fulfill an intent on the destination chain
+await client.fulfillIntent(intent.intentId, {
+  proof: fulfillmentProof,
+  resultData: "0x...",
+});
+```
+
+### Instant Settlement Guarantees
+
+For time-sensitive operations, solvers can leverage instant settlement:
+
+```typescript
+// Post a guarantee (solver posts collateral)
+await client.postGuarantee({
+  intentId: intent.intentId,
+  collateralAmount: 1200000000000000000n, // 120% of intent value
+});
+
+// After fulfillment, settle the guarantee
+await client.settleGuarantee(intent.intentId);
+```
+
+---
+
+## Dynamic Routing
+
+### Overview
+
+The Dynamic Routing Orchestrator selects optimal cross-chain paths based on liquidity, cost, speed, and reliability metrics.
+
+### Query Optimal Route
+
+```typescript
+import { BridgeFactory } from "@soul/sdk";
+
+// The bridge factory uses the routing orchestrator internally
+const bridge = BridgeFactory.create("auto", {
+  sourceRpcUrl: process.env.ETHEREUM_RPC_URL!,
+  targetRpcUrl: process.env.ARBITRUM_RPC_URL!,
+  privateKey: "0x...",
+});
+
+// Get route recommendation
+const route = await bridge.getOptimalRoute({
+  sourceChainId: 1,
+  destChainId: 42161,
+  amount: 5000000000000000000n,
+  token: "0x...",
+  preference: "cost", // "cost" | "speed" | "reliability"
+});
+
+console.log("Selected bridge:", route.bridgeName);
+console.log("Estimated fee:", route.estimatedFee);
+console.log("Estimated time:", route.estimatedTimeSeconds, "seconds");
+```
+
+### Liquidity-Aware Routing
+
+Routes automatically consider available liquidity across pools:
+
+```typescript
+// Check liquidity for a specific route
+const liquidity = await bridge.checkLiquidity({
+  sourceChainId: 1,
+  destChainId: 42161,
+  token: "0x...",
+});
+
+console.log("Available:", liquidity.available);
+console.log("Utilization:", liquidity.utilizationBps, "bps");
+```
+
+---
+
+## Compliance & Selective Disclosure
+
+### SoulComplianceProvider
+
+For KYC/AML compliance with privacy-preserving credential issuance:
+
+```typescript
+import { SoulComplianceProvider } from "@soul/sdk/compliance";
+
+const provider = new SoulComplianceProvider({
+  rpcUrl: process.env.RPC_URL!,
+  contractAddress: "0x...",
+  providerId: "your-provider-id",
+});
+
+// Check if a user is compliant
+const isCompliant = await provider.checkCompliance("0xUserAddress...");
+
+// Issue a credential with ZK proof
+await provider.issueCredential("0xUserAddress...", {
+  level: "standard", // "basic" | "standard" | "enhanced"
+  jurisdiction: "US",
+  expiry: Math.floor(Date.now() / 1000) + 86400 * 365, // 1 year
+  proof: zkProofBytes, // ZK proof of compliance check
+});
+```
+
+### Selective Disclosure
+
+Users can selectively disclose compliance attributes without revealing full credentials:
+
+```typescript
+// Create a selective disclosure proof
+// (proves you are over 18 without revealing exact age)
+const disclosure = await provider.createDisclosure({
+  credentialId: credentialHash,
+  disclosedFields: ["jurisdiction", "level"],
+  proof: selectiveDisclosureProof,
+});
+```
+
+---
+
+## Experimental Features
+
+### ExperimentalFeatureRegistryClient
+
+Monitor and manage experimental features through the graduation pipeline:
+
+```typescript
+import { ExperimentalFeatureRegistryClient, FeatureStatus } from "@soul/sdk";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+
+const registry = new ExperimentalFeatureRegistryClient(
+  "0xRegistryAddress",
+  publicClient,
+);
+
+// List all experimental features
+const features = await registry.getAllFeatures();
+for (const feature of features) {
+  console.log(
+    `${feature.name}: ${FeatureStatus[feature.status]}`,
+    `(TVL: ${feature.currentValueLocked}/${feature.maxValueLocked})`,
+  );
+}
+
+// Check if a specific feature is enabled
+const enabled = await registry.isFeatureEnabled(featureId);
+
+// Get remaining risk capacity
+const capacity = await registry.getRemainingCapacity(featureId);
+
+// Watch for feature graduations
+registry.watchStatusChanges((id, oldStatus, newStatus) => {
+  console.log(
+    `Feature graduated: ${FeatureStatus[oldStatus]} → ${FeatureStatus[newStatus]}`,
+  );
+});
+```
+
+### Feature Status Levels
+
+| Status         | Description                               | Risk Limit    |
+| -------------- | ----------------------------------------- | ------------- |
+| `DISABLED`     | Feature is off                            | N/A           |
+| `EXPERIMENTAL` | Testnet only, high risk                   | Low (< 1 ETH) |
+| `BETA`         | Limited mainnet, audited but unproven     | Medium        |
+| `PRODUCTION`   | Full mainnet, fully audited and graduated | High          |
+
+See [Experimental Features Policy](EXPERIMENTAL_FEATURES_POLICY.md) for graduation criteria.
 
 ---
 

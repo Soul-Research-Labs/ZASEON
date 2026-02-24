@@ -113,3 +113,29 @@ sdk-build:
 
 sdk-test: sdk-build
 	cd sdk && npm run test:all
+
+# ─── Deploy ───────────────────────────────────────
+.PHONY: deploy-testnet deploy-mainnet
+
+## Deploy core contracts to testnet (requires PRIVATE_KEY + RPC env vars)
+deploy-testnet:
+	$(FORGE) script scripts/deploy/DeployMinimalCore.s.sol \
+		--rpc-url $${RPC_URL:-sepolia} --broadcast --verify -vvv
+
+## Deploy full production suite (8-phase, requires multisig)
+deploy-mainnet:
+	@echo "⚠️  Production deploy — ensure multisig signer set"
+	$(FORGE) script scripts/deploy/DeployMainnet.s.sol \
+		--rpc-url $${RPC_URL:-mainnet} --broadcast --verify -vvv
+
+# ─── CI Orchestration ────────────────────────────
+.PHONY: test-all ci
+
+## Run all tests: Foundry (skip stress) + Hardhat
+test-all:
+	$(FORGE) test --no-match-path 'test/stress/*' -vvv
+	npx hardhat test test/privacy/PrivacyZoneManager.test.ts test/privacy/DataAvailabilityOracle.test.ts test/relayer/HeterogeneousRelayerRegistry.test.ts
+
+## Full CI pipeline: build → test → lint → slither → coverage
+ci: build test-all lint slither coverage-ci
+	@echo "✅ CI pipeline complete"

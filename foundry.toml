@@ -105,6 +105,10 @@ mainnet = "${MAINNET_RPC_URL}"
 arbitrum = "${ARBITRUM_RPC_URL}"
 optimism = "${OPTIMISM_RPC_URL}"
 base = "${BASE_RPC_URL}"
+zksync = "${ZKSYNC_RPC_URL}"
+scroll = "${SCROLL_RPC_URL}"
+linea = "${LINEA_RPC_URL}"
+polygon_zkevm = "${POLYGON_ZKEVM_RPC_URL}"
 
 # Testnets
 sepolia = "${SEPOLIA_RPC_URL}"
@@ -129,5 +133,9 @@ optimism_sepolia = { key = "${OPTIMISM_API_KEY}", url = "https://api-sepolia-opt
 scroll_sepolia = { key = "${SCROLLSCAN_API_KEY}", url = "https://api-sepolia.scrollscan.com/api" }
 linea_sepolia = { key = "${LINEASCAN_API_KEY}", url = "https://api-sepolia.lineascan.build/api" }
 polygon_amoy = { key = "${POLYGONSCAN_API_KEY}", url = "https://api-amoy.polygonscan.com/api" }
+zksync = { key = "${ZKSYNC_API_KEY}", url = "https://block-explorer-api.mainnet.zksync.io/api", chain = 324 }
+scroll = { key = "${SCROLLSCAN_API_KEY}", url = "https://api.scrollscan.com/api", chain = 534352 }
+linea = { key = "${LINEASCAN_API_KEY}", url = "https://api.lineascan.build/api", chain = 59144 }
+polygon_zkevm = { key = "${POLYGONSCAN_API_KEY}", url = "https://api-zkevm.polygonscan.com/api", chain = 1101 }
 
 
