@@ -15,7 +15,7 @@ import {IIntentSettlementLayer} from "../interfaces/IIntentSettlementLayer.sol";
  *      Users submit intents describing desired cross-chain state transitions.
  *      Solvers compete to fulfill intents by generating valid ZK proofs.
  *      The user escrows a service fee (maxFee) — NOT the transfer amount.
- *      Actual token movement happens externally (via bridges, solver capital, or pre-funded pools).
+ *      Actual token movement happens externally via bridges (Hyperlane, LayerZero, etc.).
  *
  * LIFECYCLE (proof-centric):
  *   User submits intent (escrows service fee) →

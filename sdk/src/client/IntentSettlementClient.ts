@@ -274,7 +274,7 @@ const GUARANTEE_ABI = [
  * SDK client for the Intent Settlement suite (Tachyon Learning #1).
  *
  * Covers IntentSettlementLayer (cross-chain intent settlement with competitive solvers)
- * and InstantSettlementGuarantee (solver-backed over-collateralized bonds).
+ * and InstantSettlementGuarantee (bonded proof delivery guarantees).
  *
  * @example
  * ```ts

@@ -20,11 +20,7 @@ Before reading the learnings below, understand the key distinction:
 | Dynamic routing of liquidity      | Routing of proof relay requests through bridge adapters | Routes proofs, not value         |
 | Solver rewards for token delivery | Relayer rewards for proof relay speed                   | Incentivizes fast proof delivery |
 
-**Where do the tokens come from?** Soul supports three models (see [architecture.md](architecture.md#token-flow-models)):
-
-1. **Bridge-Wrapped Privacy** — existing bridges move tokens, Soul adds privacy layer
-2. **Solver/Intent Model** — solvers use their own capital, claim service fees
-3. **Pre-Funded Pools** — operators pre-fund ShieldedPools and rebalance externally
+**Where do the tokens come from?** Soul uses a single model: **Bridge-Wrapped Privacy** (see [architecture.md](architecture.md#token-flow-bridge-wrapped-privacy)). Existing bridges (Hyperlane, LayerZero, Wormhole, etc.) move tokens. Soul wraps them with ZK proofs, nullifiers, and stealth addresses. The `IntentSettlementLayer` and `InstantSettlementGuarantee` are UX optimizations within this model — they coordinate proof generation and delivery, not token movement.
 
 ---
 
@@ -407,7 +403,7 @@ contract ConfigurablePrivacyLevels {
 **What Soul Can Learn**:
 
 - Current Soul model: Users wait for challenge periods (1 hour for high-value)
-- **Improvement**: Instant UX with solver-backed guarantees
+- **Improvement**: Instant UX with bonded proof delivery guarantees
 
 **Implementation Strategy**:
 
@@ -425,7 +421,7 @@ contract InstantSettlementGuarantee {
 
     mapping(bytes32 => Guarantee) public guarantees;
 
-    // Solver provides instant guarantee
+    // Guarantor provides bonded proof delivery guarantee
     function provideGuarantee(
         bytes32 transferId,
         uint256 amount

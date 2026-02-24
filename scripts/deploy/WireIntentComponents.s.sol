@@ -14,7 +14,7 @@ import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrc
  *
  * @dev Deploys three contracts in dependency order:
  *      1. IntentSettlementLayer   — intent-based cross-chain settlement
- *      2. InstantSettlementGuarantee — solver-backed over-collateralized bonds
+ *      2. InstantSettlementGuarantee — bonded proof delivery guarantees
  *      3. DynamicRoutingOrchestrator — multi-bridge routing with ML-style scoring
  *
  *      Then wires all three into the Hub via wireAll (zero-address for existing components).

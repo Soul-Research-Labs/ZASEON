@@ -222,7 +222,7 @@ never compromising the cryptographic foundation.
 2. Configurable privacy levels (ConfigurablePrivacyLevels)
 3. Enterprise compliance reporting (ComplianceReportingModule)
 4. Intent-based architecture with solver networks (IntentSettlementLayer) — **NEW**
-5. Instant settlement guarantees with solver-backed bonds (InstantSettlementGuarantee + InstantRelayerRewards) — **NEW**
+5. Instant settlement guarantees with bonded proof delivery (InstantSettlementGuarantee + InstantRelayerRewards) — **NEW**
 6. Dynamic routing orchestration (DynamicRoutingOrchestrator) — **NEW**
 7. Privacy ↔ Compliance bridge (CrossChainPrivacyHub compliance hooks) — **NEW**
 

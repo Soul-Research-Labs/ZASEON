@@ -9,7 +9,7 @@ pragma solidity ^0.8.24;
  *      proof generation and delivery, not token transfers.
  *      Users submit intents (desired state transitions). Solvers compete to fulfill them
  *      by generating valid ZK proofs. The user escrows a service fee, not a transfer amount.
- *      Actual token movement is external to this contract (via bridges, solver capital, etc.).
+ *      Actual token movement is external to this contract (handled by bridges like Hyperlane, LayerZero, etc.).
  */
 interface IIntentSettlementLayer {
     /*//////////////////////////////////////////////////////////////
