@@ -96,7 +96,7 @@ contract ProtocolHealthAggregator is AccessControl, ReentrancyGuard, Pausable {
     enum SubsystemCategory {
         BRIDGE, // Bridge infra (circuit breaker, rate limiter)
         RELAYER, // Relayer network health
-        ROUTING, // Route optimization and liquidity
+        ROUTING, // Route optimization and capacity
         SECURITY, // Security scorecards and fraud detection
         PRIVACY // Privacy subsystem health
     }

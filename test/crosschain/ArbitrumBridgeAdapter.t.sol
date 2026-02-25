@@ -182,13 +182,13 @@ contract ArbitrumBridgeAdapterTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                       LIQUIDITY TESTS
+                       BRIDGE EXIT FUNDING TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_ProvideLiquidity() public {
+    function test_ProvideExitFunding() public {
         vm.deal(user, 10 ether);
         vm.prank(user);
-        adapter.provideLiquidity{value: 5 ether}();
+        adapter.provideExitFunding{value: 5 ether}();
     }
 
     function test_ReceiveETH() public {

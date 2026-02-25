@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {IDynamicRoutingOrchestrator} from "../interfaces/IDynamicRoutingOrchestrator.sol";
 import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
 
 /**
- * @title LiquidityAwareRouter
+ * @title CapacityAwareRouterUpgradeable
  * @author Soul Protocol
- * @notice Proof-routing frontend that executes routes from DynamicRoutingOrchestrator
- * @dev Routes ZK proof relay requests through optimal bridge adapters.
- *      Soul Protocol is proof middleware — the "transfers" tracked here are
- *      proof relay operations, not token transfers. The `amount` field
- *      represents the service fee for the proof relay, not tokens being moved.
- *
+ * @notice UUPS-upgradeable version of CapacityAwareRouter for proxy deployments
+ * @dev Proof-routing frontend that executes routes from DynamicRoutingOrchestrator.
+ *      Soul is proof middleware — transfers tracked here are proof relay ops, not token moves.
  *      Composes with DynamicRoutingOrchestrator for route selection and adds:
  *      - Quote-and-execute pattern: get route → commit → execute within validity window
  *      - Adaptive fee calculation with capacity impact premium
@@ -25,9 +24,18 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  *      - Rate limiting integration (per-user, per-pair cooldowns)
  *      - Bridge adapter fee estimation pass-through
  *
+ * UPGRADE NOTES:
+ * - AccessControlUpgradeable used for role-based permissioning
+ * - Constructor replaced with `initialize(address _orchestrator, address admin, address executor)`
+ * - All OZ base contracts replaced with upgradeable variants
+ * - `orchestrator` changed from immutable to regular storage variable (proxies cannot use immutable)
+ * - UUPS upgrade restricted to UPGRADER_ROLE
+ * - Storage gap (`__gap[50]`) reserved for future upgrades
+ * - `contractVersion` tracks upgrade count
+ *
  *      Lifecycle:
  *      1. User calls `quoteTransfer()` → gets Route from orchestrator
- *      2. User calls `commitRoute()` with routeId → locks fee, confirms execution
+ *      2. User calls `commitRoute()` with routeId → locks funds, confirms execution
  *      3. Router calls `beginExecution()` → triggers bridge adapter(s)
  *      4. On completion, `settleTransfer()` finalizes and records metrics
  *
@@ -37,13 +45,24 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  *      - Maximum single transfer limit
  *      - Stale route detection (routes expire after 5 minutes)
  *      - Zero-address validation
+ *
+ * @custom:oz-upgrades-from CapacityAwareRouter
  */
-contract LiquidityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
+contract CapacityAwareRouterUpgradeable is
+    Initializable,
+    AccessControlUpgradeable,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
+{
     using RouteOptimizer for RouteOptimizer.ScoringWeights;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Role for upgrade authorization
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     /// @notice Role for executing transfers
     bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
@@ -109,7 +128,8 @@ contract LiquidityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The DynamicRoutingOrchestrator this router uses for route selection
-    IDynamicRoutingOrchestrator public immutable orchestrator;
+    /// @dev Changed from immutable to storage variable for proxy compatibility
+    IDynamicRoutingOrchestrator public orchestrator;
 
     /// @notice Transfers indexed by transfer ID
     mapping(bytes32 => Transfer) public transfers;
@@ -127,10 +147,16 @@ contract LiquidityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     uint256 internal _transferNonce;
 
     /// @notice Transfer timeout (1 hour)
-    uint48 public transferTimeout = 1 hours;
+    uint48 public transferTimeout;
 
     /// @notice User cooldown between transfers
-    uint48 public userCooldown = DEFAULT_COOLDOWN;
+    uint48 public userCooldown;
+
+    /// @notice Contract version for upgrade tracking
+    uint256 public contractVersion;
+
+    /// @dev Reserved storage gap for future upgrades
+    uint256[50] private __gap;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -194,22 +220,46 @@ contract LiquidityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INITIALIZER
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Initialize the liquidity-aware router
+     * @notice Initialize the upgradeable capacity-aware router
      * @param _orchestrator Address of the DynamicRoutingOrchestrator
      * @param admin Default admin
      * @param executor Initial executor address
      */
-    constructor(address _orchestrator, address admin, address executor) {
+    function initialize(
+        address _orchestrator,
+        address admin,
+        address executor
+    ) external initializer {
         if (_orchestrator == address(0)) revert ZeroAddress();
         if (admin == address(0)) revert ZeroAddress();
         if (executor == address(0)) revert ZeroAddress();
 
+        __AccessControl_init();
+        __ReentrancyGuard_init();
+        __Pausable_init();
+        __UUPSUpgradeable_init();
+
         orchestrator = IDynamicRoutingOrchestrator(_orchestrator);
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(UPGRADER_ROLE, admin);
         _grantRole(EXECUTOR_ROLE, executor);
         _grantRole(SETTLER_ROLE, executor);
+
+        transferTimeout = 1 hours;
+        userCooldown = DEFAULT_COOLDOWN;
+
+        contractVersion = 1;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -612,6 +662,20 @@ contract LiquidityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Unpause the router
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          UUPS UPGRADE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Authorize UUPS upgrade — restricted to UPGRADER_ROLE
+     * @param newImplementation Address of the new implementation contract
+     */
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyRole(UPGRADER_ROLE) {
+        contractVersion++;
     }
 
     /// @notice Allow contract to receive ETH

@@ -333,7 +333,7 @@ bridgeCmd
       const publicClient = await getPublicClient(options.network);
       const config = loadConfig();
 
-      console.log(`\nInitiating bridge transfer:`);
+      console.log(`\nInitiating proof relay via bridge:`);
       console.log(`  Chain: ${chain}`);
       console.log(`  Recipient: ${recipient}`);
       console.log(`  Amount: ${amount} ETH`);
@@ -394,7 +394,7 @@ bridgeCmd
 
 bridgeCmd
   .command("status <chain> <transferId>")
-  .description("Check bridge transfer status")
+  .description("Check proof relay status")
   .option("-n, --network <network>", "Network to use", "localhost")
   .action(async (chain: string, transferId: string, options) => {
     try {

@@ -111,20 +111,20 @@ contract ArbitrumBridgeFuzz is Test {
         assertFalse(bridge.paused());
     }
 
-    // --- Liquidity ---
-    function testFuzz_provideLiquidity(uint256 amount) public {
+    // --- Bridge Exit Funding ---
+    function testFuzz_provideExitFunding(uint256 amount) public {
         amount = bound(amount, 1, 100 ether);
         vm.deal(user1, amount);
         vm.prank(user1);
-        bridge.provideLiquidity{value: amount}();
-        assertEq(bridge.liquidityProviders(user1), amount);
+        bridge.provideExitFunding{value: amount}();
+        assertEq(bridge.exitFundingProviders(user1), amount);
     }
 
-    function testFuzz_withdrawLiquidityReverts(uint256 amount) public {
+    function testFuzz_withdrawExitFundingReverts(uint256 amount) public {
         amount = bound(amount, 1, 100 ether);
         vm.prank(user1);
-        vm.expectRevert(ArbitrumBridgeAdapter.InsufficientLiquidity.selector);
-        bridge.withdrawLiquidity(amount);
+        vm.expectRevert(ArbitrumBridgeAdapter.InsufficientCapacity.selector);
+        bridge.withdrawExitFunding(amount);
     }
 
     // --- Fast Exit Toggle ---

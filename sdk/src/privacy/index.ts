@@ -79,7 +79,7 @@ export {
   TransferStage,
   PrivacyTransferError,
   NullifierAlreadySpentError,
-  InsufficientLiquidityError,
+  InsufficientBridgeCapacityError,
   RelayTimeoutError,
   type ChainConfig,
   type PrivateTransferStatus,

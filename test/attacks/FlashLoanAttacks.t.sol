@@ -22,7 +22,7 @@ contract FlashLoanAttacks is Test {
     address public attacker;
     address public liquidator;
 
-    uint256 constant INITIAL_LIQUIDITY = 1_000_000e18;
+    uint256 constant INITIAL_CAPACITY = 1_000_000e18;
     uint256 constant FLASH_LOAN_AMOUNT = 100_000e18;
 
     /*//////////////////////////////////////////////////////////////
@@ -39,9 +39,9 @@ contract FlashLoanAttacks is Test {
         lendingPool = new MockLendingPool(address(token), address(oracle));
         flashLoanProvider = new MockFlashLoanProvider(address(token));
 
-        // Seed liquidity
-        token.mint(address(flashLoanProvider), INITIAL_LIQUIDITY);
-        token.mint(address(lendingPool), INITIAL_LIQUIDITY);
+        // Seed capacity
+        token.mint(address(flashLoanProvider), INITIAL_CAPACITY);
+        token.mint(address(lendingPool), INITIAL_CAPACITY);
 
         // Set initial price
         oracle.setPrice(1e18); // 1:1 price
@@ -61,7 +61,7 @@ contract FlashLoanAttacks is Test {
             address(token),
             address(oracle)
         );
-        token.mint(address(protectedPool), INITIAL_LIQUIDITY);
+        token.mint(address(protectedPool), INITIAL_CAPACITY);
 
         // Try to manipulate
         FlashLoanOracleAttacker attackerContract = new FlashLoanOracleAttacker(
@@ -108,7 +108,7 @@ contract FlashLoanAttacks is Test {
             address(token),
             address(oracle)
         );
-        token.mint(address(liquidationPool), INITIAL_LIQUIDITY);
+        token.mint(address(liquidationPool), INITIAL_CAPACITY);
 
         // Create a position
         address borrower = makeAddr("borrower");
@@ -140,7 +140,7 @@ contract FlashLoanAttacks is Test {
      */
     function test_ammManipulation_shouldBeProtected() public {
         MockAMM amm = new MockAMM(address(token));
-        token.mint(address(amm), INITIAL_LIQUIDITY);
+        token.mint(address(amm), INITIAL_CAPACITY);
         vm.deal(address(amm), 1000 ether);
 
         FlashLoanAMMAttacker attackerContract = new FlashLoanAMMAttacker(
@@ -197,7 +197,7 @@ contract FlashLoanAttacks is Test {
      * @notice Fuzz test: flash loan amount bounds
      */
     function testFuzz_flashLoanBounds(uint256 amount) public {
-        amount = bound(amount, 1, INITIAL_LIQUIDITY);
+        amount = bound(amount, 1, INITIAL_CAPACITY);
 
         MockFlashLoanBorrower borrower = new MockFlashLoanBorrower(
             address(flashLoanProvider),
@@ -213,7 +213,7 @@ contract FlashLoanAttacks is Test {
         // Provider should have received fee
         assertGe(
             token.balanceOf(address(flashLoanProvider)),
-            INITIAL_LIQUIDITY,
+            INITIAL_CAPACITY,
             "Provider should receive fees"
         );
     }
@@ -296,7 +296,7 @@ contract MockFlashLoanProvider {
 
     function flashLoan(address receiver, uint256 amount) external nonReentrant {
         uint256 balanceBefore = MockToken(token).balanceOf(address(this));
-        require(amount <= balanceBefore, "Insufficient liquidity");
+        require(amount <= balanceBefore, "Insufficient capacity");
 
         MockToken(token).transfer(receiver, amount);
 

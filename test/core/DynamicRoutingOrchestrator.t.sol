@@ -23,7 +23,7 @@ contract DynamicRoutingOrchestratorTest is Test {
     uint256 constant CHAIN_OP = 10;
     uint256 constant CHAIN_BASE = 8453;
 
-    uint256 constant TOTAL_LIQUIDITY = 1000 ether;
+    uint256 constant TOTAL_CAPACITY = 1000 ether;
     uint256 constant INITIAL_FEE = 0.01 ether;
 
     function setUp() public {
@@ -42,8 +42,8 @@ contract DynamicRoutingOrchestratorTest is Test {
 
         // Register pools
         vm.startPrank(bridgeAdmin);
-        orchestrator.registerPool(CHAIN_ETH, TOTAL_LIQUIDITY, INITIAL_FEE);
-        orchestrator.registerPool(CHAIN_ARB, TOTAL_LIQUIDITY, INITIAL_FEE);
+        orchestrator.registerPool(CHAIN_ETH, TOTAL_CAPACITY, INITIAL_FEE);
+        orchestrator.registerPool(CHAIN_ARB, TOTAL_CAPACITY, INITIAL_FEE);
         orchestrator.registerPool(CHAIN_OP, 500 ether, INITIAL_FEE);
         orchestrator.registerPool(CHAIN_BASE, 200 ether, 0.005 ether);
 
@@ -130,8 +130,8 @@ contract DynamicRoutingOrchestratorTest is Test {
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertEq(pool.chainId, CHAIN_ETH);
-        assertEq(pool.availableCapacity, TOTAL_LIQUIDITY);
-        assertEq(pool.totalCapacity, TOTAL_LIQUIDITY);
+        assertEq(pool.availableCapacity, TOTAL_CAPACITY);
+        assertEq(pool.totalCapacity, TOTAL_CAPACITY);
         assertEq(pool.utilizationBps, 0);
         assertEq(pool.currentFee, INITIAL_FEE);
         assertTrue(
@@ -154,19 +154,19 @@ contract DynamicRoutingOrchestratorTest is Test {
                 CHAIN_ETH
             )
         );
-        orchestrator.registerPool(CHAIN_ETH, TOTAL_LIQUIDITY, INITIAL_FEE);
+        orchestrator.registerPool(CHAIN_ETH, TOTAL_CAPACITY, INITIAL_FEE);
     }
 
     function test_RegisterPool_RevertZeroChainId() public {
         vm.prank(bridgeAdmin);
         vm.expectRevert(IDynamicRoutingOrchestrator.InvalidChainId.selector);
-        orchestrator.registerPool(0, TOTAL_LIQUIDITY, INITIAL_FEE);
+        orchestrator.registerPool(0, TOTAL_CAPACITY, INITIAL_FEE);
     }
 
     function test_RegisterPool_RevertUnauthorized() public {
         vm.prank(unauthorized);
         vm.expectRevert();
-        orchestrator.registerPool(999, TOTAL_LIQUIDITY, INITIAL_FEE);
+        orchestrator.registerPool(999, TOTAL_CAPACITY, INITIAL_FEE);
     }
 
     function test_SetPoolStatus_Success() public {
@@ -213,12 +213,12 @@ contract DynamicRoutingOrchestratorTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                      LIQUIDITY UPDATES
+                      CAPACITY UPDATES
     //////////////////////////////////////////////////////////////*/
 
-    function test_UpdateLiquidity_Success() public {
+    function test_UpdateCapacity_Success() public {
         vm.prank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, 800 ether);
+        orchestrator.updateCapacity(CHAIN_ETH, 800 ether);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
@@ -227,23 +227,23 @@ contract DynamicRoutingOrchestratorTest is Test {
         assertEq(pool.utilizationBps, 2000);
     }
 
-    function test_UpdateLiquidity_EmitsEvent() public {
+    function test_UpdateCapacity_EmitsEvent() public {
         vm.expectEmit(true, false, false, true);
-        emit IDynamicRoutingOrchestrator.LiquidityUpdated(
+        emit IDynamicRoutingOrchestrator.CapacityUpdated(
             CHAIN_ETH,
-            TOTAL_LIQUIDITY,
+            TOTAL_CAPACITY,
             600 ether,
             4000 // 40% utilization
         );
 
         vm.prank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, 600 ether);
+        orchestrator.updateCapacity(CHAIN_ETH, 600 ether);
     }
 
-    function test_UpdateLiquidity_AdjustsFeeUp() public {
-        // Reduce liquidity to increase utilization above 50%
+    function test_UpdateCapacity_AdjustsFeeUp() public {
+        // Reduce capacity to increase utilization above 50%
         vm.prank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, 300 ether); // 70% util
+        orchestrator.updateCapacity(CHAIN_ETH, 300 ether); // 70% util
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
@@ -251,22 +251,22 @@ contract DynamicRoutingOrchestratorTest is Test {
         assertTrue(pool.currentFee > INITIAL_FEE);
     }
 
-    function test_UpdateLiquidity_AdjustsFeeDown() public {
+    function test_UpdateCapacity_AdjustsFeeDown() public {
         // First increase utilization
         vm.startPrank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, 300 ether); // 70% util, fee goes up
+        orchestrator.updateCapacity(CHAIN_ETH, 300 ether); // 70% util, fee goes up
 
         uint256 highFee = orchestrator.getPool(CHAIN_ETH).currentFee;
 
         // Then reduce utilization well below target
-        orchestrator.updateLiquidity(CHAIN_ETH, 900 ether); // 10% util
+        orchestrator.updateCapacity(CHAIN_ETH, 900 ether); // 10% util
         vm.stopPrank();
 
         uint256 lowFee = orchestrator.getPool(CHAIN_ETH).currentFee;
         assertTrue(lowFee < highFee);
     }
 
-    function test_UpdateLiquidity_RevertPoolNotFound() public {
+    function test_UpdateCapacity_RevertPoolNotFound() public {
         vm.prank(oracle);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -274,16 +274,16 @@ contract DynamicRoutingOrchestratorTest is Test {
                 999
             )
         );
-        orchestrator.updateLiquidity(999, 100 ether);
+        orchestrator.updateCapacity(999, 100 ether);
     }
 
-    function test_UpdateLiquidity_RevertUnauthorized() public {
+    function test_UpdateCapacity_RevertUnauthorized() public {
         vm.prank(unauthorized);
         vm.expectRevert();
-        orchestrator.updateLiquidity(CHAIN_ETH, 100 ether);
+        orchestrator.updateCapacity(CHAIN_ETH, 100 ether);
     }
 
-    function test_BatchUpdateLiquidity_Success() public {
+    function test_BatchUpdateCapacity_Success() public {
         uint256[] memory chainIds = new uint256[](2);
         chainIds[0] = CHAIN_ETH;
         chainIds[1] = CHAIN_ARB;
@@ -293,13 +293,13 @@ contract DynamicRoutingOrchestratorTest is Test {
         liquidities[1] = 700 ether;
 
         vm.prank(oracle);
-        orchestrator.batchUpdateLiquidity(chainIds, liquidities);
+        orchestrator.batchUpdateCapacity(chainIds, liquidities);
 
         assertEq(orchestrator.getPool(CHAIN_ETH).availableCapacity, 800 ether);
         assertEq(orchestrator.getPool(CHAIN_ARB).availableCapacity, 700 ether);
     }
 
-    function test_BatchUpdateLiquidity_RevertLengthMismatch() public {
+    function test_BatchUpdateCapacity_RevertLengthMismatch() public {
         uint256[] memory chainIds = new uint256[](2);
         chainIds[0] = CHAIN_ETH;
         chainIds[1] = CHAIN_ARB;
@@ -309,7 +309,7 @@ contract DynamicRoutingOrchestratorTest is Test {
 
         vm.prank(oracle);
         vm.expectRevert("Length mismatch");
-        orchestrator.batchUpdateLiquidity(chainIds, liquidities);
+        orchestrator.batchUpdateCapacity(chainIds, liquidities);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -564,7 +564,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         orchestrator.findOptimalRoute(req);
     }
 
-    function test_FindOptimalRoute_InsufficientLiquidity() public {
+    function test_FindOptimalRoute_InsufficientCapacity() public {
         IDynamicRoutingOrchestrator.RouteRequest memory req = IDynamicRoutingOrchestrator
             .RouteRequest({
                 sourceChainId: CHAIN_ETH,
@@ -577,9 +577,9 @@ contract DynamicRoutingOrchestratorTest is Test {
                 requirePrivacy: false
             });
 
-        // Should revert with NoViableRoute since no direct or multi-hop has enough liquidity for BASE
+        // Should revert with NoViableRoute since no direct or multi-hop has enough capacity for BASE
         // Actually, multi-hop through other chains may still satisfy the dest pool requirement,
-        // but BASE only has 200 ETH. Let's check — multi-hop needs dest pool liquidity too.
+        // but BASE only has 200 ETH. Let's check — multi-hop needs dest pool capacity too.
         vm.expectRevert();
         orchestrator.findOptimalRoute(req);
     }
@@ -729,7 +729,7 @@ contract DynamicRoutingOrchestratorTest is Test {
             600 ether
         );
 
-        // Large amount (>50% of liquidity) should take longer
+        // Large amount (>50% of capacity) should take longer
         assertTrue(timeLarge >= timeSmall);
     }
 
@@ -897,42 +897,42 @@ contract DynamicRoutingOrchestratorTest is Test {
 
         vm.prank(bridgeAdmin);
         vm.expectRevert();
-        orchestrator.registerPool(999, TOTAL_LIQUIDITY, INITIAL_FEE);
+        orchestrator.registerPool(999, TOTAL_CAPACITY, INITIAL_FEE);
     }
 
-    function test_UpdateLiquidity_RevertWhenPaused() public {
+    function test_UpdateCapacity_RevertWhenPaused() public {
         vm.prank(admin);
         orchestrator.pause();
 
         vm.prank(oracle);
         vm.expectRevert();
-        orchestrator.updateLiquidity(CHAIN_ETH, 800 ether);
+        orchestrator.updateCapacity(CHAIN_ETH, 800 ether);
     }
 
     /*//////////////////////////////////////////////////////////////
                           FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_UpdateLiquidity_UtilizationAlwaysValid(
+    function testFuzz_UpdateCapacity_UtilizationAlwaysValid(
         uint256 available
     ) public {
-        available = bound(available, 0, TOTAL_LIQUIDITY * 2);
+        available = bound(available, 0, TOTAL_CAPACITY * 2);
 
         vm.prank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, available);
+        orchestrator.updateCapacity(CHAIN_ETH, available);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertTrue(pool.utilizationBps <= 10000);
     }
 
-    function testFuzz_UpdateLiquidity_FeeAlwaysInBounds(
+    function testFuzz_UpdateCapacity_FeeAlwaysInBounds(
         uint256 available
     ) public {
-        available = bound(available, 0, TOTAL_LIQUIDITY * 2);
+        available = bound(available, 0, TOTAL_CAPACITY * 2);
 
         vm.prank(oracle);
-        orchestrator.updateLiquidity(CHAIN_ETH, available);
+        orchestrator.updateCapacity(CHAIN_ETH, available);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);

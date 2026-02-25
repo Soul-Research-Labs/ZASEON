@@ -49,7 +49,7 @@ contract EconomicAttacksTest is Test {
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 constant SLASHER_ROLE = keccak256("SLASHER_ROLE");
 
-    bytes32 constant OP_BRIDGE = keccak256("BRIDGE_TRANSFER");
+    bytes32 constant OP_BRIDGE = keccak256("PROOF_RELAY");
     bytes32 constant OP_PROOF = keccak256("PROOF_VERIFICATION");
 
     uint256 constant MIN_STAKE = 10 ether;

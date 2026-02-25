@@ -18,7 +18,7 @@ contract SoulNetworkFuzz is Test {
     uint256 constant FEE_DENOMINATOR = 10000;
     uint256 constant SWAP_FEE = 30; // 0.3%
     uint256 constant MAX_FEE = 1000; // 10%
-    uint256 constant MIN_LIQUIDITY = 1000;
+    uint256 constant MIN_CAPACITY = 1000;
     uint256 constant PRECISION = 1e18;
 
     /*//////////////////////////////////////////////////////////////
@@ -155,7 +155,7 @@ contract SoulNetworkFuzz is Test {
         uint128 totalSupply,
         uint128 lpAmount
     ) public pure {
-        vm.assume(reserveA > MIN_LIQUIDITY && reserveB > MIN_LIQUIDITY);
+        vm.assume(reserveA > MIN_CAPACITY && reserveB > MIN_CAPACITY);
         vm.assume(totalSupply > 0 && lpAmount > 0 && lpAmount <= totalSupply);
 
         uint256 amountA = (uint256(lpAmount) * reserveA) / totalSupply;
@@ -421,14 +421,14 @@ contract SoulNetworkFuzz is Test {
         vm.assume(reserve0 > 0 && reserve1 > 0 && totalSupply > 0);
         vm.assume(amount0 > 0 && amount1 > 0);
 
-        // Calculate LP tokens for adding liquidity
-        uint256 liquidity0 = (uint256(amount0) * totalSupply) / reserve0;
-        uint256 liquidity1 = (uint256(amount1) * totalSupply) / reserve1;
+        // Calculate LP tokens for adding capacity
+        uint256 capacity0 = (uint256(amount0) * totalSupply) / reserve0;
+        uint256 capacity1 = (uint256(amount1) * totalSupply) / reserve1;
 
         // Take minimum to maintain ratio
-        uint256 liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
+        uint256 capacity = capacity0 < capacity1 ? capacity0 : capacity1;
 
-        assertTrue(liquidity <= type(uint256).max, "LP calculation overflow");
+        assertTrue(capacity <= type(uint256).max, "LP calculation overflow");
     }
 
     /*//////////////////////////////////////////////////////////////

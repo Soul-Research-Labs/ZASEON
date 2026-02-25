@@ -7,7 +7,7 @@ import {IDynamicRoutingOrchestrator} from "../interfaces/IDynamicRoutingOrchestr
  * @title RouteOptimizer
  * @author Soul Protocol
  * @notice Pure math library for multi-factor route scoring and optimization
- * @dev Used by DynamicRoutingOrchestrator and LiquidityAwareRouter to calculate
+ * @dev Used by DynamicRoutingOrchestrator and CapacityAwareRouter to calculate
  *      composite route scores from cost, speed, reliability, and security metrics.
  *
  *      Scoring formula:
@@ -91,23 +91,23 @@ library RouteOptimizer {
     }
 
     /**
-     * @notice Calculate liquidity impact factor for fee adjustment
+     * @notice Calculate capacity impact factor for fee adjustment
      * @dev Used to determine fee premium based on transfer size relative to pool
      * @param amount Transfer amount
-     * @param availableLiquidity Pool available liquidity
+     * @param availableCapacity Pool available capacity
      * @return impactBps Impact in bps (0 = no impact, up to BPS)
      */
-    function calculateLiquidityImpact(
+    function calculateCapacityImpact(
         uint256 amount,
-        uint256 availableLiquidity
+        uint256 availableCapacity
     ) internal pure returns (uint16 impactBps) {
-        if (availableLiquidity == 0 || amount == 0) return 0;
+        if (availableCapacity == 0 || amount == 0) return 0;
 
-        uint256 ratio = (amount * BPS) / availableLiquidity;
+        uint256 ratio = (amount * BPS) / availableCapacity;
 
         // Quadratic impact: impact = ratio^2 / BPS
         // This creates a convex curve: small amounts have minimal impact,
-        // large amounts relative to liquidity have exponential impact
+        // large amounts relative to capacity have exponential impact
         uint256 quadratic = (ratio * ratio) / BPS;
 
         return quadratic > BPS ? BPS : uint16(quadratic);

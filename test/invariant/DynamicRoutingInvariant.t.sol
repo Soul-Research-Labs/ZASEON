@@ -38,34 +38,34 @@ contract RoutingHandler is Test {
 
     function registerPool(
         uint256 chainSeed,
-        uint256 liquiditySeed,
+        uint256 capacitySeed,
         uint256 feeSeed
     ) external {
         uint256 chainId = bound(chainSeed, 1, 100);
-        uint256 liquidity = bound(liquiditySeed, 1 ether, 10000 ether);
+        uint256 capacity = bound(capacitySeed, 1 ether, 10000 ether);
         uint256 fee = bound(feeSeed, 0.0001 ether, 0.1 ether);
 
         // Don't re-register
         if (orchestrator.poolExists(chainId)) return;
 
         vm.prank(bridgeAdmin);
-        try orchestrator.registerPool(chainId, liquidity, fee) {
+        try orchestrator.registerPool(chainId, capacity, fee) {
             registeredChains.push(chainId);
             ghostPoolCount++;
         } catch {}
     }
 
-    function updateLiquidity(
+    function updateCapacity(
         uint256 chainSeed,
-        uint256 liquiditySeed
+        uint256 capacitySeed
     ) external {
         if (registeredChains.length == 0) return;
 
         uint256 chainId = registeredChains[chainSeed % registeredChains.length];
-        uint256 newCapacity = bound(liquiditySeed, 0, 20000 ether);
+        uint256 newCapacity = bound(capacitySeed, 0, 20000 ether);
 
         vm.prank(oracle);
-        try orchestrator.updateLiquidity(chainId, newCapacity) {} catch {}
+        try orchestrator.updateCapacity(chainId, newCapacity) {} catch {}
     }
 
     // ── Bridge Management ────────────────────────────────────

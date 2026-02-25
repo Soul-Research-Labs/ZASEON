@@ -435,7 +435,7 @@ contract IntentSettlementE2E is Test {
     // =========================================================================
 
     function test_dynamicRoutingPoolRegistration() public {
-        // Register liquidity pools
+        // Register bridge capacity
         vm.startPrank(bridgeAdmin);
         router.registerPool(SOURCE_CHAIN, 1000 ether, 0.01 ether);
         router.registerPool(DEST_CHAIN, 500 ether, 0.02 ether);
@@ -453,14 +453,14 @@ contract IntentSettlementE2E is Test {
         );
     }
 
-    function test_dynamicRoutingLiquidityUpdate() public {
+    function test_dynamicRoutingCapacityUpdate() public {
         // Register pool first
         vm.prank(bridgeAdmin);
         router.registerPool(SOURCE_CHAIN, 1000 ether, 0.01 ether);
 
-        // Oracle updates liquidity
+        // Oracle updates capacity
         vm.prank(oracle);
-        router.updateLiquidity(SOURCE_CHAIN, 800 ether);
+        router.updateCapacity(SOURCE_CHAIN, 800 ether);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = router.getPool(
             SOURCE_CHAIN
@@ -498,11 +498,11 @@ contract IntentSettlementE2E is Test {
         router.registerBridge(mockBridge, chains, 9000);
         vm.stopPrank();
 
-        // Update liquidity to make data fresh
+        // Update capacity to make data fresh
         vm.prank(oracle);
-        router.updateLiquidity(SOURCE_CHAIN, 1000 ether);
+        router.updateCapacity(SOURCE_CHAIN, 1000 ether);
         vm.prank(oracle);
-        router.updateLiquidity(DEST_CHAIN, 500 ether);
+        router.updateCapacity(DEST_CHAIN, 500 ether);
 
         // Find optimal route
         IDynamicRoutingOrchestrator.RouteRequest

@@ -11,7 +11,7 @@ import {IPrivacyIntegration} from "../interfaces/IPrivacyIntegration.sol";
 /**
  * @title PrivacyPoolIntegration
  * @author Soul Protocol
- * @notice Privacy-preserving liquidity pool implementing IPrivacyPool interface
+ * @notice Privacy-preserving bridge capacity implementing IPrivacyPool interface
  * @dev Integrates with stealth addresses, ring signatures, and nullifier management
  *
  * ARCHITECTURE:
@@ -57,7 +57,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
     error InvalidWithdrawProof();
     error InvalidSwapProof();
     error NullifierAlreadyUsed();
-    error InsufficientPoolLiquidity();
+    error InsufficientPoolBalance();
     error InvalidRecipient();
     error CommitmentAlreadyExists();
     error DepositExceedsLimit();
@@ -399,7 +399,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
         uint256 amount = _extractAmountFromProof(proof);
         if (amount > poolToken.maxWithdraw) revert WithdrawExceedsLimit();
         if (amount > poolToken.totalDeposited)
-            revert InsufficientPoolLiquidity();
+            revert InsufficientPoolBalance();
 
         // Calculate fee
         uint256 fee = (amount * poolToken.fee) / 10000;

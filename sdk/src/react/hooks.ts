@@ -103,7 +103,7 @@ export interface UseSoulBridgeReturn {
     amount: bigint;
     proof?: Uint8Array;
   }) => Promise<string>;
-  /** Check bridge transfer status */
+  /** Check proof relay status */
   status: (txHash: string) => Promise<string>;
   /** Whether a bridge operation is in progress */
   isBridging: boolean;

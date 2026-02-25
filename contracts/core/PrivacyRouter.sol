@@ -710,6 +710,6 @@ contract PrivacyRouter is
 
     /// @notice Accept ETH for deposits and bridge fee top-ups
     /// @dev Required for `depositETH()` and `initiatePrivateTransfer()` which forward
-    ///      `msg.value` to downstream contracts. Also allows pre-funding the router.
+    ///      `msg.value` to downstream contracts. Accepts ETH for relay gas fees.
     receive() external payable {}
 }

@@ -84,8 +84,8 @@ function isFinalized(bytes32 intentId) external view returns (bool);
 
 ### InstantSettlementGuarantee
 
-Solvers post bonds to provide instant settlement UX. Users receive funds immediately;
-the solver takes on the timing risk.
+Solvers post bonds to guarantee proof delivery within a time window. Users receive
+proof delivery guarantees immediately; the solver takes on the timing risk.
 
 **Guarantee Lifecycle:**
 
@@ -126,7 +126,7 @@ Unclaimed portion after reward is refunded to the depositor.
 
 ### DynamicRoutingOrchestrator
 
-Real-time route optimization across chains based on liquidity, fees, and bridge health.
+Real-time route optimization across chains based on bridge capacity, fees, and bridge health.
 
 **Key Functions:**
 

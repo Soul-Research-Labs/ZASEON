@@ -208,7 +208,7 @@ export {
   Urgency,
   PoolStatus,
   type DynamicRoutingConfig,
-  type LiquidityPool,
+  type BridgeCapacity,
   type Route,
   type RouteRequest,
   type BridgeMetrics,

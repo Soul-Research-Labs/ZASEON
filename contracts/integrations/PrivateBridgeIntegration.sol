@@ -61,7 +61,7 @@ contract PrivateBridgeIntegration is ReentrancyGuard, AccessControl, Pausable {
     error TransferExpired();
     error InvalidRecipient();
     error ChainNotSupported();
-    error InsufficientBridgeLiquidity();
+    error InsufficientBridgeCapacity();
     error BridgeAdapterNotSet();
     error CrossChainVerificationFailed();
     error MessageNotRelayed();

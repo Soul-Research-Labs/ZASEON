@@ -40,13 +40,13 @@ The Soul Protocol (Soul) is designed as a modular middleware protocol that enabl
 
 Soul Protocol does **not** move tokens between chains. It moves **verified cryptographic claims** (ZK proofs) about token ownership across chains. The distinction is critical:
 
-| Aspect            | Traditional Bridge              | Soul Protocol                                 |
-| ----------------- | ------------------------------- | --------------------------------------------- |
-| **Moves**         | Tokens (lock/mint or burn/mint) | ZK proofs of state                            |
-| **Creates**       | Wrapped/synthetic tokens        | Nothing — no new tokens                       |
-| **Manages pools** | Yes — liquidity on each chain   | No — observes bridge capacity for routing     |
-| **Token source**  | Its own reserves or minting     | External bridges (Hyperlane, LayerZero, etc.) |
-| **Value prop**    | Cross-chain token transfer      | **Privacy** for cross-chain state transitions |
+| Aspect            | Traditional Bridge                    | Soul Protocol                                 |
+| ----------------- | ------------------------------------- | --------------------------------------------- |
+| **Moves**         | Tokens (lock/mint or burn/mint)       | ZK proofs of state                            |
+| **Creates**       | Wrapped/synthetic tokens              | Nothing — no new tokens                       |
+| **Manages pools** | Yes — manages liquidity on each chain | No — observes bridge capacity for routing     |
+| **Token source**  | Its own reserves or minting           | External bridges (Hyperlane, LayerZero, etc.) |
+| **Value prop**    | Cross-chain token transfer            | **Privacy** for cross-chain state transitions |
 
 ### What Soul Actually Does
 
@@ -86,7 +86,7 @@ Neither contract moves tokens or manages capital. They coordinate **proof genera
 Soul Protocol does NOT:
 
 - Create, mint, or burn tokens
-- Manage token liquidity pools
+- Manage token bridge capacity
 - Hold or custody user funds beyond ShieldedPool deposits
 - Replace bridges — it wraps them with privacy
 
@@ -119,7 +119,7 @@ The codebase uses certain terms that map to proof middleware concepts:
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BridgeCapacity` (struct)    | Oracle-observed throughput capacity of a bridge adapter on a given chain. Soul does NOT manage this capacity — it queries it for routing decisions.        |
 | `DynamicRoutingOrchestrator` | Routes **proof relay requests** through optimal bridge adapters based on observed bridge capacity, latency, and success rates.                             |
-| `LiquidityAwareRouter`       | Routes proof-carrying transfers through the `DynamicRoutingOrchestrator`, tracking per-pair relay metrics.                                                 |
+| `CapacityAwareRouter`        | Routes proof-carrying transfers through the `DynamicRoutingOrchestrator`, tracking per-pair relay metrics.                                                 |
 | `IntentSettlementLayer`      | Proof service marketplace where solvers compete to generate and deliver ZK proofs for user intents. "Settlement" = proof verification, not token delivery. |
 | `InstantSettlementGuarantee` | Guarantor bonds ETH to guarantee proof delivery within a time window. If proof delivery fails, beneficiary claims from the bond.                           |
 | `InstantRelayerRewards`      | Speed-tiered incentives for relayers who deliver proofs quickly.                                                                                           |

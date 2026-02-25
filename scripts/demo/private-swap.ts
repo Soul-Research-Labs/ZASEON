@@ -116,7 +116,7 @@ async function main() {
   console.log(`  ✅ User 2 deposited ${ethers.formatEther(depositAmount)} Token B`);
 
   // Step 4: Create AMM Pool
-  console.log("\n\n🏊 Step 4: Creating Liquidity Pool...");
+  console.log("\n\n🏊 Step 4: Creating Bridge Capacity Pool...");
   console.log("-".repeat(40));
 
   const poolAmount = ethers.parseEther("5000");
@@ -239,7 +239,7 @@ async function main() {
 
   console.log("\n✅ Completed Operations:");
   console.log("    • Deployed all contracts");
-  console.log("    • Created liquidity pool");
+  console.log("    • Created bridge capacity");
   console.log("    • Executed private swap");
   console.log("    • Created private order");
   console.log("    • Registered stealth address");

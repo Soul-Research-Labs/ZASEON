@@ -30,18 +30,18 @@ contract DynamicRoutingFuzz is Test {
                 SECTION 1 — registerPool FUZZ
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Fuzz pool registration with various chain IDs and liquidity amounts
+    /// @notice Fuzz pool registration with various chain IDs and capacity amounts
     function testFuzz_registerPool(
         uint256 chainId,
-        uint256 liquidity,
+        uint256 capacity,
         uint256 fee
     ) public {
         chainId = bound(chainId, 1, 100_000);
-        liquidity = bound(liquidity, 0, 100_000 ether);
+        capacity = bound(capacity, 0, 100_000 ether);
         fee = bound(fee, 0, 2 ether);
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerPool(chainId, liquidity, fee);
+        orchestrator.registerPool(chainId, capacity, fee);
 
         assertTrue(
             orchestrator.poolExists(chainId),
@@ -51,8 +51,8 @@ contract DynamicRoutingFuzz is Test {
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(chainId);
         assertEq(pool.chainId, chainId);
-        assertEq(pool.availableCapacity, liquidity);
-        assertEq(pool.totalCapacity, liquidity);
+        assertEq(pool.availableCapacity, capacity);
+        assertEq(pool.totalCapacity, capacity);
         assertEq(pool.utilizationBps, 0);
         assertEq(
             uint8(pool.status),
@@ -68,12 +68,12 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /// @notice Fuzz: registering pool with chainId == 0 should revert
-    function testFuzz_registerPool_zeroChainReverts(uint256 liquidity) public {
-        liquidity = bound(liquidity, 0, 100 ether);
+    function testFuzz_registerPool_zeroChainReverts(uint256 capacity) public {
+        capacity = bound(capacity, 0, 100 ether);
 
         vm.prank(bridgeAdmin);
         vm.expectRevert();
-        orchestrator.registerPool(0, liquidity, 0.001 ether);
+        orchestrator.registerPool(0, capacity, 0.001 ether);
     }
 
     /// @notice Fuzz: cannot register duplicate pool
@@ -98,24 +98,24 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-              SECTION 2 — updateLiquidity FUZZ
+              SECTION 2 — updateCapacity FUZZ
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Fuzz liquidity updates — utilization should stay within [0, BPS]
-    function testFuzz_updateLiquidity(
-        uint256 initialLiquidity,
+    /// @notice Fuzz capacity updates — utilization should stay within [0, BPS]
+    function testFuzz_updateCapacity(
+        uint256 initialCapacity,
         uint256 newCapacity
     ) public {
-        initialLiquidity = bound(initialLiquidity, 1 ether, 10_000 ether);
+        initialCapacity = bound(initialCapacity, 1 ether, 10_000 ether);
         newCapacity = bound(newCapacity, 0, 20_000 ether);
 
         uint256 chainId = 42;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerPool(chainId, initialLiquidity, 0.01 ether);
+        orchestrator.registerPool(chainId, initialCapacity, 0.01 ether);
 
         vm.prank(oracle);
-        orchestrator.updateLiquidity(chainId, newCapacity);
+        orchestrator.updateCapacity(chainId, newCapacity);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(chainId);
@@ -128,17 +128,17 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /// @notice Fuzz: updating non-existent pool should revert
-    function testFuzz_updateLiquidity_nonExistentPool(uint256 chainId) public {
+    function testFuzz_updateCapacity_nonExistentPool(uint256 chainId) public {
         chainId = bound(chainId, 1, 100_000);
         vm.assume(!orchestrator.poolExists(chainId));
 
         vm.prank(oracle);
         vm.expectRevert();
-        orchestrator.updateLiquidity(chainId, 50 ether);
+        orchestrator.updateCapacity(chainId, 50 ether);
     }
 
-    /// @notice Fuzz: non-oracle cannot update liquidity
-    function testFuzz_updateLiquidity_accessControl(address caller) public {
+    /// @notice Fuzz: non-oracle cannot update capacity
+    function testFuzz_updateCapacity_accessControl(address caller) public {
         vm.assume(caller != oracle && caller != admin);
 
         vm.prank(bridgeAdmin);
@@ -146,24 +146,24 @@ contract DynamicRoutingFuzz is Test {
 
         vm.prank(caller);
         vm.expectRevert();
-        orchestrator.updateLiquidity(99, 50 ether);
+        orchestrator.updateCapacity(99, 50 ether);
     }
 
     /// @notice Fuzz: dynamic fee stays within [MIN_BASE_FEE, MAX_BASE_FEE] after updates
-    function testFuzz_feeBounds_afterLiquidityUpdate(
-        uint256 initialLiquidity,
+    function testFuzz_feeBounds_afterCapacityUpdate(
+        uint256 initialCapacity,
         uint256 newCapacity
     ) public {
-        initialLiquidity = bound(initialLiquidity, 1 ether, 10_000 ether);
+        initialCapacity = bound(initialCapacity, 1 ether, 10_000 ether);
         newCapacity = bound(newCapacity, 0, 20_000 ether);
 
         uint256 chainId = 7;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerPool(chainId, initialLiquidity, 0.01 ether);
+        orchestrator.registerPool(chainId, initialCapacity, 0.01 ether);
 
         vm.prank(oracle);
-        orchestrator.updateLiquidity(chainId, newCapacity);
+        orchestrator.updateCapacity(chainId, newCapacity);
 
         IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
             .getPool(chainId);

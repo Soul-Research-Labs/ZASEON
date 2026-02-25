@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
  * @author Soul Protocol
  * @notice Interface for dynamic cross-chain proof routing with bridge capacity awareness
  * @dev Routes ZK proof relay requests through optimal bridge adapters.
- *      Soul Protocol is proof middleware — it does NOT manage liquidity pools.
+ *      Soul Protocol is proof middleware — it does NOT manage bridge capacity.
  *      BridgeCapacity data is oracle-provided metadata about external bridge adapters.
  *      The orchestrator uses this data to select the best route for proof delivery,
  *      optimizing for cost, latency, and success probability.
@@ -114,7 +114,7 @@ interface IDynamicRoutingOrchestrator {
         PoolStatus newStatus
     );
 
-    event LiquidityUpdated(
+    event CapacityUpdated(
         uint256 indexed chainId,
         uint256 oldCapacity,
         uint256 newCapacity,
@@ -168,7 +168,7 @@ interface IDynamicRoutingOrchestrator {
     error PoolAlreadyRegistered(uint256 chainId);
     error PoolNotFound(uint256 chainId);
     error PoolNotActive(uint256 chainId);
-    error InsufficientLiquidity(
+    error InsufficientCapacity(
         uint256 chainId,
         uint256 required,
         uint256 available
@@ -235,13 +235,13 @@ interface IDynamicRoutingOrchestrator {
     ) external view returns (uint48 estimatedTime, uint16 confidence);
 
     /*//////////////////////////////////////////////////////////////
-                        LIQUIDITY MANAGEMENT
+                        CAPACITY MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Register a new liquidity pool for a chain
+     * @notice Register a new bridge capacity for a chain
      * @param chainId The chain ID
-     * @param totalCapacity Initial total liquidity
+     * @param totalCapacity Initial total capacity
      * @param initialFee Initial base fee
      */
     function registerPool(
@@ -251,21 +251,21 @@ interface IDynamicRoutingOrchestrator {
     ) external;
 
     /**
-     * @notice Update liquidity for a chain (oracle role)
+     * @notice Update capacity for a chain (oracle role)
      * @param chainId The chain to update
-     * @param newAvailableCapacity Updated available liquidity
+     * @param newAvailableCapacity Updated available capacity
      */
-    function updateLiquidity(
+    function updateCapacity(
         uint256 chainId,
         uint256 newAvailableCapacity
     ) external;
 
     /**
-     * @notice Batch update liquidity for multiple chains
+     * @notice Batch update capacity for multiple chains
      * @param chainIds Array of chain IDs
      * @param newCapacities Array of new available liquidities
      */
-    function batchUpdateLiquidity(
+    function batchUpdateCapacity(
         uint256[] calldata chainIds,
         uint256[] calldata newCapacities
     ) external;
@@ -312,9 +312,9 @@ interface IDynamicRoutingOrchestrator {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Get liquidity pool info for a chain
+     * @notice Get bridge capacity info for a chain
      * @param chainId The chain ID
-     * @return pool The liquidity pool data
+     * @return pool The bridge capacity data
      */
     function getPool(
         uint256 chainId

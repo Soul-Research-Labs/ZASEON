@@ -156,7 +156,7 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
 
         // Default operation limits
         _setOperationLimit(
-            keccak256("BRIDGE_TRANSFER"),
+            keccak256("PROOF_RELAY"),
             500_000, // max gas
             0.01 ether, // max refund
             10, // max batch

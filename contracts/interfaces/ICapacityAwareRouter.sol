@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import {IDynamicRoutingOrchestrator} from "./IDynamicRoutingOrchestrator.sol";
 
 /**
- * @title ILiquidityAwareRouter
- * @notice Interface for the LiquidityAwareRouter cross-chain transfer contract
- * @dev Liquidity-aware router that executes routes from DynamicRoutingOrchestrator
+ * @title ICapacityAwareRouter
+ * @notice Interface for the CapacityAwareRouter cross-chain transfer contract
+ * @dev Capacity-aware router that executes routes from DynamicRoutingOrchestrator
  */
-interface ILiquidityAwareRouter {
+interface ICapacityAwareRouter {
     /*//////////////////////////////////////////////////////////////
                                  ENUMS
     //////////////////////////////////////////////////////////////*/

@@ -260,14 +260,14 @@ export const ARBITRUM_BRIDGE_ADAPTER_ABI = [
   },
   {
     type: 'function',
-    name: 'provideLiquidity',
+    name: 'provideExitFunding',
     inputs: [],
     outputs: [],
     stateMutability: 'payable'
   },
   {
     type: 'function',
-    name: 'withdrawLiquidity',
+    name: 'withdrawExitFunding',
     inputs: [{ name: 'amount', type: 'uint256' }],
     outputs: [],
     stateMutability: 'nonpayable'
@@ -352,7 +352,7 @@ export const ARBITRUM_BRIDGE_ADAPTER_ABI = [
     name: 'FastExitExecuted',
     inputs: [
       { name: 'withdrawalId', type: 'bytes32', indexed: true },
-      { name: 'liquidityProvider', type: 'address', indexed: false }
+      { name: 'exitFundingProvider', type: 'address', indexed: false }
     ]
   }
 ] as const;

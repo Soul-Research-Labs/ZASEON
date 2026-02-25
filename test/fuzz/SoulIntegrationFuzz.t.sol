@@ -18,7 +18,7 @@ contract SoulIntegrationFuzz is Test {
     uint256 constant FEE_DENOMINATOR = 10000;
     uint256 constant SWAP_FEE = 30;
     uint256 constant BRIDGE_FEE = 10;
-    uint256 constant MIN_LIQUIDITY = 1000;
+    uint256 constant MIN_CAPACITY = 1000;
 
     /*//////////////////////////////////////////////////////////////
                     COMPLETE FLOW TESTS
@@ -55,24 +55,24 @@ contract SoulIntegrationFuzz is Test {
         assertTrue(totalValue > 0, "Should have remaining value");
     }
 
-    /// @notice Fuzz test add liquidity -> swap -> remove liquidity flow
+    /// @notice Fuzz test add capacity -> swap -> remove capacity flow
     function testFuzz_LPProviderFlow(
-        uint256 liquidityASeed,
-        uint256 liquidityBSeed,
+        uint256 capacityASeed,
+        uint256 capacityBSeed,
         uint256 swapAmountSeed,
         uint256 removePercentSeed
     ) public pure {
-        uint256 liquidityA = bound(liquidityASeed, 1e9, 1e27);
-        uint256 liquidityB = bound(liquidityBSeed, 1e9, 1e27);
-        uint256 swapAmount = bound(swapAmountSeed, 1000, liquidityA / 10);
+        uint256 capacityA = bound(capacityASeed, 1e9, 1e27);
+        uint256 capacityB = bound(capacityBSeed, 1e9, 1e27);
+        uint256 swapAmount = bound(swapAmountSeed, 1000, capacityA / 10);
         uint256 removePercent = bound(removePercentSeed, 1, 100);
 
-        // Step 1: Add liquidity
-        uint256 lpTokens = sqrt(liquidityA * liquidityB);
-        if (lpTokens < MIN_LIQUIDITY) return;
+        // Step 1: Add capacity
+        uint256 lpTokens = sqrt(capacityA * capacityB);
+        if (lpTokens < MIN_CAPACITY) return;
 
-        uint256 reserveA = liquidityA;
-        uint256 reserveB = liquidityB;
+        uint256 reserveA = capacityA;
+        uint256 reserveB = capacityB;
 
         // Step 2: Someone swaps
         uint256 swapOutput = _getAmountOut(swapAmount, reserveA, reserveB);
@@ -81,7 +81,7 @@ contract SoulIntegrationFuzz is Test {
         reserveA += swapAmount;
         reserveB -= swapOutput;
 
-        // Step 3: Remove liquidity
+        // Step 3: Remove capacity
         uint256 lpToRemove = (lpTokens * removePercent) / 100;
         uint256 amountAOut = (lpToRemove * reserveA) / lpTokens;
         uint256 amountBOut = (lpToRemove * reserveB) / lpTokens;
@@ -91,7 +91,7 @@ contract SoulIntegrationFuzz is Test {
         assertLe(amountBOut, reserveB, "Cannot withdraw more than reserve B");
 
         // K should have increased from fees
-        uint256 originalK = uint256(liquidityA) * liquidityB;
+        uint256 originalK = uint256(capacityA) * capacityB;
         uint256 currentK = reserveA * reserveB;
         assertGe(currentK, originalK, "K should not decrease");
     }
@@ -360,7 +360,7 @@ contract SoulIntegrationFuzz is Test {
         uint128 flashAmount
     ) public pure {
         vm.assume(
-            reserveA > MIN_LIQUIDITY * 100 && reserveB > MIN_LIQUIDITY * 100
+            reserveA > MIN_CAPACITY * 100 && reserveB > MIN_CAPACITY * 100
         );
         vm.assume(flashAmount > 0 && flashAmount <= reserveA);
 

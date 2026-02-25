@@ -181,53 +181,53 @@ contract RouteOptimizerTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                  LIQUIDITY IMPACT TESTS
+                  CAPACITY IMPACT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_LiquidityImpact_Zero() public pure {
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(0, 1000 ether);
+    function test_CapacityImpact_Zero() public pure {
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(0, 1000 ether);
         assertEq(impact, 0);
     }
 
-    function test_LiquidityImpact_ZeroLiquidity() public pure {
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(10 ether, 0);
+    function test_CapacityImpact_ZeroCapacity() public pure {
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(10 ether, 0);
         assertEq(impact, 0);
     }
 
-    function test_LiquidityImpact_SmallAmount() public pure {
+    function test_CapacityImpact_SmallAmount() public pure {
         // 1 ETH out of 1000 = 0.1% = 10 bps
         // Quadratic: 10^2 / 10000 = 0 bps (below 1)
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(
             1 ether,
             1000 ether
         );
         assertTrue(impact <= 100); // Should be very small
     }
 
-    function test_LiquidityImpact_LargeAmount() public pure {
+    function test_CapacityImpact_LargeAmount() public pure {
         // 500 ETH out of 1000 = 50% = 5000 bps
         // Quadratic: 5000^2 / 10000 = 2500 bps
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(
             500 ether,
             1000 ether
         );
         assertEq(impact, 2500);
     }
 
-    function test_LiquidityImpact_FullLiquidity() public pure {
+    function test_CapacityImpact_FullCapacity() public pure {
         // 1000 ETH out of 1000 = 100% = 10000 bps
         // Quadratic: 10000^2 / 10000 = 10000 bps = BPS cap
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(
             1000 ether,
             1000 ether
         );
         assertEq(impact, 10000);
     }
 
-    function test_LiquidityImpact_OverLiquidity() public pure {
+    function test_CapacityImpact_OverCapacity() public pure {
         // 2000 ETH out of 1000 = 200% = 20000 bps
         // Quadratic would overflow to 40000, capped at BPS
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(
             2000 ether,
             1000 ether
         );
@@ -415,16 +415,16 @@ contract RouteOptimizerTest is Test {
         assertTrue(score <= 10000);
     }
 
-    function testFuzz_LiquidityImpact_QuadraticGrowth(
+    function testFuzz_CapacityImpact_QuadraticGrowth(
         uint256 amount,
-        uint256 liquidity
+        uint256 capacity
     ) public pure {
         amount = bound(amount, 0.001 ether, 10000 ether);
-        liquidity = bound(liquidity, 1 ether, 100000 ether);
+        capacity = bound(capacity, 1 ether, 100000 ether);
 
-        uint16 impact = RouteOptimizer.calculateLiquidityImpact(
+        uint16 impact = RouteOptimizer.calculateCapacityImpact(
             amount,
-            liquidity
+            capacity
         );
         assertTrue(impact <= 10000);
     }

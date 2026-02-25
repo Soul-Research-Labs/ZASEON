@@ -15,9 +15,9 @@ Before reading the learnings below, understand the key distinction:
 | Tachyon Concept                   | Soul Adaptation                                         | Key Difference                   |
 | --------------------------------- | ------------------------------------------------------- | -------------------------------- |
 | Solvers move tokens               | Solvers generate & deliver ZK proofs                    | No token movement in Soul        |
-| Liquidity pools                   | `BridgeCapacity` (oracle-observed bridge metadata)      | Soul doesn't manage pools        |
+| Bridge capacity                   | `BridgeCapacity` (oracle-observed bridge metadata)      | Soul doesn't manage pools        |
 | Instant settlement of funds       | Bonded guarantee that proof will land                   | Guarantee covers proof delivery  |
-| Dynamic routing of liquidity      | Routing of proof relay requests through bridge adapters | Routes proofs, not value         |
+| Dynamic routing of value      | Routing of proof relay requests through bridge adapters | Routes proofs, not value         |
 | Solver rewards for token delivery | Relayer rewards for proof relay speed                   | Incentivizes fast proof delivery |
 
 **Where do the tokens come from?** Soul uses a single model: **Bridge-Wrapped Privacy** (see [architecture.md](architecture.md#token-flow-bridge-wrapped-privacy)). Existing bridges (Hyperlane, LayerZero, Wormhole, etc.) move tokens. Soul wraps them with ZK proofs, nullifiers, and stealth addresses. The `IntentSettlementLayer` and `InstantSettlementGuarantee` are UX optimizations within this model — they coordinate proof generation and delivery, not token movement.
@@ -84,7 +84,7 @@ contract IntentSettlementLayer {
 
 - Better UX - users don't need to understand ZK proofs
 - Faster execution - competitive solver market
-- Capital efficiency - solvers optimize liquidity
+- Proof relay efficiency - solvers optimize delivery throughput
 - Maintains privacy - solvers generate proofs, users stay anonymous
 
 ---
@@ -165,7 +165,7 @@ contract SelectiveDisclosureManager {
 
 ---
 
-### 3. 💰 Instant Liquidity & Solver Incentives
+### 3. 💰 Instant Relay Rewards & Proof Delivery Incentives
 
 **What Tachyon Does**:
 
@@ -235,13 +235,13 @@ contract InstantRelayerRewards {
 
 - Solver networks coordinate in real-time
 - Optimized capital allocation across chains
-- Dynamic routing based on liquidity
+- Dynamic routing based on bridge capacity
 - Predictive settlement paths
 
 **What Soul Can Learn**:
 
 - Current Soul model: Static bridge selection, no real-time optimization
-- **Improvement**: Dynamic routing with real-time liquidity awareness
+- **Improvement**: Dynamic routing with real-time capacity awareness
 
 **Implementation Strategy**:
 
@@ -263,8 +263,8 @@ contract DynamicRoutingOrchestrator {
         uint256 successProbability;
     }
 
-    // Real-time liquidity tracking
-    mapping(uint256 => BridgeCapacity) public liquidityPools;
+    // Real-time capacity tracking
+    mapping(uint256 => BridgeCapacity) public capacityPools;
 
     // Find optimal route based on current conditions
     function findOptimalRoute(
@@ -274,7 +274,7 @@ contract DynamicRoutingOrchestrator {
         uint256 maxTime
     ) external view returns (Route memory) {
         // Consider:
-        // 1. Available liquidity
+        // 1. Available capacity
         // 2. Current fees
         // 3. Historical success rates
         // 4. Network congestion
@@ -283,15 +283,15 @@ contract DynamicRoutingOrchestrator {
         return _calculateOptimalPath(sourceChain, destChain, amount, maxTime);
     }
 
-    // Update liquidity in real-time
-    function updateLiquidity(
+    // Update capacity in real-time
+    function updateCapacity(
         uint256 chainId,
         uint256 newCapacity
     ) external onlyRole(ORACLE_ROLE) {
-        liquidityPools[chainId].availableCapacity = newCapacity;
-        liquidityPools[chainId].utilizationRate = _calculateUtilization(chainId);
+        capacityPools[chainId].availableCapacity = newCapacity;
+        capacityPools[chainId].utilizationRate = _calculateUtilization(chainId);
 
-        emit LiquidityUpdated(chainId, newCapacity);
+        emit CapacityUpdated(chainId, newCapacity);
     }
 
     // Predictive routing based on historical data
@@ -594,7 +594,7 @@ contract ComplianceReportingModule {
 ### Phase 2 (Short-term - Month 3-4)
 
 4. **Intent-Based Architecture** - Better UX
-5. **Instant Liquidity Rewards** - Attracts solvers
+5. **Instant Relay Rewards** - Attracts relayers
 6. **Instant Settlement Guarantees** - Competitive UX
 
 ### Phase 3 (Medium-term - Month 5-6)
@@ -723,7 +723,7 @@ All 7 Tachyon learnings are now implemented in Soul Protocol:
 | --- | ------------------------------------- | ---------------------------- | -------------------------------- |
 | 1   | Intent-Based Architecture             | `IntentSettlementLayer`      | ✅ Implemented + Hub-wired       |
 | 2   | Programmable Viewing Permissions      | `SelectiveDisclosureManager` | ✅ Implemented + Privacy hooks   |
-| 3   | Instant Liquidity & Solver Incentives | `InstantRelayerRewards`      | ✅ Implemented + bug fixed       |
+| 3   | Instant Relay Rewards & Proof Delivery Incentives | `InstantRelayerRewards`      | ✅ Implemented + bug fixed       |
 | 4   | Dynamic Routing Orchestration         | `DynamicRoutingOrchestrator` | ✅ Implemented + Hub-wired       |
 | 5   | Configurable Privacy Levels           | `ConfigurablePrivacyLevels`  | ✅ Implemented                   |
 | 6   | Instant Settlement UX                 | `InstantSettlementGuarantee` | ✅ Implemented + semantics fixed |

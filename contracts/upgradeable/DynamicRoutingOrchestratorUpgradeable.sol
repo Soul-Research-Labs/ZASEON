@@ -66,7 +66,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
     /// @notice Role for upgrade authorization
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    /// @notice Role for oracle liquidity updates
+    /// @notice Role for oracle capacity updates
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     /// @notice Role for recording bridge outcomes
@@ -115,11 +115,11 @@ contract DynamicRoutingOrchestratorUpgradeable is
     /// @notice Source chain contribution divisor (25% of source chain time/fee)
     uint8 public constant SOURCE_CHAIN_WEIGHT_DIVISOR = 4;
 
-    /// @notice Liquidity impact threshold triggering high settlement penalty (>50%)
-    uint16 public constant HIGH_LIQUIDITY_IMPACT_BPS = 5000;
+    /// @notice Capacity impact threshold triggering high settlement penalty (>50%)
+    uint16 public constant HIGH_CAPACITY_IMPACT_BPS = 5000;
 
-    /// @notice Liquidity impact threshold triggering medium settlement penalty (>20%)
-    uint16 public constant MED_LIQUIDITY_IMPACT_BPS = 2000;
+    /// @notice Capacity impact threshold triggering medium settlement penalty (>20%)
+    uint16 public constant MED_CAPACITY_IMPACT_BPS = 2000;
 
     /// @notice High-impact time multiplier numerator (150/100 = +50%)
     uint16 public constant HIGH_IMPACT_TIME_NUMERATOR = 150;
@@ -209,7 +209,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Liquidity pools indexed by chain ID
+    /// @notice Bridge capacity data indexed by chain ID
     mapping(uint256 => BridgeCapacity) internal _pools;
 
     /// @notice Whether a chain has a registered pool
@@ -296,7 +296,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        LIQUIDITY MANAGEMENT
+                        CAPACITY MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
@@ -326,7 +326,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function updateLiquidity(
+    function updateCapacity(
         uint256 chainId,
         uint256 newAvailableCapacity
     ) external onlyRole(ORACLE_ROLE) whenNotPaused {
@@ -342,7 +342,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
         // Dynamic fee adjustment based on utilization
         _adjustFee(pool);
 
-        emit LiquidityUpdated(
+        emit CapacityUpdated(
             chainId,
             oldCapacity,
             newAvailableCapacity,
@@ -351,7 +351,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function batchUpdateLiquidity(
+    function batchUpdateCapacity(
         uint256[] calldata chainIds,
         uint256[] calldata newCapacities
     ) external onlyRole(ORACLE_ROLE) whenNotPaused {
@@ -368,7 +368,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
             pool.lastUpdated = uint48(block.timestamp);
             _adjustFee(pool);
 
-            emit LiquidityUpdated(
+            emit CapacityUpdated(
                 chainIds[i],
                 oldCapacity,
                 newCapacities[i],
@@ -675,18 +675,18 @@ contract DynamicRoutingOrchestratorUpgradeable is
         BridgeCapacity storage destPool = _pools[destChainId];
         uint48 baseTime = destPool.avgSettlementTime;
 
-        // Adjust for amount relative to liquidity (large transfers take longer)
+        // Adjust for amount relative to capacity (large transfers take longer)
         if (destPool.availableCapacity > 0 && amount > 0) {
-            uint256 liquidityRatio = (amount * BPS) /
+            uint256 capacityRatio = (amount * BPS) /
                 destPool.availableCapacity;
-            if (liquidityRatio > HIGH_LIQUIDITY_IMPACT_BPS) {
-                // >50% of liquidity: add 50% time
+            if (capacityRatio > HIGH_CAPACITY_IMPACT_BPS) {
+                // >50% of capacity: add 50% time
                 baseTime = uint48(
                     (uint256(baseTime) * HIGH_IMPACT_TIME_NUMERATOR) /
                         PERCENT_BASE
                 );
-            } else if (liquidityRatio > MED_LIQUIDITY_IMPACT_BPS) {
-                // >20% of liquidity: add 25% time
+            } else if (capacityRatio > MED_CAPACITY_IMPACT_BPS) {
+                // >20% of capacity: add 25% time
                 baseTime = uint48(
                     (uint256(baseTime) * MED_IMPACT_TIME_NUMERATOR) /
                         PERCENT_BASE
@@ -779,7 +779,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
         BridgeCapacity storage destPool = _pools[destChainId];
         fee = destPool.currentFee;
 
-        // Surcharge for large amounts relative to liquidity
+        // Surcharge for large amounts relative to capacity
         if (destPool.availableCapacity > 0 && amount > 0) {
             uint256 impact = (amount * BPS) / destPool.availableCapacity;
             // Add impact premium: fee * (1 + impact/10000)
@@ -911,9 +911,9 @@ contract DynamicRoutingOrchestratorUpgradeable is
 
         BridgeCapacity storage destPool = _pools[request.destChainId];
 
-        // Check liquidity
+        // Check capacity
         if (destPool.availableCapacity < request.amount) {
-            return route; // Insufficient liquidity
+            return route; // Insufficient capacity
         }
 
         // Build route
@@ -1018,7 +1018,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
         BridgeCapacity storage hopPool = _pools[intermediateChain];
         BridgeCapacity storage destPool = _pools[request.destChainId];
 
-        // Check liquidity on both hops
+        // Check capacity on both hops
         if (
             hopPool.availableCapacity < request.amount ||
             destPool.availableCapacity < request.amount
@@ -1263,7 +1263,7 @@ contract DynamicRoutingOrchestratorUpgradeable is
         BridgeCapacity storage pool = _pools[destChain];
         cost = pool.currentFee;
 
-        // Liquidity impact premium
+        // Capacity impact premium
         if (pool.availableCapacity > 0 && amount > 0) {
             uint256 impact = (amount * BPS) / pool.availableCapacity;
             cost = cost + (cost * impact) / BPS;

@@ -33,7 +33,7 @@ The `ArbitrumBridgeAdapter` provides native integration with Arbitrum's canonica
 - Native Inbox/Outbox integration for retryable tickets
 - Configurable rollup parameters (challenge period, gas oracle)
 - Token mapping (L1 ↔ L2 gateway addresses)
-- Fast exit support with liquidity providers
+- Fast exit support with exit funding providers
 - Deposit limits (min/max configurable per operator)
 - Fee management in basis points
 - Withdrawal proof verification with challenge window
@@ -91,5 +91,5 @@ npx hardhat run scripts/deploy/deploy-arbitrum-bridge.ts --network arbitrum
 
 - Challenge period defaults to 6.4 days for L2→L1 messages
 - All state-changing functions protected by ReentrancyGuard
-- Fast exits require sufficient liquidity provider stake
+- Fast exits require sufficient exit funding provider stake
 - Deposit limits prevent economic attacks

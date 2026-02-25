@@ -30,7 +30,7 @@ export enum PoolStatus {
   DEPRECATED = 3,
 }
 
-export interface LiquidityPool {
+export interface BridgeCapacity {
   chainId: bigint;
   availableCapacity: bigint;
   totalCapacity: bigint;
@@ -206,7 +206,7 @@ const ROUTER_ABI = [
  * SDK client for the DynamicRoutingOrchestrator (Tachyon Learning #4).
  *
  * Provides multi-bridge routing with ML-style scoring weights for optimal
- * cross-chain path selection. Supports liquidity-aware routing with
+ * cross-chain path selection. Supports capacity-aware routing with
  * configurable urgency levels and privacy requirements.
  *
  * @example
@@ -283,14 +283,14 @@ export class DynamicRoutingClient {
     return { time: Number(time), confidenceBps: Number(confidenceBps) };
   }
 
-  async getPool(chainId: bigint): Promise<LiquidityPool> {
+  async getPool(chainId: bigint): Promise<BridgeCapacity> {
     const result = await this.publicClient.readContract({
       address: this.routerAddress,
       abi: ROUTER_ABI,
       functionName: "getPool",
       args: [chainId],
     });
-    return result as unknown as LiquidityPool;
+    return result as unknown as BridgeCapacity;
   }
 
   async getBridgeMetrics(adapter: Address): Promise<BridgeMetrics> {

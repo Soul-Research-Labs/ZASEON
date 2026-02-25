@@ -1,9 +1,9 @@
 /**
  * Soul Protocol — Dynamic Routing Example
  *
- * Demonstrates the liquidity-aware cross-chain routing system:
+ * Demonstrates the capacity-aware cross-chain routing system:
  *   1. Query the DynamicRoutingOrchestrator for optimal routes
- *   2. Check liquidity availability across pools
+ *   2. Check capacity availability across bridges
  *   3. Execute a routed cross-chain transfer
  *   4. Monitor bridge outcomes for reliability scoring
  */
@@ -14,8 +14,8 @@ import { privateKeyToAccount } from "viem/accounts";
 // ─── Configuration ──────────────────────────────────────────────────────────
 const ORCHESTRATOR_ADDRESS = process.env
   .DYNAMIC_ROUTING_ORCHESTRATOR as `0x${string}`;
-const LIQUIDITY_ROUTER_ADDRESS = process.env
-  .LIQUIDITY_AWARE_ROUTER as `0x${string}`;
+const CAPACITY_ROUTER_ADDRESS = process.env
+  .CAPACITY_AWARE_ROUTER as `0x${string}`;
 const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
 
 // ─── Minimal ABIs ───────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ const OrchestratorABI = [
     ],
   },
   {
-    name: "getLiquidityPool",
+    name: "getBridgeCapacity",
     type: "function",
     stateMutability: "view",
     inputs: [
@@ -72,8 +72,8 @@ async function main() {
   if (!PRIVATE_KEY) throw new Error("Set PRIVATE_KEY env var");
   if (!ORCHESTRATOR_ADDRESS)
     throw new Error("Set DYNAMIC_ROUTING_ORCHESTRATOR env var");
-  if (!LIQUIDITY_ROUTER_ADDRESS)
-    throw new Error("Set LIQUIDITY_AWARE_ROUTER env var");
+  if (!CAPACITY_ROUTER_ADDRESS)
+    throw new Error("Set CAPACITY_AWARE_ROUTER env var");
 
   const account = privateKeyToAccount(PRIVATE_KEY);
 
@@ -110,17 +110,17 @@ async function main() {
   console.log("  Estimated time: ", estimatedTime.toString(), "seconds");
   console.log("  Reliability:    ", score.toString(), "/ 10000");
 
-  // ─── 2. Check Liquidity ─────────────────────────────────────────────────
-  console.log("\nChecking destination liquidity...");
+  // ─── 2. Check Capacity ─────────────────────────────────────────────────
+  console.log("\nChecking destination capacity...");
 
   const [available, total, utilizationBps] = (await publicClient.readContract({
     address: ORCHESTRATOR_ADDRESS,
     abi: OrchestratorABI,
-    functionName: "getLiquidityPool",
+    functionName: "getBridgeCapacity",
     args: [DEST_CHAIN, ETH_ADDRESS],
   })) as [bigint, bigint, bigint];
 
-  console.log("Liquidity pool:");
+  console.log("Bridge capacity:");
   console.log("  Available:   ", available.toString(), "wei");
   console.log("  Total:       ", total.toString(), "wei");
   console.log(
@@ -129,9 +129,9 @@ async function main() {
     "%",
   );
 
-  // ─── 3. Execute Transfer via LiquidityAwareRouter ───────────────────────
+  // ─── 3. Execute Transfer via CapacityAwareRouter ───────────────────────
   if (available < AMOUNT) {
-    console.log("\n⚠️  Insufficient liquidity. Skipping transfer.");
+    console.log("\n⚠️  Insufficient capacity. Skipping transfer.");
     return;
   }
 
@@ -139,7 +139,7 @@ async function main() {
   const recipient = account.address;
 
   const transferHash = await walletClient.writeContract({
-    address: LIQUIDITY_ROUTER_ADDRESS,
+    address: CAPACITY_ROUTER_ADDRESS,
     abi: RouterABI,
     functionName: "initiateTransfer",
     args: [DEST_CHAIN, recipient, ETH_ADDRESS, AMOUNT],

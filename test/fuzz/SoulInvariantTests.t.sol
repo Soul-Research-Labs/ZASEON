@@ -131,7 +131,7 @@ contract SoulNetworkHandler is Test {
 
     uint256 constant FEE_DENOMINATOR = 10000;
     uint256 constant SWAP_FEE = 30;
-    uint256 constant MIN_LIQUIDITY = 1000;
+    uint256 constant MIN_CAPACITY = 1000;
 
     constructor() {
         // Initialize with some users
@@ -164,7 +164,7 @@ contract SoulNetworkHandler is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        LIQUIDITY POOLS
+                        BRIDGE CAPACITY
     //////////////////////////////////////////////////////////////*/
 
     function createPool(
@@ -172,7 +172,7 @@ contract SoulNetworkHandler is Test {
         uint128 amountA,
         uint128 amountB
     ) external {
-        if (amountA < MIN_LIQUIDITY || amountB < MIN_LIQUIDITY) return;
+        if (amountA < MIN_CAPACITY || amountB < MIN_CAPACITY) return;
         if (poolReserveA[poolId] > 0) return; // Pool exists
 
         poolReserveA[poolId] = amountA;
@@ -188,7 +188,7 @@ contract SoulNetworkHandler is Test {
         _updateMinReserve(amountA, amountB);
     }
 
-    function addLiquidity(
+    function addExitFunding(
         bytes32 poolId,
         uint256 userSeed,
         uint128 amountA,
@@ -219,7 +219,7 @@ contract SoulNetworkHandler is Test {
         _updateMinReserve(poolReserveA[poolId], poolReserveB[poolId]);
     }
 
-    function removeLiquidity(
+    function removeExitFunding(
         bytes32 poolId,
         uint256 userSeed,
         uint128 lpAmount

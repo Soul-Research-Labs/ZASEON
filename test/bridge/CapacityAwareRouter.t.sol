@@ -2,12 +2,12 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import {LiquidityAwareRouter} from "../../contracts/bridge/LiquidityAwareRouter.sol";
+import {CapacityAwareRouter} from "../../contracts/bridge/CapacityAwareRouter.sol";
 import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrchestrator.sol";
 import {IDynamicRoutingOrchestrator} from "../../contracts/interfaces/IDynamicRoutingOrchestrator.sol";
 
-contract LiquidityAwareRouterTest is Test {
-    LiquidityAwareRouter public router;
+contract CapacityAwareRouterTest is Test {
+    CapacityAwareRouter public router;
     DynamicRoutingOrchestrator public orchestrator;
 
     address admin = address(0x1A);
@@ -35,7 +35,7 @@ contract LiquidityAwareRouterTest is Test {
         );
 
         // Deploy router
-        router = new LiquidityAwareRouter(
+        router = new CapacityAwareRouter(
             address(orchestrator),
             admin,
             executor
@@ -94,18 +94,18 @@ contract LiquidityAwareRouterTest is Test {
     }
 
     function test_Constructor_RevertZeroOrchestrator() public {
-        vm.expectRevert(LiquidityAwareRouter.ZeroAddress.selector);
-        new LiquidityAwareRouter(address(0), admin, executor);
+        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        new CapacityAwareRouter(address(0), admin, executor);
     }
 
     function test_Constructor_RevertZeroAdmin() public {
-        vm.expectRevert(LiquidityAwareRouter.ZeroAddress.selector);
-        new LiquidityAwareRouter(address(orchestrator), address(0), executor);
+        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        new CapacityAwareRouter(address(orchestrator), address(0), executor);
     }
 
     function test_Constructor_RevertZeroExecutor() public {
-        vm.expectRevert(LiquidityAwareRouter.ZeroAddress.selector);
-        new LiquidityAwareRouter(address(orchestrator), admin, address(0));
+        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        new CapacityAwareRouter(address(orchestrator), admin, address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -166,7 +166,7 @@ contract LiquidityAwareRouterTest is Test {
 
     function test_SetCooldown_EmitsEvent() public {
         vm.expectEmit(false, false, false, true);
-        emit LiquidityAwareRouter.CooldownUpdated(30, 120);
+        emit CapacityAwareRouter.CooldownUpdated(30, 120);
 
         vm.prank(admin);
         router.setCooldown(120);
@@ -195,7 +195,7 @@ contract LiquidityAwareRouterTest is Test {
 
     function test_CommitTransfer_RevertZeroRecipient() public {
         vm.prank(user1);
-        vm.expectRevert(LiquidityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
         router.commitTransfer{value: 1 ether}(keccak256("routeId"), address(0));
     }
 
@@ -216,7 +216,7 @@ contract LiquidityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LiquidityAwareRouter.TransferNotFound.selector,
+                CapacityAwareRouter.TransferNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -227,7 +227,7 @@ contract LiquidityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LiquidityAwareRouter.TransferNotFound.selector,
+                CapacityAwareRouter.TransferNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -238,7 +238,7 @@ contract LiquidityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LiquidityAwareRouter.TransferNotFound.selector,
+                CapacityAwareRouter.TransferNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -249,7 +249,7 @@ contract LiquidityAwareRouterTest is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LiquidityAwareRouter.TransferNotFound.selector,
+                CapacityAwareRouter.TransferNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -261,7 +261,7 @@ contract LiquidityAwareRouterTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetPairMetrics_InitiallyZero() public view {
-        LiquidityAwareRouter.PairMetrics memory pm = router.getPairMetrics(
+        CapacityAwareRouter.PairMetrics memory pm = router.getPairMetrics(
             CHAIN_ETH,
             CHAIN_ARB
         );
@@ -276,13 +276,13 @@ contract LiquidityAwareRouterTest is Test {
 
     function test_WithdrawFees_RevertNoFees() public {
         vm.prank(admin);
-        vm.expectRevert(LiquidityAwareRouter.NoFeesToWithdraw.selector);
+        vm.expectRevert(CapacityAwareRouter.NoFeesToWithdraw.selector);
         router.withdrawFees(admin);
     }
 
     function test_WithdrawFees_RevertZeroRecipient() public {
         vm.prank(admin);
-        vm.expectRevert(LiquidityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
         router.withdrawFees(address(0));
     }
 

@@ -274,7 +274,7 @@ interface IPrivacyOracle {
 
 /**
  * @title IPrivacyPool
- * @notice Interface for privacy-preserving liquidity pools
+ * @notice Interface for privacy-preserving bridge capacity
  */
 interface IPrivacyPool {
     /**

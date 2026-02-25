@@ -317,7 +317,7 @@ export class NullifierAlreadySpentError extends PrivacyTransferError {
   }
 }
 
-export class InsufficientLiquidityError extends PrivacyTransferError {
+export class InsufficientBridgeCapacityError extends PrivacyTransferError {
   constructor(
     public readonly availableCapacity: bigint,
     public readonly requiredCapacity: bigint,
@@ -326,7 +326,7 @@ export class InsufficientLiquidityError extends PrivacyTransferError {
       `Insufficient bridge capacity: available ${availableCapacity}, required ${requiredCapacity}`,
       TransferStage.CLAIMING,
     );
-    this.name = "InsufficientLiquidityError";
+    this.name = "InsufficientBridgeCapacityError";
   }
 }
 

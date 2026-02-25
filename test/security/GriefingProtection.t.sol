@@ -17,7 +17,7 @@ contract GriefingProtectionTest is Test {
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
-    bytes32 constant OP_BRIDGE = keccak256("BRIDGE_TRANSFER");
+    bytes32 constant OP_BRIDGE = keccak256("PROOF_RELAY");
     bytes32 constant OP_PROOF = keccak256("PROOF_VERIFICATION");
     bytes32 constant OP_WITHDRAWAL = keccak256("WITHDRAWAL");
 

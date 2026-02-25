@@ -207,7 +207,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Treasury address
     address public treasury;
 
-    /// @notice Fast exit enabled (with liquidity providers)
+    /// @notice Fast exit enabled (with exit funding providers)
     bool public fastExitEnabled;
 
     /*//////////////////////////////////////////////////////////////
@@ -239,8 +239,8 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Processed outbox outputs
     mapping(bytes32 => bool) public processedOutputs;
 
-    /// @notice Fast exit liquidity providers
-    mapping(address => uint256) public liquidityProviders;
+    /// @notice Fast exit exit funding providers
+    mapping(address => uint256) public exitFundingProviders;
 
     /*//////////////////////////////////////////////////////////////
                               STATISTICS
@@ -279,7 +279,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     event WithdrawalClaimed(bytes32 indexed withdrawalId);
     event FastExitExecuted(
         bytes32 indexed withdrawalId,
-        address liquidityProvider
+        address exitFundingProvider
     );
 
     event TokenMapped(
@@ -287,8 +287,8 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         address l2Token,
         uint256 chainId
     );
-    event LiquidityProvided(address indexed provider, uint256 amount);
-    event LiquidityWithdrawn(address indexed provider, uint256 amount);
+    event ExitFundingProvided(address indexed provider, uint256 amount);
+    event ExitFundingWithdrawn(address indexed provider, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -306,7 +306,7 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     error InvalidProof();
     error OutputAlreadyProcessed();
     error InsufficientFee();
-    error InsufficientLiquidity();
+    error InsufficientCapacity();
     error FastExitDisabled();
     error TransferFailed();
     error FeeTooHigh();
@@ -690,9 +690,9 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Execute instant withdrawal using liquidity provider funds (bypasses challenge period)
-     * @dev The caller must be a registered liquidity provider with sufficient balance.
-     *      Their liquidity is consumed to fund the instant exit. The original withdrawal
+     * @notice Execute instant withdrawal using exit funding provider funds (bypasses challenge period)
+     * @dev The caller must be a registered exit funding provider with sufficient balance.
+     *      Their exit funding is consumed to fund the instant exit. The original withdrawal
      *      is marked as finalized, with the LP effectively taking over the pending withdrawal.
      * @param withdrawalId The withdrawal to fast-exit (must be in PENDING status)
      */
@@ -704,12 +704,12 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         if (withdrawal.status != TransferStatus.PENDING)
             revert WithdrawalNotFound();
 
-        // Find liquidity provider (simplified - just check caller)
-        if (liquidityProviders[msg.sender] < withdrawal.amount) {
-            revert InsufficientLiquidity();
+        // Find exit funding provider (simplified - just check caller)
+        if (exitFundingProviders[msg.sender] < withdrawal.amount) {
+            revert InsufficientCapacity();
         }
 
-        liquidityProviders[msg.sender] -= withdrawal.amount;
+        exitFundingProviders[msg.sender] -= withdrawal.amount;
         withdrawal.status = TransferStatus.FINALIZED;
         withdrawal.claimedAt = block.timestamp;
 
@@ -719,32 +719,32 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                    LIQUIDITY PROVISION
+                    BRIDGE EXIT FUNDING
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Provide liquidity for fast exits
+     * @notice Provide exit funding for fast exits
      */
-    function provideLiquidity() external payable {
-        liquidityProviders[msg.sender] += msg.value;
-        emit LiquidityProvided(msg.sender, msg.value);
+    function provideExitFunding() external payable {
+        exitFundingProviders[msg.sender] += msg.value;
+        emit ExitFundingProvided(msg.sender, msg.value);
     }
 
     /**
-     * @notice Withdraw previously provided liquidity from the fast-exit pool
+     * @notice Withdraw previously provided exit funding from the fast-exit pool
      * @dev Sends native ETH to caller. Reverts if balance insufficient.
-     * @param amount The amount of liquidity to withdraw (in wei)
+     * @param amount The amount of capacity to withdraw (in wei)
      */
-    function withdrawLiquidity(uint256 amount) external nonReentrant {
-        if (liquidityProviders[msg.sender] < amount)
-            revert InsufficientLiquidity();
+    function withdrawExitFunding(uint256 amount) external nonReentrant {
+        if (exitFundingProviders[msg.sender] < amount)
+            revert InsufficientCapacity();
 
-        liquidityProviders[msg.sender] -= amount;
+        exitFundingProviders[msg.sender] -= amount;
 
         (bool success, ) = msg.sender.call{value: amount}("");
         if (!success) revert TransferFailed();
 
-        emit LiquidityWithdrawn(msg.sender, amount);
+        emit ExitFundingWithdrawn(msg.sender, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

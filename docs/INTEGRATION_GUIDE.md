@@ -634,7 +634,7 @@ await client.settleGuarantee(intent.intentId);
 
 ### Overview
 
-The Dynamic Routing Orchestrator selects optimal cross-chain paths based on liquidity, cost, speed, and reliability metrics.
+The Dynamic Routing Orchestrator selects optimal cross-chain paths based on bridge capacity, cost, speed, and reliability metrics.
 
 ### Query Optimal Route
 
@@ -662,20 +662,20 @@ console.log("Estimated fee:", route.estimatedFee);
 console.log("Estimated time:", route.estimatedTimeSeconds, "seconds");
 ```
 
-### Liquidity-Aware Routing
+### Capacity-Aware Routing
 
-Routes automatically consider available liquidity across pools:
+Routes automatically consider available capacity across bridges:
 
 ```typescript
-// Check liquidity for a specific route
-const liquidity = await bridge.checkLiquidity({
+// Check capacity for a specific route
+const capacity = await bridge.checkCapacity({
   sourceChainId: 1,
   destChainId: 42161,
   token: "0x...",
 });
 
-console.log("Available:", liquidity.available);
-console.log("Utilization:", liquidity.utilizationBps, "bps");
+console.log("Available:", capacity.available);
+console.log("Utilization:", capacity.utilizationBps, "bps");
 ```
 
 ---

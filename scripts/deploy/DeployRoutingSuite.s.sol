@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrchestrator.sol";
-import {LiquidityAwareRouter} from "../../contracts/bridge/LiquidityAwareRouter.sol";
+import {CapacityAwareRouter} from "../../contracts/bridge/CapacityAwareRouter.sol";
 
 /**
  * @title DeployRoutingSuite
- * @notice Deploys the Phase 4 Dynamic Routing & Liquidity suite:
- *         DynamicRoutingOrchestrator, LiquidityAwareRouter
+ * @notice Deploys the Phase 4 Dynamic Routing & Capacity suite:
+ *         DynamicRoutingOrchestrator, CapacityAwareRouter
  * @dev Usage:
  *   forge script scripts/deploy/DeployRoutingSuite.s.sol:DeployRoutingSuite \
  *     --rpc-url $RPC_URL --broadcast --verify
@@ -16,7 +16,7 @@ import {LiquidityAwareRouter} from "../../contracts/bridge/LiquidityAwareRouter.
  *   Environment variables:
  *     DEPLOYER_PRIVATE_KEY   - Deployer private key
  *     ROUTING_ADMIN          - Admin address (defaults to deployer)
- *     ROUTING_ORACLE         - Oracle address for liquidity updates (defaults to deployer)
+ *     ROUTING_ORACLE         - Oracle address for capacity updates (defaults to deployer)
  *     ROUTING_BRIDGE_ADMIN   - Bridge admin address (defaults to deployer)
  *     ROUTING_EXECUTOR       - Router executor address (defaults to deployer)
  */
@@ -48,19 +48,19 @@ contract DeployRoutingSuite is Script {
             );
         console.log("DynamicRoutingOrchestrator:", address(orchestrator));
 
-        // 2. Deploy LiquidityAwareRouter
-        LiquidityAwareRouter router = new LiquidityAwareRouter(
+        // 2. Deploy CapacityAwareRouter
+        CapacityAwareRouter router = new CapacityAwareRouter(
             address(orchestrator),
             admin,
             executor
         );
-        console.log("LiquidityAwareRouter:", address(router));
+        console.log("CapacityAwareRouter:", address(router));
 
-        // 3. Grant ROUTER_ROLE to LiquidityAwareRouter on orchestrator
+        // 3. Grant ROUTER_ROLE to CapacityAwareRouter on orchestrator
         orchestrator.grantRole(orchestrator.ROUTER_ROLE(), address(router));
-        console.log("  Granted ROUTER_ROLE to LiquidityAwareRouter");
+        console.log("  Granted ROUTER_ROLE to CapacityAwareRouter");
 
-        // 4. Register default liquidity pools for supported L2 networks
+        // 4. Register default bridge capacity data for supported L2 networks
         orchestrator.registerPool(1, 0, 0.01 ether); // Ethereum
         orchestrator.registerPool(42161, 0, 0.005 ether); // Arbitrum
         orchestrator.registerPool(10, 0, 0.005 ether); // Optimism
@@ -69,7 +69,7 @@ contract DeployRoutingSuite is Script {
         orchestrator.registerPool(534352, 0, 0.008 ether); // Scroll
         orchestrator.registerPool(59144, 0, 0.008 ether); // Linea
         orchestrator.registerPool(1101, 0, 0.008 ether); // Polygon zkEVM
-        console.log("  Registered 8 liquidity pools");
+        console.log("  Registered 8 bridge capacity entries");
 
         vm.stopBroadcast();
 
@@ -97,7 +97,7 @@ contract DeployRoutingSuite is Script {
             '  "DynamicRoutingOrchestrator": "',
             vm.toString(address(orchestrator)),
             '",\n',
-            '  "LiquidityAwareRouter": "',
+            '  "CapacityAwareRouter": "',
             vm.toString(address(router)),
             '"\n}'
         );
@@ -142,12 +142,12 @@ contract DeployRoutingSuiteTestnet is Script {
             );
         console.log("DynamicRoutingOrchestrator:", address(orchestrator));
 
-        LiquidityAwareRouter router = new LiquidityAwareRouter(
+        CapacityAwareRouter router = new CapacityAwareRouter(
             address(orchestrator),
             deployer,
             deployer
         );
-        console.log("LiquidityAwareRouter:", address(router));
+        console.log("CapacityAwareRouter:", address(router));
 
         // Grant ROUTER_ROLE to router
         orchestrator.grantRole(orchestrator.ROUTER_ROLE(), address(router));

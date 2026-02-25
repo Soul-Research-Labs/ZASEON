@@ -22,7 +22,7 @@ contract FrontrunningAttacks is Test {
     address public frontrunner;
     address public backrunner;
 
-    uint256 constant INITIAL_LIQUIDITY = 1_000_000e18;
+    uint256 constant INITIAL_CAPACITY = 1_000_000e18;
 
     /*//////////////////////////////////////////////////////////////
                               SETUP
@@ -38,11 +38,11 @@ contract FrontrunningAttacks is Test {
         vm.deal(backrunner, 100 ether);
 
         dex = new MockDEX();
-        vm.deal(address(dex), INITIAL_LIQUIDITY);
+        vm.deal(address(dex), INITIAL_CAPACITY);
 
         commitReveal = new MockCommitReveal();
         privateSwap = new MockPrivateSwap();
-        vm.deal(address(privateSwap), INITIAL_LIQUIDITY);
+        vm.deal(address(privateSwap), INITIAL_CAPACITY);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -221,7 +221,7 @@ contract FrontrunningAttacks is Test {
      */
     function test_antiMEV_privateOrders() public {
         MockAntiMEVDEX antiMev = new MockAntiMEVDEX();
-        vm.deal(address(antiMev), INITIAL_LIQUIDITY);
+        vm.deal(address(antiMev), INITIAL_CAPACITY);
 
         // Victim submits private order
         bytes32 orderHash = keccak256(
@@ -248,7 +248,7 @@ contract FrontrunningAttacks is Test {
      */
     function test_twapProtection() public {
         MockTWAPDEX twapDex = new MockTWAPDEX();
-        vm.deal(address(twapDex), INITIAL_LIQUIDITY);
+        vm.deal(address(twapDex), INITIAL_CAPACITY);
 
         // Large order split across blocks
         uint256 totalAmount = 100 ether;

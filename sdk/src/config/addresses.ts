@@ -69,7 +69,7 @@ export interface SoulContractAddresses {
   intentSettlementLayer?: Hex;
   instantSettlementGuarantee?: Hex;
   dynamicRoutingOrchestrator?: Hex;
-  liquidityAwareRouter?: Hex;
+  capacityAwareRouter?: Hex;
 
   // Compliance
   selectiveDisclosureManager?: Hex;
