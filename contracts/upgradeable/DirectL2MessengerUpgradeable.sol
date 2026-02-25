@@ -13,7 +13,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
  * @title DirectL2MessengerUpgradeable
  * @author Soul Protocol
  * @notice UUPS-upgradeable version of DirectL2Messenger for proxy deployments
- * @dev Direct L2-to-L2 messaging without L1 settlement, with UUPS upgrade capability.
+ * @dev Direct L2-to-L2 messaging without L1 completion, with UUPS upgrade capability.
  *
  * UPGRADE NOTES:
  * - Immutable `currentChainId` converted to regular storage variable
@@ -28,7 +28,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
  * 1. OP Superchain Native (L2ToL2CrossDomainMessenger) — direct L2↔L2
  * 2. Shared Sequencer (Espresso/Astria) — atomic cross-L2 inclusion
  * 3. Fast Path (Relayer Network) — optimistic with bonds
- * 4. Slow Path (L1 Settlement) — full L1 finality
+ * 4. Slow Path (L1 Completion) — full L1 finality
  *
  * @custom:oz-upgrades-from DirectL2Messenger
  */

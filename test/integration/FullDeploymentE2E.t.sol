@@ -13,8 +13,8 @@ import {VerifierRegistryV2} from "../../contracts/verifiers/VerifierRegistryV2.s
 import {SoulUniversalVerifier} from "../../contracts/verifiers/SoulUniversalVerifier.sol";
 
 // Security
-import {BridgeProofValidator} from "../../contracts/security/BridgeProofValidator.sol";
-import {BridgeCircuitBreaker} from "../../contracts/security/BridgeCircuitBreaker.sol";
+import {RelayProofValidator} from "../../contracts/security/RelayProofValidator.sol";
+import {RelayCircuitBreaker} from "../../contracts/security/RelayCircuitBreaker.sol";
 
 // Primitives
 import {ZKBoundStateLocks} from "../../contracts/primitives/ZKBoundStateLocks.sol";
@@ -45,8 +45,8 @@ contract FullDeploymentE2E is Test {
     VerifierRegistryV2 public verifierRegistry;
     SoulUniversalVerifier public universalVerifier;
     NullifierRegistryV3 public nullifierRegistry;
-    BridgeProofValidator public bridgeProofValidator;
-    BridgeCircuitBreaker public circuitBreaker;
+    RelayProofValidator public relayProofValidator;
+    RelayCircuitBreaker public circuitBreaker;
     ZKBoundStateLocks public zkBoundStateLocks;
     ProofCarryingContainer public proofCarryingContainer;
     CrossDomainNullifierAlgebra public cdna;
@@ -70,8 +70,8 @@ contract FullDeploymentE2E is Test {
         verifierRegistry = new VerifierRegistryV2();
         universalVerifier = new SoulUniversalVerifier();
         nullifierRegistry = new NullifierRegistryV3();
-        bridgeProofValidator = new BridgeProofValidator(deployer);
-        circuitBreaker = new BridgeCircuitBreaker(deployer);
+        relayProofValidator = new RelayProofValidator(deployer);
+        circuitBreaker = new RelayCircuitBreaker(deployer);
         zkBoundStateLocks = new ZKBoundStateLocks(address(universalVerifier));
         proofCarryingContainer = new ProofCarryingContainer();
         cdna = new CrossDomainNullifierAlgebra();
@@ -147,15 +147,15 @@ contract FullDeploymentE2E is Test {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0),
-                _bridgeProofValidator: address(bridgeProofValidator),
+                _relayProofValidator: address(relayProofValidator),
                 _zkBoundStateLocks: address(zkBoundStateLocks),
                 _proofCarryingContainer: address(proofCarryingContainer),
                 _crossDomainNullifierAlgebra: address(cdna),
                 _policyBoundProofs: address(policyBoundProofs),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -172,7 +172,7 @@ contract FullDeploymentE2E is Test {
         assertEq(hub.verifierRegistry(), address(verifierRegistry));
         assertEq(hub.universalVerifier(), address(universalVerifier));
         assertEq(hub.nullifierManager(), address(nullifierRegistry));
-        assertEq(hub.bridgeProofValidator(), address(bridgeProofValidator));
+        assertEq(hub.relayProofValidator(), address(relayProofValidator));
         assertEq(hub.zkBoundStateLocks(), address(zkBoundStateLocks));
         assertEq(hub.proofCarryingContainer(), address(proofCarryingContainer));
         assertEq(hub.crossDomainNullifierAlgebra(), address(cdna));
@@ -194,7 +194,7 @@ contract FullDeploymentE2E is Test {
         hub.setStealthAddressRegistry(address(0xA003));
         hub.setPrivateRelayerNetwork(address(0xA004));
         hub.setComplianceOracle(address(0xA005));
-        hub.setBridgeWatchtower(address(0xA006));
+        hub.setRelayWatchtower(address(0xA006));
         hub.setMultiProver(address(0xA007));
 
         assertTrue(hub.isFullyConfigured());
@@ -555,13 +555,13 @@ contract FullDeploymentE2E is Test {
 
     function test_HubEmergencyDeactivateBridge() public {
         // Register a bridge adapter
-        hub.registerBridgeAdapter(42161, address(0xA0B1), true, 12);
+        hub.registerRelayAdapter(42161, address(0xA0B1), true, 12);
 
         // Deactivate it
-        hub.deactivateBridge(42161);
+        hub.deactivateRelay(42161);
 
         // Bridge should show as inactive
-        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
+        ISoulProtocolHub.RelayInfo memory info = hub.getRelayInfo(42161);
         assertFalse(info.isActive);
     }
 
@@ -581,15 +581,15 @@ contract FullDeploymentE2E is Test {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0xCAFE),
-                _bridgeProofValidator: address(0),
+                _relayProofValidator: address(0),
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
                 _policyBoundProofs: address(0),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -635,7 +635,7 @@ contract FullDeploymentE2E is Test {
             admin
         );
         nullifierRegistry.grantRole(nullifierRegistry.REGISTRAR_ROLE(), admin);
-        nullifierRegistry.grantRole(nullifierRegistry.BRIDGE_ROLE(), admin);
+        nullifierRegistry.grantRole(nullifierRegistry.RELAY_ROLE(), admin);
         nullifierRegistry.grantRole(nullifierRegistry.EMERGENCY_ROLE(), admin);
 
         // ── VerifierRegistryV2 ──
@@ -649,25 +649,25 @@ contract FullDeploymentE2E is Test {
         );
         verifierRegistry.grantRole(verifierRegistry.GUARDIAN_ROLE(), admin);
 
-        // ── BridgeProofValidator ──
-        bridgeProofValidator.grantRole(
-            bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+        // ── RelayProofValidator ──
+        relayProofValidator.grantRole(
+            relayProofValidator.DEFAULT_ADMIN_ROLE(),
             admin
         );
-        bridgeProofValidator.grantRole(
-            bridgeProofValidator.GUARDIAN_ROLE(),
+        relayProofValidator.grantRole(
+            relayProofValidator.GUARDIAN_ROLE(),
             admin
         );
-        bridgeProofValidator.grantRole(
-            bridgeProofValidator.OPERATOR_ROLE(),
+        relayProofValidator.grantRole(
+            relayProofValidator.OPERATOR_ROLE(),
             admin
         );
-        bridgeProofValidator.grantRole(
-            bridgeProofValidator.WATCHTOWER_ROLE(),
+        relayProofValidator.grantRole(
+            relayProofValidator.WATCHTOWER_ROLE(),
             admin
         );
 
-        // ── BridgeCircuitBreaker ──
+        // ── RelayCircuitBreaker ──
         circuitBreaker.grantRole(circuitBreaker.DEFAULT_ADMIN_ROLE(), admin);
         circuitBreaker.grantRole(circuitBreaker.GUARDIAN_ROLE(), admin);
         circuitBreaker.grantRole(circuitBreaker.MONITOR_ROLE(), admin);
@@ -688,7 +688,7 @@ contract FullDeploymentE2E is Test {
             deployer
         );
         nullifierRegistry.renounceRole(
-            nullifierRegistry.BRIDGE_ROLE(),
+            nullifierRegistry.RELAY_ROLE(),
             deployer
         );
         nullifierRegistry.renounceRole(
@@ -714,25 +714,25 @@ contract FullDeploymentE2E is Test {
             deployer
         );
 
-        // ── BridgeProofValidator ──
-        bridgeProofValidator.renounceRole(
-            bridgeProofValidator.WATCHTOWER_ROLE(),
+        // ── RelayProofValidator ──
+        relayProofValidator.renounceRole(
+            relayProofValidator.WATCHTOWER_ROLE(),
             deployer
         );
-        bridgeProofValidator.renounceRole(
-            bridgeProofValidator.OPERATOR_ROLE(),
+        relayProofValidator.renounceRole(
+            relayProofValidator.OPERATOR_ROLE(),
             deployer
         );
-        bridgeProofValidator.renounceRole(
-            bridgeProofValidator.GUARDIAN_ROLE(),
+        relayProofValidator.renounceRole(
+            relayProofValidator.GUARDIAN_ROLE(),
             deployer
         );
-        bridgeProofValidator.renounceRole(
-            bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+        relayProofValidator.renounceRole(
+            relayProofValidator.DEFAULT_ADMIN_ROLE(),
             deployer
         );
 
-        // ── BridgeCircuitBreaker ──
+        // ── RelayCircuitBreaker ──
         circuitBreaker.renounceRole(circuitBreaker.RECOVERY_ROLE(), deployer);
         circuitBreaker.renounceRole(circuitBreaker.MONITOR_ROLE(), deployer);
         circuitBreaker.renounceRole(circuitBreaker.GUARDIAN_ROLE(), deployer);
@@ -762,7 +762,7 @@ contract FullDeploymentE2E is Test {
             nullifierRegistry.hasRole(nullifierRegistry.REGISTRAR_ROLE(), admin)
         );
         assertTrue(
-            nullifierRegistry.hasRole(nullifierRegistry.BRIDGE_ROLE(), admin)
+            nullifierRegistry.hasRole(nullifierRegistry.RELAY_ROLE(), admin)
         );
         assertTrue(
             nullifierRegistry.hasRole(nullifierRegistry.EMERGENCY_ROLE(), admin)
@@ -785,33 +785,33 @@ contract FullDeploymentE2E is Test {
             verifierRegistry.hasRole(verifierRegistry.GUARDIAN_ROLE(), admin)
         );
 
-        // ── BridgeProofValidator ──
+        // ── RelayProofValidator ──
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.DEFAULT_ADMIN_ROLE(),
                 admin
             )
         );
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.GUARDIAN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.GUARDIAN_ROLE(),
                 admin
             )
         );
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.OPERATOR_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.OPERATOR_ROLE(),
                 admin
             )
         );
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.WATCHTOWER_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.WATCHTOWER_ROLE(),
                 admin
             )
         );
 
-        // ── BridgeCircuitBreaker ──
+        // ── RelayCircuitBreaker ──
         assertTrue(
             circuitBreaker.hasRole(circuitBreaker.DEFAULT_ADMIN_ROLE(), admin)
         );
@@ -919,7 +919,7 @@ contract FullDeploymentE2E is Test {
             )
         );
         assertFalse(
-            nullifierRegistry.hasRole(nullifierRegistry.BRIDGE_ROLE(), deployer)
+            nullifierRegistry.hasRole(nullifierRegistry.RELAY_ROLE(), deployer)
         );
         assertFalse(
             nullifierRegistry.hasRole(
@@ -945,33 +945,33 @@ contract FullDeploymentE2E is Test {
             verifierRegistry.hasRole(verifierRegistry.GUARDIAN_ROLE(), deployer)
         );
 
-        // ── BridgeProofValidator: deployer has NO roles ──
+        // ── RelayProofValidator: deployer has NO roles ──
         assertFalse(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.DEFAULT_ADMIN_ROLE(),
                 deployer
             )
         );
         assertFalse(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.OPERATOR_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.OPERATOR_ROLE(),
                 deployer
             )
         );
         assertFalse(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.GUARDIAN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.GUARDIAN_ROLE(),
                 deployer
             )
         );
         assertFalse(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.WATCHTOWER_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.WATCHTOWER_ROLE(),
                 deployer
             )
         );
 
-        // ── BridgeCircuitBreaker: deployer has NO roles ──
+        // ── RelayCircuitBreaker: deployer has NO roles ──
         assertFalse(
             circuitBreaker.hasRole(
                 circuitBreaker.DEFAULT_ADMIN_ROLE(),
@@ -1010,7 +1010,7 @@ contract FullDeploymentE2E is Test {
             nullifierRegistry.hasRole(nullifierRegistry.REGISTRAR_ROLE(), admin)
         );
         assertTrue(
-            nullifierRegistry.hasRole(nullifierRegistry.BRIDGE_ROLE(), admin)
+            nullifierRegistry.hasRole(nullifierRegistry.RELAY_ROLE(), admin)
         );
         assertTrue(
             nullifierRegistry.hasRole(nullifierRegistry.EMERGENCY_ROLE(), admin)
@@ -1033,27 +1033,27 @@ contract FullDeploymentE2E is Test {
             verifierRegistry.hasRole(verifierRegistry.GUARDIAN_ROLE(), admin)
         );
 
-        // ── BridgeProofValidator: admin still has all roles ──
+        // ── RelayProofValidator: admin still has all roles ──
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.DEFAULT_ADMIN_ROLE(),
                 admin
             )
         );
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.GUARDIAN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.GUARDIAN_ROLE(),
                 admin
             )
         );
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.OPERATOR_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.OPERATOR_ROLE(),
                 admin
             )
         );
 
-        // ── BridgeCircuitBreaker: admin still has all roles ──
+        // ── RelayCircuitBreaker: admin still has all roles ──
         assertTrue(
             circuitBreaker.hasRole(circuitBreaker.DEFAULT_ADMIN_ROLE(), admin)
         );
@@ -1107,15 +1107,15 @@ contract FullDeploymentE2E is Test {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0),
-                _bridgeProofValidator: address(0),
+                _relayProofValidator: address(0),
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
                 _policyBoundProofs: address(0),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -1227,8 +1227,8 @@ contract FullDeploymentE2E is Test {
         hub.setPrivacyRouter(address(0xCAFE));
         assertEq(hub.privacyRouter(), address(0xCAFE));
 
-        hub.registerBridgeAdapter(42161, address(0xA0B1), true, 12);
-        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(42161);
+        hub.registerRelayAdapter(42161, address(0xA0B1), true, 12);
+        ISoulProtocolHub.RelayInfo memory info = hub.getRelayInfo(42161);
         assertEq(info.adapter, address(0xA0B1));
 
         hub.pause();
@@ -1416,7 +1416,7 @@ contract FullDeploymentE2E is Test {
         circuitBreaker.emergencyHalt();
     }
 
-    function test_Phase8_BridgeProofValidatorDeployerLockedOut() public {
+    function test_Phase8_RelayProofValidatorDeployerLockedOut() public {
         _executePhase7_RoleTransfer();
         _executePhase8_RenounceDeployer();
 
@@ -1425,15 +1425,15 @@ contract FullDeploymentE2E is Test {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 deployer,
-                bridgeProofValidator.GUARDIAN_ROLE()
+                relayProofValidator.GUARDIAN_ROLE()
             )
         );
-        bridgeProofValidator.pause();
+        relayProofValidator.pause();
 
         // Admin can pause
         vm.prank(admin);
-        bridgeProofValidator.pause();
-        assertTrue(bridgeProofValidator.paused());
+        relayProofValidator.pause();
+        assertTrue(relayProofValidator.paused());
     }
 
     function test_Phase8_NoSinglePointOfFailure() public {
@@ -1485,19 +1485,19 @@ contract FullDeploymentE2E is Test {
             "VerifierRegistry deployer should not have DEFAULT_ADMIN_ROLE"
         );
 
-        // BridgeProofValidator
+        // RelayProofValidator
         assertTrue(
-            bridgeProofValidator.hasRole(
-                bridgeProofValidator.DEFAULT_ADMIN_ROLE(),
+            relayProofValidator.hasRole(
+                relayProofValidator.DEFAULT_ADMIN_ROLE(),
                 admin
             ),
-            "BridgeProofValidator must have admin as DEFAULT_ADMIN_ROLE"
+            "RelayProofValidator must have admin as DEFAULT_ADMIN_ROLE"
         );
 
-        // BridgeCircuitBreaker
+        // RelayCircuitBreaker
         assertTrue(
             circuitBreaker.hasRole(circuitBreaker.DEFAULT_ADMIN_ROLE(), admin),
-            "BridgeCircuitBreaker must have admin as DEFAULT_ADMIN_ROLE"
+            "RelayCircuitBreaker must have admin as DEFAULT_ADMIN_ROLE"
         );
     }
 

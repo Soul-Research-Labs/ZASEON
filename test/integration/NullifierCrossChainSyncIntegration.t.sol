@@ -7,7 +7,7 @@ import "../../contracts/core/NullifierRegistryV3.sol";
 /**
  * @title NullifierRegistryV3 Cross-Chain Sync Integration Test
  * @notice Tests real NullifierRegistryV3 instances simulating cross-chain
- *         nullifier synchronization via the BRIDGE_ROLE pathway.
+ *         nullifier synchronization via the RELAY_ROLE pathway.
  *
  * Unlike CrossChainNullifierSync.t.sol which uses mocks, this test deploys
  * two full NullifierRegistryV3 contracts to verify the actual Merkle tree
@@ -21,7 +21,7 @@ contract NullifierCrossChainSyncIntegration is Test {
     address public bridge = makeAddr("bridge");
     address public registrar = makeAddr("registrar");
 
-    bytes32 constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
 
     function setUp() public {
@@ -37,9 +37,9 @@ contract NullifierCrossChainSyncIntegration is Test {
         vm.chainId(1);
 
         // Grant roles on both registries
-        registryA.grantRole(BRIDGE_ROLE, bridge);
+        registryA.grantRole(RELAY_ROLE, bridge);
         registryA.grantRole(REGISTRAR_ROLE, registrar);
-        registryB.grantRole(BRIDGE_ROLE, bridge);
+        registryB.grantRole(RELAY_ROLE, bridge);
         registryB.grantRole(REGISTRAR_ROLE, registrar);
     }
 

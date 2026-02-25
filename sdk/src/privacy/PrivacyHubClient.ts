@@ -92,7 +92,7 @@ export interface TransferParams {
 // ABI for CrossChainPrivacyHub
 const PRIVACY_HUB_ABI = [
   {
-    name: "registerBridge",
+    name: "registerAdapter",
     type: "function",
     stateMutability: "external",
     inputs: [
@@ -167,14 +167,14 @@ const PRIVACY_HUB_ABI = [
     ],
   },
   {
-    name: "isBridgeRegistered",
+    name: "isAdapterRegistered",
     type: "function",
     stateMutability: "view",
     inputs: [{ name: "chainId", type: "uint256" }],
     outputs: [{ type: "bool" }],
   },
   {
-    name: "getBridgeAdapter",
+    name: "getRelayAdapter",
     type: "function",
     stateMutability: "view",
     inputs: [{ name: "chainId", type: "uint256" }],
@@ -683,7 +683,7 @@ export class PrivacyHubClient {
    * Check if a chain is supported
    */
   async isChainSupported(chainId: number): Promise<boolean> {
-    return await this.hubContract.read.isBridgeRegistered([BigInt(chainId)]);
+    return await this.hubContract.read.isAdapterRegistered([BigInt(chainId)]);
   }
 
   /**
@@ -697,8 +697,8 @@ export class PrivacyHubClient {
   /**
    * Get bridge adapter for a chain
    */
-  async getBridgeAdapter(chainId: number): Promise<Hex> {
-    return await this.hubContract.read.getBridgeAdapter([BigInt(chainId)]);
+  async getRelayAdapter(chainId: number): Promise<Hex> {
+    return await this.hubContract.read.getRelayAdapter([BigInt(chainId)]);
   }
 
   // =========================================================================

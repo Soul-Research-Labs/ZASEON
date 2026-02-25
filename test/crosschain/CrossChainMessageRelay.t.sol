@@ -608,7 +608,7 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_setBridgeAdapter() public {
         relay.setBridgeAdapter(42_161, address(0xADA0));
-        assertEq(relay.bridgeAdapters(42_161), address(0xADA0));
+        assertEq(relay.relayAdapters(42_161), address(0xADA0));
     }
 
     function test_setGasLimits() public {
@@ -636,19 +636,19 @@ contract CrossChainMessageRelayTest is Test {
         relay.setSoulProtocolHub(address(0));
     }
 
-    function test_setBridgeProofValidator() public {
-        relay.setBridgeProofValidator(address(0x2));
-        assertEq(relay.bridgeProofValidator(), address(0x2));
+    function test_setRelayProofValidator() public {
+        relay.setRelayProofValidator(address(0x2));
+        assertEq(relay.relayProofValidator(), address(0x2));
     }
 
-    function test_setBridgeProofValidator_revertOnZero() public {
+    function test_setRelayProofValidator_revertOnZero() public {
         vm.expectRevert(CrossChainMessageRelay.ZeroAddress.selector);
-        relay.setBridgeProofValidator(address(0));
+        relay.setRelayProofValidator(address(0));
     }
 
-    function test_setBridgeWatchtower() public {
-        relay.setBridgeWatchtower(address(0x3));
-        assertEq(relay.bridgeWatchtower(), address(0x3));
+    function test_setRelayWatchtower() public {
+        relay.setRelayWatchtower(address(0x3));
+        assertEq(relay.relayWatchtower(), address(0x3));
     }
 
     function test_setSecurityOracle() public {
@@ -668,7 +668,7 @@ contract CrossChainMessageRelayTest is Test {
 
     function test_allSecuritySetters_revertOnZero() public {
         vm.expectRevert(CrossChainMessageRelay.ZeroAddress.selector);
-        relay.setBridgeWatchtower(address(0));
+        relay.setRelayWatchtower(address(0));
         vm.expectRevert(CrossChainMessageRelay.ZeroAddress.selector);
         relay.setSecurityOracle(address(0));
         vm.expectRevert(CrossChainMessageRelay.ZeroAddress.selector);

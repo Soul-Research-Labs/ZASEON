@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IntentSettlementLayer} from "../../contracts/core/IntentSettlementLayer.sol";
+import {IntentCompletionLayer} from "../../contracts/core/IntentCompletionLayer.sol";
 import {InstantRelayerRewards} from "../../contracts/relayer/InstantRelayerRewards.sol";
-import {InstantSettlementGuarantee} from "../../contracts/core/InstantSettlementGuarantee.sol";
+import {InstantCompletionGuarantee} from "../../contracts/core/InstantCompletionGuarantee.sol";
 
 /**
  * @title DeployIntentSuite
  * @notice Deploys the Phase 3 Intent Architecture & Solver Network suite:
- *         IntentSettlementLayer, InstantRelayerRewards, InstantSettlementGuarantee
+ *         IntentCompletionLayer, InstantRelayerRewards, InstantCompletionGuarantee
  * @dev Usage:
  *   forge script scripts/deploy/DeployIntentSuite.s.sol:DeployIntentSuite \
  *     --rpc-url $RPC_URL --broadcast --verify
@@ -36,12 +36,12 @@ contract DeployIntentSuite is Script {
 
         vm.startBroadcast(deployerPk);
 
-        // 1. Deploy IntentSettlementLayer
-        IntentSettlementLayer intentLayer = new IntentSettlementLayer(
+        // 1. Deploy IntentCompletionLayer
+        IntentCompletionLayer intentLayer = new IntentCompletionLayer(
             admin,
             verifier
         );
-        console.log("IntentSettlementLayer:", address(intentLayer));
+        console.log("IntentCompletionLayer:", address(intentLayer));
 
         // 2. Configure supported chains
         intentLayer.setSupportedChain(1, true); // Ethereum
@@ -58,12 +58,12 @@ contract DeployIntentSuite is Script {
         InstantRelayerRewards relayerRewards = new InstantRelayerRewards(admin);
         console.log("InstantRelayerRewards:", address(relayerRewards));
 
-        // 4. Deploy InstantSettlementGuarantee (linked to IntentSettlementLayer)
-        InstantSettlementGuarantee guarantee = new InstantSettlementGuarantee(
+        // 4. Deploy InstantCompletionGuarantee (linked to IntentCompletionLayer)
+        InstantCompletionGuarantee guarantee = new InstantCompletionGuarantee(
             admin,
             address(intentLayer)
         );
-        console.log("InstantSettlementGuarantee:", address(guarantee));
+        console.log("InstantCompletionGuarantee:", address(guarantee));
 
         vm.stopBroadcast();
 
@@ -80,13 +80,13 @@ contract DeployIntentSuite is Script {
             vm.toString(admin),
             '",\n',
             '  "contracts": {\n',
-            '    "IntentSettlementLayer": "',
+            '    "IntentCompletionLayer": "',
             vm.toString(address(intentLayer)),
             '",\n',
             '    "InstantRelayerRewards": "',
             vm.toString(address(relayerRewards)),
             '",\n',
-            '    "InstantSettlementGuarantee": "',
+            '    "InstantCompletionGuarantee": "',
             vm.toString(address(guarantee)),
             '"\n',
             "  }\n",
@@ -118,7 +118,7 @@ contract DeployIntentSuiteTestnet is Script {
         vm.startBroadcast(deployerPk);
 
         // Deploy with no verifier (testnet)
-        IntentSettlementLayer intentLayer = new IntentSettlementLayer(
+        IntentCompletionLayer intentLayer = new IntentCompletionLayer(
             deployer,
             address(0)
         );
@@ -133,18 +133,18 @@ contract DeployIntentSuiteTestnet is Script {
             deployer
         );
 
-        InstantSettlementGuarantee guarantee = new InstantSettlementGuarantee(
+        InstantCompletionGuarantee guarantee = new InstantCompletionGuarantee(
             deployer,
             address(intentLayer)
         );
 
         // Grant deployer all roles for testing
         intentLayer.grantRole(intentLayer.CHALLENGER_ROLE(), deployer);
-        guarantee.grantRole(guarantee.SETTLEMENT_ROLE(), deployer);
+        guarantee.grantRole(guarantee.COMPLETION_ROLE(), deployer);
 
-        console.log("IntentSettlementLayer:", address(intentLayer));
+        console.log("IntentCompletionLayer:", address(intentLayer));
         console.log("InstantRelayerRewards:", address(relayerRewards));
-        console.log("InstantSettlementGuarantee:", address(guarantee));
+        console.log("InstantCompletionGuarantee:", address(guarantee));
 
         vm.stopBroadcast();
     }

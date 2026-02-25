@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import "forge-std/Script.sol";
 import "../../contracts/privacy/PrivacyZoneManager.sol";
 import "../../contracts/crosschain/SoulCrossChainRelay.sol";
-import "../../contracts/security/OptimisticBridgeVerifier.sol";
-import "../../contracts/security/BridgeRateLimiter.sol";
-import "../../contracts/security/BridgeWatchtower.sol";
-import "../../contracts/security/BridgeFraudProof.sol";
+import "../../contracts/security/OptimisticRelayVerifier.sol";
+import "../../contracts/security/RelayRateLimiter.sol";
+import "../../contracts/security/RelayWatchtower.sol";
+import "../../contracts/security/RelayFraudProof.sol";
 import "../../contracts/relayer/DecentralizedRelayerRegistry.sol";
 
 /**
@@ -33,11 +33,11 @@ contract DeployMinimalCore is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // 1. Deploy Security Layer (needed as proofHub for relay)
-        OptimisticBridgeVerifier verifier = new OptimisticBridgeVerifier(
+        OptimisticRelayVerifier verifier = new OptimisticRelayVerifier(
             deployer
         );
-        BridgeRateLimiter limiter = new BridgeRateLimiter(deployer);
-        BridgeWatchtower watchtower = new BridgeWatchtower(deployer);
+        RelayRateLimiter limiter = new RelayRateLimiter(deployer);
+        RelayWatchtower watchtower = new RelayWatchtower(deployer);
 
         // 2. Deploy Core Protocol
         // testMode=true for testnet deployment (relaxed constraints)
@@ -53,7 +53,7 @@ contract DeployMinimalCore is Script {
         DecentralizedRelayerRegistry registry = new DecentralizedRelayerRegistry(
                 deployer
             );
-        BridgeFraudProof fraudProof = new BridgeFraudProof(
+        RelayFraudProof fraudProof = new RelayFraudProof(
             address(verifier),
             deployer
         );
@@ -69,11 +69,11 @@ contract DeployMinimalCore is Script {
         console.log("=== Deployed Minimal Core ===");
         console.log("PrivacyZoneManager:           ", address(zoneManager));
         console.log("SoulCrossChainRelay:          ", address(relay));
-        console.log("OptimisticBridgeVerifier:     ", address(verifier));
-        console.log("BridgeRateLimiter:            ", address(limiter));
-        console.log("BridgeWatchtower:             ", address(watchtower));
+        console.log("OptimisticRelayVerifier:     ", address(verifier));
+        console.log("RelayRateLimiter:            ", address(limiter));
+        console.log("RelayWatchtower:             ", address(watchtower));
         console.log("DecentralizedRelayerRegistry: ", address(registry));
-        console.log("BridgeFraudProof:             ", address(fraudProof));
+        console.log("RelayFraudProof:             ", address(fraudProof));
         console.log("");
         console.log("Next steps:");
         console.log("  1. Verify contracts on BaseScan");

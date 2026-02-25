@@ -21,7 +21,7 @@ contract CrossChainIntegrationTest is Test {
 
     // Mock addresses for bridge and proof hub
     address public mockProofHub = makeAddr("proofHub");
-    address public mockBridgeAdapter = makeAddr("bridgeAdapter");
+    address public mockRelayAdapter = makeAddr("relayAdapter");
     address public mockNullifierRegistry = makeAddr("nullifierRegistry");
 
     uint256 constant ARBITRUM_CHAIN_ID = 421614;
@@ -50,7 +50,7 @@ contract CrossChainIntegrationTest is Test {
             BASE_CHAIN_ID,
             SoulCrossChainRelay.ChainConfig({
                 proofHub: mockProofHub,
-                bridgeAdapter: mockBridgeAdapter,
+                relayAdapter: mockRelayAdapter,
                 bridgeChainId: BASE_LZ_EID,
                 active: true
             })
@@ -61,14 +61,14 @@ contract CrossChainIntegrationTest is Test {
             ARBITRUM_CHAIN_ID,
             SoulCrossChainRelay.ChainConfig({
                 proofHub: mockProofHub,
-                bridgeAdapter: mockBridgeAdapter,
+                relayAdapter: mockRelayAdapter,
                 bridgeChainId: ARBITRUM_LZ_EID,
                 active: true
             })
         );
 
-        // Grant BRIDGE_ROLE on dest relay for incoming messages
-        relayDest.grantRole(relayDest.BRIDGE_ROLE(), address(this));
+        // Grant RELAY_ROLE on dest relay for incoming messages
+        relayDest.grantRole(relayDest.RELAY_ROLE(), address(this));
 
         // Configure nullifier sync target
         nullifierSync.configureSyncTarget(
@@ -118,8 +118,8 @@ contract CrossChainIntegrationTest is Test {
         bytes32 commitment = keccak256("commitment_1");
         bytes32 proofType = keccak256("state_transfer");
 
-        // MockBridgeAdapter won't actually process, but relayProof should succeed
-        // (the low-level call to bridgeAdapter will fail silently since it's an EOA)
+        // MockRelayAdapter won't actually process, but relayProof should succeed
+        // (the low-level call to relayAdapter will fail silently since it's an EOA)
         // Only check indexed topic (proofId), skip non-indexed data matching
         vm.expectEmit(true, false, false, false);
         emit SoulCrossChainRelay.ProofRelayed(
@@ -336,8 +336,8 @@ contract CrossChainIntegrationTest is Test {
     }
 
     function test_receiveNullifierBatch() public {
-        // Grant BRIDGE_ROLE
-        nullifierSync.grantRole(nullifierSync.BRIDGE_ROLE(), address(this));
+        // Grant RELAY_ROLE
+        nullifierSync.grantRole(nullifierSync.RELAY_ROLE(), address(this));
 
         bytes32[] memory nullifiers = new bytes32[](2);
         bytes32[] memory commitments = new bytes32[](2);
@@ -368,7 +368,7 @@ contract CrossChainIntegrationTest is Test {
     }
 
     function test_receiveEmptyBatchReverts() public {
-        nullifierSync.grantRole(nullifierSync.BRIDGE_ROLE(), address(this));
+        nullifierSync.grantRole(nullifierSync.RELAY_ROLE(), address(this));
 
         bytes32[] memory empty = new bytes32[](0);
 

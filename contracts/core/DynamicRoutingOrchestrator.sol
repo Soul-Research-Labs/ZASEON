@@ -13,7 +13,7 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  * @author Soul Protocol
  * @notice Routes ZK proof relay requests through optimal bridge adapters
  * @dev Soul Protocol is proof middleware — this contract routes PROOFS, not tokens.
- *      BridgeCapacity data is oracle-observed metadata about external bridge adapters.
+ *      AdapterCapacity data is oracle-observed metadata about external bridge adapters.
  *      Soul does NOT manage bridge capacity. It queries bridge capacity data to select
  *      the most efficient path for proof delivery.
  *
@@ -21,14 +21,14 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  *      - Oracle-observed bridge capacity tracking per chain
  *      - Multi-factor route scoring: cost, speed, reliability, security, privacy
  *      - Multi-hop routing through intermediate chains when direct path is suboptimal
- *      - EIP-1559-style dynamic fee adjustment based on bridge utilization
+ *      - EIP-1559-style dynamic fee adjustment based on adapter utilization
  *      - Completion time prediction using exponential moving average
- *      - Bridge health integration via security scores and failure tracking
+ *      - Adapter health integration via security scores and failure tracking
  *
  *      Role separation:
  *      - ORACLE_ROLE: Updates bridge capacity data (off-chain oracles)
- *      - ROUTER_ROLE: Records bridge outcomes (authorized routers)
- *      - BRIDGE_ADMIN_ROLE: Registers/manages bridges and capacity configs
+ *      - ROUTER_ROLE: Records adapter outcomes (authorized routers)
+ *      - ADAPTER_ADMIN_ROLE: Registers/manages adapters and capacity configs
  *      - DEFAULT_ADMIN_ROLE: Emergency controls
  *
  *      Security features:
@@ -57,7 +57,7 @@ contract DynamicRoutingOrchestrator is
     bytes32 public constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
 
     /// @notice Role for bridge/pool administration
-    bytes32 public constant BRIDGE_ADMIN_ROLE = keccak256("BRIDGE_ADMIN_ROLE");
+    bytes32 public constant ADAPTER_ADMIN_ROLE = keccak256("ADAPTER_ADMIN_ROLE");
 
     /// @notice Maximum number of hops in a route
     uint8 public constant MAX_HOPS = 4;
@@ -194,22 +194,22 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Bridge capacity data indexed by chain ID
-    mapping(uint256 => BridgeCapacity) internal _pools;
+    mapping(uint256 => AdapterCapacity) internal _pools;
 
     /// @notice Whether a chain has a registered pool
     mapping(uint256 => bool) public poolExists;
 
     /// @notice Bridge metrics indexed by adapter address
-    mapping(address => BridgeMetrics) internal _bridgeMetrics;
+    mapping(address => AdapterMetrics) internal _adapterMetrics;
 
     /// @notice Whether a bridge adapter is registered
-    mapping(address => bool) public bridgeRegistered;
+    mapping(address => bool) public adapterRegistered;
 
     /// @notice Bridge adapters supporting each chain: chainId => adapter[]
-    mapping(uint256 => address[]) internal _chainBridges;
+    mapping(uint256 => address[]) internal _chainAdapters;
 
     /// @notice Quick lookup: adapter supports chain? adapter => chainId => bool
-    mapping(address => mapping(uint256 => bool)) public bridgeSupportsChain;
+    mapping(address => mapping(uint256 => bool)) public adapterSupportsChain;
 
     /// @notice Calculated routes: routeId => Route
     mapping(bytes32 => Route) internal _routes;
@@ -240,7 +240,7 @@ contract DynamicRoutingOrchestrator is
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ORACLE_ROLE, oracle);
-        _grantRole(BRIDGE_ADMIN_ROLE, bridgeAdmin);
+        _grantRole(ADAPTER_ADMIN_ROLE, bridgeAdmin);
         _grantRole(ROUTER_ROLE, admin); // Admin can also record outcomes
 
         // Default scoring weights (balanced)
@@ -261,11 +261,11 @@ contract DynamicRoutingOrchestrator is
         uint256 chainId,
         uint256 totalCapacity,
         uint256 initialFee
-    ) external onlyRole(BRIDGE_ADMIN_ROLE) whenNotPaused {
+    ) external onlyRole(ADAPTER_ADMIN_ROLE) whenNotPaused {
         if (chainId == 0) revert InvalidChainId();
         if (poolExists[chainId]) revert PoolAlreadyRegistered(chainId);
 
-        _pools[chainId] = BridgeCapacity({
+        _pools[chainId] = AdapterCapacity({
             chainId: chainId,
             availableCapacity: totalCapacity,
             totalCapacity: totalCapacity,
@@ -289,7 +289,7 @@ contract DynamicRoutingOrchestrator is
     ) external onlyRole(ORACLE_ROLE) whenNotPaused {
         if (!poolExists[chainId]) revert PoolNotFound(chainId);
 
-        BridgeCapacity storage pool = _pools[chainId];
+        AdapterCapacity storage pool = _pools[chainId];
         uint256 oldCapacity = pool.availableCapacity;
 
         pool.availableCapacity = newAvailableCapacity;
@@ -317,7 +317,7 @@ contract DynamicRoutingOrchestrator is
         for (uint256 i = 0; i < chainIds.length; ++i) {
             if (!poolExists[chainIds[i]]) revert PoolNotFound(chainIds[i]);
 
-            BridgeCapacity storage pool = _pools[chainIds[i]];
+            AdapterCapacity storage pool = _pools[chainIds[i]];
             uint256 oldCapacity = pool.availableCapacity;
 
             pool.availableCapacity = newCapacities[i];
@@ -338,10 +338,10 @@ contract DynamicRoutingOrchestrator is
     function setPoolStatus(
         uint256 chainId,
         PoolStatus newStatus
-    ) external onlyRole(BRIDGE_ADMIN_ROLE) {
+    ) external onlyRole(ADAPTER_ADMIN_ROLE) {
         if (!poolExists[chainId]) revert PoolNotFound(chainId);
 
-        BridgeCapacity storage pool = _pools[chainId];
+        AdapterCapacity storage pool = _pools[chainId];
         PoolStatus oldStatus = pool.status;
         pool.status = newStatus;
 
@@ -353,15 +353,15 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function registerBridge(
+    function registerAdapter(
         address adapter,
         uint256[] calldata supportedChains,
         uint16 securityScoreBps
-    ) external onlyRole(BRIDGE_ADMIN_ROLE) whenNotPaused {
+    ) external onlyRole(ADAPTER_ADMIN_ROLE) whenNotPaused {
         if (adapter == address(0)) revert ZeroAddress();
-        if (bridgeRegistered[adapter]) revert BridgeAlreadyRegistered(adapter);
+        if (adapterRegistered[adapter]) revert AdapterAlreadyRegistered(adapter);
 
-        _bridgeMetrics[adapter] = BridgeMetrics({
+        _adapterMetrics[adapter] = AdapterMetrics({
             adapter: adapter,
             totalRelays: 0,
             successfulRelays: 0,
@@ -372,26 +372,26 @@ contract DynamicRoutingOrchestrator is
             isActive: true
         });
 
-        bridgeRegistered[adapter] = true;
+        adapterRegistered[adapter] = true;
 
         for (uint256 i = 0; i < supportedChains.length; ++i) {
-            bridgeSupportsChain[adapter][supportedChains[i]] = true;
-            _chainBridges[supportedChains[i]].push(adapter);
+            adapterSupportsChain[adapter][supportedChains[i]] = true;
+            _chainAdapters[supportedChains[i]].push(adapter);
         }
 
-        emit BridgeRegistered(adapter, supportedChains);
+        emit AdapterRegistered(adapter, supportedChains);
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function recordBridgeOutcome(
+    function recordAdapterOutcome(
         address adapter,
         bool success,
         uint48 latency,
         uint256 value
     ) external onlyRole(ROUTER_ROLE) {
-        if (!bridgeRegistered[adapter]) revert BridgeNotRegistered(adapter);
+        if (!adapterRegistered[adapter]) revert AdapterNotRegistered(adapter);
 
-        BridgeMetrics storage metrics = _bridgeMetrics[adapter];
+        AdapterMetrics storage metrics = _adapterMetrics[adapter];
         metrics.totalRelays += 1;
         metrics.totalValueRouted += value;
 
@@ -408,7 +408,7 @@ contract DynamicRoutingOrchestrator is
             metrics.lastFailure = uint48(block.timestamp);
         }
 
-        emit BridgeMetricsUpdated(
+        emit AdapterMetricsUpdated(
             adapter,
             metrics.totalRelays,
             metrics.avgLatency
@@ -420,12 +420,12 @@ contract DynamicRoutingOrchestrator is
      * @param adapter Bridge adapter address
      * @param active New active state
      */
-    function setBridgeActive(
+    function setAdapterActive(
         address adapter,
         bool active
-    ) external onlyRole(BRIDGE_ADMIN_ROLE) {
-        if (!bridgeRegistered[adapter]) revert BridgeNotRegistered(adapter);
-        _bridgeMetrics[adapter].isActive = active;
+    ) external onlyRole(ADAPTER_ADMIN_ROLE) {
+        if (!adapterRegistered[adapter]) revert AdapterNotRegistered(adapter);
+        _adapterMetrics[adapter].isActive = active;
     }
 
     /**
@@ -593,7 +593,7 @@ contract DynamicRoutingOrchestrator is
         // Update completion time EMA for destination pool
         uint256 destChain = route.chainPath[route.chainPath.length - 1];
         if (poolExists[destChain]) {
-            BridgeCapacity storage pool = _pools[destChain];
+            AdapterCapacity storage pool = _pools[destChain];
             pool.avgCompletionTime = uint48(
                 (uint256(EMA_ALPHA_BPS) *
                     uint256(actualTime) +
@@ -629,7 +629,7 @@ contract DynamicRoutingOrchestrator is
     ) external view override returns (uint48 estimatedTime, uint16 confidence) {
         if (!poolExists[destChainId]) revert PoolNotFound(destChainId);
 
-        BridgeCapacity storage destPool = _pools[destChainId];
+        AdapterCapacity storage destPool = _pools[destChainId];
         uint48 baseTime = destPool.avgCompletionTime;
 
         // Adjust for amount relative to capacity (large relays take longer)
@@ -661,10 +661,10 @@ contract DynamicRoutingOrchestrator is
         estimatedTime = baseTime;
 
         // Confidence based on data freshness and sample size
-        address[] storage destBridges = _chainBridges[destChainId];
+        address[] storage destAdapters = _chainAdapters[destChainId];
         uint256 totalSamples = 0;
-        for (uint256 i = 0; i < destBridges.length; ++i) {
-            totalSamples += _bridgeMetrics[destBridges[i]].totalRelays;
+        for (uint256 i = 0; i < destAdapters.length; ++i) {
+            totalSamples += _adapterMetrics[destAdapters[i]].totalRelays;
         }
 
         if (totalSamples > CONFIDENCE_HIGH_THRESHOLD) {
@@ -692,17 +692,17 @@ contract DynamicRoutingOrchestrator is
     /// @inheritdoc IDynamicRoutingOrchestrator
     function getPool(
         uint256 chainId
-    ) external view override returns (BridgeCapacity memory pool) {
+    ) external view override returns (AdapterCapacity memory pool) {
         if (!poolExists[chainId]) revert PoolNotFound(chainId);
         return _pools[chainId];
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getBridgeMetrics(
+    function getAdapterMetrics(
         address adapter
-    ) external view override returns (BridgeMetrics memory metrics) {
-        if (!bridgeRegistered[adapter]) revert BridgeNotRegistered(adapter);
-        return _bridgeMetrics[adapter];
+    ) external view override returns (AdapterMetrics memory metrics) {
+        if (!adapterRegistered[adapter]) revert AdapterNotRegistered(adapter);
+        return _adapterMetrics[adapter];
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
@@ -733,7 +733,7 @@ contract DynamicRoutingOrchestrator is
     ) external view override returns (uint256 fee) {
         if (!poolExists[destChainId]) revert PoolNotFound(destChainId);
 
-        BridgeCapacity storage destPool = _pools[destChainId];
+        AdapterCapacity storage destPool = _pools[destChainId];
         fee = destPool.currentFee;
 
         // Surcharge for large amounts relative to capacity
@@ -752,10 +752,10 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getBridgesForChain(
+    function getAdaptersForChain(
         uint256 chainId
     ) external view override returns (address[] memory adapters) {
-        return _chainBridges[chainId];
+        return _chainAdapters[chainId];
     }
 
     /**
@@ -800,7 +800,7 @@ contract DynamicRoutingOrchestrator is
         if (!poolExists[request.destChainId])
             revert PoolNotFound(request.destChainId);
 
-        BridgeCapacity storage destPool = _pools[request.destChainId];
+        AdapterCapacity storage destPool = _pools[request.destChainId];
         if (
             destPool.status != PoolStatus.ACTIVE &&
             destPool.status != PoolStatus.DEGRADED
@@ -839,20 +839,20 @@ contract DynamicRoutingOrchestrator is
     function _calculateDirectRoute(
         RouteRequest calldata request
     ) internal view returns (Route memory route) {
-        address[] storage bridges = _chainBridges[request.destChainId];
+        address[] storage bridges = _chainAdapters[request.destChainId];
         if (bridges.length == 0) return route; // Empty route = no viable path
 
         // Find best bridge for this hop
-        (address bestBridge, ) = _findBestBridge(
+        (address bestAdapter, ) = _findBestAdapter(
             request.sourceChainId,
             request.destChainId,
             request.amount,
             request.urgency
         );
 
-        if (bestBridge == address(0)) return route;
+        if (bestAdapter == address(0)) return route;
 
-        BridgeCapacity storage destPool = _pools[request.destChainId];
+        AdapterCapacity storage destPool = _pools[request.destChainId];
 
         // Check capacity
         if (destPool.availableCapacity < request.amount) {
@@ -864,8 +864,8 @@ contract DynamicRoutingOrchestrator is
         route.chainPath[0] = request.sourceChainId;
         route.chainPath[1] = request.destChainId;
 
-        route.bridgeAdapters = new address[](1);
-        route.bridgeAdapters[0] = bestBridge;
+        route.relayAdapters = new address[](1);
+        route.relayAdapters[0] = bestAdapter;
 
         // Calculate cost
         route.totalCost = _calculateHopCost(
@@ -877,7 +877,7 @@ contract DynamicRoutingOrchestrator is
         route.estimatedTime = destPool.avgCompletionTime;
 
         // Success probability from bridge metrics
-        BridgeMetrics storage bm = _bridgeMetrics[bestBridge];
+        AdapterMetrics storage bm = _adapterMetrics[bestAdapter];
         if (bm.totalRelays > 0) {
             route.successProbabilityBps = uint16(
                 (bm.successfulRelays * BPS) / bm.totalRelays
@@ -900,7 +900,7 @@ contract DynamicRoutingOrchestrator is
                 request.destChainId,
                 request.amount,
                 block.timestamp,
-                bestBridge
+                bestAdapter
             )
         );
     }
@@ -943,23 +943,23 @@ contract DynamicRoutingOrchestrator is
         uint256 intermediateChain
     ) internal view returns (Route memory route) {
         // Check both hops have bridges
-        (address bridge1, ) = _findBestBridge(
+        (address adapter1, ) = _findBestAdapter(
             request.sourceChainId,
             intermediateChain,
             request.amount,
             request.urgency
         );
-        (address bridge2, ) = _findBestBridge(
+        (address adapter2, ) = _findBestAdapter(
             intermediateChain,
             request.destChainId,
             request.amount,
             request.urgency
         );
 
-        if (bridge1 == address(0) || bridge2 == address(0)) return route;
+        if (adapter1 == address(0) || adapter2 == address(0)) return route;
 
-        BridgeCapacity storage hopPool = _pools[intermediateChain];
-        BridgeCapacity storage destPool = _pools[request.destChainId];
+        AdapterCapacity storage hopPool = _pools[intermediateChain];
+        AdapterCapacity storage destPool = _pools[request.destChainId];
 
         // Check capacity on both hops
         if (
@@ -975,9 +975,9 @@ contract DynamicRoutingOrchestrator is
         route.chainPath[1] = intermediateChain;
         route.chainPath[2] = request.destChainId;
 
-        route.bridgeAdapters = new address[](2);
-        route.bridgeAdapters[0] = bridge1;
-        route.bridgeAdapters[1] = bridge2;
+        route.relayAdapters = new address[](2);
+        route.relayAdapters[0] = adapter1;
+        route.relayAdapters[1] = adapter2;
 
         // Cost: sum of both hops
         route.totalCost =
@@ -990,8 +990,8 @@ contract DynamicRoutingOrchestrator is
             destPool.avgCompletionTime;
 
         // Success probability: product of both hops
-        BridgeMetrics storage bm1 = _bridgeMetrics[bridge1];
-        BridgeMetrics storage bm2 = _bridgeMetrics[bridge2];
+        AdapterMetrics storage bm1 = _adapterMetrics[adapter1];
+        AdapterMetrics storage bm2 = _adapterMetrics[adapter2];
 
         uint16 prob1 = bm1.totalRelays > 0
             ? uint16((bm1.successfulRelays * BPS) / bm1.totalRelays)
@@ -1018,36 +1018,36 @@ contract DynamicRoutingOrchestrator is
                 request.destChainId,
                 request.amount,
                 block.timestamp,
-                bridge1,
-                bridge2
+                adapter1,
+                adapter2
             )
         );
     }
 
     /**
      * @dev Find the best bridge adapter for a specific hop
-     * @return bestBridge Address of best bridge (0 if none)
+     * @return bestAdapter Address of best bridge (0 if none)
      * @return bestScore Score of best bridge
      */
-    function _findBestBridge(
+    function _findBestAdapter(
         uint256 sourceChain,
         uint256 destChain,
         uint256 /* amount */,
         Urgency urgency
-    ) internal view returns (address bestBridge, uint16 bestScore) {
-        address[] storage bridges = _chainBridges[destChain];
+    ) internal view returns (address bestAdapter, uint16 bestScore) {
+        address[] storage bridges = _chainAdapters[destChain];
 
         for (uint256 i = 0; i < bridges.length; ++i) {
             address adapter = bridges[i];
-            BridgeMetrics storage bm = _bridgeMetrics[adapter];
+            AdapterMetrics storage bm = _adapterMetrics[adapter];
 
             if (!bm.isActive) continue;
-            if (!bridgeSupportsChain[adapter][sourceChain]) continue;
+            if (!adapterSupportsChain[adapter][sourceChain]) continue;
 
             uint16 score = _scoreBridge(bm, urgency);
             if (score > bestScore) {
                 bestScore = score;
-                bestBridge = adapter;
+                bestAdapter = adapter;
             }
         }
     }
@@ -1056,7 +1056,7 @@ contract DynamicRoutingOrchestrator is
      * @dev Score a bridge based on urgency preference
      */
     function _scoreBridge(
-        BridgeMetrics storage bm,
+        AdapterMetrics storage bm,
         Urgency urgency
     ) internal view returns (uint16) {
         uint16 reliabilityScore;
@@ -1175,13 +1175,13 @@ contract DynamicRoutingOrchestrator is
 
         // Security: average of bridge security scores in route
         uint16 securityScore = 0;
-        if (route.bridgeAdapters.length > 0) {
+        if (route.relayAdapters.length > 0) {
             uint256 totalSec = 0;
-            for (uint256 i = 0; i < route.bridgeAdapters.length; ++i) {
-                totalSec += _bridgeMetrics[route.bridgeAdapters[i]]
+            for (uint256 i = 0; i < route.relayAdapters.length; ++i) {
+                totalSec += _adapterMetrics[route.relayAdapters[i]]
                     .securityScoreBps;
             }
-            securityScore = uint16(totalSec / route.bridgeAdapters.length);
+            securityScore = uint16(totalSec / route.relayAdapters.length);
         }
 
         return
@@ -1203,7 +1203,7 @@ contract DynamicRoutingOrchestrator is
         uint256 destChain,
         uint256 amount
     ) internal view returns (uint256 cost) {
-        BridgeCapacity storage pool = _pools[destChain];
+        AdapterCapacity storage pool = _pools[destChain];
         cost = pool.currentFee;
 
         // Capacity impact premium
@@ -1217,7 +1217,7 @@ contract DynamicRoutingOrchestrator is
      * @dev Calculate utilization ratio in bps
      */
     function _calculateUtilization(
-        BridgeCapacity storage pool
+        AdapterCapacity storage pool
     ) internal view returns (uint16) {
         if (pool.totalCapacity == 0) return 0;
         if (pool.availableCapacity >= pool.totalCapacity) return 0;
@@ -1229,7 +1229,7 @@ contract DynamicRoutingOrchestrator is
     /**
      * @dev Adjust fee based on utilization (EIP-1559 style)
      */
-    function _adjustFee(BridgeCapacity storage pool) internal {
+    function _adjustFee(AdapterCapacity storage pool) internal {
         uint256 oldFee = pool.currentFee;
         uint256 newFee;
 

@@ -11,7 +11,7 @@ import {IL2DirectMessenger} from "../interfaces/IL2DirectMessenger.sol";
 /**
  * @title DirectL2Messenger
  * @author Soul Protocol
- * @notice Direct L2-to-L2 messaging without L1 settlement
+ * @notice Direct L2-to-L2 messaging without L1 completion
  * @dev Enables fast cross-L2 communication via shared sequencers and direct channels
  *
  * DIRECT L2 MESSAGING ARCHITECTURE:
@@ -33,7 +33,7 @@ import {IL2DirectMessenger} from "../interfaces/IL2DirectMessenger.sol";
  * │   │     - Optimistic execution with bonds                           │  │
  * │   │     - ~30 sec latency, economically secured                     │  │
  * │   │                                                                  │  │
- * │   │  4. Slow Path (L1 Settlement)                                   │  │
+ * │   │  4. Slow Path (L1 Completion)                                   │  │
  * │   │     - Full L1 finality for high-value messages                  │  │
  * │   │     - 15+ min latency, L1 security                              │  │
  * │   └──────────────────────────────────────────────────────────────────┘  │
@@ -56,7 +56,7 @@ import {IL2DirectMessenger} from "../interfaces/IL2DirectMessenger.sol";
  * - Fast path: Bonded relayers with slashing for invalid messages
  * - Shared sequencer: BFT consensus with 2/3+1 threshold
  * - Superchain: OP Stack native security model
- * - Fallback: L1 settlement for disputed messages
+ * - Fallback: L1 completion for disputed messages
  */
 contract DirectL2Messenger is
     ReentrancyGuard,
@@ -437,7 +437,7 @@ contract DirectL2Messenger is
     }
 
     /**
-     * @notice Send via L1 settlement (slow path)
+     * @notice Send via L1 completion (slow path)
      */
     function _sendViaL1(
         bytes32 messageId,

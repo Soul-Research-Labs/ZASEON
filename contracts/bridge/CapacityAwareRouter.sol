@@ -393,10 +393,10 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
         IDynamicRoutingOrchestrator.Route memory route = orchestrator.getRoute(
             t.routeId
         );
-        for (uint256 i = 0; i < route.bridgeAdapters.length; ++i) {
+        for (uint256 i = 0; i < route.relayAdapters.length; ++i) {
             try
-                orchestrator.recordBridgeOutcome(
-                    route.bridgeAdapters[i],
+                orchestrator.recordAdapterOutcome(
+                    route.relayAdapters[i],
                     true,
                     actualLatency,
                     t.amount
@@ -439,10 +439,10 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
         IDynamicRoutingOrchestrator.Route memory route = orchestrator.getRoute(
             t.routeId
         );
-        for (uint256 i = 0; i < route.bridgeAdapters.length; ++i) {
+        for (uint256 i = 0; i < route.relayAdapters.length; ++i) {
             try
-                orchestrator.recordBridgeOutcome(
-                    route.bridgeAdapters[i],
+                orchestrator.recordAdapterOutcome(
+                    route.relayAdapters[i],
                     false,
                     0,
                     t.amount

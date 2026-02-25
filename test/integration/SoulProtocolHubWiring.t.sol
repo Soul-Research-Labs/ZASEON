@@ -57,15 +57,15 @@ contract SoulProtocolHubWiringTest is Test {
                 _complianceOracle: COMPLIANCE,
                 _proofTranslator: PROOF_TRANSLATOR,
                 _privacyRouter: PRIVACY_ROUTER,
-                _bridgeProofValidator: BRIDGE_VALIDATOR,
+                _relayProofValidator: BRIDGE_VALIDATOR,
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
                 _policyBoundProofs: PBP,
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -83,7 +83,7 @@ contract SoulProtocolHubWiringTest is Test {
         assertEq(hub.complianceOracle(), COMPLIANCE);
         assertEq(hub.proofTranslator(), PROOF_TRANSLATOR);
         assertEq(hub.privacyRouter(), PRIVACY_ROUTER);
-        assertEq(hub.bridgeProofValidator(), BRIDGE_VALIDATOR);
+        assertEq(hub.relayProofValidator(), BRIDGE_VALIDATOR);
         assertEq(hub.zkBoundStateLocks(), ZK_SLOCKS);
         assertEq(hub.proofCarryingContainer(), PC3);
         assertEq(hub.crossDomainNullifierAlgebra(), CDNA);
@@ -106,15 +106,15 @@ contract SoulProtocolHubWiringTest is Test {
                 _complianceOracle: COMPLIANCE,
                 _proofTranslator: address(0),
                 _privacyRouter: PRIVACY_ROUTER,
-                _bridgeProofValidator: BRIDGE_VALIDATOR,
+                _relayProofValidator: BRIDGE_VALIDATOR,
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
                 _policyBoundProofs: address(0),
                 _multiProver: MULTI_PROVER,
-                _bridgeWatchtower: BRIDGE_WATCH,
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: BRIDGE_WATCH,
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -142,15 +142,15 @@ contract SoulProtocolHubWiringTest is Test {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0),
-                _bridgeProofValidator: address(0),
+                _relayProofValidator: address(0),
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
                 _policyBoundProofs: address(0),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -177,15 +177,15 @@ contract SoulProtocolHubWiringTest is Test {
                 _complianceOracle: COMPLIANCE,
                 _proofTranslator: PROOF_TRANSLATOR,
                 _privacyRouter: PRIVACY_ROUTER,
-                _bridgeProofValidator: BRIDGE_VALIDATOR,
+                _relayProofValidator: BRIDGE_VALIDATOR,
                 _zkBoundStateLocks: ZK_SLOCKS,
                 _proofCarryingContainer: PC3,
                 _crossDomainNullifierAlgebra: CDNA,
                 _policyBoundProofs: PBP,
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -220,15 +220,15 @@ contract SoulProtocolHubWiringTest is Test {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0),
-                _bridgeProofValidator: address(0),
+                _relayProofValidator: address(0),
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
                 _policyBoundProofs: address(0),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );

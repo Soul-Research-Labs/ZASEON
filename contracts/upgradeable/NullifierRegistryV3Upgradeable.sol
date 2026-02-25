@@ -35,10 +35,10 @@ contract NullifierRegistryV3Upgradeable is
     bytes32 public constant REGISTRAR_ROLE =
         0xedcc084d3dcd65a1f7f23c65c46722faca6953d28e43150a467cf43e5c309238;
 
-    /// @notice Role for cross-chain bridge operations
-    /// @dev Pre-computed: keccak256("BRIDGE_ROLE")
-    bytes32 public constant BRIDGE_ROLE =
-        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    /// @notice Role for cross-chain relay operations
+    /// @dev Pre-computed: keccak256("RELAY_ROLE")
+    bytes32 public constant RELAY_ROLE =
+        0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7;
 
     /// @notice Role for emergency operations
     /// @dev Pre-computed: keccak256("EMERGENCY_ROLE")
@@ -160,7 +160,7 @@ contract NullifierRegistryV3Upgradeable is
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REGISTRAR_ROLE, admin);
-        _grantRole(BRIDGE_ROLE, admin);
+        _grantRole(RELAY_ROLE, admin);
         _grantRole(EMERGENCY_ROLE, admin);
         _grantRole(UPGRADER_ROLE, admin);
 
@@ -255,7 +255,7 @@ contract NullifierRegistryV3Upgradeable is
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments,
         bytes32 sourceMerkleRoot
-    ) external onlyRole(BRIDGE_ROLE) whenNotPaused {
+    ) external onlyRole(RELAY_ROLE) whenNotPaused {
         if (sourceChainId_ == chainId) revert InvalidChainId();
 
         uint256 len = _nullifiers.length;

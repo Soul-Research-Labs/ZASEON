@@ -44,7 +44,7 @@ export interface BridgeCapacity {
 export interface Route {
   routeId: Hex;
   chainPath: bigint[];
-  bridgeAdapters: Address[];
+  relayAdapters: Address[];
   totalCost: bigint;
   estimatedTime: number;
   successProbabilityBps: number;
@@ -108,7 +108,7 @@ const ROUTER_ABI = [
         components: [
           { name: "routeId", type: "bytes32" },
           { name: "chainPath", type: "uint256[]" },
-          { name: "bridgeAdapters", type: "address[]" },
+          { name: "relayAdapters", type: "address[]" },
           { name: "totalCost", type: "uint256" },
           { name: "estimatedTime", type: "uint48" },
           { name: "successProbabilityBps", type: "uint16" },
@@ -330,9 +330,9 @@ export class DynamicRoutingClient {
   async getRouteRecommendation(request: RouteRequest): Promise<{
     route: Route;
     estimatedFee: bigint;
-    settlementTime: { time: number; confidenceBps: number };
+    completionTime: { time: number; confidenceBps: number };
   }> {
-    const [route, estimatedFee, settlementTime] = await Promise.all([
+    const [route, estimatedFee, completionTime] = await Promise.all([
       this.findOptimalRoute(request),
       this.estimateFee(
         request.sourceChainId,
@@ -346,7 +346,7 @@ export class DynamicRoutingClient {
       ),
     ]);
 
-    return { route, estimatedFee, settlementTime };
+    return { route, estimatedFee, completionTime };
   }
 
   private requireWallet(): void {

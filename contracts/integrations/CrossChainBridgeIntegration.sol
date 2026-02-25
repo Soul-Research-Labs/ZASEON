@@ -110,7 +110,7 @@ contract CrossChainBridgeIntegration is
         uint256 amount
     );
 
-    event BridgeAdapterRegistered(
+    event RelayAdapterRegistered(
         uint256 indexed chainId,
         BridgeProtocol indexed protocol,
         address adapter
@@ -258,7 +258,7 @@ contract CrossChainBridgeIntegration is
 
     /// @notice Bridge adapters per chain per protocol
     mapping(uint256 => mapping(BridgeProtocol => BridgeAdapter))
-        public bridgeAdapters;
+        public relayAdapters;
 
     /// @notice Routes between chains
     mapping(bytes32 => Route) public routes;
@@ -347,7 +347,7 @@ contract CrossChainBridgeIntegration is
     /**
      * @notice Register a bridge adapter
      */
-    function registerBridgeAdapter(
+    function registerRelayAdapter(
         uint256 chainId,
         BridgeProtocol protocol,
         address adapter,
@@ -357,7 +357,7 @@ contract CrossChainBridgeIntegration is
         if (adapter == address(0)) revert ZeroAddress();
         if (!chainConfigs[chainId].isSupported) revert ChainNotSupported();
 
-        bridgeAdapters[chainId][protocol] = BridgeAdapter({
+        relayAdapters[chainId][protocol] = BridgeAdapter({
             adapter: adapter,
             protocol: protocol,
             isActive: true,
@@ -367,7 +367,7 @@ contract CrossChainBridgeIntegration is
             reliability: 10000 // Start at 100%
         });
 
-        emit BridgeAdapterRegistered(chainId, protocol, adapter);
+        emit RelayAdapterRegistered(chainId, protocol, adapter);
     }
 
     /**
@@ -458,7 +458,7 @@ contract CrossChainBridgeIntegration is
             ? _selectOptimalProtocol(THIS_CHAIN_ID, p.destChain, p.amount)
             : p.protocol;
 
-        BridgeAdapter storage adapter = bridgeAdapters[p.destChain][
+        BridgeAdapter storage adapter = relayAdapters[p.destChain][
             selectedProtocol
         ];
         if (!adapter.isActive) revert BridgeNotAvailable();
@@ -628,7 +628,7 @@ contract CrossChainBridgeIntegration is
 
         for (uint256 i = 0; i < route.availableProtocols.length; i++) {
             BridgeProtocol protocol = route.availableProtocols[i];
-            BridgeAdapter storage adapter = bridgeAdapters[destChain][protocol];
+            BridgeAdapter storage adapter = relayAdapters[destChain][protocol];
 
             if (!adapter.isActive) continue;
 
@@ -675,7 +675,7 @@ contract CrossChainBridgeIntegration is
             ? _selectOptimalProtocol(THIS_CHAIN_ID, destChain, amount)
             : protocol;
 
-        BridgeAdapter storage adapter = bridgeAdapters[destChain][
+        BridgeAdapter storage adapter = relayAdapters[destChain][
             selectedProtocol
         ];
         if (!adapter.isActive) revert BridgeNotAvailable();
@@ -799,11 +799,11 @@ contract CrossChainBridgeIntegration is
         return chainConfigs[chainId];
     }
 
-    function getBridgeAdapter(
+    function getRelayAdapter(
         uint256 chainId,
         BridgeProtocol protocol
     ) external view returns (BridgeAdapter memory) {
-        return bridgeAdapters[chainId][protocol];
+        return relayAdapters[chainId][protocol];
     }
 
     function getRoute(
@@ -861,7 +861,7 @@ contract CrossChainBridgeIntegration is
         uint256 avgLatency,
         uint256 reliability
     ) external onlyRole(OPERATOR_ROLE) {
-        BridgeAdapter storage adapter = bridgeAdapters[chainId][protocol];
+        BridgeAdapter storage adapter = relayAdapters[chainId][protocol];
         adapter.avgLatency = avgLatency;
         adapter.reliability = reliability;
     }
@@ -870,7 +870,7 @@ contract CrossChainBridgeIntegration is
         uint256 chainId,
         BridgeProtocol protocol
     ) external onlyRole(GUARDIAN_ROLE) {
-        bridgeAdapters[chainId][protocol].isActive = false;
+        relayAdapters[chainId][protocol].isActive = false;
     }
 
     function pause() external onlyRole(GUARDIAN_ROLE) {

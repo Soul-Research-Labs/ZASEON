@@ -90,7 +90,7 @@ contract CrossChainBridgeIntegrationTest is Test {
         );
 
         // Register adapter
-        bridge.registerBridgeAdapter(
+        bridge.registerRelayAdapter(
             DEST_CHAIN,
             CrossChainBridgeIntegration.BridgeProtocol.NATIVE,
             address(adapter),
@@ -197,7 +197,7 @@ contract CrossChainBridgeIntegrationTest is Test {
             50 ether,
             200 ether
         );
-        bridge.registerBridgeAdapter(
+        bridge.registerRelayAdapter(
             10,
             CrossChainBridgeIntegration.BridgeProtocol.LAYERZERO,
             address(adapter),
@@ -205,7 +205,7 @@ contract CrossChainBridgeIntegrationTest is Test {
             20
         );
         CrossChainBridgeIntegration.BridgeAdapter memory ba = bridge
-            .getBridgeAdapter(
+            .getRelayAdapter(
                 10,
                 CrossChainBridgeIntegration.BridgeProtocol.LAYERZERO
             );
@@ -217,7 +217,7 @@ contract CrossChainBridgeIntegrationTest is Test {
 
     function test_RegisterBridgeAdapter_RevertZeroAddress() public {
         vm.expectRevert(CrossChainBridgeIntegration.ZeroAddress.selector);
-        bridge.registerBridgeAdapter(
+        bridge.registerRelayAdapter(
             DEST_CHAIN,
             CrossChainBridgeIntegration.BridgeProtocol.LAYERZERO,
             address(0),
@@ -228,7 +228,7 @@ contract CrossChainBridgeIntegrationTest is Test {
 
     function test_RegisterBridgeAdapter_RevertChainNotSupported() public {
         vm.expectRevert(CrossChainBridgeIntegration.ChainNotSupported.selector);
-        bridge.registerBridgeAdapter(
+        bridge.registerRelayAdapter(
             999,
             CrossChainBridgeIntegration.BridgeProtocol.NATIVE,
             address(adapter),
@@ -715,7 +715,7 @@ contract CrossChainBridgeIntegrationTest is Test {
             9500
         );
         CrossChainBridgeIntegration.BridgeAdapter memory ba = bridge
-            .getBridgeAdapter(
+            .getRelayAdapter(
                 DEST_CHAIN,
                 CrossChainBridgeIntegration.BridgeProtocol.NATIVE
             );
@@ -730,7 +730,7 @@ contract CrossChainBridgeIntegrationTest is Test {
             CrossChainBridgeIntegration.BridgeProtocol.NATIVE
         );
         CrossChainBridgeIntegration.BridgeAdapter memory ba = bridge
-            .getBridgeAdapter(
+            .getRelayAdapter(
                 DEST_CHAIN,
                 CrossChainBridgeIntegration.BridgeProtocol.NATIVE
             );

@@ -48,7 +48,7 @@ contract DynamicRoutingFuzz is Test {
             "Pool should exist after registration"
         );
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(chainId);
         assertEq(pool.chainId, chainId);
         assertEq(pool.availableCapacity, capacity);
@@ -117,7 +117,7 @@ contract DynamicRoutingFuzz is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(chainId, newCapacity);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(chainId);
         assertEq(pool.availableCapacity, newCapacity);
         assertLe(
@@ -165,7 +165,7 @@ contract DynamicRoutingFuzz is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(chainId, newCapacity);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(chainId);
         assertGe(
             pool.currentFee,
@@ -180,11 +180,11 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-            SECTION 3 — recordBridgeOutcome FUZZ
+            SECTION 3 — recordAdapterOutcome FUZZ
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Fuzz bridge success reports — successful transfers should not exceed total
-    function testFuzz_recordBridgeOutcome_success(
+    function testFuzz_recordAdapterOutcome_success(
         uint48 latency,
         uint256 value
     ) public {
@@ -196,13 +196,13 @@ contract DynamicRoutingFuzz is Test {
         chains[0] = 1;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerBridge(bridge, chains, 8000);
+        orchestrator.registerAdapter(bridge, chains, 8000);
 
         vm.prank(admin); // admin has ROUTER_ROLE
-        orchestrator.recordBridgeOutcome(bridge, true, latency, value);
+        orchestrator.recordAdapterOutcome(bridge, true, latency, value);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory metrics = orchestrator
-            .getBridgeMetrics(bridge);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory metrics = orchestrator
+            .getAdapterMetrics(bridge);
         assertEq(metrics.totalRelays, 1);
         assertEq(metrics.successfulRelays, 1);
         assertEq(metrics.totalValueRouted, value);
@@ -210,7 +210,7 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /// @notice Fuzz bridge failure reports — lastFailure should update on failure
-    function testFuzz_recordBridgeOutcome_failure(uint8 failCount) public {
+    function testFuzz_recordAdapterOutcome_failure(uint8 failCount) public {
         failCount = uint8(bound(failCount, 1, 10));
 
         address bridge = address(0x5001);
@@ -218,15 +218,15 @@ contract DynamicRoutingFuzz is Test {
         chains[0] = 1;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerBridge(bridge, chains, 7000);
+        orchestrator.registerAdapter(bridge, chains, 7000);
 
         for (uint8 i = 0; i < failCount; i++) {
             vm.prank(admin);
-            orchestrator.recordBridgeOutcome(bridge, false, 0, 0);
+            orchestrator.recordAdapterOutcome(bridge, false, 0, 0);
         }
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory metrics = orchestrator
-            .getBridgeMetrics(bridge);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory metrics = orchestrator
+            .getAdapterMetrics(bridge);
         assertEq(metrics.totalRelays, failCount);
         assertEq(metrics.successfulRelays, 0);
         assertGt(
@@ -237,7 +237,7 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /// @notice Fuzz mixed success/failure outcomes — successful <= total always
-    function testFuzz_recordBridgeOutcome_mixed(
+    function testFuzz_recordAdapterOutcome_mixed(
         uint8 successes,
         uint8 failures
     ) public {
@@ -250,19 +250,19 @@ contract DynamicRoutingFuzz is Test {
         chains[0] = 1;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerBridge(bridge, chains, 9000);
+        orchestrator.registerAdapter(bridge, chains, 9000);
 
         for (uint8 i = 0; i < successes; i++) {
             vm.prank(admin);
-            orchestrator.recordBridgeOutcome(bridge, true, 30, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge, true, 30, 1 ether);
         }
         for (uint8 i = 0; i < failures; i++) {
             vm.prank(admin);
-            orchestrator.recordBridgeOutcome(bridge, false, 0, 0);
+            orchestrator.recordAdapterOutcome(bridge, false, 0, 0);
         }
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory metrics = orchestrator
-            .getBridgeMetrics(bridge);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory metrics = orchestrator
+            .getAdapterMetrics(bridge);
         assertEq(
             metrics.totalRelays,
             uint256(successes) + uint256(failures)
@@ -272,12 +272,12 @@ contract DynamicRoutingFuzz is Test {
     }
 
     /// @notice Fuzz: recording outcome for unregistered bridge should revert
-    function testFuzz_recordBridgeOutcome_unregistered(address bridge) public {
-        vm.assume(!orchestrator.bridgeRegistered(bridge));
+    function testFuzz_recordAdapterOutcome_unregistered(address bridge) public {
+        vm.assume(!orchestrator.adapterRegistered(bridge));
 
         vm.prank(admin);
         vm.expectRevert();
-        orchestrator.recordBridgeOutcome(bridge, true, 10, 1 ether);
+        orchestrator.recordAdapterOutcome(bridge, true, 10, 1 ether);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -296,17 +296,17 @@ contract DynamicRoutingFuzz is Test {
         assertEq(total, 10_000, "Scoring weights must sum to 10000 bps");
     }
 
-    /// @notice Fuzz: registerBridge with security score — should be bounded [0, BPS]
-    function testFuzz_registerBridge_securityScore(uint16 scoreBps) public {
+    /// @notice Fuzz: registerAdapter with security score — should be bounded [0, BPS]
+    function testFuzz_registerAdapter_securityScore(uint16 scoreBps) public {
         address bridge = address(uint160(0x6000 + uint256(scoreBps)));
         uint256[] memory chains = new uint256[](1);
         chains[0] = 1;
 
         vm.prank(bridgeAdmin);
-        orchestrator.registerBridge(bridge, chains, scoreBps);
+        orchestrator.registerAdapter(bridge, chains, scoreBps);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory metrics = orchestrator
-            .getBridgeMetrics(bridge);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory metrics = orchestrator
+            .getAdapterMetrics(bridge);
         assertEq(metrics.securityScoreBps, scoreBps);
     }
 
@@ -338,7 +338,7 @@ contract DynamicRoutingFuzz is Test {
         vm.prank(bridgeAdmin);
         orchestrator.setPoolStatus(chainId, newStatus);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(chainId);
         assertEq(uint8(pool.status), statusRaw);
     }

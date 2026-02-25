@@ -6,7 +6,7 @@ import {
   PrivacyTransferError,
   NullifierAlreadySpentError,
   RelayTimeoutError,
-  InsufficientBridgeCapacityError,
+  InsufficientAdapterCapacityError,
   type OrchestratorConfig,
   type ShieldResult,
   type ZKProofResult,
@@ -70,19 +70,19 @@ describe("CrossChainPrivacyOrchestrator – Error Classes", () => {
     });
   });
 
-  describe("InsufficientBridgeCapacityError", () => {
+  describe("InsufficientAdapterCapacityError", () => {
     it("should include available and required capacity", () => {
-      const err = new InsufficientBridgeCapacityError(100n, 1000n);
+      const err = new InsufficientAdapterCapacityError(100n, 1000n);
       expect(err.availableCapacity).to.equal(100n);
       expect(err.requiredCapacity).to.equal(1000n);
       expect(err.message).to.include("100");
       expect(err.message).to.include("1000");
       expect(err.stage).to.equal(TransferStage.CLAIMING);
-      expect(err.name).to.equal("InsufficientBridgeCapacityError");
+      expect(err.name).to.equal("InsufficientAdapterCapacityError");
     });
 
     it("should be instanceof PrivacyTransferError", () => {
-      const err = new InsufficientBridgeCapacityError(0n, 1n);
+      const err = new InsufficientAdapterCapacityError(0n, 1n);
       expect(err).to.be.instanceOf(PrivacyTransferError);
     });
   });

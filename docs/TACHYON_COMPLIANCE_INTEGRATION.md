@@ -221,8 +221,8 @@ never compromising the cryptographic foundation.
 1. Programmable viewing permissions (SelectiveDisclosureManager)
 2. Configurable privacy levels (ConfigurablePrivacyLevels)
 3. Enterprise compliance reporting (ComplianceReportingModule)
-4. Intent-based architecture with solver networks (IntentSettlementLayer) — **NEW**
-5. Instant settlement guarantees with bonded proof delivery (InstantSettlementGuarantee + InstantRelayerRewards) — **NEW**
+4. Intent-based architecture with solver networks (IntentCompletionLayer) — **NEW**
+5. Instant completion guarantees with bonded proof delivery (InstantCompletionGuarantee + InstantRelayerRewards) — **NEW**
 6. Dynamic routing orchestration (DynamicRoutingOrchestrator) — **NEW**
 7. Privacy ↔ Compliance bridge (CrossChainPrivacyHub compliance hooks) — **NEW**
 

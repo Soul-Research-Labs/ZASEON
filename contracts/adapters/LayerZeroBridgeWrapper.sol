@@ -121,7 +121,7 @@ contract LayerZeroBridgeWrapper is IBridgeAdapter, AccessControl {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageverified(
+    function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         return verifiedMessages[messageId];

@@ -53,32 +53,32 @@ contract DynamicRoutingOrchestratorTest is Test {
         bridge1Chains[1] = CHAIN_ARB;
         bridge1Chains[2] = CHAIN_OP;
         bridge1Chains[3] = CHAIN_BASE;
-        orchestrator.registerBridge(bridge1, bridge1Chains, 8000); // 80% security
+        orchestrator.registerAdapter(bridge1, bridge1Chains, 8000); // 80% security
 
         uint256[] memory bridge2Chains = new uint256[](3);
         bridge2Chains[0] = CHAIN_ETH;
         bridge2Chains[1] = CHAIN_ARB;
         bridge2Chains[2] = CHAIN_OP;
-        orchestrator.registerBridge(bridge2, bridge2Chains, 9000); // 90% security
+        orchestrator.registerAdapter(bridge2, bridge2Chains, 9000); // 90% security
 
         uint256[] memory bridge3Chains = new uint256[](2);
         bridge3Chains[0] = CHAIN_ETH;
         bridge3Chains[1] = CHAIN_BASE;
-        orchestrator.registerBridge(bridge3, bridge3Chains, 7000); // 70% security
+        orchestrator.registerAdapter(bridge3, bridge3Chains, 7000); // 70% security
         vm.stopPrank();
 
         // Record some bridge history for reliability data
         vm.startPrank(router);
         for (uint256 i = 0; i < 20; ++i) {
-            orchestrator.recordBridgeOutcome(bridge1, true, 45, 1 ether);
-            orchestrator.recordBridgeOutcome(bridge2, true, 30, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge1, true, 45, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge2, true, 30, 1 ether);
         }
         // bridge3: lower reliability
         for (uint256 i = 0; i < 15; ++i) {
-            orchestrator.recordBridgeOutcome(bridge3, true, 90, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge3, true, 90, 1 ether);
         }
         for (uint256 i = 0; i < 5; ++i) {
-            orchestrator.recordBridgeOutcome(bridge3, false, 0, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge3, false, 0, 1 ether);
         }
         vm.stopPrank();
     }
@@ -93,7 +93,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         );
         assertTrue(orchestrator.hasRole(orchestrator.ORACLE_ROLE(), oracle));
         assertTrue(
-            orchestrator.hasRole(orchestrator.BRIDGE_ADMIN_ROLE(), bridgeAdmin)
+            orchestrator.hasRole(orchestrator.ADAPTER_ADMIN_ROLE(), bridgeAdmin)
         );
         assertTrue(orchestrator.hasRole(orchestrator.ROUTER_ROLE(), admin));
     }
@@ -127,7 +127,7 @@ contract DynamicRoutingOrchestratorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_RegisterPool_Success() public view {
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertEq(pool.chainId, CHAIN_ETH);
         assertEq(pool.availableCapacity, TOTAL_CAPACITY);
@@ -141,7 +141,7 @@ contract DynamicRoutingOrchestratorTest is Test {
 
     function test_RegisterPool_MinFeeEnforced() public view {
         // CHAIN_BASE was registered with 0.005 ether which is above MIN_BASE_FEE
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_BASE);
         assertEq(pool.currentFee, 0.005 ether);
     }
@@ -176,7 +176,7 @@ contract DynamicRoutingOrchestratorTest is Test {
             IDynamicRoutingOrchestrator.PoolStatus.PAUSED
         );
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertTrue(
             pool.status == IDynamicRoutingOrchestrator.PoolStatus.PAUSED
@@ -220,7 +220,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(CHAIN_ETH, 800 ether);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertEq(pool.availableCapacity, 800 ether);
         // 200/1000 = 20% utilization = 2000 bps
@@ -245,7 +245,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(CHAIN_ETH, 300 ether); // 70% util
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         // Fee should have increased from INITIAL_FEE
         assertTrue(pool.currentFee > INITIAL_FEE);
@@ -317,8 +317,8 @@ contract DynamicRoutingOrchestratorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_RegisterBridge_Success() public view {
-        IDynamicRoutingOrchestrator.BridgeMetrics memory bm = orchestrator
-            .getBridgeMetrics(bridge1);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory bm = orchestrator
+            .getAdapterMetrics(bridge1);
         assertEq(bm.adapter, bridge1);
         assertEq(bm.securityScoreBps, 8000);
         assertTrue(bm.isActive);
@@ -326,14 +326,14 @@ contract DynamicRoutingOrchestratorTest is Test {
     }
 
     function test_RegisterBridge_SupportedChains() public view {
-        assertTrue(orchestrator.bridgeSupportsChain(bridge1, CHAIN_ETH));
-        assertTrue(orchestrator.bridgeSupportsChain(bridge1, CHAIN_ARB));
-        assertTrue(orchestrator.bridgeSupportsChain(bridge1, CHAIN_OP));
-        assertTrue(orchestrator.bridgeSupportsChain(bridge1, CHAIN_BASE));
+        assertTrue(orchestrator.adapterSupportsChain(bridge1, CHAIN_ETH));
+        assertTrue(orchestrator.adapterSupportsChain(bridge1, CHAIN_ARB));
+        assertTrue(orchestrator.adapterSupportsChain(bridge1, CHAIN_OP));
+        assertTrue(orchestrator.adapterSupportsChain(bridge1, CHAIN_BASE));
 
-        assertTrue(orchestrator.bridgeSupportsChain(bridge2, CHAIN_ETH));
-        assertTrue(orchestrator.bridgeSupportsChain(bridge2, CHAIN_ARB));
-        assertFalse(orchestrator.bridgeSupportsChain(bridge2, CHAIN_BASE));
+        assertTrue(orchestrator.adapterSupportsChain(bridge2, CHAIN_ETH));
+        assertTrue(orchestrator.adapterSupportsChain(bridge2, CHAIN_ARB));
+        assertFalse(orchestrator.adapterSupportsChain(bridge2, CHAIN_BASE));
     }
 
     function test_RegisterBridge_RevertDuplicate() public {
@@ -342,11 +342,11 @@ contract DynamicRoutingOrchestratorTest is Test {
         chains[0] = CHAIN_ETH;
         vm.expectRevert(
             abi.encodeWithSelector(
-                IDynamicRoutingOrchestrator.BridgeAlreadyRegistered.selector,
+                IDynamicRoutingOrchestrator.AdapterAlreadyRegistered.selector,
                 bridge1
             )
         );
-        orchestrator.registerBridge(bridge1, chains, 5000);
+        orchestrator.registerAdapter(bridge1, chains, 5000);
     }
 
     function test_RegisterBridge_RevertZeroAddress() public {
@@ -354,24 +354,24 @@ contract DynamicRoutingOrchestratorTest is Test {
         uint256[] memory chains = new uint256[](1);
         chains[0] = CHAIN_ETH;
         vm.expectRevert(IDynamicRoutingOrchestrator.ZeroAddress.selector);
-        orchestrator.registerBridge(address(0), chains, 5000);
+        orchestrator.registerAdapter(address(0), chains, 5000);
     }
 
     function test_RecordBridgeOutcome_Success() public {
         vm.prank(router);
-        orchestrator.recordBridgeOutcome(bridge1, true, 25, 5 ether);
+        orchestrator.recordAdapterOutcome(bridge1, true, 25, 5 ether);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory bm = orchestrator
-            .getBridgeMetrics(bridge1);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory bm = orchestrator
+            .getAdapterMetrics(bridge1);
         assertTrue(bm.totalRelays > 20); // setUp + this one
     }
 
     function test_RecordBridgeOutcome_Failure() public {
         vm.prank(router);
-        orchestrator.recordBridgeOutcome(bridge1, false, 0, 5 ether);
+        orchestrator.recordAdapterOutcome(bridge1, false, 0, 5 ether);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory bm = orchestrator
-            .getBridgeMetrics(bridge1);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory bm = orchestrator
+            .getAdapterMetrics(bridge1);
         assertTrue(bm.lastFailure > 0);
     }
 
@@ -379,24 +379,24 @@ contract DynamicRoutingOrchestratorTest is Test {
         vm.prank(router);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IDynamicRoutingOrchestrator.BridgeNotRegistered.selector,
+                IDynamicRoutingOrchestrator.AdapterNotRegistered.selector,
                 unauthorized
             )
         );
-        orchestrator.recordBridgeOutcome(unauthorized, true, 30, 1 ether);
+        orchestrator.recordAdapterOutcome(unauthorized, true, 30, 1 ether);
     }
 
     function test_SetBridgeActive_Toggle() public {
         vm.prank(bridgeAdmin);
-        orchestrator.setBridgeActive(bridge1, false);
+        orchestrator.setAdapterActive(bridge1, false);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory bm = orchestrator
-            .getBridgeMetrics(bridge1);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory bm = orchestrator
+            .getAdapterMetrics(bridge1);
         assertFalse(bm.isActive);
 
         vm.prank(bridgeAdmin);
-        orchestrator.setBridgeActive(bridge1, true);
-        bm = orchestrator.getBridgeMetrics(bridge1);
+        orchestrator.setAdapterActive(bridge1, true);
+        bm = orchestrator.getAdapterMetrics(bridge1);
         assertTrue(bm.isActive);
     }
 
@@ -805,12 +805,12 @@ contract DynamicRoutingOrchestratorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetBridgesForChain() public view {
-        address[] memory bridges = orchestrator.getBridgesForChain(CHAIN_ETH);
+        address[] memory bridges = orchestrator.getAdaptersForChain(CHAIN_ETH);
         assertEq(bridges.length, 3);
     }
 
     function test_GetBridgesForChain_Subset() public view {
-        address[] memory bridges = orchestrator.getBridgesForChain(CHAIN_BASE);
+        address[] memory bridges = orchestrator.getAdaptersForChain(CHAIN_BASE);
         assertEq(bridges.length, 2); // bridge1 and bridge3
     }
 
@@ -833,14 +833,14 @@ contract DynamicRoutingOrchestratorTest is Test {
         orchestrator.getPool(999);
     }
 
-    function test_GetBridgeMetrics_RevertNotRegistered() public {
+    function test_GetAdapterMetrics_RevertNotRegistered() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IDynamicRoutingOrchestrator.BridgeNotRegistered.selector,
+                IDynamicRoutingOrchestrator.AdapterNotRegistered.selector,
                 unauthorized
             )
         );
-        orchestrator.getBridgeMetrics(unauthorized);
+        orchestrator.getAdapterMetrics(unauthorized);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -921,7 +921,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(CHAIN_ETH, available);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertTrue(pool.utilizationBps <= 10000);
     }
@@ -934,7 +934,7 @@ contract DynamicRoutingOrchestratorTest is Test {
         vm.prank(oracle);
         orchestrator.updateCapacity(CHAIN_ETH, available);
 
-        IDynamicRoutingOrchestrator.BridgeCapacity memory pool = orchestrator
+        IDynamicRoutingOrchestrator.AdapterCapacity memory pool = orchestrator
             .getPool(CHAIN_ETH);
         assertTrue(pool.currentFee >= orchestrator.MIN_BASE_FEE());
         assertTrue(pool.currentFee <= orchestrator.MAX_BASE_FEE());
@@ -974,10 +974,10 @@ contract DynamicRoutingOrchestratorTest is Test {
         value = bound(value, 0.01 ether, 1000 ether);
 
         vm.prank(router);
-        orchestrator.recordBridgeOutcome(bridge1, true, latency, value);
+        orchestrator.recordAdapterOutcome(bridge1, true, latency, value);
 
-        IDynamicRoutingOrchestrator.BridgeMetrics memory bm = orchestrator
-            .getBridgeMetrics(bridge1);
+        IDynamicRoutingOrchestrator.AdapterMetrics memory bm = orchestrator
+            .getAdapterMetrics(bridge1);
         assertTrue(bm.avgLatency > 0);
         assertTrue(bm.avgLatency <= 3600);
     }

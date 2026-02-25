@@ -65,7 +65,7 @@ contract SoulProtocolHub is
                                  TYPES
     //////////////////////////////////////////////////////////////*/
 
-    // Types (ComponentCategory, ComponentInfo, BridgeInfo, VerifierInfo, WireAllParams)
+    // Types (ComponentCategory, ComponentInfo, RelayInfo, VerifierInfo, WireAllParams)
     // are inherited from ISoulProtocolHub
 
     /*//////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ contract SoulProtocolHub is
     bytes32 public constant NOIR_VERIFIER = keccak256("NOIR");
     bytes32 public constant ULTRAHONK_VERIFIER = keccak256("ULTRAHONK");
 
-    // ============ Bridges ============
+    // ============ Relay Adapters ============
 
     /// @notice Cross-chain message relay
     address public crossChainMessageRelay;
@@ -105,7 +105,7 @@ contract SoulProtocolHub is
     address public crossChainPrivacyHub;
 
     /// @notice Bridge adapters by chain ID
-    mapping(uint256 => BridgeInfo) public bridgeAdapters;
+    mapping(uint256 => RelayInfo) public relayAdapters;
 
     /// @notice Supported chain IDs
     uint256[] public supportedChainIds;
@@ -125,9 +125,9 @@ contract SoulProtocolHub is
     // ============ Security ============
 
     /// @notice Security module addresses
-    address public bridgeProofValidator;
-    address public bridgeWatchtower;
-    address public bridgeCircuitBreaker;
+    address public relayProofValidator;
+    address public relayWatchtower;
+    address public relayCircuitBreaker;
 
     // ============ Primitives ============
 
@@ -137,13 +137,13 @@ contract SoulProtocolHub is
     address public crossDomainNullifierAlgebra;
     address public policyBoundProofs;
 
-    // ============ Intent & Settlement (Tachyon-inspired) ============
+    // ============ Intent & Completion (Tachyon-inspired) ============
 
-    /// @notice Intent-based settlement layer
-    address public intentSettlementLayer;
+    /// @notice Intent-based completion layer
+    address public intentCompletionLayer;
 
-    /// @notice Instant settlement guarantee (solver bonds)
-    address public instantSettlementGuarantee;
+    /// @notice Instant completion guarantee (solver bonds)
+    address public instantCompletionGuarantee;
 
     /// @notice Dynamic routing orchestrator
     address public dynamicRoutingOrchestrator;
@@ -156,7 +156,7 @@ contract SoulProtocolHub is
 
     // Events and errors inherited from ISoulProtocolHub:
     // ComponentRegistered, ComponentUpdated, ComponentDeactivated, VerifierRegistered,
-    // BridgeAdapterRegistered, PrivacyModuleRegistered, SecurityModuleRegistered, ProtocolWired
+    // RelayAdapterRegistered, PrivacyModuleRegistered, SecurityModuleRegistered, ProtocolWired
     // ZeroAddress, ComponentNotFound, ComponentAlreadyRegistered, ChainNotSupported,
     // InvalidConfiguration, UnauthorizedCaller, BatchTooLarge
 
@@ -299,7 +299,7 @@ contract SoulProtocolHub is
     }
 
     /*//////////////////////////////////////////////////////////////
-                         BRIDGE REGISTRATION
+                         RELAY REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -313,7 +313,7 @@ contract SoulProtocolHub is
         crossChainMessageRelay = _relay;
         emit ComponentRegistered(
             keccak256("CROSSCHAIN_MESSAGE_RELAY"),
-            ComponentCategory.BRIDGE,
+            ComponentCategory.RELAY,
             _relay,
             1
         );
@@ -330,7 +330,7 @@ contract SoulProtocolHub is
         crossChainPrivacyHub = _hub;
         emit ComponentRegistered(
             keccak256("CROSSCHAIN_PRIVACY_HUB"),
-            ComponentCategory.BRIDGE,
+            ComponentCategory.RELAY,
             _hub,
             1
         );
@@ -343,7 +343,7 @@ contract SoulProtocolHub is
      * @param supportsPrivacy Whether adapter supports private transfers
      * @param minConfirmations Minimum confirmations required
      */
-    function registerBridgeAdapter(
+    function registerRelayAdapter(
         uint256 chainId,
         address adapter,
         bool supportsPrivacy,
@@ -352,11 +352,11 @@ contract SoulProtocolHub is
         if (adapter == address(0)) revert ZeroAddress();
 
         // Track new chain
-        if (bridgeAdapters[chainId].adapter == address(0)) {
+        if (relayAdapters[chainId].adapter == address(0)) {
             supportedChainIds.push(chainId);
         }
 
-        bridgeAdapters[chainId] = BridgeInfo({
+        relayAdapters[chainId] = RelayInfo({
             adapter: adapter,
             chainId: chainId,
             supportsPrivacy: supportsPrivacy,
@@ -364,13 +364,13 @@ contract SoulProtocolHub is
             minConfirmations: minConfirmations
         });
 
-        emit BridgeAdapterRegistered(chainId, adapter, supportsPrivacy);
+        emit RelayAdapterRegistered(chainId, adapter, supportsPrivacy);
     }
 
     /**
      * @notice Batch register bridge adapters
      */
-    function batchRegisterBridgeAdapters(
+    function batchRegisterRelayAdapters(
         uint256[] calldata chainIds,
         address[] calldata adapters,
         bool[] calldata supportsPrivacy,
@@ -390,11 +390,11 @@ contract SoulProtocolHub is
         for (uint256 i = 0; i < chainIds.length; ) {
             if (adapters[i] == address(0)) revert ZeroAddress();
 
-            if (bridgeAdapters[chainIds[i]].adapter == address(0)) {
+            if (relayAdapters[chainIds[i]].adapter == address(0)) {
                 supportedChainIds.push(chainIds[i]);
             }
 
-            bridgeAdapters[chainIds[i]] = BridgeInfo({
+            relayAdapters[chainIds[i]] = RelayInfo({
                 adapter: adapters[i],
                 chainId: chainIds[i],
                 supportsPrivacy: supportsPrivacy[i],
@@ -402,7 +402,7 @@ contract SoulProtocolHub is
                 minConfirmations: minConfirmations[i]
             });
 
-            emit BridgeAdapterRegistered(
+            emit RelayAdapterRegistered(
                 chainIds[i],
                 adapters[i],
                 supportsPrivacy[i]
@@ -513,39 +513,39 @@ contract SoulProtocolHub is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Set Bridge Proof Validator
-     * @param _module Address of the bridge proof validator contract
+     * @notice Set Relay Proof Validator
+     * @param _module Address of the relay proof validator contract
      */
-    function setBridgeProofValidator(
+    function setRelayProofValidator(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
-        bridgeProofValidator = _module;
-        emit SecurityModuleRegistered("BRIDGE_PROOF_VALIDATOR", _module);
+        relayProofValidator = _module;
+        emit SecurityModuleRegistered("RELAY_PROOF_VALIDATOR", _module);
     }
 
     /**
-     * @notice Set Bridge Watchtower
-     * @param _module Address of the bridge watchtower contract
+     * @notice Set Relay Watchtower
+     * @param _module Address of the relay watchtower contract
      */
-    function setBridgeWatchtower(
+    function setRelayWatchtower(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
-        bridgeWatchtower = _module;
-        emit SecurityModuleRegistered("BRIDGE_WATCHTOWER", _module);
+        relayWatchtower = _module;
+        emit SecurityModuleRegistered("RELAY_WATCHTOWER", _module);
     }
 
     /**
-     * @notice Set Bridge Circuit Breaker
-     * @param _module Address of the bridge circuit breaker contract
+     * @notice Set Relay Circuit Breaker
+     * @param _module Address of the relay circuit breaker contract
      */
-    function setBridgeCircuitBreaker(
+    function setRelayCircuitBreaker(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
-        bridgeCircuitBreaker = _module;
-        emit SecurityModuleRegistered("BRIDGE_CIRCUIT_BREAKER", _module);
+        relayCircuitBreaker = _module;
+        emit SecurityModuleRegistered("RELAY_CIRCUIT_BREAKER", _module);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -672,12 +672,12 @@ contract SoulProtocolHub is
     }
 
     /**
-     * @notice Get bridge adapter for a chain
+     * @notice Get relay adapter for a chain
      * @param chainId The target chain ID
      * @return Bridge adapter address
      */
-    function getBridgeAdapter(uint256 chainId) external view returns (address) {
-        return bridgeAdapters[chainId].adapter;
+    function getRelayAdapter(uint256 chainId) external view returns (address) {
+        return relayAdapters[chainId].adapter;
     }
 
     /**
@@ -686,7 +686,7 @@ contract SoulProtocolHub is
      * @return Whether the chain is supported
      */
     function isChainSupported(uint256 chainId) external view returns (bool) {
-        return bridgeAdapters[chainId].isActive;
+        return relayAdapters[chainId].isActive;
     }
 
     /**
@@ -709,14 +709,14 @@ contract SoulProtocolHub is
     }
 
     /**
-     * @notice Get bridge info
+     * @notice Get relay info
      * @param chainId The chain ID
-     * @return BridgeInfo struct
+     * @return RelayInfo struct
      */
-    function getBridgeInfo(
+    function getRelayInfo(
         uint256 chainId
-    ) external view returns (BridgeInfo memory) {
-        return bridgeAdapters[chainId];
+    ) external view returns (RelayInfo memory) {
+        return relayAdapters[chainId];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -765,7 +765,7 @@ contract SoulProtocolHub is
             crossChainMessageRelay = p._crossChainMessageRelay;
             emit ComponentRegistered(
                 keccak256("crossChainMessageRelay"),
-                ComponentCategory.BRIDGE,
+                ComponentCategory.RELAY,
                 p._crossChainMessageRelay,
                 1
             );
@@ -864,11 +864,11 @@ contract SoulProtocolHub is
                 ++updated;
             }
         }
-        if (p._bridgeProofValidator != address(0)) {
-            bridgeProofValidator = p._bridgeProofValidator;
+        if (p._relayProofValidator != address(0)) {
+            relayProofValidator = p._relayProofValidator;
             emit SecurityModuleRegistered(
-                "BRIDGE_PROOF_VALIDATOR",
-                p._bridgeProofValidator
+                "RELAY_PROOF_VALIDATOR",
+                p._relayProofValidator
             );
             unchecked {
                 ++updated;
@@ -934,34 +934,34 @@ contract SoulProtocolHub is
                 ++updated;
             }
         }
-        if (p._bridgeWatchtower != address(0)) {
-            bridgeWatchtower = p._bridgeWatchtower;
+        if (p._relayWatchtower != address(0)) {
+            relayWatchtower = p._relayWatchtower;
             emit SecurityModuleRegistered(
-                "BRIDGE_WATCHTOWER",
-                p._bridgeWatchtower
+                "RELAY_WATCHTOWER",
+                p._relayWatchtower
             );
             unchecked {
                 ++updated;
             }
         }
-        if (p._intentSettlementLayer != address(0)) {
-            intentSettlementLayer = p._intentSettlementLayer;
+        if (p._intentCompletionLayer != address(0)) {
+            intentCompletionLayer = p._intentCompletionLayer;
             emit ComponentRegistered(
-                keccak256("intentSettlementLayer"),
+                keccak256("intentCompletionLayer"),
                 ComponentCategory.CORE,
-                p._intentSettlementLayer,
+                p._intentCompletionLayer,
                 1
             );
             unchecked {
                 ++updated;
             }
         }
-        if (p._instantSettlementGuarantee != address(0)) {
-            instantSettlementGuarantee = p._instantSettlementGuarantee;
+        if (p._instantCompletionGuarantee != address(0)) {
+            instantCompletionGuarantee = p._instantCompletionGuarantee;
             emit ComponentRegistered(
-                keccak256("instantSettlementGuarantee"),
+                keccak256("instantCompletionGuarantee"),
                 ComponentCategory.CORE,
-                p._instantSettlementGuarantee,
+                p._instantCompletionGuarantee,
                 1
             );
             unchecked {
@@ -987,8 +987,8 @@ contract SoulProtocolHub is
     /// @notice Check if all critical protocol components are configured
     /// @dev Checks 16 core components required for full protocol operation.
     ///      Optional/auxiliary components (viewKeyRegistry, policyBoundProofs,
-    ///      instantSettlementGuarantee, dynamicRoutingOrchestrator, proofTranslator,
-    ///      intentSettlementLayer) are not required.
+    ///      instantCompletionGuarantee, dynamicRoutingOrchestrator, proofTranslator,
+    ///      intentCompletionLayer) are not required.
     /// @return configured True if all required components have non-zero addresses
     function isFullyConfigured() external view returns (bool configured) {
         return (// Core privacy infrastructure
@@ -1002,8 +1002,8 @@ contract SoulProtocolHub is
             // Cross-chain infrastructure
             crossChainMessageRelay != address(0) &&
             crossChainPrivacyHub != address(0) &&
-            bridgeProofValidator != address(0) &&
-            bridgeWatchtower != address(0) &&
+            relayProofValidator != address(0) &&
+            relayWatchtower != address(0) &&
             multiProver != address(0) &&
             proofCarryingContainer != address(0) &&
             // Privacy features
@@ -1046,8 +1046,8 @@ contract SoulProtocolHub is
         addresses[10] = proofTranslator;
         names[11] = "privacyRouter";
         addresses[11] = privacyRouter;
-        names[12] = "bridgeProofValidator";
-        addresses[12] = bridgeProofValidator;
+        names[12] = "relayProofValidator";
+        addresses[12] = relayProofValidator;
         names[13] = "zkBoundStateLocks";
         addresses[13] = zkBoundStateLocks;
         names[14] = "proofCarryingContainer";
@@ -1058,16 +1058,16 @@ contract SoulProtocolHub is
         addresses[16] = policyBoundProofs;
         names[17] = "multiProver";
         addresses[17] = multiProver;
-        names[18] = "bridgeWatchtower";
-        addresses[18] = bridgeWatchtower;
-        names[19] = "intentSettlementLayer";
-        addresses[19] = intentSettlementLayer;
-        names[20] = "instantSettlementGuarantee";
-        addresses[20] = instantSettlementGuarantee;
+        names[18] = "relayWatchtower";
+        addresses[18] = relayWatchtower;
+        names[19] = "intentCompletionLayer";
+        addresses[19] = intentCompletionLayer;
+        names[20] = "instantCompletionGuarantee";
+        addresses[20] = instantCompletionGuarantee;
         names[21] = "dynamicRoutingOrchestrator";
         addresses[21] = dynamicRoutingOrchestrator;
-        names[22] = "bridgeCircuitBreaker";
-        addresses[22] = bridgeCircuitBreaker;
+        names[22] = "relayCircuitBreaker";
+        addresses[22] = relayCircuitBreaker;
         names[23] = "timelock";
         addresses[23] = timelock;
         names[24] = "upgradeTimelock";
@@ -1107,10 +1107,10 @@ contract SoulProtocolHub is
      * @notice Deactivate a bridge adapter
      * @param chainId The chain ID to deactivate
      */
-    function deactivateBridge(
+    function deactivateRelay(
         uint256 chainId
     ) external onlyRole(GUARDIAN_ROLE) {
-        bridgeAdapters[chainId].isActive = false;
+        relayAdapters[chainId].isActive = false;
         emit ComponentDeactivated(bytes32(chainId));
     }
 }

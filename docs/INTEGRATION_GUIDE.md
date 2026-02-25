@@ -18,7 +18,7 @@
 - [Proof Generation](#proof-generation)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
-- [Intent Settlement](#intent-settlement)
+- [Intent Completion](#intent-completion)
 - [Dynamic Routing](#dynamic-routing)
 - [Compliance & Selective Disclosure](#compliance--selective-disclosure)
 - [Experimental Features](#experimental-features)
@@ -562,11 +562,11 @@ const client = createSoulClient({
 
 ---
 
-## Intent Settlement
+## Intent Completion
 
 ### Overview
 
-The Intent Settlement Layer provides a solver-marketplace for cross-chain operations. Users submit intents (desired outcomes), and registered solvers competitively claim and fulfill them.
+The Intent Completion Layer provides a solver-marketplace for cross-chain operations. Users submit intents (desired outcomes), and registered solvers competitively claim and fulfill them.
 
 ### Submit an Intent
 
@@ -613,9 +613,9 @@ await client.fulfillIntent(intent.intentId, {
 });
 ```
 
-### Instant Settlement Guarantees
+### Instant Completion Guarantees
 
-For time-sensitive operations, solvers can leverage instant settlement:
+For time-sensitive operations, solvers can leverage instant completion:
 
 ```typescript
 // Post a guarantee (solver posts collateral)

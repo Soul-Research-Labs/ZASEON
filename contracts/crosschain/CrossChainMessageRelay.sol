@@ -127,7 +127,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     mapping(uint256 => address) public trustedRemotes;
 
     /// @notice Registered bridge adapters
-    mapping(uint256 => address) public bridgeAdapters;
+    mapping(uint256 => address) public relayAdapters;
 
     /// @notice Maximum gas limit for message execution
     uint256 public maxGasLimit = 5000000;
@@ -161,10 +161,10 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
     address public soulProtocolHub;
 
     /// @notice Bridge proof validator for cross-chain proof verification
-    address public bridgeProofValidator;
+    address public relayProofValidator;
 
     /// @notice Bridge watchtower for fraud monitoring
-    address public bridgeWatchtower;
+    address public relayWatchtower;
 
     /// @notice Security oracle for threat detection
     address public securityOracle;
@@ -364,7 +364,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
         );
 
         // In production: Forward to canonical bridge adapter
-        // address adapter = bridgeAdapters[targetChainId];
+        // address adapter = relayAdapters[targetChainId];
         // if (adapter != address(0)) {
         //     IBridgeAdapter(adapter).sendMessage{value: value}(message);
         // }
@@ -678,7 +678,7 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
         address adapter
     ) external onlyRole(OPERATOR_ROLE) {
         if (chainId == 0) revert InvalidChainId(chainId);
-        bridgeAdapters[chainId] = adapter;
+        relayAdapters[chainId] = adapter;
         emit BridgeAdapterSet(chainId, adapter);
     }
 
@@ -725,24 +725,24 @@ contract CrossChainMessageRelay is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Set Bridge Proof Validator
-     * @param _validator The BridgeProofValidator contract address
+     * @param _validator The RelayProofValidator contract address
      */
-    function setBridgeProofValidator(
+    function setRelayProofValidator(
         address _validator
     ) external onlyRole(OPERATOR_ROLE) {
         if (_validator == address(0)) revert ZeroAddress();
-        bridgeProofValidator = _validator;
+        relayProofValidator = _validator;
     }
 
     /**
      * @notice Set Bridge Watchtower
-     * @param _watchtower The BridgeWatchtower contract address
+     * @param _watchtower The RelayWatchtower contract address
      */
-    function setBridgeWatchtower(
+    function setRelayWatchtower(
         address _watchtower
     ) external onlyRole(OPERATOR_ROLE) {
         if (_watchtower == address(0)) revert ZeroAddress();
-        bridgeWatchtower = _watchtower;
+        relayWatchtower = _watchtower;
     }
 
     /**

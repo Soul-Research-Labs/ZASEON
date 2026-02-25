@@ -13,7 +13,7 @@ contract PrivacyFuzz is UnifiedNullifierManager {
         // Manually setup state instead of calling initialize() which is disabled in constructor
         _grantRole(DEFAULT_ADMIN_ROLE, address(this));
         _grantRole(OPERATOR_ROLE, address(this));
-        _grantRole(BRIDGE_ROLE, address(this));
+        _grantRole(RELAY_ROLE, address(this));
         
         _registerDefaultChains();
     }

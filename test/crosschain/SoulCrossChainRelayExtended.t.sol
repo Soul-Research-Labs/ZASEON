@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../../contracts/crosschain/SoulCrossChainRelay.sol";
 
 /// @dev Mock bridge adapter that succeeds
-contract MockBridgeAdapterExt {
+contract MockRelayAdapterExt {
     bool public called;
     bytes public lastPayload;
 
@@ -54,7 +54,7 @@ contract MockProofHubExt {
 }
 
 /// @dev Bridge adapter that always reverts
-contract FailingBridgeAdapterExt {
+contract FailingRelayAdapterExt {
     fallback() external payable {
         revert("bridge fail");
     }
@@ -68,9 +68,9 @@ contract FailingBridgeAdapterExt {
  */
 contract SoulCrossChainRelayExtendedTest is Test {
     SoulCrossChainRelay public relay;
-    MockBridgeAdapterExt public bridgeAdapter;
+    MockRelayAdapterExt public relayAdapter;
     MockProofHubExt public proofHub;
-    FailingBridgeAdapterExt public failingBridge;
+    FailingRelayAdapterExt public failingBridge;
 
     address admin;
     address relayer = makeAddr("relayer");
@@ -78,7 +78,7 @@ contract SoulCrossChainRelayExtendedTest is Test {
     address operatorAddr = makeAddr("operator");
 
     bytes32 constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
-    bytes32 constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     uint256 constant DEST_CHAIN = 42_161; // Arbitrum
@@ -87,8 +87,8 @@ contract SoulCrossChainRelayExtendedTest is Test {
     function setUp() public {
         admin = address(this);
         proofHub = new MockProofHubExt();
-        bridgeAdapter = new MockBridgeAdapterExt();
-        failingBridge = new FailingBridgeAdapterExt();
+        relayAdapter = new MockRelayAdapterExt();
+        failingBridge = new FailingRelayAdapterExt();
 
         relay = new SoulCrossChainRelay(
             address(proofHub),
@@ -96,14 +96,14 @@ contract SoulCrossChainRelayExtendedTest is Test {
         );
 
         relay.grantRole(RELAYER_ROLE, relayer);
-        relay.grantRole(BRIDGE_ROLE, bridgeRole);
+        relay.grantRole(RELAY_ROLE, bridgeRole);
         relay.grantRole(OPERATOR_ROLE, operatorAddr);
 
         // Configure destination chain
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(proofHub),
-                bridgeAdapter: address(bridgeAdapter),
+                relayAdapter: address(relayAdapter),
                 bridgeChainId: 30_110,
                 active: true
             });
@@ -153,7 +153,7 @@ contract SoulCrossChainRelayExtendedTest is Test {
         );
 
         assertTrue(messageId != bytes32(0), "Message ID should be non-zero");
-        assertTrue(bridgeAdapter.called(), "Bridge adapter should be called");
+        assertTrue(relayAdapter.called(), "Bridge adapter should be called");
     }
 
     function test_relayBatch_emitsProofRelayed() public {
@@ -305,7 +305,7 @@ contract SoulCrossChainRelayExtendedTest is Test {
         SoulCrossChainRelay.ChainConfig memory failConfig = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(proofHub),
-                bridgeAdapter: address(failingBridge),
+                relayAdapter: address(failingBridge),
                 bridgeChainId: 30_111,
                 active: true
             });
@@ -331,7 +331,7 @@ contract SoulCrossChainRelayExtendedTest is Test {
         SoulCrossChainRelay.ChainConfig memory failConfig = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(proofHub),
-                bridgeAdapter: address(failingBridge),
+                relayAdapter: address(failingBridge),
                 bridgeChainId: 30_111,
                 active: true
             });

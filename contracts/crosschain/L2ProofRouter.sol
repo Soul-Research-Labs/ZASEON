@@ -129,7 +129,7 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     /// @notice Routing paths
     enum RoutingPath {
         DIRECT, // Direct L2-to-L2
-        VIA_L1, // Through L1 settlement
+        VIA_L1, // Through L1 completion
         SHARED_SEQUENCER, // Via shared sequencer
         RELAY_NETWORK, // Via relay network
         HYBRID // Combination of paths

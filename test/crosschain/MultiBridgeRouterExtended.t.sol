@@ -22,7 +22,7 @@ contract FailingBridgeAdapter is IBridgeAdapter {
         return 0;
     }
 
-    function isMessageverified(bytes32) external pure override returns (bool) {
+    function isMessageVerified(bytes32) external pure override returns (bool) {
         return false;
     }
 }
@@ -49,7 +49,7 @@ contract SucceedingBridgeAdapter is IBridgeAdapter {
         return 0.01 ether;
     }
 
-    function isMessageverified(bytes32) external pure override returns (bool) {
+    function isMessageVerified(bytes32) external pure override returns (bool) {
         return true;
     }
 }
@@ -87,7 +87,7 @@ contract ReentrantAdapter is IBridgeAdapter {
         return 0;
     }
 
-    function isMessageverified(bytes32) external pure override returns (bool) {
+    function isMessageVerified(bytes32) external pure override returns (bool) {
         return true;
     }
 

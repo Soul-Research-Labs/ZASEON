@@ -34,10 +34,10 @@ contract NullifierRegistryV3 is
     bytes32 public constant REGISTRAR_ROLE =
         0xedcc084d3dcd65a1f7f23c65c46722faca6953d28e43150a467cf43e5c309238;
 
-    /// @notice Role for cross-chain bridge operations
-    /// @dev Pre-computed hash saves ~200 gas per access: keccak256("BRIDGE_ROLE")
-    bytes32 public constant BRIDGE_ROLE =
-        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    /// @notice Role for cross-chain relay operations
+    /// @dev Pre-computed hash saves ~200 gas per access: keccak256("RELAY_ROLE")
+    bytes32 public constant RELAY_ROLE =
+        0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7;
 
     /// @notice Role for emergency operations
     /// @dev Pre-computed hash saves ~200 gas per access: keccak256("EMERGENCY_ROLE")
@@ -140,7 +140,7 @@ contract NullifierRegistryV3 is
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(REGISTRAR_ROLE, msg.sender);
-        _grantRole(BRIDGE_ROLE, msg.sender);
+        _grantRole(RELAY_ROLE, msg.sender);
         _grantRole(EMERGENCY_ROLE, msg.sender);
 
         // Initialize zero values for merkle tree
@@ -238,7 +238,7 @@ contract NullifierRegistryV3 is
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments,
         bytes32 sourceMerkleRoot
-    ) external onlyRole(BRIDGE_ROLE) whenNotPaused nonReentrant {
+    ) external onlyRole(RELAY_ROLE) whenNotPaused nonReentrant {
         if (sourceChainId == CHAIN_ID) revert InvalidChainId();
 
         uint256 len = _nullifiers.length;

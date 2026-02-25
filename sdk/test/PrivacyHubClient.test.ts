@@ -272,15 +272,15 @@ describe("PrivacyHubClient", () => {
     });
   });
 
-  describe("getBridgeAdapter", () => {
+  describe("getRelayAdapter", () => {
     it("should return adapter address", async () => {
       const expected = ("0x" + "99".repeat(20)) as Hex;
       const client = makeClient({
         hubReadStubs: {
-          getBridgeAdapter: async () => expected,
+          getRelayAdapter: async () => expected,
         },
       });
-      const adapter = await client.getBridgeAdapter(84532);
+      const adapter = await client.getRelayAdapter(84532);
       expect(adapter).to.equal(expected);
     });
   });

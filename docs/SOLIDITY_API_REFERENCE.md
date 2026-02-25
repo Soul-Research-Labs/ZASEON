@@ -505,7 +505,7 @@ function isRefundable(bytes32 swapId) external view returns (bool)
 **Solidity:** `^0.8.24`
 **Inherits:** `ReentrancyGuard`, `AccessControl`, `Pausable`
 
-Direct L2-to-L2 messaging supporting four paths: OP Superchain native, shared sequencers (Espresso/Astria), bonded relayer network (fast path), and L1 settlement (slow path).
+Direct L2-to-L2 messaging supporting four paths: OP Superchain native, shared sequencers (Espresso/Astria), bonded relayer network (fast path), and L1 completion (slow path).
 
 ### Roles
 

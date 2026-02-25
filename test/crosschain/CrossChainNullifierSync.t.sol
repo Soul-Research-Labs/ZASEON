@@ -17,13 +17,13 @@ contract CrossChainNullifierSyncTest is Test {
     address user = address(0xBEEF);
 
     bytes32 constant SYNCER_ROLE = keccak256("SYNCER_ROLE");
-    bytes32 constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     function setUp() public {
         sync = new CrossChainNullifierSync(nullifierRegistry);
         sync.grantRole(SYNCER_ROLE, syncer);
-        sync.grantRole(BRIDGE_ROLE, bridge);
+        sync.grantRole(RELAY_ROLE, bridge);
     }
 
     /*//////////////////////////////////////////////////////////////

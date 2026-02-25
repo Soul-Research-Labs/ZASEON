@@ -55,7 +55,7 @@ interface IMultiBridgeRouter {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event BridgeRegistered(BridgeType indexed bridgeType, address adapter);
+    event AdapterRegistered(BridgeType indexed bridgeType, address adapter);
     event BridgeStatusChanged(
         BridgeType indexed bridgeType,
         BridgeStatus oldStatus,
@@ -173,7 +173,7 @@ interface IMultiBridgeRouter {
                          ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function registerBridge(
+    function registerAdapter(
         BridgeType bridgeType,
         address adapter,
         uint256 securityScore,

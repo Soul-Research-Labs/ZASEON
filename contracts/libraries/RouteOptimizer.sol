@@ -114,9 +114,9 @@ library RouteOptimizer {
     }
 
     /**
-     * @notice Estimate settlement time based on hop count and average latencies
+     * @notice Estimate completion time based on hop count and average latencies
      * @param hopLatencies Array of per-hop average latencies (seconds)
-     * @return totalTime Total estimated settlement time
+     * @return totalTime Total estimated completion time
      */
     function estimateMultiHopTime(
         uint48[] memory hopLatencies

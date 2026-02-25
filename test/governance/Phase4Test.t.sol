@@ -14,7 +14,7 @@ contract MockProofHub {
 }
 
 // Mock Bridge Adapter
-contract MockBridgeAdapter {
+contract MockRelayAdapter {
     event MessageSent(bytes payload);
     function dispatch(uint32, bytes32, bytes calldata payload) external payable {
         emit MessageSent(payload);
@@ -26,7 +26,7 @@ contract Phase4Test is Test {
     SoulCrossChainRelay public relay;
     MessageBatcher public batcher;
     MockProofHub public proofHub;
-    MockBridgeAdapter public bridgeAdapter;
+    MockRelayAdapter public relayAdapter;
 
     address public admin = address(this);
     address public proposer = makeAddr("proposer");
@@ -36,7 +36,7 @@ contract Phase4Test is Test {
     function setUp() public {
         // Deploy dependencies
         proofHub = new MockProofHub();
-        bridgeAdapter = new MockBridgeAdapter();
+        relayAdapter = new MockRelayAdapter();
 
         // Deploy Relay
         relay = new SoulCrossChainRelay(address(proofHub), SoulCrossChainRelay.BridgeType.HYPERLANE);
@@ -44,7 +44,7 @@ contract Phase4Test is Test {
         // Configure Relay
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay.ChainConfig({
             proofHub: address(proofHub),
-            bridgeAdapter: address(bridgeAdapter),
+            relayAdapter: address(relayAdapter),
             bridgeChainId: 100,
             active: true
         });
@@ -141,7 +141,7 @@ contract Phase4Test is Test {
         
         // Trigger send
         vm.expectEmit(true, true, false, false); // Don't check data
-        emit MockBridgeAdapter.MessageSent(hex""); 
+        emit MockRelayAdapter.MessageSent(hex""); 
         batcher.sendBatch(100);
         
         vm.stopPrank();

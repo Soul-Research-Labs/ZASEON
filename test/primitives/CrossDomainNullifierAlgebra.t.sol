@@ -60,7 +60,7 @@ contract CrossDomainNullifierAlgebraTest is Test {
         verifier = new MockDerivationVerifier();
 
         // Grant roles
-        cdna.grantRole(cdna.BRIDGE_ROLE(), bridgeAddr);
+        cdna.grantRole(cdna.RELAY_ROLE(), bridgeAddr);
         cdna.grantRole(cdna.NULLIFIER_REGISTRAR_ROLE(), admin);
         cdna.grantRole(cdna.NULLIFIER_REGISTRAR_ROLE(), bridgeAddr);
 

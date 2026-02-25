@@ -187,8 +187,8 @@ const unlockTx = await client.unlockWithProof({
 
 | Component                 | Contract                      | Purpose                                                           |
 | ------------------------- | ----------------------------- | ----------------------------------------------------------------- |
-| **Intent Settlement**     | `IntentSettlementLayer`       | Solver marketplace for cross-chain intent fulfillment             |
-| **Instant Settlement**    | `InstantSettlementGuarantee`  | Collateralized guarantees for sub-block settlement                |
+| **Intent Completion**     | `IntentCompletionLayer`       | Solver marketplace for cross-chain intent fulfillment             |
+| **Instant Completion**    | `InstantCompletionGuarantee`  | Collateralized guarantees for sub-block completion                |
 | **Dynamic Routing**       | `DynamicRoutingOrchestrator`  | Optimal cross-chain path selection based on bridge capacity/cost/speed  |
 | **Capacity Router**      | `CapacityAwareRouter`        | Capacity-aware proof relay routing with bridge metric tracking             |
 | **Compliance**            | `SelectiveDisclosureManager`  | Privacy-preserving compliance with selective attribute disclosure |

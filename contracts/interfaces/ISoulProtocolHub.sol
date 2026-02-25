@@ -15,7 +15,7 @@ interface ISoulProtocolHub {
     enum ComponentCategory {
         CORE,
         VERIFIER,
-        BRIDGE,
+        RELAY,
         PRIVACY,
         SECURITY,
         PRIMITIVE,
@@ -37,8 +37,8 @@ interface ISoulProtocolHub {
         bytes32 configHash;
     }
 
-    /// @notice Bridge adapter info
-    struct BridgeInfo {
+    /// @notice Relay adapter info
+    struct RelayInfo {
         address adapter;
         uint256 chainId;
         bool supportsPrivacy;
@@ -68,15 +68,15 @@ interface ISoulProtocolHub {
         address _complianceOracle;
         address _proofTranslator;
         address _privacyRouter;
-        address _bridgeProofValidator;
+        address _relayProofValidator;
         address _zkBoundStateLocks;
         address _proofCarryingContainer;
         address _crossDomainNullifierAlgebra;
         address _policyBoundProofs;
         address _multiProver;
-        address _bridgeWatchtower;
-        address _intentSettlementLayer;
-        address _instantSettlementGuarantee;
+        address _relayWatchtower;
+        address _intentCompletionLayer;
+        address _instantCompletionGuarantee;
         address _dynamicRoutingOrchestrator;
     }
 
@@ -106,7 +106,7 @@ interface ISoulProtocolHub {
         uint256 gasLimit
     );
 
-    event BridgeAdapterRegistered(
+    event RelayAdapterRegistered(
         uint256 indexed chainId,
         address adapter,
         bool supportsPrivacy
@@ -176,7 +176,7 @@ interface ISoulProtocolHub {
 
     function crossChainPrivacyHub() external view returns (address);
 
-    function bridgeAdapters(
+    function relayAdapters(
         uint256 chainId
     )
         external
@@ -209,11 +209,11 @@ interface ISoulProtocolHub {
     function privacyRouter() external view returns (address);
 
     // Security
-    function bridgeProofValidator() external view returns (address);
+    function relayProofValidator() external view returns (address);
 
-    function bridgeWatchtower() external view returns (address);
+    function relayWatchtower() external view returns (address);
 
-    function bridgeCircuitBreaker() external view returns (address);
+    function relayCircuitBreaker() external view returns (address);
 
     // Primitives
     function zkBoundStateLocks() external view returns (address);
@@ -224,10 +224,10 @@ interface ISoulProtocolHub {
 
     function policyBoundProofs() external view returns (address);
 
-    // Intent & Settlement
-    function intentSettlementLayer() external view returns (address);
+    // Intent & Completion
+    function intentCompletionLayer() external view returns (address);
 
-    function instantSettlementGuarantee() external view returns (address);
+    function instantCompletionGuarantee() external view returns (address);
 
     function dynamicRoutingOrchestrator() external view returns (address);
 
@@ -259,21 +259,21 @@ interface ISoulProtocolHub {
     ) external;
 
     /*//////////////////////////////////////////////////////////////
-                       BRIDGE REGISTRATION
+                       RELAY REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
     function setCrossChainMessageRelay(address _relay) external;
 
     function setCrossChainPrivacyHub(address _hub) external;
 
-    function registerBridgeAdapter(
+    function registerRelayAdapter(
         uint256 chainId,
         address adapter,
         bool supportsPrivacy,
         uint256 minConfirmations
     ) external;
 
-    function batchRegisterBridgeAdapters(
+    function batchRegisterRelayAdapters(
         uint256[] calldata chainIds,
         address[] calldata adapters,
         bool[] calldata supportsPrivacy,
@@ -304,11 +304,11 @@ interface ISoulProtocolHub {
                       SECURITY REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
-    function setBridgeProofValidator(address _module) external;
+    function setRelayProofValidator(address _module) external;
 
-    function setBridgeWatchtower(address _module) external;
+    function setRelayWatchtower(address _module) external;
 
-    function setBridgeCircuitBreaker(address _module) external;
+    function setRelayCircuitBreaker(address _module) external;
 
     /*//////////////////////////////////////////////////////////////
                      PRIMITIVE REGISTRATION
@@ -342,7 +342,7 @@ interface ISoulProtocolHub {
 
     function getVerifier(bytes32 verifierType) external view returns (address);
 
-    function getBridgeAdapter(uint256 chainId) external view returns (address);
+    function getRelayAdapter(uint256 chainId) external view returns (address);
 
     function isChainSupported(uint256 chainId) external view returns (bool);
 
@@ -352,9 +352,9 @@ interface ISoulProtocolHub {
         bytes32 verifierType
     ) external view returns (VerifierInfo memory);
 
-    function getBridgeInfo(
+    function getRelayInfo(
         uint256 chainId
-    ) external view returns (BridgeInfo memory);
+    ) external view returns (RelayInfo memory);
 
     function isFullyConfigured() external view returns (bool configured);
 
@@ -373,5 +373,5 @@ interface ISoulProtocolHub {
 
     function deactivateVerifier(bytes32 verifierType) external;
 
-    function deactivateBridge(uint256 chainId) external;
+    function deactivateRelay(uint256 chainId) external;
 }

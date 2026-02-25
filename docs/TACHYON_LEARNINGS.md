@@ -16,11 +16,11 @@ Before reading the learnings below, understand the key distinction:
 | --------------------------------- | ------------------------------------------------------- | -------------------------------- |
 | Solvers move tokens               | Solvers generate & deliver ZK proofs                    | No token movement in Soul        |
 | Bridge capacity                   | `BridgeCapacity` (oracle-observed bridge metadata)      | Soul doesn't manage pools        |
-| Instant settlement of funds       | Bonded guarantee that proof will land                   | Guarantee covers proof delivery  |
+| Instant completion of funds       | Bonded guarantee that proof will land                   | Guarantee covers proof delivery  |
 | Dynamic routing of value      | Routing of proof relay requests through bridge adapters | Routes proofs, not value         |
 | Solver rewards for token delivery | Relayer rewards for proof relay speed                   | Incentivizes fast proof delivery |
 
-**Where do the tokens come from?** Soul uses a single model: **Bridge-Wrapped Privacy** (see [architecture.md](architecture.md#token-flow-bridge-wrapped-privacy)). Existing bridges (Hyperlane, LayerZero, Wormhole, etc.) move tokens. Soul wraps them with ZK proofs, nullifiers, and stealth addresses. The `IntentSettlementLayer` and `InstantSettlementGuarantee` are UX optimizations within this model — they coordinate proof generation and delivery, not token movement.
+**Where do the tokens come from?** Soul uses a single model: **Bridge-Wrapped Privacy** (see [architecture.md](architecture.md#token-flow-bridge-wrapped-privacy)). Existing bridges (Hyperlane, LayerZero, Wormhole, etc.) move tokens. Soul wraps them with ZK proofs, nullifiers, and stealth addresses. The `IntentCompletionLayer` and `InstantCompletionGuarantee` are UX optimizations within this model — they coordinate proof generation and delivery, not token movement.
 
 ---
 
@@ -32,7 +32,7 @@ Before reading the learnings below, understand the key distinction:
 
 - Users express **intents** (what they want), not transactions (how to do it)
 - Solver networks compete to fulfill intents
-- Instant settlement without waiting for traditional bridges
+- Instant completion without waiting for traditional bridges
 - Solvers get immediate payouts upon confirmation
 
 **What Soul Can Learn**:
@@ -43,8 +43,8 @@ Before reading the learnings below, understand the key distinction:
 **Implementation Strategy**:
 
 ```solidity
-// New contract: IntentSettlementLayer.sol
-contract IntentSettlementLayer {
+// New contract: IntentCompletionLayer.sol
+contract IntentCompletionLayer {
     struct Intent {
         address user;
         uint256 sourceChain;
@@ -170,7 +170,7 @@ contract SelectiveDisclosureManager {
 **What Tachyon Does**:
 
 - Solvers get paid immediately upon destination confirmation
-- Inclusion proofs verify settlement
+- Inclusion proofs verify completion
 - Capital returns instantly, improving efficiency
 - Competitive market drives down fees
 
@@ -229,14 +229,14 @@ contract InstantRelayerRewards {
 
 ---
 
-### 4. 📊 Real-Time Settlement Orchestration
+### 4. 📊 Real-Time Completion Orchestration
 
 **What Tachyon Does**:
 
 - Solver networks coordinate in real-time
 - Optimized capital allocation across chains
 - Dynamic routing based on bridge capacity
-- Predictive settlement paths
+- Predictive completion paths
 
 **What Soul Can Learn**:
 
@@ -309,7 +309,7 @@ contract DynamicRoutingOrchestrator {
 **Benefits for Soul**:
 
 - Lower costs through optimal routing
-- Faster settlements
+- Faster completions
 - Better user experience
 - Reduced failed transactions
 
@@ -391,7 +391,7 @@ contract ConfigurablePrivacyLevels {
 
 ---
 
-### 6. 🚀 Instant Settlement UX
+### 6. 🚀 Instant Completion UX
 
 **What Tachyon Does**:
 
@@ -408,8 +408,8 @@ contract ConfigurablePrivacyLevels {
 **Implementation Strategy**:
 
 ```solidity
-// New contract: InstantSettlementGuarantee.sol
-contract InstantSettlementGuarantee {
+// New contract: InstantCompletionGuarantee.sol
+contract InstantCompletionGuarantee {
     struct Guarantee {
         bytes32 relayId;
         address guarantor;  // Solver providing guarantee
@@ -438,7 +438,7 @@ contract InstantSettlementGuarantee {
         });
 
         // User gets instant access to funds
-        emit InstantSettlement(relayId, amount, msg.sender);
+        emit InstantCompletion(relayId, amount, msg.sender);
     }
 
     // If transfer succeeds, guarantor gets bond back + fee
@@ -595,7 +595,7 @@ contract ComplianceReportingModule {
 
 4. **Intent-Based Architecture** - Better UX
 5. **Instant Relay Rewards** - Attracts relayers
-6. **Instant Settlement Guarantees** - Competitive UX
+6. **Instant Completion Guarantees** - Competitive UX
 
 ### Phase 3 (Medium-term - Month 5-6)
 
@@ -661,7 +661,7 @@ contract IntentLayer {
 | Programmable Viewing | +50% (institutions) | +40%    | Medium     |
 | Privacy Levels       | +30% (retail)       | +20%    | Low        |
 | Intent Layer         | +40% (UX)           | +30%    | High       |
-| Instant Settlement   | +25% (UX)           | +15%    | Medium     |
+| Instant Completion   | +25% (UX)           | +15%    | Medium     |
 | Compliance Tools     | +60% (enterprise)   | +50%    | Medium     |
 
 **Total Potential**: 2-3x user growth, 2x revenue increase
@@ -695,7 +695,7 @@ Tachyon's compliance-first approach offers valuable lessons for Soul Protocol. B
 1. **Programmable viewing permissions**
 2. **Configurable privacy levels**
 3. **Intent-based architecture**
-4. **Instant settlement UX**
+4. **Instant completion UX**
 5. **Compliance reporting tools**
 
 Soul can maintain its cryptographic privacy guarantees while opening up the institutional market and improving user experience.
@@ -709,9 +709,9 @@ Soul can maintain its cryptographic privacy guarantees while opening up the inst
 1. ~~Review this document with team~~ ✅ Reviewed
 2. ~~Prioritize features based on market demand~~ ✅ All 7 implemented
 3. ~~Create detailed specs for Phase 1 features~~ ✅ Done
-4. ~~Begin implementation of quick wins~~ ✅ Compliance + Intent + Settlement + Routing all implemented
+4. ~~Begin implementation of quick wins~~ ✅ Compliance + Intent + Completion + Routing all implemented
 5. Engage with institutional partners for feedback
-6. Conduct security audit of new features (IntentSettlementLayer, InstantSettlementGuarantee, InstantRelayerRewards, DynamicRoutingOrchestrator, CrossChainPrivacyHub compliance hooks)
+6. Conduct security audit of new features (IntentCompletionLayer, InstantCompletionGuarantee, InstantRelayerRewards, DynamicRoutingOrchestrator, CrossChainPrivacyHub compliance hooks)
 
 ---
 
@@ -721,25 +721,25 @@ All 7 Tachyon learnings are now implemented in Soul Protocol:
 
 | #   | Learning                              | Contract(s)                  | Status                           |
 | --- | ------------------------------------- | ---------------------------- | -------------------------------- |
-| 1   | Intent-Based Architecture             | `IntentSettlementLayer`      | ✅ Implemented + Hub-wired       |
+| 1   | Intent-Based Architecture             | `IntentCompletionLayer`      | ✅ Implemented + Hub-wired       |
 | 2   | Programmable Viewing Permissions      | `SelectiveDisclosureManager` | ✅ Implemented + Privacy hooks   |
 | 3   | Instant Relay Rewards & Proof Delivery Incentives | `InstantRelayerRewards`      | ✅ Implemented + bug fixed       |
 | 4   | Dynamic Routing Orchestration         | `DynamicRoutingOrchestrator` | ✅ Implemented + Hub-wired       |
 | 5   | Configurable Privacy Levels           | `ConfigurablePrivacyLevels`  | ✅ Implemented                   |
-| 6   | Instant Settlement UX                 | `InstantSettlementGuarantee` | ✅ Implemented + semantics fixed |
+| 6   | Instant Completion UX                 | `InstantCompletionGuarantee` | ✅ Implemented + semantics fixed |
 | 7   | Enterprise Compliance                 | `ComplianceReportingModule`  | ✅ Implemented + Privacy hooks   |
 
 ### Bug Fixes Applied
 
 - **InstantRelayerRewards**: Reward cap bug fixed — speed bonuses now properly scale (ULTRA_FAST=100%, FAST=83.3%, NORMAL=66.7%, SLOW=60%)
-- **InstantSettlementGuarantee**: `_isIntentFinalized()` now checks actual finalization state via `isFinalized()`, not just eligibility via `canFinalize()`
+- **InstantCompletionGuarantee**: `_isIntentFinalized()` now checks actual finalization state via `isFinalized()`, not just eligibility via `canFinalize()`
 
 ### Hub Wiring
 
 SoulProtocolHub expanded from 19 → 25 components:
 
-- Slot 20: `IntentSettlementLayer` (CORE)
-- Slot 21: `InstantSettlementGuarantee` (CORE)
+- Slot 20: `IntentCompletionLayer` (CORE)
+- Slot 21: `InstantCompletionGuarantee` (CORE)
 - Slot 22: `DynamicRoutingOrchestrator` (INFRASTRUCTURE)
 - Slot 23: `BridgeCircuitBreaker` (SECURITY)
 - Slot 24: `SoulTimelock` (GOVERNANCE)
@@ -758,13 +758,13 @@ CrossChainPrivacyHub now has compliance hooks:
 
 | Test Suite           | Tests | Type           |
 | -------------------- | ----- | -------------- |
-| IntentSettlementE2E  | 13    | Integration    |
+| IntentCompletionE2E  | 13    | Integration    |
 | CompliancePrivacyE2E | 10    | Integration    |
-| SettlementInvariants | 8     | Fuzz/Invariant |
+| CompletionInvariants | 8     | Fuzz/Invariant |
 
 ### SDK Clients
 
-- `IntentSettlementClient` — IntentSettlementLayer + InstantSettlementGuarantee
+- `IntentCompletionClient` — IntentCompletionLayer + InstantCompletionGuarantee
 - `ComplianceClient` — SelectiveDisclosureManager + ComplianceReportingModule + ConfigurablePrivacyLevels
 - `DynamicRoutingClient` — DynamicRoutingOrchestrator
 - `PrivacyHubClient` — Updated with compliance setters

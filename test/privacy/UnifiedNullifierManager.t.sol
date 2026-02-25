@@ -51,7 +51,7 @@ contract UnifiedNullifierManagerTest is Test {
 
     address public admin = address(this);
 
-    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 public constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
     bytes32 public constant UPGRADER_ROLE =
@@ -76,7 +76,7 @@ contract UnifiedNullifierManagerTest is Test {
     function test_initialize() public view {
         assertTrue(manager.hasRole(manager.DEFAULT_ADMIN_ROLE(), admin));
         assertTrue(manager.hasRole(OPERATOR_ROLE, admin));
-        assertTrue(manager.hasRole(BRIDGE_ROLE, admin));
+        assertTrue(manager.hasRole(RELAY_ROLE, admin));
         assertTrue(manager.hasRole(UPGRADER_ROLE, admin));
     }
 
@@ -135,7 +135,7 @@ contract UnifiedNullifierManagerTest is Test {
             .getChainDomain(newChainId);
         assertEq(domain.chainId, newChainId);
         assertTrue(domain.isActive);
-        assertEq(domain.bridgeAdapter, address(0xADA));
+        assertEq(domain.relayAdapter, address(0xADA));
         assertEq(domain.domainTag, tag);
     }
 

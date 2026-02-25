@@ -55,9 +55,9 @@ methods {
     function setComplianceOracle(address) external;
     function setProofTranslator(address) external;
     function setPrivacyRouter(address) external;
-    function setBridgeProofValidator(address) external;
-    function setBridgeWatchtower(address) external;
-    function setBridgeCircuitBreaker(address) external;
+    function setRelayProofValidator(address) external;
+    function setRelayWatchtower(address) external;
+    function setRelayCircuitBreaker(address) external;
     function setZKBoundStateLocks(address) external;
     function setProofCarryingContainer(address) external;
     function setCrossDomainNullifierAlgebra(address) external;

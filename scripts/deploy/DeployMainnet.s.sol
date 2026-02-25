@@ -6,11 +6,11 @@ import "forge-std/Script.sol";
 // ── Phase 1: Security ──
 import {CrossChainProofHubV3} from "../../contracts/bridge/CrossChainProofHubV3.sol";
 import {NullifierRegistryV3} from "../../contracts/core/NullifierRegistryV3.sol";
-import {BridgeCircuitBreaker} from "../../contracts/security/BridgeCircuitBreaker.sol";
-import {BridgeRateLimiter} from "../../contracts/security/BridgeRateLimiter.sol";
+import {RelayCircuitBreaker} from "../../contracts/security/RelayCircuitBreaker.sol";
+import {RelayRateLimiter} from "../../contracts/security/RelayRateLimiter.sol";
 import {EnhancedKillSwitch} from "../../contracts/security/EnhancedKillSwitch.sol";
 import {ZKFraudProof} from "../../contracts/security/ZKFraudProof.sol";
-import {BridgeProofValidator} from "../../contracts/security/BridgeProofValidator.sol";
+import {RelayProofValidator} from "../../contracts/security/RelayProofValidator.sol";
 
 // ── Phase 2: Verifiers ──
 import {VerifierRegistryV2} from "../../contracts/verifiers/VerifierRegistryV2.sol";
@@ -82,11 +82,11 @@ contract DeployMainnet is Script {
     // Phase 1: Security
     CrossChainProofHubV3 public proofHub;
     NullifierRegistryV3 public nullifierRegistry;
-    BridgeCircuitBreaker public circuitBreaker;
-    BridgeRateLimiter public rateLimiter;
+    RelayCircuitBreaker public circuitBreaker;
+    RelayRateLimiter public rateLimiter;
     EnhancedKillSwitch public killSwitch;
     ZKFraudProof public zkFraudProof;
-    BridgeProofValidator public bridgeProofValidator;
+    RelayProofValidator public relayProofValidator;
 
     // Phase 2: Verifiers
     VerifierRegistryV2 public verifierRegistry;
@@ -141,11 +141,11 @@ contract DeployMainnet is Script {
         nullifierRegistry = new NullifierRegistryV3();
         console.log("NullifierRegistryV3:", address(nullifierRegistry));
 
-        circuitBreaker = new BridgeCircuitBreaker(admin);
-        console.log("BridgeCircuitBreaker:", address(circuitBreaker));
+        circuitBreaker = new RelayCircuitBreaker(admin);
+        console.log("RelayCircuitBreaker:", address(circuitBreaker));
 
-        rateLimiter = new BridgeRateLimiter(admin);
-        console.log("BridgeRateLimiter:", address(rateLimiter));
+        rateLimiter = new RelayRateLimiter(admin);
+        console.log("RelayRateLimiter:", address(rateLimiter));
 
         address[] memory guardians = new address[](3);
         guardians[0] = guardian1;
@@ -164,8 +164,8 @@ contract DeployMainnet is Script {
         );
         console.log("ZKFraudProof:", address(zkFraudProof));
 
-        bridgeProofValidator = new BridgeProofValidator();
-        console.log("BridgeProofValidator:", address(bridgeProofValidator));
+        relayProofValidator = new RelayProofValidator();
+        console.log("RelayProofValidator:", address(relayProofValidator));
 
         // ======== PHASE 2: VERIFIER INFRASTRUCTURE ========
         console.log("\n--- Phase 2: Verifiers ---");
@@ -264,15 +264,15 @@ contract DeployMainnet is Script {
                 _complianceOracle: address(0), // deployed separately
                 _proofTranslator: address(0), // deployed separately
                 _privacyRouter: address(0), // deployed separately
-                _bridgeProofValidator: address(bridgeProofValidator),
+                _relayProofValidator: address(relayProofValidator),
                 _zkBoundStateLocks: address(zkBoundStateLocks),
                 _proofCarryingContainer: address(proofCarryingContainer),
                 _crossDomainNullifierAlgebra: address(cdna),
                 _policyBoundProofs: address(policyBoundProofs),
                 _multiProver: address(0), // deployed separately
-                _bridgeWatchtower: address(0), // deployed separately
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0), // deployed separately
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
@@ -387,11 +387,11 @@ contract DeployMainnet is Script {
         console.log("\n-- Security --");
         console.log("CrossChainProofHubV3:", address(proofHub));
         console.log("NullifierRegistryV3:", address(nullifierRegistry));
-        console.log("BridgeCircuitBreaker:", address(circuitBreaker));
-        console.log("BridgeRateLimiter:", address(rateLimiter));
+        console.log("RelayCircuitBreaker:", address(circuitBreaker));
+        console.log("RelayRateLimiter:", address(rateLimiter));
         console.log("EnhancedKillSwitch:", address(killSwitch));
         console.log("ZKFraudProof:", address(zkFraudProof));
-        console.log("BridgeProofValidator:", address(bridgeProofValidator));
+        console.log("RelayProofValidator:", address(relayProofValidator));
         console.log("\n-- Verifiers --");
         console.log("VerifierRegistryV2:", address(verifierRegistry));
         console.log("SoulUniversalVerifier:", address(universalVerifier));

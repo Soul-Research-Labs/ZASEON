@@ -57,19 +57,19 @@ contract CapacityAwareRouterTest is Test {
         bridge1Chains[0] = CHAIN_ETH;
         bridge1Chains[1] = CHAIN_ARB;
         bridge1Chains[2] = CHAIN_OP;
-        orchestrator.registerBridge(bridge1, bridge1Chains, 8000);
+        orchestrator.registerAdapter(bridge1, bridge1Chains, 8000);
 
         uint256[] memory bridge2Chains = new uint256[](2);
         bridge2Chains[0] = CHAIN_ETH;
         bridge2Chains[1] = CHAIN_ARB;
-        orchestrator.registerBridge(bridge2, bridge2Chains, 9000);
+        orchestrator.registerAdapter(bridge2, bridge2Chains, 9000);
         vm.stopPrank();
 
         // Record bridge outcomes for reliability data
         vm.startPrank(admin); // admin has ROUTER_ROLE on orchestrator
         for (uint256 i = 0; i < 20; ++i) {
-            orchestrator.recordBridgeOutcome(bridge1, true, 45, 1 ether);
-            orchestrator.recordBridgeOutcome(bridge2, true, 30, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge1, true, 45, 1 ether);
+            orchestrator.recordAdapterOutcome(bridge2, true, 30, 1 ether);
         }
         vm.stopPrank();
 

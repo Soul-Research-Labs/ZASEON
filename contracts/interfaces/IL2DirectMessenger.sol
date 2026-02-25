@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /**
  * @title IL2DirectMessenger
  * @author Soul Protocol
- * @notice Interface for direct L2-to-L2 messaging without L1 settlement
+ * @notice Interface for direct L2-to-L2 messaging without L1 completion
  */
 interface IL2DirectMessenger {
     /*//////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ interface IL2DirectMessenger {
         SUPERCHAIN, // OP Stack native (Optimism, Base, Mode, Zora)
         SHARED_SEQUENCER, // Espresso, Astria, Radius
         FAST_RELAYER, // Bonded relayer network
-        SLOW_L1 // Via L1 settlement
+        SLOW_L1 // Via L1 completion
     }
 
     /// @notice Message status

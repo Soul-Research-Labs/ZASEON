@@ -6,13 +6,13 @@ import "forge-std/Test.sol";
 /**
  * @title InfrastructureRateLimiterTest
  * @notice The deprecated RateLimiter.sol has been removed.
- *         Rate limiting is now handled by BridgeRateLimiter in contracts/security/.
- * @dev See test/security/ for BridgeRateLimiter tests.
+ *         Rate limiting is now handled by RelayRateLimiter in contracts/security/.
+ * @dev See test/security/ for RelayRateLimiter tests.
  */
 contract InfrastructureRateLimiterTest is Test {
-    function test_rateLimiterMigratedToBridgeRateLimiter() public {
+    function test_rateLimiterMigratedToRelayRateLimiter() public {
         // Deprecated RateLimiter has been removed.
-        // All rate limiting functionality is in BridgeRateLimiter.sol
-        assertTrue(true, "Rate limiter migrated to BridgeRateLimiter");
+        // All rate limiting functionality is in RelayRateLimiter.sol
+        assertTrue(true, "Rate limiter migrated to RelayRateLimiter");
     }
 }

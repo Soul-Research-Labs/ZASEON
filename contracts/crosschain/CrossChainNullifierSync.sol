@@ -25,7 +25,7 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
     //  Roles
     // ──────────────────────────────────────────────
     bytes32 public constant SYNCER_ROLE = keccak256("SYNCER_ROLE");
-    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 public constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     // ──────────────────────────────────────────────
@@ -319,7 +319,7 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
         bytes32[] calldata nullifiers,
         bytes32[] calldata commitments,
         bytes32 sourceMerkleRoot
-    ) external onlyRole(BRIDGE_ROLE) nonReentrant whenNotPaused {
+    ) external onlyRole(RELAY_ROLE) nonReentrant whenNotPaused {
         if (nullifiers.length != commitments.length)
             revert ArrayLengthMismatch();
         if (nullifiers.length == 0) revert EmptyBatch();

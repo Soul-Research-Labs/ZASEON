@@ -206,7 +206,7 @@ async function main() {
     // 5a. BridgeProofValidator
     console.log("  [17] BridgeProofValidator...");
     const bridgeValidator = await viem.deployContract("BridgeProofValidator");
-    deployed.contracts.bridgeProofValidator = bridgeValidator.address;
+    deployed.contracts.relayProofValidator = bridgeValidator.address;
     console.log("       =>", bridgeValidator.address);
 
     // 5b. EmergencyRecovery
@@ -250,7 +250,7 @@ async function main() {
         _proofTranslator:
           "0x0000000000000000000000000000000000000000" as Address,
         _privacyRouter: privacyRouter.address,
-        _bridgeProofValidator: bridgeValidator.address,
+        _relayProofValidator: bridgeValidator.address,
         _zkBoundStateLocks: zkSlocks.address,
         _proofCarryingContainer: pc3.address,
         _crossDomainNullifierAlgebra: cdna.address,

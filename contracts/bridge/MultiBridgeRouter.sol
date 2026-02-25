@@ -97,7 +97,7 @@ contract MultiBridgeRouter is
     uint256 public constant HEALTH_CHECK_WINDOW = 1 hours;
 
     // Events and errors inherited from IMultiBridgeRouter:
-    // BridgeRegistered, BridgeStatusChanged, MessageRouted, MessageVerified, MessageFinalized,
+    // AdapterRegistered, BridgeStatusChanged, MessageRouted, MessageVerified, MessageFinalized,
     // BridgeFallback, HealthCheckFailed, SupportedChainAdded, BridgeSuccessRecorded, ThresholdsUpdated,
     // BridgeNotConfigured, BridgeNotActive, NoBridgeAvailable, AllBridgesFailed,
     // InvalidSecurityScore, ChainNotSupported, MessageAlreadyFinalized, InsufficientConfirmations
@@ -240,7 +240,7 @@ contract MultiBridgeRouter is
      * @param securityScore Security score (0-100)
      * @param maxValuePerTx Maximum value per transaction
      */
-    function registerBridge(
+    function registerAdapter(
         BridgeType bridgeType,
         address adapter,
         uint256 securityScore,
@@ -260,7 +260,7 @@ contract MultiBridgeRouter is
             avgResponseTime: 0
         });
 
-        emit BridgeRegistered(bridgeType, adapter);
+        emit AdapterRegistered(bridgeType, adapter);
     }
 
     /**

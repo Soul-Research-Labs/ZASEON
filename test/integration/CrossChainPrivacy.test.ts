@@ -334,14 +334,14 @@ describe("CrossChainPrivacy Integration", function () {
             const chainId = CHAIN_IDS.POLYGON;
             const protocolType = PRIVACY_PROTOCOLS.Soul_NATIVE;
 
-            await privacyHub.connect(admin).registerBridge(
+            await privacyHub.connect(admin).registerAdapter(
                 bridgeId,
                 relayer.address, // Mock bridge adapter
                 chainId,
                 protocolType
             );
 
-            const bridgeInfo = await privacyHub.getBridgeInfo(bridgeId);
+            const bridgeInfo = await privacyHub.getRelayInfo(bridgeId);
             expect(bridgeInfo.isActive).to.be.true;
         });
 

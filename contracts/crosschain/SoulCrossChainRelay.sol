@@ -27,7 +27,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     //  Roles
     // ──────────────────────────────────────────────
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
-    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 public constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     // ──────────────────────────────────────────────
@@ -54,7 +54,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
 
     struct ChainConfig {
         address proofHub; // CrossChainProofHubV3 address on that chain
-        address bridgeAdapter; // LayerZero or Hyperlane adapter address
+        address relayAdapter; // LayerZero or Hyperlane adapter address
         uint32 bridgeChainId; // Bridge-specific chain identifier (LZ eid / Hyperlane domain)
         bool active;
     }
@@ -112,7 +112,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     event ChainConfigured(
         uint256 indexed chainId,
         address proofHub,
-        address bridgeAdapter,
+        address relayAdapter,
         uint32 bridgeChainId
     );
 
@@ -130,7 +130,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     error PublicInputsTooLarge(uint256 size);
     error AlreadyProcessed(bytes32 messageId);
     error InvalidProofHub();
-    error InvalidBridgeAdapter();
+    error InvalidRelayAdapter();
     error InvalidMessage();
     error ZeroAddress();
     error BridgeCallFailed(string reason);
@@ -155,14 +155,14 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Configure a destination chain for cross-chain relay
      * @param chainId EVM chain ID of the destination
-     * @param config Chain configuration (proofHub, bridgeAdapter, bridgeChainId)
+     * @param config Chain configuration (proofHub, relayAdapter, bridgeChainId)
      */
     function configureChain(
         uint256 chainId,
         ChainConfig calldata config
     ) external onlyRole(OPERATOR_ROLE) {
         if (config.proofHub == address(0)) revert InvalidProofHub();
-        if (config.bridgeAdapter == address(0)) revert InvalidBridgeAdapter();
+        if (config.relayAdapter == address(0)) revert InvalidRelayAdapter();
 
         // Track new chains
         if (!chainConfigs[chainId].active) {
@@ -174,7 +174,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
         emit ChainConfigured(
             chainId,
             config.proofHub,
-            config.bridgeAdapter,
+            config.relayAdapter,
             config.bridgeChainId
         );
     }
@@ -303,7 +303,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     function receiveRelayedProof(
         uint256 /* _sourceChainId */,
         bytes calldata payload
-    ) external onlyRole(BRIDGE_ROLE) nonReentrant whenNotPaused {
+    ) external onlyRole(RELAY_ROLE) nonReentrant whenNotPaused {
         // Decode message type
         uint8 msgType = abi.decode(payload, (uint8));
         
@@ -367,7 +367,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     ) internal {
         // Call LayerZeroAdapter.sendMessage(dstEid, payload, options)
         // The adapter handles LZ endpoint interaction
-        (bool success, ) = config.bridgeAdapter.call{value: msg.value}(
+        (bool success, ) = config.relayAdapter.call{value: msg.value}(
             abi.encodeWithSignature(
                 "sendMessage(uint32,bytes,(uint128,uint128))",
                 config.bridgeChainId,
@@ -386,7 +386,7 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
         bytes memory payload
     ) internal {
         // Call HyperlaneAdapter.dispatch(destinationDomain, recipient, message)
-        (bool success, ) = config.bridgeAdapter.call{value: msg.value}(
+        (bool success, ) = config.relayAdapter.call{value: msg.value}(
             abi.encodeWithSignature(
                 "dispatch(uint32,bytes32,bytes)",
                 config.bridgeChainId,

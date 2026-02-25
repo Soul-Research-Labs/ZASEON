@@ -153,7 +153,7 @@ contract BridgeAdapterWrappersTest is Test {
 
     function test_Hyperlane_isMessageVerified() public view {
         // MockMailbox.delivered always returns true
-        assertTrue(hyperlaneWrapper.isMessageverified(bytes32(uint256(1))));
+        assertTrue(hyperlaneWrapper.isMessageVerified(bytes32(uint256(1))));
     }
 
     function test_Hyperlane_constructorZeroMailboxReverts() public {
@@ -191,13 +191,13 @@ contract BridgeAdapterWrappersTest is Test {
     }
 
     function test_LZ_isMessageVerified_defaultFalse() public view {
-        assertFalse(lzWrapper.isMessageverified(bytes32(uint256(99))));
+        assertFalse(lzWrapper.isMessageVerified(bytes32(uint256(99))));
     }
 
     function test_LZ_markVerified() public {
         bytes32 msgId = bytes32(uint256(42));
         lzWrapper.markVerified(msgId);
-        assertTrue(lzWrapper.isMessageverified(msgId));
+        assertTrue(lzWrapper.isMessageVerified(msgId));
     }
 
     function test_LZ_peerNotSetReverts() public {
@@ -282,7 +282,7 @@ contract BridgeAdapterWrappersTest is Test {
     function test_NativeWrapper_markVerified() public {
         bytes32 msgId = bytes32(uint256(7));
         opWrapper.markVerified(msgId);
-        assertTrue(opWrapper.isMessageverified(msgId));
+        assertTrue(opWrapper.isMessageVerified(msgId));
     }
 
     function test_NativeWrapper_constructorZeroBridgeReverts() public {

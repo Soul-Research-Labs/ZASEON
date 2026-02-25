@@ -44,7 +44,7 @@ contract EconomicAttacksTest is Test {
     // =========================================================================
 
     bytes32 constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
-    bytes32 constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     bytes32 constant SLASHER_ROLE = keccak256("SLASHER_ROLE");

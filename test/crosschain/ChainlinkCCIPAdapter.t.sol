@@ -120,11 +120,11 @@ contract ChainlinkCCIPAdapterTest is Test {
         assertEq(fee, 0.1 ether);
     }
 
-    // =========== isMessageverified ===========
+    // =========== isMessageVerified ===========
 
     /// @notice Unverified messages return false
-    function test_isMessageverified_defaultFalse() public view {
-        assertFalse(adapter.isMessageverified(bytes32(uint256(42))));
+    function test_isMessageVerified_defaultFalse() public view {
+        assertFalse(adapter.isMessageVerified(bytes32(uint256(42))));
     }
 
     // =========== Immutable config ===========

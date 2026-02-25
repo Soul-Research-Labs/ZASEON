@@ -34,5 +34,5 @@ interface IBridgeAdapter {
      * @notice Check if a message has been verified/finalized
      * @param messageId The message identifier
      */
-    function isMessageverified(bytes32 messageId) external view returns (bool);
+    function isMessageVerified(bytes32 messageId) external view returns (bool);
 }

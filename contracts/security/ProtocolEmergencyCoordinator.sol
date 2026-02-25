@@ -63,7 +63,7 @@ interface IKillSwitch {
     ) external;
 }
 
-/// @dev Subset of BridgeCircuitBreaker
+/// @dev Subset of RelayCircuitBreaker
 interface ICircuitBreaker {
     enum SystemState {
         NORMAL,
@@ -91,7 +91,7 @@ interface IProtocolHub {
  * @author Soul Protocol
  * @notice Unified emergency orchestrator that coordinates across
  *         ProtocolHealthAggregator, EmergencyRecovery, EnhancedKillSwitch,
- *         BridgeCircuitBreaker, and SoulProtocolHub.
+ *         RelayCircuitBreaker, and SoulProtocolHub.
  *
  * @dev Closes the critical gap where Soul Protocol has 4+ independent
  *      emergency systems that don't communicate. This coordinator:

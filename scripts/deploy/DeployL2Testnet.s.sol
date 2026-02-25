@@ -8,15 +8,15 @@ import {NullifierRegistryV3} from "../../contracts/core/NullifierRegistryV3.sol"
 import {ConfidentialStateContainerV3} from "../../contracts/core/ConfidentialStateContainerV3.sol";
 
 // Bridge adapters
-import {OptimismBridgeAdapter} from "../../contracts/crosschain/OptimismBridgeAdapter.sol";
-import {ArbitrumBridgeAdapter} from "../../contracts/crosschain/ArbitrumBridgeAdapter.sol";
-import {BaseBridgeAdapter} from "../../contracts/crosschain/BaseBridgeAdapter.sol";
-import {ScrollBridgeAdapter} from "../../contracts/crosschain/ScrollBridgeAdapter.sol";
-import {LineaBridgeAdapter} from "../../contracts/crosschain/LineaBridgeAdapter.sol";
+import {OptimismRelayAdapter} from "../../contracts/crosschain/OptimismRelayAdapter.sol";
+import {ArbitrumRelayAdapter} from "../../contracts/crosschain/ArbitrumRelayAdapter.sol";
+import {BaseRelayAdapter} from "../../contracts/crosschain/BaseRelayAdapter.sol";
+import {ScrollRelayAdapter} from "../../contracts/crosschain/ScrollRelayAdapter.sol";
+import {LineaRelayAdapter} from "../../contracts/crosschain/LineaRelayAdapter.sol";
 
 // Security
-import {BridgeCircuitBreaker} from "../../contracts/security/BridgeCircuitBreaker.sol";
-import {BridgeRateLimiter} from "../../contracts/security/BridgeRateLimiter.sol";
+import {RelayCircuitBreaker} from "../../contracts/security/RelayCircuitBreaker.sol";
+import {RelayRateLimiter} from "../../contracts/security/RelayRateLimiter.sol";
 
 // Privacy
 import {StealthAddressRegistry} from "../../contracts/privacy/StealthAddressRegistry.sol";
@@ -75,10 +75,10 @@ contract DeployL2Testnet is Script {
 
     // Deployed contract addresses (set during deployment)
     NullifierRegistryV3 public nullifierRegistry;
-    BridgeCircuitBreaker public circuitBreaker;
-    BridgeRateLimiter public rateLimiter;
+    RelayCircuitBreaker public circuitBreaker;
+    RelayRateLimiter public rateLimiter;
     StealthAddressRegistry public stealthRegistry;
-    address public bridgeAdapter;
+    address public relayAdapter;
 
     function run() external {
         // Accept private key with or without 0x prefix
@@ -106,7 +106,7 @@ contract DeployL2Testnet is Script {
         _deployCoreContracts(admin);
 
         // ========= 2. DEPLOY CHAIN-SPECIFIC BRIDGE =========
-        _deployBridgeAdapter(admin, deployer);
+        _deployRelayAdapter(admin, deployer);
 
         // ========= 3. DEPLOY PRIVACY CONTRACTS =========
         _deployPrivacyContracts(admin);
@@ -142,24 +142,24 @@ contract DeployL2Testnet is Script {
         nullifierRegistry = new NullifierRegistryV3();
         console.log("NullifierRegistryV3:", address(nullifierRegistry));
 
-        // BridgeCircuitBreaker — anomaly detection
-        circuitBreaker = new BridgeCircuitBreaker(admin);
-        console.log("BridgeCircuitBreaker:", address(circuitBreaker));
+        // RelayCircuitBreaker — anomaly detection
+        circuitBreaker = new RelayCircuitBreaker(admin);
+        console.log("RelayCircuitBreaker:", address(circuitBreaker));
 
-        // BridgeRateLimiter — rate limiting
-        rateLimiter = new BridgeRateLimiter(admin);
-        console.log("BridgeRateLimiter:", address(rateLimiter));
+        // RelayRateLimiter — rate limiting
+        rateLimiter = new RelayRateLimiter(admin);
+        console.log("RelayRateLimiter:", address(rateLimiter));
     }
 
     // ========= BRIDGE ADAPTER (per-chain) =========
 
-    function _deployBridgeAdapter(address admin, address deployer) internal {
+    function _deployRelayAdapter(address admin, address deployer) internal {
         if (
             block.chainid == OPTIMISM_SEPOLIA || block.chainid == BASE_SEPOLIA
         ) {
-            // OP Stack chains (Optimism Sepolia, Base Sepolia) use OptimismBridgeAdapter
-            OptimismBridgeAdapter adapter = new OptimismBridgeAdapter(deployer);
-            bridgeAdapter = address(adapter);
+            // OP Stack chains (Optimism Sepolia, Base Sepolia) use OptimismRelayAdapter
+            OptimismRelayAdapter adapter = new OptimismRelayAdapter(deployer);
+            relayAdapter = address(adapter);
 
             // Grant roles to admin
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
@@ -176,10 +176,10 @@ contract DeployL2Testnet is Script {
                 adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
             }
 
-            console.log("OptimismBridgeAdapter:", bridgeAdapter);
+            console.log("OptimismRelayAdapter:", relayAdapter);
         } else if (block.chainid == ARBITRUM_SEPOLIA) {
-            ArbitrumBridgeAdapter adapter = new ArbitrumBridgeAdapter(deployer);
-            bridgeAdapter = address(adapter);
+            ArbitrumRelayAdapter adapter = new ArbitrumRelayAdapter(deployer);
+            relayAdapter = address(adapter);
 
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
             adapter.grantRole(adapter.OPERATOR_ROLE(), admin);
@@ -193,7 +193,7 @@ contract DeployL2Testnet is Script {
                 adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
             }
 
-            console.log("ArbitrumBridgeAdapter:", bridgeAdapter);
+            console.log("ArbitrumRelayAdapter:", relayAdapter);
         } else if (block.chainid == SCROLL_SEPOLIA) {
             // Scroll requires messenger, gateway, rollup, and admin addresses
             address scrollMessenger = vm.envOr("SCROLL_MESSENGER", address(0));
@@ -205,13 +205,13 @@ contract DeployL2Testnet is Script {
                 "SCROLL_ROLLUP_CONTRACT",
                 address(0)
             );
-            ScrollBridgeAdapter adapter = new ScrollBridgeAdapter(
+            ScrollRelayAdapter adapter = new ScrollRelayAdapter(
                 scrollMessenger,
                 scrollGateway,
                 scrollRollup,
                 admin
             );
-            bridgeAdapter = address(adapter);
+            relayAdapter = address(adapter);
 
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
             adapter.grantRole(adapter.OPERATOR_ROLE(), admin);
@@ -221,7 +221,7 @@ contract DeployL2Testnet is Script {
                 adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
             }
 
-            console.log("ScrollBridgeAdapter:", bridgeAdapter);
+            console.log("ScrollRelayAdapter:", relayAdapter);
         } else if (block.chainid == LINEA_SEPOLIA) {
             // Linea requires message service, token bridge, rollup, and admin addresses
             address lineaMessageService = vm.envOr(
@@ -233,13 +233,13 @@ contract DeployL2Testnet is Script {
                 address(0)
             );
             address lineaRollup = vm.envOr("LINEA_ROLLUP", address(0));
-            LineaBridgeAdapter adapter = new LineaBridgeAdapter(
+            LineaRelayAdapter adapter = new LineaRelayAdapter(
                 lineaMessageService,
                 lineaTokenBridge,
                 lineaRollup,
                 admin
             );
-            bridgeAdapter = address(adapter);
+            relayAdapter = address(adapter);
 
             adapter.grantRole(adapter.DEFAULT_ADMIN_ROLE(), admin);
             adapter.grantRole(adapter.OPERATOR_ROLE(), admin);
@@ -249,7 +249,7 @@ contract DeployL2Testnet is Script {
                 adapter.renounceRole(adapter.DEFAULT_ADMIN_ROLE(), deployer);
             }
 
-            console.log("LineaBridgeAdapter:", bridgeAdapter);
+            console.log("LineaRelayAdapter:", relayAdapter);
         }
     }
 
@@ -308,10 +308,10 @@ contract DeployL2Testnet is Script {
         console.log("");
         console.log(string.concat("=== ", network, " Deployment Complete ==="));
         console.log("NullifierRegistryV3:", address(nullifierRegistry));
-        console.log("BridgeCircuitBreaker:", address(circuitBreaker));
-        console.log("BridgeRateLimiter:", address(rateLimiter));
+        console.log("RelayCircuitBreaker:", address(circuitBreaker));
+        console.log("RelayRateLimiter:", address(rateLimiter));
         console.log("StealthAddressRegistry:", address(stealthRegistry));
-        console.log("BridgeAdapter:", bridgeAdapter);
+        console.log("RelayAdapter:", relayAdapter);
         console.log("");
         console.log("Post-deploy steps:");
         console.log("  1. Verify contracts on block explorer");
@@ -340,17 +340,17 @@ contract DeployL2Testnet is Script {
             '    "NullifierRegistryV3": "',
             vm.toString(address(nullifierRegistry)),
             '",\n',
-            '    "BridgeCircuitBreaker": "',
+            '    "RelayCircuitBreaker": "',
             vm.toString(address(circuitBreaker)),
             '",\n',
-            '    "BridgeRateLimiter": "',
+            '    "RelayRateLimiter": "',
             vm.toString(address(rateLimiter)),
             '",\n',
             '    "StealthAddressRegistry": "',
             vm.toString(address(stealthRegistry)),
             '",\n',
-            '    "BridgeAdapter": "',
-            vm.toString(bridgeAdapter),
+            '    "RelayAdapter": "',
+            vm.toString(relayAdapter),
             '"\n',
             "  }\n",
             "}"

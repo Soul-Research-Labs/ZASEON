@@ -103,8 +103,8 @@ contract PrivacyLayerHardeningTest is Test {
     address public unauthorized = address(0x99);
 
     // ─── CDNA Roles ─────────────────────────────────────────────
-    bytes32 constant BRIDGE_ROLE =
-        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    bytes32 constant RELAY_ROLE =
+        0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7;
     bytes32 constant NULLIFIER_REGISTRAR_ROLE =
         0x5505d4e1c339d2da96b423eae372f08e27c4388c7bee6502a760802a80405236;
     bytes32 constant DOMAIN_ADMIN_ROLE =
@@ -125,7 +125,7 @@ contract PrivacyLayerHardeningTest is Test {
 
         // Deploy CDNA
         cdna = new CrossDomainNullifierAlgebra();
-        cdna.grantRole(BRIDGE_ROLE, bridge);
+        cdna.grantRole(RELAY_ROLE, bridge);
         cdna.grantRole(NULLIFIER_REGISTRAR_ROLE, registrar);
         cdna.grantRole(DOMAIN_ADMIN_ROLE, admin);
 

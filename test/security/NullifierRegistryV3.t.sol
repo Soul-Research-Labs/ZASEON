@@ -14,7 +14,7 @@ contract NullifierRegistryV3Test is Test {
     function setUp() public {
         registry = new NullifierRegistryV3();
         registry.addRegistrar(registrar);
-        registry.grantRole(registry.BRIDGE_ROLE(), bridge);
+        registry.grantRole(registry.RELAY_ROLE(), bridge);
     }
 
     // ======= Core Registration =======

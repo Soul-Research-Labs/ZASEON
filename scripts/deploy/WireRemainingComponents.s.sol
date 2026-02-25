@@ -85,15 +85,15 @@ contract WireRemainingComponents is Script {
                 _complianceOracle: complianceOracle,
                 _proofTranslator: proofTranslator,
                 _privacyRouter: privacyRouter,
-                _bridgeProofValidator: address(0), // already set
+                _relayProofValidator: address(0), // already set
                 _zkBoundStateLocks: address(0), // already set
                 _proofCarryingContainer: address(0), // already set
                 _crossDomainNullifierAlgebra: address(0), // already set
                 _policyBoundProofs: address(0), // already set
                 _multiProver: address(0), // set separately if needed
-                _bridgeWatchtower: address(0), // set separately if needed
-                _intentSettlementLayer: address(0),
-                _instantSettlementGuarantee: address(0),
+                _relayWatchtower: address(0), // set separately if needed
+                _intentCompletionLayer: address(0),
+                _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );

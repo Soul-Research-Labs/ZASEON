@@ -32,9 +32,9 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
     /// @dev keccak256("DOMAIN_ADMIN_ROLE")
     bytes32 public constant DOMAIN_ADMIN_ROLE =
         0x7792e66be7e1c65b630a8198da6bf1636e24cd26934ca652e146dd12060d06fb;
-    /// @dev keccak256("BRIDGE_ROLE")
-    bytes32 public constant BRIDGE_ROLE =
-        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    /// @dev keccak256("RELAY_ROLE")
+    bytes32 public constant RELAY_ROLE =
+        0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7;
 
     /*//////////////////////////////////////////////////////////////
                                  TYPES
@@ -389,7 +389,7 @@ contract CrossDomainNullifierAlgebra is AccessControl, Pausable {
     )
         external
         whenNotPaused
-        onlyRole(BRIDGE_ROLE)
+        onlyRole(RELAY_ROLE)
         returns (bytes32 childNullifier)
     {
         // Validate parent exists

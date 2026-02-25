@@ -70,7 +70,7 @@ contract RoutingHandler is Test {
 
     // ── Bridge Management ────────────────────────────────────
 
-    function registerBridge(
+    function registerAdapter(
         uint256 addrSeed,
         uint256 chainSeed,
         uint256 scoreSeed
@@ -90,8 +90,8 @@ contract RoutingHandler is Test {
         chains[0] = chainId;
 
         vm.prank(bridgeAdmin);
-        try orchestrator.registerBridge(bridge, chains, secScore) {
-            if (!_bridgeRegistered(bridge)) {
+        try orchestrator.registerAdapter(bridge, chains, secScore) {
+            if (!_adapterRegistered(bridge)) {
                 registeredBridges.push(bridge);
                 ghostBridgeCount++;
             }
@@ -108,7 +108,7 @@ contract RoutingHandler is Test {
 
         address router = admin;
         vm.prank(router);
-        try orchestrator.recordBridgeOutcome(bridge, true, latency, 0) {
+        try orchestrator.recordAdapterOutcome(bridge, true, latency, 0) {
             ghostSuccessReports++;
         } catch {}
     }
@@ -122,7 +122,7 @@ contract RoutingHandler is Test {
 
         address router = admin;
         vm.prank(router);
-        try orchestrator.recordBridgeOutcome(bridge, false, 0, 0) {
+        try orchestrator.recordAdapterOutcome(bridge, false, 0, 0) {
             ghostFailureReports++;
         } catch {}
     }
@@ -132,7 +132,7 @@ contract RoutingHandler is Test {
         vm.warp(block.timestamp + seconds_);
     }
 
-    function _bridgeRegistered(address bridge) internal view returns (bool) {
+    function _adapterRegistered(address bridge) internal view returns (bool) {
         for (uint256 i; i < registeredBridges.length; i++) {
             if (registeredBridges[i] == bridge) return true;
         }
@@ -170,7 +170,7 @@ contract DynamicRoutingInvariant is StdInvariant, Test {
         uint256 len = handler.ghostPoolCount();
         for (uint256 i; i < len && i < 10; i++) {
             try handler.registeredChains(i) returns (uint256 chainId) {
-                IDynamicRoutingOrchestrator.BridgeCapacity
+                IDynamicRoutingOrchestrator.AdapterCapacity
                     memory pool = orchestrator.getPool(chainId);
                 if (
                     pool.status != IDynamicRoutingOrchestrator.PoolStatus.ACTIVE
@@ -187,7 +187,7 @@ contract DynamicRoutingInvariant is StdInvariant, Test {
         uint256 len = handler.ghostPoolCount();
         for (uint256 i; i < len && i < 10; i++) {
             try handler.registeredChains(i) returns (uint256 chainId) {
-                IDynamicRoutingOrchestrator.BridgeCapacity
+                IDynamicRoutingOrchestrator.AdapterCapacity
                     memory pool = orchestrator.getPool(chainId);
                 if (
                     pool.status != IDynamicRoutingOrchestrator.PoolStatus.ACTIVE
@@ -201,12 +201,12 @@ contract DynamicRoutingInvariant is StdInvariant, Test {
     }
 
     /// @notice Bridge metrics: successful + failed should not underflow
-    function invariant_BridgeMetricsConsistency() public view {
+    function invariant_AdapterMetricsConsistency() public view {
         uint256 len = handler.ghostBridgeCount();
         for (uint256 i; i < len && i < 10; i++) {
             try handler.registeredBridges(i) returns (address bridge) {
-                IDynamicRoutingOrchestrator.BridgeMetrics
-                    memory metrics = orchestrator.getBridgeMetrics(bridge);
+                IDynamicRoutingOrchestrator.AdapterMetrics
+                    memory metrics = orchestrator.getAdapterMetrics(bridge);
                 assert(metrics.successfulRelays <= metrics.totalRelays);
             } catch {
                 break;

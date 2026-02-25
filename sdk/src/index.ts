@@ -176,17 +176,17 @@ export {
   type EmergencyIncident,
 } from "./security/EnhancedKillSwitchClient";
 
-// Intent Settlement (Tachyon-derived)
+// Intent Completion (Tachyon-derived)
 export {
-  IntentSettlementClient,
-  createIntentSettlementClient,
+  IntentCompletionClient,
+  createIntentCompletionClient,
   IntentStatus,
   GuaranteeStatus,
-  type IntentSettlementConfig,
+  type IntentCompletionConfig,
   type Intent,
   type Solver,
   type Guarantee,
-} from "./client/IntentSettlementClient";
+} from "./client/IntentCompletionClient";
 
 // Compliance & Selective Disclosure
 export {

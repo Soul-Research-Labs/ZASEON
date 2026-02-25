@@ -44,7 +44,7 @@ export interface SoulContractAddresses {
   dataAvailabilityOracle?: Hex;
 
   // Bridge & Cross-Chain
-  bridgeCircuitBreaker?: Hex;
+  relayCircuitBreaker?: Hex;
   crossChainPrivacyHub?: Hex;
 
   // Relayer
@@ -57,7 +57,7 @@ export interface SoulContractAddresses {
   soulCrossChainRelay?: Hex;
   optimisticBridgeVerifier?: Hex;
   bridgeRateLimiter?: Hex;
-  bridgeWatchtower?: Hex;
+  relayWatchtower?: Hex;
   bridgeFraudProof?: Hex;
 
   // Governance
@@ -65,9 +65,9 @@ export interface SoulContractAddresses {
   soulToken?: Hex;
   timelock?: Hex;
 
-  // Intent Settlement & Dynamic Routing (Tachyon-derived)
-  intentSettlementLayer?: Hex;
-  instantSettlementGuarantee?: Hex;
+  // Intent Completion & Dynamic Routing (Tachyon-derived)
+  intentCompletionLayer?: Hex;
+  instantCompletionGuarantee?: Hex;
   dynamicRoutingOrchestrator?: Hex;
   capacityAwareRouter?: Hex;
 
@@ -128,7 +128,7 @@ export const BASE_SEPOLIA_ADDRESSES: Partial<SoulContractAddresses> = {
   soulCrossChainRelay: "0x65CDCdA5ba98bB0d784c3a69C826cb3B59C20251",
   optimisticBridgeVerifier: "0xBA63a3F3C5568eC6447FBe1b852a613743419D9f",
   bridgeRateLimiter: "0x23824cDbD8Ca773c5DA0202f8f41083F81aF1135",
-  bridgeWatchtower: "0x3E556432Ea021046ad4BE22cB94f713f98f4B76E",
+  relayWatchtower: "0x3E556432Ea021046ad4BE22cB94f713f98f4B76E",
   decentralizedRelayerRegistry: "0x2472BDB087590e4F4F4bE1243ec9533828eC0D9d",
   bridgeFraudProof: "0x583E650c0385FEd1E427dF68fa91b2d8E56Df20f",
 };

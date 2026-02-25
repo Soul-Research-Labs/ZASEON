@@ -172,7 +172,7 @@ contract SoulProtocolHubTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                       BRIDGE REGISTRATION
+                       RELAY REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
     function test_RegisterBridgeAdapter() public {
@@ -180,12 +180,12 @@ contract SoulProtocolHubTest is Test {
         uint256 chainId = 42161; // Arbitrum
 
         vm.prank(operator);
-        hub.registerBridgeAdapter(chainId, adapter, true, 12);
+        hub.registerRelayAdapter(chainId, adapter, true, 12);
 
-        assertEq(hub.getBridgeAdapter(chainId), adapter);
+        assertEq(hub.getRelayAdapter(chainId), adapter);
         assertTrue(hub.isChainSupported(chainId));
 
-        ISoulProtocolHub.BridgeInfo memory info = hub.getBridgeInfo(chainId);
+        ISoulProtocolHub.RelayInfo memory info = hub.getRelayInfo(chainId);
         assertEq(info.adapter, adapter);
         assertEq(info.chainId, chainId);
         assertTrue(info.supportsPrivacy);
@@ -195,9 +195,9 @@ contract SoulProtocolHubTest is Test {
 
     function test_RegisterMultipleBridges() public {
         vm.startPrank(operator);
-        hub.registerBridgeAdapter(42161, makeAddr("arb"), true, 12);
-        hub.registerBridgeAdapter(10, makeAddr("op"), true, 1);
-        hub.registerBridgeAdapter(8453, makeAddr("base"), false, 1);
+        hub.registerRelayAdapter(42161, makeAddr("arb"), true, 12);
+        hub.registerRelayAdapter(10, makeAddr("op"), true, 1);
+        hub.registerRelayAdapter(8453, makeAddr("base"), false, 1);
         vm.stopPrank();
 
         uint256[] memory chains = hub.getSupportedChainIds();
@@ -222,7 +222,7 @@ contract SoulProtocolHubTest is Test {
         confirmations[1] = 1;
 
         vm.prank(operator);
-        hub.batchRegisterBridgeAdapters(
+        hub.batchRegisterRelayAdapters(
             chainIds,
             adapters,
             privacy,
@@ -238,11 +238,11 @@ contract SoulProtocolHubTest is Test {
         address adapter2 = makeAddr("arb_v2");
 
         vm.startPrank(operator);
-        hub.registerBridgeAdapter(42161, adapter1, false, 12);
-        hub.registerBridgeAdapter(42161, adapter2, true, 6);
+        hub.registerRelayAdapter(42161, adapter1, false, 12);
+        hub.registerRelayAdapter(42161, adapter2, true, 6);
         vm.stopPrank();
 
-        assertEq(hub.getBridgeAdapter(42161), adapter2);
+        assertEq(hub.getRelayAdapter(42161), adapter2);
         // Should not duplicate chain ID
         uint256[] memory chains = hub.getSupportedChainIds();
         assertEq(chains.length, 1);
@@ -253,7 +253,7 @@ contract SoulProtocolHubTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(ISoulProtocolHub.ZeroAddress.selector)
         );
-        hub.registerBridgeAdapter(42161, address(0), true, 12);
+        hub.registerRelayAdapter(42161, address(0), true, 12);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -330,14 +330,14 @@ contract SoulProtocolHubTest is Test {
         address breaker = makeAddr("breaker");
 
         vm.startPrank(operator);
-        hub.setBridgeProofValidator(validator);
-        hub.setBridgeWatchtower(watchtower);
-        hub.setBridgeCircuitBreaker(breaker);
+        hub.setRelayProofValidator(validator);
+        hub.setRelayWatchtower(watchtower);
+        hub.setRelayCircuitBreaker(breaker);
         vm.stopPrank();
 
-        assertEq(hub.bridgeProofValidator(), validator);
-        assertEq(hub.bridgeWatchtower(), watchtower);
-        assertEq(hub.bridgeCircuitBreaker(), breaker);
+        assertEq(hub.relayProofValidator(), validator);
+        assertEq(hub.relayWatchtower(), watchtower);
+        assertEq(hub.relayCircuitBreaker(), breaker);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -429,10 +429,10 @@ contract SoulProtocolHubTest is Test {
 
     function test_DeactivateBridge() public {
         vm.prank(operator);
-        hub.registerBridgeAdapter(42161, makeAddr("arb"), true, 12);
+        hub.registerRelayAdapter(42161, makeAddr("arb"), true, 12);
 
         vm.prank(guardian);
-        hub.deactivateBridge(42161);
+        hub.deactivateRelay(42161);
 
         assertFalse(hub.isChainSupported(42161));
     }
@@ -450,7 +450,7 @@ contract SoulProtocolHubTest is Test {
     function test_RevertNonOperatorRegisterBridge() public {
         vm.prank(nonAdmin);
         vm.expectRevert();
-        hub.registerBridgeAdapter(42161, makeAddr("x"), true, 12);
+        hub.registerRelayAdapter(42161, makeAddr("x"), true, 12);
     }
 
     function test_RevertNonGuardianDeactivateVerifier() public {
@@ -492,9 +492,9 @@ contract SoulProtocolHubTest is Test {
         address adapter = makeAddr("fuzzAdapter");
 
         vm.prank(operator);
-        hub.registerBridgeAdapter(chainId, adapter, supportsPrivacy, minConfs);
+        hub.registerRelayAdapter(chainId, adapter, supportsPrivacy, minConfs);
 
-        assertEq(hub.getBridgeAdapter(chainId), adapter);
+        assertEq(hub.getRelayAdapter(chainId), adapter);
         assertTrue(hub.isChainSupported(chainId));
     }
 }

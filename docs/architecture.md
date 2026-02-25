@@ -77,7 +77,7 @@ Chain B: Bridge delivers USDC → ShieldedPool on Chain B
 
 ### How the Intent Layer Fits
 
-The `IntentSettlementLayer` is an optional UX abstraction within this model. Instead of users manually selecting bridges and constructing proofs, they express a desired outcome (intent) and relayers/solvers compete to fulfill it by routing through the bridge-wrapped privacy flow above. The `InstantSettlementGuarantee` adds bonded proof delivery SLAs — guarantors pledge ETH that proof will land within a time window, or the user claims from the bond.
+The `IntentCompletionLayer` is an optional UX abstraction within this model. Instead of users manually selecting bridges and constructing proofs, they express a desired outcome (intent) and relayers/solvers compete to fulfill it by routing through the bridge-wrapped privacy flow above. The `InstantCompletionGuarantee` adds bonded proof delivery SLAs — guarantors pledge ETH that proof will land within a time window, or the user claims from the bond.
 
 Neither contract moves tokens or manages capital. They coordinate **proof generation and delivery** within the bridge-wrapped model.
 
@@ -120,8 +120,8 @@ The codebase uses certain terms that map to proof middleware concepts:
 | `BridgeCapacity` (struct)    | Oracle-observed throughput capacity of a bridge adapter on a given chain. Soul does NOT manage this capacity — it queries it for routing decisions.        |
 | `DynamicRoutingOrchestrator` | Routes **proof relay requests** through optimal bridge adapters based on observed bridge capacity, latency, and success rates.                             |
 | `CapacityAwareRouter`        | Routes proof-carrying transfers through the `DynamicRoutingOrchestrator`, tracking per-pair relay metrics.                                                 |
-| `IntentSettlementLayer`      | Proof service marketplace where solvers compete to generate and deliver ZK proofs for user intents. "Settlement" = proof verification, not token delivery. |
-| `InstantSettlementGuarantee` | Guarantor bonds ETH to guarantee proof delivery within a time window. If proof delivery fails, beneficiary claims from the bond.                           |
+| `IntentCompletionLayer`      | Proof service marketplace where solvers compete to generate and deliver ZK proofs for user intents. "Completion" = proof verification, not token delivery. |
+| `InstantCompletionGuarantee` | Guarantor bonds ETH to guarantee proof delivery within a time window. If proof delivery fails, beneficiary claims from the bond.                           |
 | `InstantRelayerRewards`      | Speed-tiered incentives for relayers who deliver proofs quickly.                                                                                           |
 | `Transfer` (in router)       | A proof relay operation, not a token transfer. The `amount` field refers to the service fee, not tokens being moved.                                       |
 | `registerPool`               | Registers oracle-observed bridge adapter capacity for a chain — does NOT create a liquidity pool.                                                          |

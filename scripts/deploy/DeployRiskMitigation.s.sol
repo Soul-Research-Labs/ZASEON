@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import "../../contracts/security/ExperimentalFeatureRegistry.sol";
 import "../../contracts/bridge/MultiBridgeRouter.sol";
-import "../../contracts/security/OptimisticBridgeVerifier.sol";
+import "../../contracts/security/OptimisticRelayVerifier.sol";
 
 /**
  * @title DeployRiskMitigation
@@ -12,7 +12,7 @@ import "../../contracts/security/OptimisticBridgeVerifier.sol";
  * @dev Deploys:
  *      1. ExperimentalFeatureRegistry - Disable experimental features
  *      2. MultiBridgeRouter - Bridge diversity and fallback
- *      3. OptimisticBridgeVerifier - Challenge periods for high-value transfers
+ *      3. OptimisticRelayVerifier - Challenge periods for high-value transfers
  */
 contract DeployRiskMitigation is Script {
     function run() external {
@@ -48,13 +48,13 @@ contract DeployRiskMitigation is Script {
         console.log("- High value threshold: 100 ETH");
         console.log("- Multi-verification threshold: 50 ETH");
 
-        // 3. Deploy OptimisticBridgeVerifier
-        console.log("\n3. Deploying OptimisticBridgeVerifier...");
-        OptimisticBridgeVerifier optimisticVerifier = new OptimisticBridgeVerifier(
+        // 3. Deploy OptimisticRelayVerifier
+        console.log("\n3. Deploying OptimisticRelayVerifier...");
+        OptimisticRelayVerifier optimisticVerifier = new OptimisticRelayVerifier(
                 deployer
             );
         console.log(
-            "OptimisticBridgeVerifier deployed at:",
+            "OptimisticRelayVerifier deployed at:",
             address(optimisticVerifier)
         );
         console.log("- Challenge period: 1 hour");
@@ -80,7 +80,7 @@ contract DeployRiskMitigation is Script {
                 "MultiBridgeRouter: ",
                 vm.toString(address(bridgeRouter)),
                 "\n",
-                "OptimisticBridgeVerifier: ",
+                "OptimisticRelayVerifier: ",
                 vm.toString(address(optimisticVerifier)),
                 "\n"
             )

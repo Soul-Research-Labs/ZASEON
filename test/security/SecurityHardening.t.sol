@@ -2,33 +2,33 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../../contracts/security/OptimisticBridgeVerifier.sol";
-import "../../contracts/security/BridgeSecurityScorecard.sol";
+import "../../contracts/security/OptimisticRelayVerifier.sol";
+import "../../contracts/security/RelaySecurityScorecard.sol";
 import "../../contracts/security/ExperimentalFeatureRegistry.sol";
-import "../../contracts/security/BridgeRateLimiter.sol";
-import "../../contracts/security/BridgeWatchtower.sol";
+import "../../contracts/security/RelayRateLimiter.sol";
+import "../../contracts/security/RelayWatchtower.sol";
 
 contract SecurityHardeningTest is Test {
-    OptimisticBridgeVerifier public verifier;
-    BridgeSecurityScorecard public scorecard;
+    OptimisticRelayVerifier public verifier;
+    RelaySecurityScorecard public scorecard;
     ExperimentalFeatureRegistry public registry;
-    BridgeRateLimiter public rateLimiter;
-    BridgeWatchtower public watchtower;
+    RelayRateLimiter public rateLimiter;
+    RelayWatchtower public watchtower;
 
     address public admin = address(this);
     address public user = makeAddr("user");
     address public challenger = makeAddr("challenger");
-    address public bridge = makeAddr("bridgeAdapter");
+    address public bridge = makeAddr("relayAdapter");
 
     function setUp() public {
         // Deploy contracts
-        verifier = new OptimisticBridgeVerifier(admin);
-        scorecard = new BridgeSecurityScorecard(admin);
+        verifier = new OptimisticRelayVerifier(admin);
+        scorecard = new RelaySecurityScorecard(admin);
         registry = new ExperimentalFeatureRegistry(admin);
-        rateLimiter = new BridgeRateLimiter(admin); // This creates config but doesn't set it yet?
-        watchtower = new BridgeWatchtower(admin);
+        rateLimiter = new RelayRateLimiter(admin); // This creates config but doesn't set it yet?
+        watchtower = new RelayWatchtower(admin);
 
-        // NOTE: BridgeRateLimiter constructor sets default config, but we can override.
+        // NOTE: RelayRateLimiter constructor sets default config, but we can override.
         // Grant roles
         rateLimiter.grantRole(rateLimiter.OPERATOR_ROLE(), admin);
         watchtower.grantRole(watchtower.WATCHTOWER_ROLE(), admin);
@@ -37,8 +37,8 @@ contract SecurityHardeningTest is Test {
         watchtower.register{value: 1 ether}(); // Register admin as watchtower
         watchtower.setTargetContracts(bridge, address(rateLimiter));
         watchtower.setReportAction(
-            BridgeWatchtower.ReportType.LARGE_TRANSFER_ANOMALY,
-            BridgeWatchtower.ResponseAction.TRIGGER_CIRCUIT_BREAKER
+            RelayWatchtower.ReportType.LARGE_TRANSFER_ANOMALY,
+            RelayWatchtower.ResponseAction.TRIGGER_CIRCUIT_BREAKER
         );
 
         // Grant Guardian role to Watchtower in RateLimiter so it can trigger breaker
@@ -76,11 +76,11 @@ contract SecurityHardeningTest is Test {
             hex"deadbeef"
         );
 
-        OptimisticBridgeVerifier.PendingTransfer memory t = verifier
+        OptimisticRelayVerifier.PendingTransfer memory t = verifier
             .getVerification(transferId);
         assertEq(
             uint(t.status),
-            uint(OptimisticBridgeVerifier.TransferStatus.CHALLENGED)
+            uint(OptimisticRelayVerifier.TransferStatus.CHALLENGED)
         );
         assertEq(t.challenger, challenger);
 
@@ -91,7 +91,7 @@ contract SecurityHardeningTest is Test {
         t = verifier.getVerification(transferId);
         assertEq(
             uint(t.status),
-            uint(OptimisticBridgeVerifier.TransferStatus.REJECTED)
+            uint(OptimisticRelayVerifier.TransferStatus.REJECTED)
         );
     }
 
@@ -115,11 +115,11 @@ contract SecurityHardeningTest is Test {
 
         verifier.finalizeTransfer(transferId);
 
-        OptimisticBridgeVerifier.PendingTransfer memory t = verifier
+        OptimisticRelayVerifier.PendingTransfer memory t = verifier
             .getVerification(transferId);
         assertEq(
             uint(t.status),
-            uint(OptimisticBridgeVerifier.TransferStatus.FINALIZED)
+            uint(OptimisticRelayVerifier.TransferStatus.FINALIZED)
         );
     }
 
@@ -212,7 +212,7 @@ contract SecurityHardeningTest is Test {
 
         // 1. Admin submits report
         bytes32 reportId = watchtower.submitReport(
-            BridgeWatchtower.ReportType.LARGE_TRANSFER_ANOMALY,
+            RelayWatchtower.ReportType.LARGE_TRANSFER_ANOMALY,
             subject,
             ""
         );
@@ -222,10 +222,10 @@ contract SecurityHardeningTest is Test {
         watchtower.voteOnReport(reportId, true);
 
         // Should be finalized and action executed
-        BridgeWatchtower.AnomalyReport memory r = watchtower.getReport(
+        RelayWatchtower.AnomalyReport memory r = watchtower.getReport(
             reportId
         );
-        assertEq(uint(r.status), uint(BridgeWatchtower.ReportStatus.CONFIRMED));
+        assertEq(uint(r.status), uint(RelayWatchtower.ReportStatus.CONFIRMED));
 
         // Check action execution (RateLimiter triggered)
         assertTrue(

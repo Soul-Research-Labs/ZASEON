@@ -43,7 +43,7 @@ const MULTI_BRIDGE_ROUTER_ABI = [
     outputs: [],
   },
   {
-    name: "registerBridge",
+    name: "registerAdapter",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
@@ -184,7 +184,7 @@ const MULTI_BRIDGE_ROUTER_ABI = [
   },
   // ── Events ──
   {
-    name: "BridgeRegistered",
+    name: "AdapterRegistered",
     type: "event",
     inputs: [
       { name: "bridgeType", type: "uint8", indexed: true },
@@ -458,7 +458,7 @@ export class MultiBridgeRouterClient {
    * @param securityScore - Security score (0–100)
    * @param maxValuePerTx - Maximum value per transaction
    */
-  async registerBridge(
+  async registerAdapter(
     bridgeType: BridgeType,
     adapter: Hex,
     securityScore: bigint,
@@ -467,7 +467,7 @@ export class MultiBridgeRouterClient {
     if (!this.walletClient)
       throw new Error("Wallet client required for write operations");
 
-    const hash = await this.contract.write.registerBridge([
+    const hash = await this.contract.write.registerAdapter([
       bridgeType,
       adapter,
       securityScore,

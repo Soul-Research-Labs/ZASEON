@@ -128,7 +128,7 @@ contract ProtocolHealthAggregatorTest is Test {
     function test_RegisterSubsystem_Success() public {
         vm.prank(admin);
         aggregator.registerSubsystem(
-            "BridgeCircuitBreaker",
+            "RelayCircuitBreaker",
             address(0x1),
             ProtocolHealthAggregator.SubsystemCategory.BRIDGE,
             5000,
@@ -242,7 +242,7 @@ contract ProtocolHealthAggregatorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_UpdateHealth_Success() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, 85);
@@ -253,7 +253,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_UpdateHealth_RevertScoreAbove100() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         vm.expectRevert(
@@ -277,7 +277,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_UpdateHealth_RecalculatesComposite() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, 60);
@@ -287,7 +287,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_UpdateHealth_StatusTransitions() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         // Set to WARNING zone (40-69)
         vm.prank(monitor);
@@ -315,7 +315,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_BatchUpdateHealth() public {
-        bytes32 subId1 = _registerBridgeSubsystem();
+        bytes32 subId1 = _registerAdapterSubsystem();
         bytes32 subId2 = _registerRelayerSubsystem();
 
         bytes32[] memory ids = new bytes32[](2);
@@ -343,7 +343,7 @@ contract ProtocolHealthAggregatorTest is Test {
 
     function test_CompositeScore_WeightedAverage() public {
         // Register two subsystems in same category with different weights
-        bytes32 subId1 = _registerBridgeSubsystem(); // weight 5000
+        bytes32 subId1 = _registerAdapterSubsystem(); // weight 5000
         bytes32 subId2 = _registerRelayerSubsystem(); // weight 5000
 
         byte32Array2(subId1, subId2);
@@ -367,7 +367,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_CompositeScore_StalenessPenalty() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, 80);
@@ -427,7 +427,7 @@ contract ProtocolHealthAggregatorTest is Test {
         vm.prank(admin);
         aggregator.registerPausableTarget(mockContract1, "Contract1");
 
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         // Set health to CRITICAL (<40)
         vm.prank(monitor);
@@ -441,7 +441,7 @@ contract ProtocolHealthAggregatorTest is Test {
         vm.prank(admin);
         aggregator.registerPausableTarget(mockContract1, "Contract1");
 
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         // Go critical
         vm.prank(monitor);
@@ -461,7 +461,7 @@ contract ProtocolHealthAggregatorTest is Test {
         vm.prank(admin);
         aggregator.registerPausableTarget(mockContract1, "Contract1");
 
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         // Go critical - triggers auto-pause
         vm.prank(monitor);
@@ -489,7 +489,7 @@ contract ProtocolHealthAggregatorTest is Test {
         vm.prank(admin);
         aggregator.setAutoPauseEnabled(false);
 
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, 20);
@@ -503,7 +503,7 @@ contract ProtocolHealthAggregatorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GuardianOverride_Set() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
         vm.prank(monitor);
         aggregator.updateHealth(subId, 80);
 
@@ -519,7 +519,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_GuardianOverride_Clear() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
         vm.prank(monitor);
         aggregator.updateHealth(subId, 80);
 
@@ -622,7 +622,7 @@ contract ProtocolHealthAggregatorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetProtocolHealth() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
         vm.prank(monitor);
         aggregator.updateHealth(subId, 50);
 
@@ -640,7 +640,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_GetSubsystemHealth_Staleness() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
         vm.prank(monitor);
         aggregator.updateHealth(subId, 80);
 
@@ -655,7 +655,7 @@ contract ProtocolHealthAggregatorTest is Test {
     }
 
     function test_GetRecentSnapshots() public {
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         // Record a few updates
         vm.startPrank(monitor);
@@ -678,7 +678,7 @@ contract ProtocolHealthAggregatorTest is Test {
 
     function testFuzz_UpdateHealth_ScoreBounds(uint16 score) public {
         vm.assume(score <= 100);
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, score);
@@ -696,7 +696,7 @@ contract ProtocolHealthAggregatorTest is Test {
         vm.assume(s1 <= 100);
         vm.assume(s2 <= 100);
 
-        bytes32 subId1 = _registerBridgeSubsystem();
+        bytes32 subId1 = _registerAdapterSubsystem();
         bytes32 subId2 = _registerRelayerSubsystem();
 
         vm.startPrank(monitor);
@@ -709,7 +709,7 @@ contract ProtocolHealthAggregatorTest is Test {
 
     function testFuzz_StatusTransition_Consistent(uint16 score) public {
         vm.assume(score <= 100);
-        bytes32 subId = _registerBridgeSubsystem();
+        bytes32 subId = _registerAdapterSubsystem();
 
         vm.prank(monitor);
         aggregator.updateHealth(subId, score);
@@ -738,7 +738,7 @@ contract ProtocolHealthAggregatorTest is Test {
                            HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    function _registerBridgeSubsystem() internal returns (bytes32) {
+    function _registerAdapterSubsystem() internal returns (bytes32) {
         vm.prank(admin);
         aggregator.registerSubsystem(
             "Bridge",

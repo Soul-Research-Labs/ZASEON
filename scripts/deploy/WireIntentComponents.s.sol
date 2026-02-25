@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {SoulProtocolHub} from "../../contracts/core/SoulProtocolHub.sol";
 import "../../contracts/interfaces/ISoulProtocolHub.sol";
-import {IntentSettlementLayer} from "../../contracts/core/IntentSettlementLayer.sol";
-import {InstantSettlementGuarantee} from "../../contracts/core/InstantSettlementGuarantee.sol";
+import {IntentCompletionLayer} from "../../contracts/core/IntentCompletionLayer.sol";
+import {InstantCompletionGuarantee} from "../../contracts/core/InstantCompletionGuarantee.sol";
 import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrchestrator.sol";
 
 /**
@@ -13,8 +13,8 @@ import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrc
  * @notice Deploy and wire the Tachyon-inspired intent suite into the SoulProtocolHub.
  *
  * @dev Deploys three contracts in dependency order:
- *      1. IntentSettlementLayer   — intent-based cross-chain settlement
- *      2. InstantSettlementGuarantee — bonded proof delivery guarantees
+ *      1. IntentCompletionLayer   — intent-based cross-chain completion
+ *      2. InstantCompletionGuarantee — bonded proof delivery guarantees
  *      3. DynamicRoutingOrchestrator — multi-bridge routing with ML-style scoring
  *
  *      Then wires all three into the Hub via wireAll (zero-address for existing components).
@@ -26,7 +26,7 @@ import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrc
  *   BRIDGE_ADMIN       — Bridge admin for DynamicRoutingOrchestrator
  *
  * Optional env vars:
- *   INTENT_VERIFIER    — ZK verifier for IntentSettlementLayer (default: address(0), set later)
+ *   INTENT_VERIFIER    — ZK verifier for IntentCompletionLayer (default: address(0), set later)
  *
  * Usage:
  *   SOUL_HUB=0x...       \
@@ -63,20 +63,20 @@ contract WireIntentComponents is Script {
 
         vm.startBroadcast();
 
-        // 1. Deploy IntentSettlementLayer
-        IntentSettlementLayer intentLayer = new IntentSettlementLayer(
+        // 1. Deploy IntentCompletionLayer
+        IntentCompletionLayer intentLayer = new IntentCompletionLayer(
             admin,
             intentVerifier
         );
-        console.log("IntentSettlementLayer deployed at:", address(intentLayer));
+        console.log("IntentCompletionLayer deployed at:", address(intentLayer));
 
-        // 2. Deploy InstantSettlementGuarantee (depends on IntentSettlementLayer)
-        InstantSettlementGuarantee guarantee = new InstantSettlementGuarantee(
+        // 2. Deploy InstantCompletionGuarantee (depends on IntentCompletionLayer)
+        InstantCompletionGuarantee guarantee = new InstantCompletionGuarantee(
             admin,
             address(intentLayer)
         );
         console.log(
-            "InstantSettlementGuarantee deployed at:",
+            "InstantCompletionGuarantee deployed at:",
             address(guarantee)
         );
 
@@ -103,15 +103,15 @@ contract WireIntentComponents is Script {
                 _complianceOracle: address(0),
                 _proofTranslator: address(0),
                 _privacyRouter: address(0),
-                _bridgeProofValidator: address(0),
+                _relayProofValidator: address(0),
                 _zkBoundStateLocks: address(0),
                 _proofCarryingContainer: address(0),
                 _crossDomainNullifierAlgebra: address(0),
                 _policyBoundProofs: address(0),
                 _multiProver: address(0),
-                _bridgeWatchtower: address(0),
-                _intentSettlementLayer: address(intentLayer),
-                _instantSettlementGuarantee: address(guarantee),
+                _relayWatchtower: address(0),
+                _intentCompletionLayer: address(intentLayer),
+                _instantCompletionGuarantee: address(guarantee),
                 _dynamicRoutingOrchestrator: address(router)
             })
         );
@@ -120,8 +120,8 @@ contract WireIntentComponents is Script {
 
         // Post-deploy summary
         console.log("\n=== Deployment Summary ===");
-        console.log("IntentSettlementLayer:      ", address(intentLayer));
-        console.log("InstantSettlementGuarantee: ", address(guarantee));
+        console.log("IntentCompletionLayer:      ", address(intentLayer));
+        console.log("InstantCompletionGuarantee: ", address(guarantee));
         console.log("DynamicRoutingOrchestrator: ", address(router));
         console.log("Hub fully configured:       ", hub.isFullyConfigured());
 

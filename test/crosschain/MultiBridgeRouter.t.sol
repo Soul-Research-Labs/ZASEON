@@ -21,7 +21,7 @@ contract MockBridgeAdapter is IBridgeAdapter {
         return 0;
     }
 
-    function isMessageverified(bytes32) external pure override returns (bool) {
+    function isMessageVerified(bytes32) external pure override returns (bool) {
         return true;
     }
 }

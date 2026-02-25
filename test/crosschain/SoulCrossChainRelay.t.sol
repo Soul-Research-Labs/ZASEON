@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../../contracts/crosschain/SoulCrossChainRelay.sol";
 
 /// @dev Mock bridge adapter that succeeds
-contract MockBridgeAdapter {
+contract MockRelayAdapter {
     bool public called;
     bytes public lastPayload;
 
@@ -55,7 +55,7 @@ contract MockProofHub {
 }
 
 /// @dev Bridge adapter that always fails
-contract FailingBridgeAdapter {
+contract FailingRelayAdapter {
     fallback() external payable {
         revert("bridge fail");
     }
@@ -63,7 +63,7 @@ contract FailingBridgeAdapter {
 
 contract SoulCrossChainRelayTest is Test {
     SoulCrossChainRelay public relay;
-    MockBridgeAdapter public bridgeAdapter;
+    MockRelayAdapter public relayAdapter;
     MockProofHub public proofHub;
 
     address admin;
@@ -72,7 +72,7 @@ contract SoulCrossChainRelayTest is Test {
     address operatorAddr = makeAddr("operator");
 
     bytes32 constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
-    bytes32 constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+    bytes32 constant RELAY_ROLE = keccak256("RELAY_ROLE");
     bytes32 constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     uint256 constant DEST_CHAIN = 42_161; // Arbitrum
@@ -80,7 +80,7 @@ contract SoulCrossChainRelayTest is Test {
     function setUp() public {
         admin = address(this);
         proofHub = new MockProofHub();
-        bridgeAdapter = new MockBridgeAdapter();
+        relayAdapter = new MockRelayAdapter();
 
         relay = new SoulCrossChainRelay(
             address(proofHub),
@@ -88,14 +88,14 @@ contract SoulCrossChainRelayTest is Test {
         );
 
         relay.grantRole(RELAYER_ROLE, relayer);
-        relay.grantRole(BRIDGE_ROLE, bridgeRole);
+        relay.grantRole(RELAY_ROLE, bridgeRole);
         relay.grantRole(OPERATOR_ROLE, operatorAddr);
 
         // Configure destination chain
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(proofHub),
-                bridgeAdapter: address(bridgeAdapter),
+                relayAdapter: address(relayAdapter),
                 bridgeChainId: 30_110,
                 active: true
             });
@@ -156,7 +156,7 @@ contract SoulCrossChainRelayTest is Test {
             bool active
         ) = relay.chainConfigs(DEST_CHAIN);
         assertEq(hub, address(proofHub));
-        assertEq(adapter_, address(bridgeAdapter));
+        assertEq(adapter_, address(relayAdapter));
         assertEq(bridgeChainId, 30_110);
         assertTrue(active);
     }
@@ -165,7 +165,7 @@ contract SoulCrossChainRelayTest is Test {
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: makeAddr("hub2"),
-                bridgeAdapter: makeAddr("adapter2"),
+                relayAdapter: makeAddr("adapter2"),
                 bridgeChainId: 99,
                 active: true
             });
@@ -185,7 +185,7 @@ contract SoulCrossChainRelayTest is Test {
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(0),
-                bridgeAdapter: makeAddr("a"),
+                relayAdapter: makeAddr("a"),
                 bridgeChainId: 1,
                 active: true
             });
@@ -194,16 +194,16 @@ contract SoulCrossChainRelayTest is Test {
         relay.configureChain(999, config);
     }
 
-    function test_configureChain_revert_zeroBridgeAdapter() public {
+    function test_configureChain_revert_zeroRelayAdapter() public {
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: makeAddr("h"),
-                bridgeAdapter: address(0),
+                relayAdapter: address(0),
                 bridgeChainId: 1,
                 active: true
             });
         vm.prank(operatorAddr);
-        vm.expectRevert(SoulCrossChainRelay.InvalidBridgeAdapter.selector);
+        vm.expectRevert(SoulCrossChainRelay.InvalidRelayAdapter.selector);
         relay.configureChain(999, config);
     }
 
@@ -211,7 +211,7 @@ contract SoulCrossChainRelayTest is Test {
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: makeAddr("h"),
-                bridgeAdapter: makeAddr("a"),
+                relayAdapter: makeAddr("a"),
                 bridgeChainId: 1,
                 active: true
             });
@@ -225,7 +225,7 @@ contract SoulCrossChainRelayTest is Test {
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: makeAddr("hub3"),
-                bridgeAdapter: makeAddr("adapter3"),
+                relayAdapter: makeAddr("adapter3"),
                 bridgeChainId: 55,
                 active: true
             });
@@ -258,7 +258,7 @@ contract SoulCrossChainRelayTest is Test {
         );
 
         assertTrue(messageId != bytes32(0));
-        assertTrue(bridgeAdapter.called());
+        assertTrue(relayAdapter.called());
         assertEq(relay.relayNonce(), 1);
     }
 
@@ -461,7 +461,7 @@ contract SoulCrossChainRelayTest is Test {
         );
 
         assertTrue(messageId != bytes32(0));
-        assertTrue(bridgeAdapter.called());
+        assertTrue(relayAdapter.called());
         // Check event emission? Already covered by relayProof tests mostly, but good to know it works.
     }
 
@@ -476,11 +476,11 @@ contract SoulCrossChainRelayTest is Test {
         hypRelay.grantRole(RELAYER_ROLE, relayer);
         hypRelay.grantRole(OPERATOR_ROLE, address(this));
 
-        MockBridgeAdapter hypAdapter = new MockBridgeAdapter();
+        MockRelayAdapter hypAdapter = new MockRelayAdapter();
         SoulCrossChainRelay.ChainConfig memory config = SoulCrossChainRelay
             .ChainConfig({
                 proofHub: address(proofHub),
-                bridgeAdapter: address(hypAdapter),
+                relayAdapter: address(hypAdapter),
                 bridgeChainId: 30_110,
                 active: true
             });

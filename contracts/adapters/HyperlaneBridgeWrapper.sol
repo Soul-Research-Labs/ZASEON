@@ -109,7 +109,7 @@ contract HyperlaneBridgeWrapper is IBridgeAdapter, AccessControl {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageverified(
+    function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         // Check Hyperlane mailbox delivered status

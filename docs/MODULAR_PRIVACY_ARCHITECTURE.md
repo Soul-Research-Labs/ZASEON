@@ -29,7 +29,7 @@ Blockchains are **composable services**, not monoliths:
 | Consensus | External |
 | Execution | External |
 | Data Availability | Core |
-| Settlement | External |
+| Completion | External |
 
 ### Soul's Reinterpretation
 
@@ -41,7 +41,7 @@ Apply this insight to **privacy and interoperability**, not just DA:
 | Verification | Shared (Inherited) |
 | Execution | Pluggable Microservices |
 | Transport | Oblivious Layer |
-| Settlement | Materialization Adapters |
+| Completion | Materialization Adapters |
 
 ---
 
@@ -280,7 +280,7 @@ interface IExecutionMicroservice {
 | Use external DA | Use Confidential DA |
 | Inherit DA security | Inherit verification security |
 | Custom state machine | Custom disclosure rules |
-| Settlement anywhere | Materialization anywhere |
+| Completion anywhere | Materialization anywhere |
 
 ### SPD Architecture
 

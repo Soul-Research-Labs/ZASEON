@@ -7,7 +7,7 @@ pragma solidity ^0.8.24;
  * @notice Interface for dynamic cross-chain proof routing with bridge capacity awareness
  * @dev Routes ZK proof relay requests through optimal bridge adapters.
  *      Soul Protocol is proof middleware — it does NOT manage bridge capacity.
- *      BridgeCapacity data is oracle-provided metadata about external bridge adapters.
+ *      AdapterCapacity data is oracle-provided metadata about external bridge adapters.
  *      The orchestrator uses this data to select the best route for proof delivery,
  *      optimizing for cost, latency, and success probability.
  *      Supports multi-hop routing through intermediate chains.
@@ -49,7 +49,7 @@ interface IDynamicRoutingOrchestrator {
     /// @notice Oracle-observed bridge adapter capacity for a specific chain.
     ///         Soul does NOT manage these pools — this is observed metadata from
     ///         external bridge adapters used to make routing decisions.
-    struct BridgeCapacity {
+    struct AdapterCapacity {
         uint256 chainId; // Target chain ID
         uint256 availableCapacity; // Current available bridge throughput capacity (wei-equivalent)
         uint256 totalCapacity; // Total bridge adapter capacity (wei-equivalent)
@@ -64,7 +64,7 @@ interface IDynamicRoutingOrchestrator {
     struct Route {
         bytes32 routeId; // Unique route identifier
         uint256[] chainPath; // Ordered chain IDs [source, ..hops.., dest]
-        address[] bridgeAdapters; // Bridge adapter per hop
+        address[] relayAdapters; // Bridge adapter per hop
         uint256 totalCost; // Total estimated cost (wei)
         uint48 estimatedTime; // Estimated total completion time (seconds)
         uint16 successProbabilityBps; // Success probability (0-10000 bps)
@@ -87,7 +87,7 @@ interface IDynamicRoutingOrchestrator {
     }
 
     /// @notice Bridge performance metrics tracked by the orchestrator
-    struct BridgeMetrics {
+    struct AdapterMetrics {
         address adapter; // Bridge adapter address
         uint256 totalRelays; // Total relays processed
         uint256 successfulRelays; // Successful completions
@@ -146,9 +146,9 @@ interface IDynamicRoutingOrchestrator {
 
     event RouteFailed(bytes32 indexed routeId, string reason);
 
-    event BridgeRegistered(address indexed adapter, uint256[] supportedChains);
+    event AdapterRegistered(address indexed adapter, uint256[] supportedChains);
 
-    event BridgeMetricsUpdated(
+    event AdapterMetricsUpdated(
         address indexed adapter,
         uint256 totalRelays,
         uint48 avgLatency
@@ -180,8 +180,8 @@ interface IDynamicRoutingOrchestrator {
     error CostExceedsMax(uint256 cost, uint256 maxCost);
     error TimeExceedsMax(uint48 time, uint48 maxTime);
     error SuccessBelowMin(uint16 probability, uint16 minRequired);
-    error BridgeAlreadyRegistered(address adapter);
-    error BridgeNotRegistered(address adapter);
+    error AdapterAlreadyRegistered(address adapter);
+    error AdapterNotRegistered(address adapter);
     error InvalidChainId();
     error InvalidAmount();
     error StaleOracleData(uint256 chainId, uint48 lastUpdated);
@@ -287,7 +287,7 @@ interface IDynamicRoutingOrchestrator {
      * @param supportedChains Chain IDs this bridge supports
      * @param securityScoreBps Initial security score (bps)
      */
-    function registerBridge(
+    function registerAdapter(
         address adapter,
         uint256[] calldata supportedChains,
         uint16 securityScoreBps
@@ -300,7 +300,7 @@ interface IDynamicRoutingOrchestrator {
      * @param latency Actual latency in seconds
      * @param value Relay value
      */
-    function recordBridgeOutcome(
+    function recordAdapterOutcome(
         address adapter,
         bool success,
         uint48 latency,
@@ -318,16 +318,16 @@ interface IDynamicRoutingOrchestrator {
      */
     function getPool(
         uint256 chainId
-    ) external view returns (BridgeCapacity memory pool);
+    ) external view returns (AdapterCapacity memory pool);
 
     /**
      * @notice Get bridge metrics
      * @param adapter Bridge adapter address
      * @return metrics The bridge performance metrics
      */
-    function getBridgeMetrics(
+    function getAdapterMetrics(
         address adapter
-    ) external view returns (BridgeMetrics memory metrics);
+    ) external view returns (AdapterMetrics memory metrics);
 
     /**
      * @notice Get a previously calculated route
@@ -363,7 +363,7 @@ interface IDynamicRoutingOrchestrator {
      * @param chainId The chain ID
      * @return adapters Array of bridge adapter addresses
      */
-    function getBridgesForChain(
+    function getAdaptersForChain(
         uint256 chainId
     ) external view returns (address[] memory adapters);
 }

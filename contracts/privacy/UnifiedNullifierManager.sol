@@ -55,8 +55,8 @@ contract UnifiedNullifierManager is
 
     bytes32 public constant OPERATOR_ROLE =
         0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929;
-    bytes32 public constant BRIDGE_ROLE =
-        0x52ba824bfabc2bcfcdf7f0edbb486ebb05e1836c90e78047efeb949990f72e5f;
+    bytes32 public constant RELAY_ROLE =
+        0x077a1d526a4ce8a773632ab13b4fbbf1fcc954c3dab26cd27ea0e2a6750da5d7;
     bytes32 public constant UPGRADER_ROLE =
         0x189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3;
 
@@ -166,7 +166,7 @@ contract UnifiedNullifierManager is
         ChainType chainType;
         bytes32 domainTag;
         bytes32 nullifierPrefix;
-        address bridgeAdapter;
+        address relayAdapter;
         bool isActive;
         uint256 registeredAt;
     }
@@ -300,7 +300,7 @@ contract UnifiedNullifierManager is
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(OPERATOR_ROLE, admin);
-        _grantRole(BRIDGE_ROLE, admin);
+        _grantRole(RELAY_ROLE, admin);
         _grantRole(UPGRADER_ROLE, admin);
 
         // Register default chains
@@ -318,13 +318,13 @@ contract UnifiedNullifierManager is
      * @param chainId The EVM chain ID or custom ID for non-EVM chains (e.g., 900001 for Monero)
      * @param chainType The chain classification (EVM, UTXO, PRIVACY, etc.)
      * @param domainTag A unique identifier tag for this chain's nullifier domain
-     * @param bridgeAdapter The bridge adapter contract address for this chain (address(0) if none)
+     * @param relayAdapter The bridge adapter contract address for this chain (address(0) if none)
      */
     function registerChainDomain(
         uint256 chainId,
         ChainType chainType,
         bytes32 domainTag,
-        address bridgeAdapter
+        address relayAdapter
     ) external onlyRole(OPERATOR_ROLE) {
         // SECURITY FIX: Changed from abi.encodePacked to abi.encode
         bytes32 nullifierPrefix = keccak256(
@@ -336,7 +336,7 @@ contract UnifiedNullifierManager is
             chainType: chainType,
             domainTag: domainTag,
             nullifierPrefix: nullifierPrefix,
-            bridgeAdapter: bridgeAdapter,
+            relayAdapter: relayAdapter,
             isActive: true,
             registeredAt: block.timestamp
         });
@@ -395,7 +395,7 @@ contract UnifiedNullifierManager is
             nullifierPrefix: keccak256(
                 abi.encode(NULLIFIER_DOMAIN, chainId, domainTag)
             ),
-            bridgeAdapter: address(0),
+            relayAdapter: address(0),
             isActive: true,
             registeredAt: block.timestamp
         });
@@ -409,7 +409,7 @@ contract UnifiedNullifierManager is
     /**
      * @notice Register a new nullifier with its commitment and derive a soul binding
      * @dev Creates a NullifierRecord, derives a unified soul binding via CDNA,
-     *      and stores the reverse lookup. Only callable by BRIDGE_ROLE.
+     *      and stores the reverse lookup. Only callable by RELAY_ROLE.
      *      The soul binding links nullifiers across chains to the same identity.
      * @param nullifier The unique nullifier hash (must not already exist)
      * @param commitment The Pedersen commitment associated with this nullifier
@@ -424,7 +424,7 @@ contract UnifiedNullifierManager is
         uint256 chainId,
         NullifierType nullifierType,
         uint256 expiresAt
-    ) external onlyRole(BRIDGE_ROLE) returns (bytes32 soulBinding) {
+    ) external onlyRole(RELAY_ROLE) returns (bytes32 soulBinding) {
         if (nullifierRecords[nullifier].status != NullifierStatus.UNKNOWN) {
             revert NullifierAlreadyExists();
         }
@@ -462,7 +462,7 @@ contract UnifiedNullifierManager is
     /**
      * @notice Mark nullifier as spent
      */
-    function spendNullifier(bytes32 nullifier) external onlyRole(BRIDGE_ROLE) {
+    function spendNullifier(bytes32 nullifier) external onlyRole(RELAY_ROLE) {
         NullifierRecord storage record = nullifierRecords[nullifier];
 
         if (record.status == NullifierStatus.UNKNOWN)
@@ -508,7 +508,7 @@ contract UnifiedNullifierManager is
         bytes calldata derivationProof
     )
         external
-        onlyRole(BRIDGE_ROLE)
+        onlyRole(RELAY_ROLE)
         returns (bytes32 destNullifier, bytes32 soulBinding)
     {
         NullifierRecord storage sourceRecord = nullifierRecords[
@@ -618,7 +618,7 @@ contract UnifiedNullifierManager is
         bytes32[] calldata commitments,
         uint256 chainId,
         bytes32 merkleRoot
-    ) external onlyRole(BRIDGE_ROLE) returns (bytes32 batchId) {
+    ) external onlyRole(RELAY_ROLE) returns (bytes32 batchId) {
         if (nullifiers.length == 0 || nullifiers.length > MAX_BATCH_SIZE) {
             revert InvalidBatchSize();
         }
