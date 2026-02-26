@@ -56,6 +56,12 @@ interface IRelayerFeeMarket {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new relay request is submitted by a requester
+    /// @param requestId The unique request identifier
+    /// @param sourceChainId The source chain identifier
+    /// @param destChainId The destination chain identifier
+    /// @param requester The address submitting the request
+    /// @param maxFee The maximum fee the requester is willing to pay
     event RelayRequestSubmitted(
         bytes32 indexed requestId,
         bytes32 indexed sourceChainId,
@@ -64,22 +70,39 @@ interface IRelayerFeeMarket {
         uint256 maxFee
     );
 
+    /// @notice Emitted when a relayer claims a pending relay request
+    /// @param requestId The unique request identifier
+    /// @param relayer The relayer address that claimed the request
     event RelayRequestClaimed(
         bytes32 indexed requestId,
         address indexed relayer
     );
+    /// @notice Emitted when a relay is completed and fees are distributed
+    /// @param requestId The unique request identifier
+    /// @param relayer The relayer that completed the relay
+    /// @param effectiveFee The actual fee paid after EIP-1559 calculation
     event RelayCompleted(
         bytes32 indexed requestId,
         address indexed relayer,
         uint256 effectiveFee
     );
+    /// @notice Emitted when a relay request expires without being fulfilled
+    /// @param requestId The expired request identifier
     event RelayRequestExpired(bytes32 indexed requestId);
+    /// @notice Emitted when a requester cancels their relay request
+    /// @param requestId The cancelled request identifier
     event RelayRequestCancelled(bytes32 indexed requestId);
+    /// @notice Emitted when the base fee for a chain pair is updated via EIP-1559 mechanism
+    /// @param sourceChainId The source chain identifier
+    /// @param destChainId The destination chain identifier
+    /// @param newBaseFee The updated base fee
     event BaseFeeUpdated(
         bytes32 indexed sourceChainId,
         bytes32 indexed destChainId,
         uint256 newBaseFee
     );
+    /// @notice Emitted when accumulated protocol fees are withdrawn by the admin
+    /// @param amount The amount of fees withdrawn
     event ProtocolFeeWithdrawn(uint256 amount);
 
     /*//////////////////////////////////////////////////////////////

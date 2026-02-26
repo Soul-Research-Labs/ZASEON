@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
  * @title L2ChainAdapter
  * @author Soul Protocol
  * @notice Adapter for connecting Soul to Layer 2 networks
+ * @custom:security-contact security@soulprotocol.io
  * @dev Handles chain-specific messaging and proof verification with full
  *      Merkle proof validation and oracle signature verification
  */
@@ -86,21 +87,47 @@ contract L2ChainAdapter is AccessControl, ReentrancyGuard {
     mapping(uint256 => uint256) public minOracleSignatures;
 
     // Events
+    /// @notice Emitted when a new L2 chain is registered
+    /// @param chainId The chain identifier
+    /// @param name The human-readable chain name
+    /// @param bridge The bridge contract address for this chain
     event ChainAdded(uint256 indexed chainId, string name, address bridge);
+    /// @notice Emitted when a chain's enabled status is updated
+    /// @param chainId The chain identifier
+    /// @param enabled Whether the chain is enabled
     event ChainUpdated(uint256 indexed chainId, bool enabled);
+    /// @notice Emitted when a verified state root is recorded for a chain
+    /// @param chainId The chain identifier
+    /// @param blockNumber The block number for this state root
+    /// @param stateRoot The verified state root hash
     event StateRootUpdated(
         uint256 indexed chainId,
         uint256 indexed blockNumber,
         bytes32 stateRoot
     );
+    /// @notice Emitted when an oracle is authorized for a chain
+    /// @param chainId The chain identifier
+    /// @param oracle The oracle address
     event OracleAdded(uint256 indexed chainId, address indexed oracle);
+    /// @notice Emitted when an oracle is deauthorized for a chain
+    /// @param chainId The chain identifier
+    /// @param oracle The oracle address
     event OracleRemoved(uint256 indexed chainId, address indexed oracle);
+    /// @notice Emitted when a cross-chain message is sent
+    /// @param messageId The unique message identifier
+    /// @param sourceChain The source chain identifier
+    /// @param targetChain The destination chain identifier
     event MessageSent(
         bytes32 indexed messageId,
         uint256 sourceChain,
         uint256 targetChain
     );
+    /// @notice Emitted when a cross-chain message is received
+    /// @param messageId The unique message identifier
+    /// @param sourceChain The originating chain identifier
     event MessageReceived(bytes32 indexed messageId, uint256 sourceChain);
+    /// @notice Emitted when a received message is confirmed by sufficient oracles
+    /// @param messageId The unique message identifier
     event MessageConfirmed(bytes32 indexed messageId);
 
     /// @notice Initializes the adapter with default L2 chain configurations

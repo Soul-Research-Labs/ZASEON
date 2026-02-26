@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @title LayerZeroBridgeAdapter
  * @author Soul Protocol
  * @notice Omnichain bridge adapter using LayerZero V2 protocol
+ * @custom:security-contact security@soulprotocol.io
  * @dev Enables cross-chain interoperability across 120+ chains via LayerZero
  *
  * LAYERZERO V2 INTEGRATION ARCHITECTURE:
@@ -264,40 +265,93 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when the LayerZero endpoint is configured
+    /// @param endpoint The LayerZero endpoint address
+    /// @param localEid The local endpoint identifier
     event EndpointSet(address indexed endpoint, uint32 localEid);
+    /// @notice Emitted when the delegate address is updated
+    /// @param delegate The new delegate address
     event DelegateSet(address indexed delegate);
+    /// @notice Emitted when the bridge fee basis points are updated
+    /// @param feeBps The new fee in basis points
     event BridgeFeeSet(uint256 feeBps);
 
+    /// @notice Emitted when a remote peer is configured
+    /// @param eid The remote endpoint identifier
+    /// @param peerAddress The peer contract address (bytes32-encoded)
+    /// @param chainType The type of the remote chain
     event PeerSet(uint32 indexed eid, bytes32 peerAddress, ChainType chainType);
+    /// @notice Emitted when a remote peer is removed
+    /// @param eid The remote endpoint identifier
     event PeerRemoved(uint32 indexed eid);
+    /// @notice Emitted when a peer's security level is updated
+    /// @param eid The remote endpoint identifier
+    /// @param level The new security level
     event PeerSecurityUpdated(uint32 indexed eid, SecurityLevel level);
 
+    /// @notice Emitted when the send library is configured for a remote chain
+    /// @param eid The remote endpoint identifier
+    /// @param sendLib The send library address
     event SendLibConfigSet(uint32 indexed eid, address sendLib);
+    /// @notice Emitted when the receive library is configured for a remote chain
+    /// @param eid The remote endpoint identifier
+    /// @param receiveLib The receive library address
     event ReceiveLibConfigSet(uint32 indexed eid, address receiveLib);
+    /// @notice Emitted when DVN (Decentralized Verifier Network) configuration is updated
+    /// @param eid The remote endpoint identifier
+    /// @param requiredDVNs The list of required DVN addresses
     event DVNConfigSet(uint32 indexed eid, address[] requiredDVNs);
 
+    /// @notice Emitted when a cross-chain message is sent via LayerZero
+    /// @param guid The globally unique message identifier
+    /// @param dstEid The destination endpoint identifier
+    /// @param receiver The receiver address on the destination chain
+    /// @param fee The fee paid for the message
     event MessageSent(
         bytes32 indexed guid,
         uint32 indexed dstEid,
         bytes32 receiver,
         uint256 fee
     );
+    /// @notice Emitted when a cross-chain message is received from LayerZero
+    /// @param guid The globally unique message identifier
+    /// @param srcEid The source endpoint identifier
+    /// @param sender The sender address on the source chain
     event MessageReceived(
         bytes32 indexed guid,
         uint32 indexed srcEid,
         bytes32 sender
     );
+    /// @notice Emitted when a received message is successfully delivered
+    /// @param guid The globally unique message identifier
     event MessageDelivered(bytes32 indexed guid);
+    /// @notice Emitted when message delivery fails
+    /// @param guid The globally unique message identifier
+    /// @param reason The encoded failure reason
     event MessageFailed(bytes32 indexed guid, bytes reason);
+    /// @notice Emitted when a failed message is stored for retry
+    /// @param guid The globally unique message identifier
     event MessageStored(bytes32 indexed guid);
+    /// @notice Emitted when a stored message is retried
+    /// @param guid The globally unique message identifier
     event MessageRetried(bytes32 indexed guid);
 
+    /// @notice Emitted when an OFT (Omnichain Fungible Token) transfer is sent
+    /// @param transferId The unique transfer identifier
+    /// @param dstEid The destination endpoint identifier
+    /// @param localToken The local token address being sent
+    /// @param amount The token amount transferred
     event OFTSent(
         bytes32 indexed transferId,
         uint32 indexed dstEid,
         address localToken,
         uint256 amount
     );
+    /// @notice Emitted when an OFT transfer is received from a remote chain
+    /// @param transferId The unique transfer identifier
+    /// @param srcEid The source endpoint identifier
+    /// @param remoteToken The remote token address (bytes32-encoded)
+    /// @param amount The token amount received
     event OFTReceived(
         bytes32 indexed transferId,
         uint32 indexed srcEid,
@@ -305,13 +359,23 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
         uint256 amount
     );
 
+    /// @notice Emitted when a local token is mapped to a remote token
+    /// @param localToken The local token address
+    /// @param eid The remote endpoint identifier
+    /// @param remoteToken The remote token address (bytes32-encoded)
     event TokenMapped(
         address indexed localToken,
         uint32 indexed eid,
         bytes32 remoteToken
     );
+    /// @notice Emitted when an OFT adapter is set for a token
+    /// @param token The local token address
+    /// @param oftAdapter The OFT adapter contract address
     event OFTAdapterSet(address indexed token, address indexed oftAdapter);
 
+    /// @notice Emitted when accumulated fees are withdrawn
+    /// @param recipient The address receiving the fees
+    /// @param amount The amount of fees withdrawn
     event FeesWithdrawn(address indexed recipient, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////

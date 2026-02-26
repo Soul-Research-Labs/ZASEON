@@ -10,6 +10,7 @@ import {GasOptimizations} from "../libraries/GasOptimizations.sol";
  * @title L2ProofRouter
  * @author Soul Protocol
  * @notice Optimized proof routing for cross-L2 transfers with caching and batching
+ * @custom:security-contact security@soulprotocol.io
  * @dev Routes proofs efficiently across L2 networks with compression and aggregation
  *
  * GAS OPTIMIZATIONS APPLIED:
@@ -68,6 +69,12 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new proof is submitted to the router
+    /// @param proofId The unique proof identifier
+    /// @param sourceChainId The chain where the proof originated
+    /// @param destChainId The intended destination chain
+    /// @param proofType The type of ZK proof (Groth16, PLONK, etc.)
+    /// @param submitter The address that submitted the proof
     event ProofSubmitted(
         bytes32 indexed proofId,
         uint256 indexed sourceChainId,
@@ -76,18 +83,31 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         address submitter
     );
 
+    /// @notice Emitted when a proof is added to the local cache
+    /// @param proofId The unique proof identifier
+    /// @param cacheKey The cache lookup key
+    /// @param expiresAt The timestamp when the cache entry expires
     event ProofCached(
         bytes32 indexed proofId,
         bytes32 cacheKey,
         uint256 expiresAt
     );
 
+    /// @notice Emitted when a batch of proofs is assembled for routing
+    /// @param batchId The unique batch identifier
+    /// @param proofCount The number of proofs in the batch
+    /// @param totalGas The estimated total gas for the batch
     event BatchCreated(
         bytes32 indexed batchId,
         uint256 proofCount,
         uint256 totalGas
     );
 
+    /// @notice Emitted when a proof batch is routed to a destination chain
+    /// @param batchId The unique batch identifier
+    /// @param destChainId The destination chain
+    /// @param path The routing path selected (direct, hub, relay)
+    /// @param cost The routing cost in wei
     event BatchRouted(
         bytes32 indexed batchId,
         uint256 indexed destChainId,
@@ -95,19 +115,33 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
         uint256 cost
     );
 
+    /// @notice Emitted when a proof is verified on a destination chain
+    /// @param proofId The unique proof identifier
+    /// @param chainId The chain where verification occurred
+    /// @param success Whether the verification succeeded
     event ProofVerified(
         bytes32 indexed proofId,
         uint256 indexed chainId,
         bool success
     );
 
+    /// @notice Emitted when a default routing path is configured between chains
+    /// @param sourceChainId The source chain
+    /// @param destChainId The destination chain
+    /// @param defaultPath The default routing path to use
     event RouteConfigured(
         uint256 indexed sourceChainId,
         uint256 indexed destChainId,
         RoutingPath defaultPath
     );
 
+    /// @notice Emitted when a cached proof is found and reused
+    /// @param cacheKey The cache lookup key
+    /// @param proofId The cached proof identifier
     event CacheHit(bytes32 indexed cacheKey, bytes32 proofId);
+    /// @notice Emitted when a cache entry is evicted
+    /// @param cacheKey The evicted cache key
+    /// @param reason The reason for eviction (e.g., "EXPIRED", "CAPACITY")
     event CacheEvicted(bytes32 indexed cacheKey, string reason);
 
     /*//////////////////////////////////////////////////////////////
@@ -745,7 +779,9 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     }
 
     /**
-     * @notice Clear expired cache entries
+     * @notice Remove all expired entries from the proof cache
+     * @dev Iterates through cache keys and evicts entries past their expiration.
+     *      Uses swap-and-pop for gas-efficient array removal.
      */
     function clearExpiredCache() external {
         uint256 i = 0;

@@ -8,7 +8,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title RelayerStaking
+ * @author Soul Protocol
  * @notice Staking and slashing mechanism for Soul relayers
+ * @custom:security-contact security@soulprotocol.io
  * @dev Relayers must stake tokens to participate in the network
  */
 contract RelayerStaking is AccessControl, ReentrancyGuard {
@@ -70,13 +72,35 @@ contract RelayerStaking is AccessControl, ReentrancyGuard {
     mapping(address => uint256) public stakingTimestamp;
 
     // Events
+    /// @notice Emitted when a relayer stakes tokens
+    /// @param relayer The relayer address
+    /// @param amount The amount of tokens staked
     event Staked(address indexed relayer, uint256 amount);
+    /// @notice Emitted when a relayer requests to unstake tokens
+    /// @param relayer The relayer address
+    /// @param amount The amount of tokens requested for unstaking
     event UnstakeRequested(address indexed relayer, uint256 amount);
+    /// @notice Emitted when tokens are withdrawn after the unbonding period
+    /// @param relayer The relayer address
+    /// @param amount The amount of tokens unstaked
     event Unstaked(address indexed relayer, uint256 amount);
+    /// @notice Emitted when a relayer's stake is slashed for misbehavior
+    /// @param relayer The slashed relayer address
+    /// @param amount The amount of tokens slashed
+    /// @param reason The reason for the slashing
     event Slashed(address indexed relayer, uint256 amount, string reason);
+    /// @notice Emitted when a relayer becomes active (meets minimum stake)
+    /// @param relayer The activated relayer address
     event RelayerActivated(address indexed relayer);
+    /// @notice Emitted when a relayer is deactivated
+    /// @param relayer The deactivated relayer address
     event RelayerDeactivated(address indexed relayer);
+    /// @notice Emitted when a relayer claims accrued rewards
+    /// @param relayer The relayer address
+    /// @param amount The amount of rewards claimed
     event RewardClaimed(address indexed relayer, uint256 amount);
+    /// @notice Emitted when new rewards are added to the reward pool
+    /// @param amount The amount of rewards added
     event RewardAdded(uint256 amount);
 
     constructor(address _stakingToken, uint256 _minStake, address admin) {

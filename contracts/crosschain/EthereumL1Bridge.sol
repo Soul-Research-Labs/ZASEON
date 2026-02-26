@@ -10,6 +10,7 @@ import "../interfaces/IEthereumL1Bridge.sol";
  * @title EthereumL1Bridge
  * @author Soul Protocol
  * @notice Bridge adapter for Ethereum mainnet (L1) interoperability
+ * @custom:security-contact security@soulprotocol.io
  * @dev Handles cross-chain proof relay and state synchronization between Soul and Ethereum L1
  *
  * ARCHITECTURE:
@@ -128,30 +129,52 @@ contract EthereumL1Bridge is
     // L2ChainConfigured, StateCommitmentSubmitted, DepositInitiated, WithdrawalFinalized
     // are inherited from IEthereumL1Bridge
 
+    /// @notice Emitted when an L2 chain's enabled status is updated
+    /// @param chainId The chain identifier
+    /// @param enabled Whether the chain is enabled
     event L2ChainUpdated(uint256 indexed chainId, bool enabled);
 
+    /// @notice Emitted when a state commitment is challenged during the optimistic period
+    /// @param commitmentId The challenged commitment identifier
+    /// @param challenger The address that initiated the challenge
+    /// @param reason The reason hash for the challenge
     event StateCommitmentChallenged(
         bytes32 indexed commitmentId,
         address challenger,
         bytes32 reason
     );
 
+    /// @notice Emitted when a state commitment passes the challenge period and is finalized
+    /// @param commitmentId The finalized commitment identifier
+    /// @param stateRoot The finalized state root hash
     event StateCommitmentFinalized(
         bytes32 indexed commitmentId,
         bytes32 stateRoot
     );
 
+    /// @notice Emitted when a state commitment is rejected after a successful challenge
+    /// @param commitmentId The rejected commitment identifier
+    /// @param challenger The address whose challenge succeeded
     event StateCommitmentRejected(
         bytes32 indexed commitmentId,
         address challenger
     );
 
+    /// @notice Emitted when a challenge is resolved with a final verdict
+    /// @param commitmentId The commitment identifier under dispute
+    /// @param rejected Whether the commitment was rejected
+    /// @param bondRecipient The address receiving the challenge bond
     event ChallengeResolved(
         bytes32 indexed commitmentId,
         bool rejected,
         address bondRecipient
     );
 
+    /// @notice Emitted when a withdrawal is initiated from L1
+    /// @param withdrawalId The unique withdrawal identifier
+    /// @param recipient The withdrawal recipient address
+    /// @param sourceChainId The L2 chain from which the withdrawal originated
+    /// @param amount The withdrawal amount in wei
     event WithdrawalInitiated(
         bytes32 indexed withdrawalId,
         address indexed recipient,
@@ -159,6 +182,10 @@ contract EthereumL1Bridge is
         uint256 amount
     );
 
+    /// @notice Emitted when a ZK proof is relayed from an L2 chain
+    /// @param proofHash The hash of the relayed proof
+    /// @param sourceChainId The L2 chain from which the proof originated
+    /// @param stateRoot The state root associated with the proof
     event ProofRelayed(
         bytes32 indexed proofHash,
         uint256 indexed sourceChainId,
