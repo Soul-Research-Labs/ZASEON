@@ -4,8 +4,10 @@ pragma solidity ^0.8.24;
 import "./IBridgeAdapter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-// Minimal Chainlink CCIP Router Interface
+/// @title IRouterClient
+/// @notice Minimal interface for the Chainlink CCIP Router contract
 interface IRouterClient {
     struct EVM2AnyMessage {
         bytes receiver; // abi.encode(receiver address) for EVM chains
@@ -15,11 +17,19 @@ interface IRouterClient {
         bytes extraArgs;
     }
 
+    /// @notice Send a cross-chain message via Chainlink CCIP
+    /// @param destinationChainSelector CCIP chain selector for the destination
+    /// @param message The cross-chain message to send
+    /// @return messageId Unique identifier for the sent message
     function ccipSend(
         uint64 destinationChainSelector,
         EVM2AnyMessage calldata message
     ) external payable returns (bytes32);
 
+    /// @notice Estimate the fee for a cross-chain message
+    /// @param destinationChainSelector CCIP chain selector for the destination
+    /// @param message The cross-chain message to estimate fees for
+    /// @return fee The estimated fee in wei (or fee token units)
     function getFee(
         uint64 destinationChainSelector,
         EVM2AnyMessage calldata message
@@ -30,18 +40,26 @@ interface IRouterClient {
  * @title ChainlinkCCIPAdapter
  * @notice Adapter for Chainlink CCIP
  */
-contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable {
+contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable, ReentrancyGuard {
+    /// @notice CCIP Router contract for sending cross-chain messages
     IRouterClient public immutable i_router;
+
+    /// @notice CCIP chain selector for the default destination chain
     uint64 public immutable destinationChainSelector;
 
+    /// @notice Tracks which messages have been verified on the destination
     mapping(bytes32 => bool) public verifiedMessages;
 
+    /// @notice Emitted when a CCIP message is sent
+    /// @param messageId Unique CCIP message identifier
+    /// @param fees Fees paid for the message
     event MessageSent(bytes32 indexed messageId, uint256 fees);
 
     /// @notice Initializes the adapter with a Chainlink CCIP router and destination selector
     /// @param _router Address of the Chainlink CCIP Router contract
     /// @param _selector CCIP chain selector for the destination chain
     constructor(address _router, uint64 _selector) Ownable(msg.sender) {
+        require(_router != address(0), "ChainlinkCCIPAdapter: zero router");
         i_router = IRouterClient(_router);
         destinationChainSelector = _selector;
     }
@@ -51,7 +69,7 @@ contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable {
         address targetAddress,
         bytes calldata payload,
         address /*refundAddress*/
-    ) external payable override returns (bytes32 messageId) {
+    ) external payable override nonReentrant returns (bytes32 messageId) {
         IRouterClient.EVM2AnyMessage memory evmMessage = IRouterClient
             .EVM2AnyMessage({
                 receiver: abi.encode(targetAddress),

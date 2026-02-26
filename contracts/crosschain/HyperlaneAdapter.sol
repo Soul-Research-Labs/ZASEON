@@ -296,7 +296,7 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
         uint32 origin,
         bytes32 sender,
         bytes calldata message
-    ) external {
+    ) external nonReentrant {
         // Only accept from mailbox
         if (msg.sender != mailbox) revert InvalidMailbox();
 

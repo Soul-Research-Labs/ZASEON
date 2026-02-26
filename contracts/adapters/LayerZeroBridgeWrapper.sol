@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IBridgeAdapter} from "../crosschain/IBridgeAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title LayerZeroBridgeWrapper
@@ -14,7 +15,11 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *        estimateFee()   → endpoint.quote(SendParam)
  *        isMessageVerified() → tracks via guid/nonce
  */
-contract LayerZeroBridgeWrapper is IBridgeAdapter, AccessControl {
+contract LayerZeroBridgeWrapper is
+    IBridgeAdapter,
+    AccessControl,
+    ReentrancyGuard
+{
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     /// @notice LayerZero V2 endpoint contract
@@ -32,13 +37,30 @@ contract LayerZeroBridgeWrapper is IBridgeAdapter, AccessControl {
     /// @notice Message nonce
     uint256 public nonce;
 
+    /// @notice Emitted when a message is sent via LayerZero V2
+    /// @param messageId Unique identifier for the sent message
+    /// @param dstEid Destination endpoint ID
+    /// @param target Target address on the destination chain
     event MessageSent(bytes32 indexed messageId, uint32 dstEid, address target);
+
+    /// @notice Emitted when a message is verified by the receiver
+    /// @param messageId Unique identifier for the verified message
     event MessageVerified(bytes32 indexed messageId);
 
+    /// @notice Thrown when the LayerZero endpoint address is zero
     error InvalidEndpoint();
+
+    /// @notice Thrown when the LayerZero send operation fails
     error SendFailed();
+
+    /// @notice Thrown when no peer is configured for the destination
     error PeerNotSet();
 
+    /// @notice Initializes the LayerZero V2 bridge wrapper
+    /// @param _admin Address granted admin and default admin roles
+    /// @param _endpoint LayerZero V2 endpoint contract address
+    /// @param _dstEid Default destination endpoint ID
+    /// @param _peer Peer address on destination chain (bytes32 for cross-VM compatibility)
     constructor(
         address _admin,
         address _endpoint,
@@ -58,7 +80,7 @@ contract LayerZeroBridgeWrapper is IBridgeAdapter, AccessControl {
         address targetAddress,
         bytes calldata payload,
         address refundAddress
-    ) external payable override returns (bytes32 messageId) {
+    ) external payable override nonReentrant returns (bytes32 messageId) {
         if (peer == bytes32(0)) revert PeerNotSet();
 
         // Generate unique message ID

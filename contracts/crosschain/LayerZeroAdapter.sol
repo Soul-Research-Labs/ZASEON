@@ -289,7 +289,7 @@ contract LayerZeroAdapter is ReentrancyGuard, AccessControl, Pausable {
         uint64 nonce,
         bytes32 guid,
         bytes calldata payload
-    ) external {
+    ) external nonReentrant {
         // Only accept from LayerZero endpoint
         if (msg.sender != lzEndpoint) revert InvalidEndpoint();
 

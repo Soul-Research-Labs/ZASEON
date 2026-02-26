@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -21,6 +22,7 @@ contract NullifierRegistryV3Upgradeable is
     Initializable,
     AccessControlUpgradeable,
     PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
     UUPSUpgradeable,
     INullifierRegistryV3
 {
@@ -153,6 +155,7 @@ contract NullifierRegistryV3Upgradeable is
 
         __AccessControl_init();
         __Pausable_init();
+        __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
 
         chainId = block.chainid;
@@ -207,7 +210,13 @@ contract NullifierRegistryV3Upgradeable is
     function registerNullifier(
         bytes32 nullifier,
         bytes32 commitment
-    ) external onlyRole(REGISTRAR_ROLE) whenNotPaused returns (uint256 index) {
+    )
+        external
+        onlyRole(REGISTRAR_ROLE)
+        whenNotPaused
+        nonReentrant
+        returns (uint256 index)
+    {
         return _registerNullifier(nullifier, commitment, msg.sender);
     }
 
@@ -222,6 +231,7 @@ contract NullifierRegistryV3Upgradeable is
         external
         onlyRole(REGISTRAR_ROLE)
         whenNotPaused
+        nonReentrant
         returns (uint256 startIndex)
     {
         uint256 len = _nullifiers.length;
@@ -255,7 +265,7 @@ contract NullifierRegistryV3Upgradeable is
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments,
         bytes32 sourceMerkleRoot
-    ) external onlyRole(RELAY_ROLE) whenNotPaused {
+    ) external onlyRole(RELAY_ROLE) whenNotPaused nonReentrant {
         if (sourceChainId_ == chainId) revert InvalidChainId();
 
         uint256 len = _nullifiers.length;

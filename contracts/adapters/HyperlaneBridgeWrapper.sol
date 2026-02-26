@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IBridgeAdapter} from "../crosschain/IBridgeAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title HyperlaneBridgeWrapper
@@ -15,7 +16,11 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *        estimateFee()   → mailbox.quoteDispatch(destDomain, recipient, payload)
  *        isMessageVerified() → mailbox.delivered(messageId)
  */
-contract HyperlaneBridgeWrapper is IBridgeAdapter, AccessControl {
+contract HyperlaneBridgeWrapper is
+    IBridgeAdapter,
+    AccessControl,
+    ReentrancyGuard
+{
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     /// @notice Hyperlane mailbox contract
@@ -30,15 +35,26 @@ contract HyperlaneBridgeWrapper is IBridgeAdapter, AccessControl {
     /// @notice Message nonce for unique IDs
     uint256 public nonce;
 
+    /// @notice Emitted when a message is dispatched via Hyperlane mailbox
+    /// @param messageId Unique message identifier
+    /// @param destDomain Hyperlane destination domain
+    /// @param target Target address on the destination chain
     event MessageDispatched(
         bytes32 indexed messageId,
         uint32 destDomain,
         address target
     );
 
+    /// @notice Thrown when the Hyperlane mailbox address is zero
     error InvalidMailbox();
+
+    /// @notice Thrown when the Hyperlane dispatch call fails
     error DispatchFailed();
 
+    /// @notice Initializes the Hyperlane bridge wrapper
+    /// @param _admin Address granted admin and default admin roles
+    /// @param _mailbox Hyperlane mailbox contract address
+    /// @param _defaultDestDomain Default destination domain ID
     constructor(address _admin, address _mailbox, uint32 _defaultDestDomain) {
         if (_mailbox == address(0)) revert InvalidMailbox();
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -52,7 +68,7 @@ contract HyperlaneBridgeWrapper is IBridgeAdapter, AccessControl {
         address targetAddress,
         bytes calldata payload,
         address refundAddress
-    ) external payable override returns (bytes32 messageId) {
+    ) external payable override nonReentrant returns (bytes32 messageId) {
         // Encode the target and payload for Hyperlane dispatch
         bytes memory hyperlanePayload = abi.encode(targetAddress, payload);
 

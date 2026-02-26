@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IBridgeAdapter} from "../crosschain/IBridgeAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title NativeL2BridgeWrapper
@@ -14,13 +15,19 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *      This is a generic wrapper — deploy one per L2 chain with the appropriate
  *      bridge contract address.
  */
-contract NativeL2BridgeWrapper is IBridgeAdapter, AccessControl {
+contract NativeL2BridgeWrapper is
+    IBridgeAdapter,
+    AccessControl,
+    ReentrancyGuard
+{
+    /// @notice Role identifier for bridge administration functions
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
+    /// @notice The type of native L2 bridge being wrapped
     enum BridgeType {
-        ARBITRUM_INBOX,
-        OP_CROSS_DOMAIN_MESSENGER,
-        CUSTOM
+        ARBITRUM_INBOX, // Arbitrum Delayed Inbox
+        OP_CROSS_DOMAIN_MESSENGER, // OP Stack CrossDomainMessenger
+        CUSTOM // Custom native bridge implementation
     }
 
     /// @notice The underlying native bridge contract
@@ -38,16 +45,31 @@ contract NativeL2BridgeWrapper is IBridgeAdapter, AccessControl {
     /// @notice Message nonce
     uint256 public nonce;
 
+    /// @notice Emitted when a message is sent via the native L2 bridge
+    /// @param messageId Unique message identifier
+    /// @param target Target address on the destination chain
+    /// @param bridgeType The type of native bridge used
     event MessageSent(
         bytes32 indexed messageId,
         address target,
         BridgeType bridgeType
     );
+
+    /// @notice Emitted when a bridged message is verified
+    /// @param messageId Unique identifier for the verified message
     event MessageVerified(bytes32 indexed messageId);
 
+    /// @notice Thrown when the native bridge address is zero
     error InvalidBridge();
+
+    /// @notice Thrown when the native bridge send call fails
     error BridgeSendFailed();
 
+    /// @notice Initializes the native L2 bridge wrapper
+    /// @param _admin Address granted admin and default admin roles
+    /// @param _nativeBridge Address of the native L2 bridge contract
+    /// @param _bridgeType Type of native bridge (Arbitrum Inbox, OP Messenger, or Custom)
+    /// @param _gasLimit Gas limit for cross-chain execution (defaults to 200,000 if 0)
     constructor(
         address _admin,
         address _nativeBridge,
@@ -67,7 +89,7 @@ contract NativeL2BridgeWrapper is IBridgeAdapter, AccessControl {
         address targetAddress,
         bytes calldata payload,
         address refundAddress
-    ) external payable override returns (bytes32 messageId) {
+    ) external payable override nonReentrant returns (bytes32 messageId) {
         messageId = keccak256(
             abi.encodePacked(targetAddress, payload, nonce++, block.chainid)
         );
