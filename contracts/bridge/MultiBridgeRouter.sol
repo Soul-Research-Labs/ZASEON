@@ -632,4 +632,19 @@ contract MultiBridgeRouter is
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                          ERC-165
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice ERC-165 interface discovery
+    /// @param interfaceId The interface identifier to check
+    /// @return True if the contract supports the given interface
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(IMultiBridgeRouter).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 }

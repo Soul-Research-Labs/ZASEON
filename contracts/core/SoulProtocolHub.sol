@@ -1107,10 +1107,23 @@ contract SoulProtocolHub is
      * @notice Deactivate a bridge adapter
      * @param chainId The chain ID to deactivate
      */
-    function deactivateRelay(
-        uint256 chainId
-    ) external onlyRole(GUARDIAN_ROLE) {
+    function deactivateRelay(uint256 chainId) external onlyRole(GUARDIAN_ROLE) {
         relayAdapters[chainId].isActive = false;
         emit ComponentDeactivated(bytes32(chainId));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ERC-165
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice ERC-165 interface discovery
+    /// @param interfaceId The interface identifier to check
+    /// @return True if the contract supports the given interface
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(ISoulProtocolHub).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

@@ -1087,4 +1087,19 @@ contract CrossChainProofHubV3 is
 
     /// @notice Allows contract to receive ETH for stake deposits, proof fees, and challenge stakes
     receive() external payable {}
+
+    /*//////////////////////////////////////////////////////////////
+                          ERC-165
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice ERC-165 interface discovery
+    /// @param interfaceId The interface identifier to check
+    /// @return True if the contract supports the given interface
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(ICrossChainProofHubV3).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 }

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "../interfaces/IBatchAccumulator.sol";
 
 /**
  * @title BatchAccumulator
@@ -744,5 +745,20 @@ contract BatchAccumulator is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_crossChainHub == address(0)) revert ZeroAddress();
         crossChainHub = _crossChainHub;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ERC-165
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice ERC-165 interface discovery
+    /// @param interfaceId The interface identifier to check
+    /// @return True if the contract supports the given interface
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(IBatchAccumulator).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
