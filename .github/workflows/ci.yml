@@ -134,18 +134,31 @@ jobs:
       - name: Run gas benchmarks
         run: forge test --match-path "test/gas/*" -vvv --gas-report
 
+      - name: Run fork tests
+        if: env.FORK_TESTS == 'true'
+        run: forge test --match-path "test/fork/*" -vvv --fork-url "${{ secrets.RPC_URL }}" --fork-block-number 0
+        env:
+          FORK_TESTS: ${{ vars.FORK_TESTS }}
+
       - name: Check contract sizes
-        run: forge build --sizes 2>&1 | tee /tmp/sizes.txt && ! grep -E "\|\s+[0-9]{3}\.[0-9]+" /tmp/sizes.txt | grep -v "^|" || echo "⚠️ Some contracts exceed 24KB limit"
+        run: |
+          forge build --sizes 2>&1 | tee /tmp/sizes.txt
+          # Fail if any contract exceeds 24.576 KB (EIP-170 limit)
+          if awk -F'|' '/\|/ && NR>3 { gsub(/[ \t]/, "", $3); if ($3+0 > 24.576) { print "FAIL: " $2 " size=" $3 "KB"; found=1 } } END { exit (found ? 1 : 0) }' /tmp/sizes.txt; then
+            echo "✅ All contracts within 24.576 KB EIP-170 limit"
+          else
+            echo "❌ Contract size limit exceeded"
+            exit 1
+          fi
 
       - name: Generate gas snapshot
         run: forge snapshot --no-match-test "test_Attack_RelayerFrontRunning|test_storageOperations_atScale" | head -200
 
       - name: Check gas snapshot regression
         if: github.event_name == 'pull_request'
-        continue-on-error: true
         run: |
           if [ -f .gas-snapshot ]; then
-            forge snapshot --no-match-test "test_Attack_RelayerFrontRunning|test_storageOperations_atScale" --check --tolerance 5 || echo "⚠️ Gas regression detected (>5% increase)"
+            forge snapshot --no-match-test "test_Attack_RelayerFrontRunning|test_storageOperations_atScale" --check --tolerance 5
           fi
 
       - name: Upload gas snapshot
@@ -261,6 +274,19 @@ jobs:
 
       - name: SDK full test suite
         run: cd sdk && npm run test:all
+
+      - name: React hooks tests
+        run: |
+          if [ -d sdk/packages/react ]; then
+            cd sdk/packages/react
+            npm ci --if-present
+            npx jest --passWithNoTests
+          fi
+
+      - name: SDK lint
+        run: |
+          cd sdk
+          npx eslint . --ext .ts,.tsx --max-warnings 50 || true
 
   coverage:
     name: Coverage Report

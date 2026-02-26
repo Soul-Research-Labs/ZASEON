@@ -4,12 +4,12 @@ const path = require("path");
 
 /**
  * Soul Mainnet Deployment Script
- * 
+ *
  * Prerequisites:
  * 1. Set PRIVATE_KEY and RPC_URL in .env
  * 2. Ensure deployer has sufficient ETH
  * 3. Gnosis Safe multi-sig address configured
- * 
+ *
  * Run: npx hardhat run scripts/deploy-mainnet.js --network mainnet
  */
 
@@ -17,18 +17,22 @@ const path = require("path");
 const CONFIG = {
   // Multi-sig addresses (update for production)
   multiSig: {
-    admin: process.env.MULTISIG_ADMIN || "0x0000000000000000000000000000000000000000",
-    treasury: process.env.MULTISIG_TREASURY || "0x0000000000000000000000000000000000000000",
+    admin:
+      process.env.MULTISIG_ADMIN ||
+      "0x0000000000000000000000000000000000000000",
+    treasury:
+      process.env.MULTISIG_TREASURY ||
+      "0x0000000000000000000000000000000000000000",
   },
-  
+
   // Timelock delays (for future governance deployment)
   timelock: {
     minDelay: 48 * 60 * 60, // 48 hours
     emergencyDelay: 6 * 60 * 60, // 6 hours
     gracePeriod: 7 * 24 * 60 * 60, // 7 days
   },
-  
-  // Deployment order matters for dependencies
+
+  // Configuration
   contracts: [
     "Groth16VerifierBN254",
     "ProofCarryingContainer",
@@ -36,7 +40,9 @@ const CONFIG = {
     "ExecutionAgnosticStateCommitments",
     "CrossDomainNullifierAlgebra",
     "Soulv2Orchestrator",
-    // TODO: Add SoulGovernor deployment once governance token + timelock contracts are implemented
+    "SoulToken",
+    "SoulUpgradeTimelock",
+    "SoulGovernor",
   ],
 };
 
@@ -47,39 +53,39 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════════");
   console.log("           Soul Mainnet Deployment");
   console.log("═══════════════════════════════════════════════════════════");
-  
+
   const [deployer] = await ethers.getSigners();
   console.log(`\n📍 Deployer: ${deployer.address}`);
-  
+
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log(`💰 Balance: ${ethers.formatEther(balance)} ETH`);
-  
+
   const network = await ethers.provider.getNetwork();
   console.log(`🌐 Network: ${network.name} (Chain ID: ${network.chainId})`);
-  
+
   // Safety check
   if (network.chainId === 1n) {
     console.log("\n⚠️  MAINNET DEPLOYMENT - Are you sure? (Ctrl+C to abort)");
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
-  
+
   // Estimate total gas
   console.log("\n📊 Estimating deployment costs...");
   const gasPrice = (await ethers.provider.getFeeData()).gasPrice;
   console.log(`   Gas Price: ${ethers.formatUnits(gasPrice, "gwei")} gwei`);
-  
+
   // Deploy contracts
   console.log("\n📦 Deploying Contracts...\n");
-  
+
   // 1. Deploy Verifier
   await deployContract("Groth16VerifierBN254", []);
-  
+
   // 2. Deploy Soul v2 Primitives
   await deployContract("ProofCarryingContainer", []);
   await deployContract("PolicyBoundProofs", []);
   await deployContract("ExecutionAgnosticStateCommitments", []);
   await deployContract("CrossDomainNullifierAlgebra", []);
-  
+
   // 3. Deploy Orchestrator
   await deployContract("Soulv2Orchestrator", [
     deployedAddresses.ProofCarryingContainer,
@@ -87,27 +93,103 @@ async function main() {
     deployedAddresses.ExecutionAgnosticStateCommitments,
     deployedAddresses.CrossDomainNullifierAlgebra,
   ]);
-  
-  // TODO: Deploy governance stack once SoulToken + SoulTimelock contracts are implemented
-  // - Deploy SoulToken (ERC-5805 voting token)
-  // - Deploy SoulTimelock (TimelockController)
-  // - Deploy SoulGovernor(token, timelock, votingDelay, votingPeriod, proposalThreshold, quorumPercentage)
-  
+
+  // 4. Deploy Governance Stack
+  console.log("\n📦 Deploying Governance Stack...\n");
+
+  // 4a. Deploy SoulToken — initial mint of 100M SOUL (10% of cap) to treasury multisig
+  const initialMintAmount = ethers.parseEther("100000000"); // 100M SOUL
+  const treasuryAddress = CONFIG.multiSig.treasury;
+  if (treasuryAddress === "0x0000000000000000000000000000000000000000") {
+    console.log(
+      "   ⚠️  WARNING: Treasury multi-sig is zero address. Set MULTISIG_TREASURY env var.",
+    );
+  }
+  await deployContract("SoulToken", [
+    deployer.address, // admin (will transfer to timelock later)
+    treasuryAddress, // initial mint recipient
+    initialMintAmount, // initial mint amount
+  ]);
+
+  // 4b. Deploy SoulUpgradeTimelock
+  //     proposers = [deployer, admin multisig]
+  //     executors = [deployer, admin multisig]
+  //     admin = deployer (will renounce after SoulGovernor is wired)
+  const timelockProposers = [deployer.address, CONFIG.multiSig.admin].filter(
+    (addr) => addr !== "0x0000000000000000000000000000000000000000",
+  );
+  const timelockExecutors = [deployer.address, CONFIG.multiSig.admin].filter(
+    (addr) => addr !== "0x0000000000000000000000000000000000000000",
+  );
+  await deployContract("SoulUpgradeTimelock", [
+    CONFIG.timelock.minDelay, // 48 hours minimum delay
+    timelockProposers, // proposers
+    timelockExecutors, // executors
+    deployer.address, // admin (temporary — will renounce)
+  ]);
+
+  // 4c. Deploy SoulGovernor with token + timelock
+  //     Passing 0 for voting params uses contract defaults:
+  //     - votingDelay: 1 day, votingPeriod: 5 days
+  //     - proposalThreshold: 100,000 SOUL, quorum: 4%
+  await deployContract("SoulGovernor", [
+    deployedAddresses.SoulToken, // governance token (IVotes)
+    deployedAddresses.SoulUpgradeTimelock, // timelock controller
+    0, // votingDelay (0 = use default 1 day)
+    0, // votingPeriod (0 = use default 5 days)
+    0, // proposalThreshold (0 = use default 100k SOUL)
+    0, // quorumPercentage (0 = use default 4%)
+  ]);
+
+  // 4d. Wire governance: grant SoulGovernor the proposer role on the timelock
+  console.log("   Wiring governance roles...");
+  const timelock = await ethers.getContractAt(
+    "SoulUpgradeTimelock",
+    deployedAddresses.SoulUpgradeTimelock,
+  );
+  const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
+  const EXECUTOR_ROLE = await timelock.EXECUTOR_ROLE();
+  const CANCELLER_ROLE = await timelock.CANCELLER_ROLE();
+
+  // Governor gets proposer + canceller roles
+  await timelock.grantRole(PROPOSER_ROLE, deployedAddresses.SoulGovernor);
+  console.log("   ✅ Granted PROPOSER_ROLE to SoulGovernor");
+
+  await timelock.grantRole(CANCELLER_ROLE, deployedAddresses.SoulGovernor);
+  console.log("   ✅ Granted CANCELLER_ROLE to SoulGovernor");
+
+  // Allow anyone to execute queued proposals (standard OZ pattern)
+  await timelock.grantRole(EXECUTOR_ROLE, ethers.ZeroAddress);
+  console.log("   ✅ Granted EXECUTOR_ROLE to address(0) (open execution)");
+
+  // 4e. Transfer SoulToken minter role to timelock (governance-controlled minting)
+  const soulToken = await ethers.getContractAt(
+    "SoulToken",
+    deployedAddresses.SoulToken,
+  );
+  const MINTER_ROLE = await soulToken.MINTER_ROLE();
+  await soulToken.grantRole(MINTER_ROLE, deployedAddresses.SoulUpgradeTimelock);
+  console.log("   ✅ Granted MINTER_ROLE on SoulToken to Timelock");
+
+  // Revoke deployer's minter role (minting now only via governance)
+  await soulToken.revokeRole(MINTER_ROLE, deployer.address);
+  console.log("   ✅ Revoked deployer MINTER_ROLE on SoulToken");
+
   // Post-deployment configuration
   console.log("\n⚙️  Post-Deployment Configuration...\n");
-  
+
   // Configure orchestrator permissions
   const orchestrator = await ethers.getContractAt(
     "Soulv2Orchestrator",
-    deployedAddresses.Soulv2Orchestrator
+    deployedAddresses.Soulv2Orchestrator,
   );
-  
+
   console.log("   Setting up primitive registrations...");
   // Additional configuration would go here
-  
+
   // Transfer ownership to timelock/multi-sig
   console.log("   Preparing ownership transfer to multi-sig...");
-  
+
   // Save deployment info
   const deploymentInfo = {
     network: network.name,
@@ -117,24 +199,24 @@ async function main() {
     addresses: deployedAddresses,
     config: CONFIG,
   };
-  
+
   const deploymentDir = path.join(__dirname, "..", "deployments");
   if (!fs.existsSync(deploymentDir)) {
     fs.mkdirSync(deploymentDir, { recursive: true });
   }
-  
+
   const filename = `mainnet_${Date.now()}.json`;
   fs.writeFileSync(
     path.join(deploymentDir, filename),
-    JSON.stringify(deploymentInfo, null, 2)
+    JSON.stringify(deploymentInfo, null, 2),
   );
-  
+
   // Also save as latest
   fs.writeFileSync(
     path.join(deploymentDir, "mainnet_latest.json"),
-    JSON.stringify(deploymentInfo, null, 2)
+    JSON.stringify(deploymentInfo, null, 2),
   );
-  
+
   console.log("\n═══════════════════════════════════════════════════════════");
   console.log("           Deployment Complete!");
   console.log("═══════════════════════════════════════════════════════════");
@@ -143,29 +225,29 @@ async function main() {
   for (const [name, address] of Object.entries(deployedAddresses)) {
     console.log(`   ${name}: ${address}`);
   }
-  
+
   console.log("\n⚠️  IMPORTANT NEXT STEPS:");
   console.log("   1. Verify contracts on Etherscan");
   console.log("   2. Transfer admin roles to multi-sig");
   console.log("   3. Configure timelock proposers/executors");
   console.log("   4. Set up monitoring and alerts");
   console.log("   5. Update frontend with new addresses");
-  
+
   return deployedAddresses;
 }
 
 async function deployContract(name, args) {
   console.log(`   Deploying ${name}...`);
-  
+
   const factory = await ethers.getContractFactory(name);
   const contract = await factory.deploy(...args);
   await contract.waitForDeployment();
-  
+
   const address = await contract.getAddress();
   deployedAddresses[name] = address;
-  
+
   console.log(`   ✅ ${name}: ${address}`);
-  
+
   return contract;
 }
 

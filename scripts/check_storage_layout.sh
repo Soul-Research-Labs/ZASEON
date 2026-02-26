@@ -34,6 +34,13 @@ declare -A CONTRACTS=(
     ["UniversalShieldedPool"]="UniversalShieldedPoolUpgradeable"
     ["ConfidentialStateContainerV3"]="ConfidentialStateContainerV3Upgradeable"
     ["ProofCarryingContainer"]="ProofCarryingContainerUpgradeable"
+    ["CapacityAwareRouter"]="CapacityAwareRouterUpgradeable"
+    ["DynamicRoutingOrchestrator"]="DynamicRoutingOrchestratorUpgradeable"
+    ["InstantCompletionGuarantee"]="InstantCompletionGuaranteeUpgradeable"
+    ["IntentCompletionLayer"]="IntentCompletionLayerUpgradeable"
+    ["PrivacyRouter"]="PrivacyRouterUpgradeable"
+    ["SoulProtocolHub"]="SoulProtocolHubUpgradeable"
+    ["Soulv2Orchestrator"]="Soulv2OrchestratorUpgradeable"
 )
 
 for base in "${!CONTRACTS[@]}"; do
