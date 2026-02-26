@@ -68,7 +68,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1 // ERC-5564 scheme ID
         );
 
@@ -76,8 +76,8 @@ contract StealthAddressE2EIntegration is Test {
         (
             bytes memory spendPub,
             bytes memory viewPub,
-            StealthAddressRegistry.CurveType curve,
-            StealthAddressRegistry.KeyStatus status,
+            IStealthAddressRegistry.CurveType curve,
+            IStealthAddressRegistry.KeyStatus status,
             uint256 registeredAt,
             uint256 schemeId
         ) = registry.metaAddresses(alice);
@@ -86,9 +86,9 @@ contract StealthAddressE2EIntegration is Test {
         assertEq(viewPub, ALICE_VIEW_PUB);
         assertEq(
             uint8(curve),
-            uint8(StealthAddressRegistry.CurveType.SECP256K1)
+            uint8(IStealthAddressRegistry.CurveType.SECP256K1)
         );
-        assertEq(uint8(status), uint8(StealthAddressRegistry.KeyStatus.ACTIVE));
+        assertEq(uint8(status), uint8(IStealthAddressRegistry.KeyStatus.ACTIVE));
         assertEq(schemeId, 1);
         assertGt(registeredAt, 0);
 
@@ -223,7 +223,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 
@@ -232,7 +232,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             CAROL_SPEND_PUB,
             CAROL_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 
@@ -323,7 +323,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 
@@ -332,11 +332,11 @@ contract StealthAddressE2EIntegration is Test {
         registry.revokeMetaAddress();
 
         // Verify revoked
-        (, , , StealthAddressRegistry.KeyStatus status, , ) = registry
+        (, , , IStealthAddressRegistry.KeyStatus status, , ) = registry
             .metaAddresses(alice);
         assertEq(
             uint8(status),
-            uint8(StealthAddressRegistry.KeyStatus.REVOKED)
+            uint8(IStealthAddressRegistry.KeyStatus.REVOKED)
         );
 
         // Derive should fail for revoked addresses
@@ -349,7 +349,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 
@@ -358,7 +358,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             CAROL_SPEND_PUB,
             CAROL_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
     }
@@ -373,7 +373,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 
@@ -441,20 +441,20 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ed25519Spend,
             ed25519View,
-            StealthAddressRegistry.CurveType.ED25519,
+            IStealthAddressRegistry.CurveType.ED25519,
             2 // different scheme for ed25519
         );
 
         (
             ,
             ,
-            StealthAddressRegistry.CurveType curve,
-            StealthAddressRegistry.KeyStatus status,
+            IStealthAddressRegistry.CurveType curve,
+            IStealthAddressRegistry.KeyStatus status,
             ,
 
         ) = registry.metaAddresses(carol);
-        assertEq(uint8(curve), uint8(StealthAddressRegistry.CurveType.ED25519));
-        assertEq(uint8(status), uint8(StealthAddressRegistry.KeyStatus.ACTIVE));
+        assertEq(uint8(curve), uint8(IStealthAddressRegistry.CurveType.ED25519));
+        assertEq(uint8(status), uint8(IStealthAddressRegistry.KeyStatus.ACTIVE));
     }
 
     function test_E2E_BLS12_381Keys() public {
@@ -471,15 +471,15 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             blsSpend,
             blsView,
-            StealthAddressRegistry.CurveType.BLS12_381,
+            IStealthAddressRegistry.CurveType.BLS12_381,
             3
         );
 
-        (, , StealthAddressRegistry.CurveType curve, , , ) = registry
+        (, , IStealthAddressRegistry.CurveType curve, , , ) = registry
             .metaAddresses(user);
         assertEq(
             uint8(curve),
-            uint8(StealthAddressRegistry.CurveType.BLS12_381)
+            uint8(IStealthAddressRegistry.CurveType.BLS12_381)
         );
     }
 
@@ -496,7 +496,7 @@ contract StealthAddressE2EIntegration is Test {
         registry.registerMetaAddress(
             ALICE_SPEND_PUB,
             ALICE_VIEW_PUB,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 

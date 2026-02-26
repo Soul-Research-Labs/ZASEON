@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import {IDynamicRoutingOrchestrator} from "../interfaces/IDynamicRoutingOrchestrator.sol";
+import {ICapacityAwareRouter} from "../interfaces/ICapacityAwareRouter.sol";
 import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
 
 /**
@@ -38,7 +39,7 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  *      - Stale route detection (routes expire after 5 minutes)
  *      - Zero-address validation
  */
-contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
+contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable, ICapacityAwareRouter {
     using RouteOptimizer for RouteOptimizer.ScoringWeights;
 
     /*//////////////////////////////////////////////////////////////
@@ -63,46 +64,9 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Maximum single relay amount (500 ETH)
     uint256 public constant MAX_RELAY_AMOUNT = 500 ether;
 
-    /*//////////////////////////////////////////////////////////////
-                                 ENUMS
-    //////////////////////////////////////////////////////////////*/
+    // Enum inherited from ICapacityAwareRouter: RelayStatus
 
-    /// @notice Relay operation lifecycle status
-    enum RelayStatus {
-        NONE, // Not created
-        COMMITTED, // User committed funds
-        EXECUTING, // Adapter called, waiting for confirmation
-        COMPLETED, // Successfully completed
-        FAILED, // Failed, funds returned to user
-        REFUNDED // User manually refunded after timeout
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                STRUCTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice A committed relay operation
-    struct RelayOperation {
-        bytes32 routeId; // Associated route from orchestrator
-        address user; // Relay initiator
-        uint256 sourceChainId; // Source chain
-        uint256 destChainId; // Destination chain
-        uint256 amount; // Relay service amount
-        uint256 fee; // Route cost charged
-        uint256 protocolFee; // Protocol's share of fee
-        RelayStatus status; // Current status
-        uint48 committedAt; // Commitment timestamp
-        uint48 completedAt; // Completion timestamp (0 if not completed)
-        address destRecipient; // Recipient on destination chain
-    }
-
-    /// @notice Volume tracking per chain pair
-    struct PairMetrics {
-        uint256 totalVolume; // Total value relayed
-        uint256 totalCosts; // Total costs collected
-        uint256 relayCount; // Number of relay operations
-        uint48 lastRelay; // Last relay timestamp
-    }
+    // Structs inherited from ICapacityAwareRouter: RelayOperation, PairMetrics
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -132,60 +96,14 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     /// @notice User cooldown between relay operations
     uint48 public userCooldown = DEFAULT_COOLDOWN;
 
-    /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
+    // Events inherited from ICapacityAwareRouter:
+    //   RelayCommitted, RelayExecuting, RelayCompleted, RelayFailed,
+    //   RelayRefunded, FeesWithdrawn, CooldownUpdated, TimeoutUpdated
 
-    event RelayCommitted(
-        bytes32 indexed relayId,
-        bytes32 indexed routeId,
-        address indexed user,
-        uint256 sourceChainId,
-        uint256 destChainId,
-        uint256 amount,
-        uint256 fee
-    );
-
-    event RelayExecuting(bytes32 indexed relayId, address indexed executor);
-
-    event RelayCompleted(
-        bytes32 indexed relayId,
-        uint48 completionTime,
-        uint256 actualFee
-    );
-
-    event RelayFailed(bytes32 indexed relayId, string reason);
-
-    event RelayRefunded(
-        bytes32 indexed relayId,
-        address indexed user,
-        uint256 amount
-    );
-
-    event FeesWithdrawn(address indexed recipient, uint256 amount);
-
-    event CooldownUpdated(uint48 oldCooldown, uint48 newCooldown);
-
-    event TimeoutUpdated(uint48 oldTimeout, uint48 newTimeout);
-
-    /*//////////////////////////////////////////////////////////////
-                            CUSTOM ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error ZeroAddress();
-    error RelayAmountTooLarge(uint256 amount, uint256 max);
-    error CooldownNotElapsed(address user, uint48 remaining);
-    error RelayNotFound(bytes32 relayId);
-    error InvalidRelayStatus(
-        bytes32 relayId,
-        RelayStatus current,
-        RelayStatus expected
-    );
-    error RelayTimedOut(bytes32 relayId);
-    error RelayNotTimedOut(bytes32 relayId);
-    error InsufficientPayment(uint256 required, uint256 provided);
-    error NoFeesToWithdraw();
-    error WithdrawFailed();
+    // Errors inherited from ICapacityAwareRouter:
+    //   ZeroAddress, RelayAmountTooLarge, CooldownNotElapsed, RelayNotFound,
+    //   InvalidRelayStatus, RelayTimedOut, RelayNotTimedOut, InsufficientPayment,
+    //   NoFeesToWithdraw, WithdrawFailed
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -230,6 +148,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     )
         external
         view
+        override
         returns (
             IDynamicRoutingOrchestrator.Route memory route,
             uint256 totalRequired
@@ -263,7 +182,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     function commitRelay(
         bytes32 routeId,
         address destRecipient
-    ) external payable nonReentrant whenNotPaused returns (bytes32 relayId) {
+    ) external payable override nonReentrant whenNotPaused returns (bytes32 relayId) {
         if (destRecipient == address(0)) revert ZeroAddress();
 
         // Check cooldown
@@ -349,7 +268,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function beginExecution(
         bytes32 relayId
-    ) external onlyRole(EXECUTOR_ROLE) nonReentrant {
+    ) external override onlyRole(EXECUTOR_ROLE) nonReentrant {
         RelayOperation storage t = relayOps[relayId];
         if (t.user == address(0)) revert RelayNotFound(relayId);
         if (t.status != RelayStatus.COMMITTED) {
@@ -369,7 +288,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     function completeRelay(
         bytes32 relayId,
         uint48 actualLatency
-    ) external onlyRole(COMPLETER_ROLE) nonReentrant {
+    ) external override onlyRole(COMPLETER_ROLE) nonReentrant {
         RelayOperation storage t = relayOps[relayId];
         if (t.user == address(0)) revert RelayNotFound(relayId);
         if (t.status != RelayStatus.EXECUTING) {
@@ -419,7 +338,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     function failRelay(
         bytes32 relayId,
         string calldata reason
-    ) external onlyRole(COMPLETER_ROLE) nonReentrant {
+    ) external override onlyRole(COMPLETER_ROLE) nonReentrant {
         RelayOperation storage t = relayOps[relayId];
         if (t.user == address(0)) revert RelayNotFound(relayId);
         if (t.status != RelayStatus.EXECUTING) {
@@ -457,7 +376,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Refund a timed-out relay — user can call after timeout
      * @param relayId The relay to refund
      */
-    function refundTimedOut(bytes32 relayId) external nonReentrant {
+    function refundTimedOut(bytes32 relayId) external override nonReentrant {
         RelayOperation storage t = relayOps[relayId];
         if (t.user == address(0)) revert RelayNotFound(relayId);
         if (
@@ -495,7 +414,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function getRelayOp(
         bytes32 relayId
-    ) external view returns (RelayOperation memory t) {
+    ) external view override returns (RelayOperation memory t) {
         t = relayOps[relayId];
         if (t.user == address(0)) revert RelayNotFound(relayId);
     }
@@ -509,7 +428,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     function getPairMetrics(
         uint256 sourceChainId,
         uint256 destChainId
-    ) external view returns (PairMetrics memory metrics) {
+    ) external view override returns (PairMetrics memory metrics) {
         bytes32 pairKey = keccak256(
             abi.encodePacked(sourceChainId, destChainId)
         );
@@ -524,7 +443,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function canUserRelay(
         address user
-    ) external view returns (bool canRelay, uint48 cooldownRemaining) {
+    ) external view override returns (bool canRelay, uint48 cooldownRemaining) {
         uint48 lastTx = lastRelayAt[user];
         if (lastTx == 0 || block.timestamp >= lastTx + userCooldown) {
             return (true, 0);
@@ -542,7 +461,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function withdrawFees(
         address recipient
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (recipient == address(0)) revert ZeroAddress();
         if (accumulatedFees == 0) revert NoFeesToWithdraw();
 
@@ -561,7 +480,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function setCooldown(
         uint48 newCooldown
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         uint48 oldCooldown = userCooldown;
         userCooldown = newCooldown;
         emit CooldownUpdated(oldCooldown, newCooldown);
@@ -573,7 +492,7 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
      */
     function setTimeout(
         uint48 newTimeout
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(newTimeout >= 10 minutes, "Timeout too short");
         uint48 oldTimeout = relayTimeout;
         relayTimeout = newTimeout;
@@ -581,12 +500,12 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Pause the router
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the router
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

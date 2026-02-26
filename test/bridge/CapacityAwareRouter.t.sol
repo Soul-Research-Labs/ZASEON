@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {CapacityAwareRouter} from "../../contracts/bridge/CapacityAwareRouter.sol";
+import "../../contracts/interfaces/ICapacityAwareRouter.sol";
 import {DynamicRoutingOrchestrator} from "../../contracts/core/DynamicRoutingOrchestrator.sol";
 import {IDynamicRoutingOrchestrator} from "../../contracts/interfaces/IDynamicRoutingOrchestrator.sol";
 
@@ -94,17 +95,17 @@ contract CapacityAwareRouterTest is Test {
     }
 
     function test_Constructor_RevertZeroOrchestrator() public {
-        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(ICapacityAwareRouter.ZeroAddress.selector);
         new CapacityAwareRouter(address(0), admin, executor);
     }
 
     function test_Constructor_RevertZeroAdmin() public {
-        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(ICapacityAwareRouter.ZeroAddress.selector);
         new CapacityAwareRouter(address(orchestrator), address(0), executor);
     }
 
     function test_Constructor_RevertZeroExecutor() public {
-        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(ICapacityAwareRouter.ZeroAddress.selector);
         new CapacityAwareRouter(address(orchestrator), admin, address(0));
     }
 
@@ -166,7 +167,7 @@ contract CapacityAwareRouterTest is Test {
 
     function test_SetCooldown_EmitsEvent() public {
         vm.expectEmit(false, false, false, true);
-        emit CapacityAwareRouter.CooldownUpdated(30, 120);
+        emit ICapacityAwareRouter.CooldownUpdated(30, 120);
 
         vm.prank(admin);
         router.setCooldown(120);
@@ -195,7 +196,7 @@ contract CapacityAwareRouterTest is Test {
 
     function test_CommitRelay_RevertZeroRecipient() public {
         vm.prank(user1);
-        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(ICapacityAwareRouter.ZeroAddress.selector);
         router.commitRelay{value: 1 ether}(keccak256("routeId"), address(0));
     }
 
@@ -216,7 +217,7 @@ contract CapacityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CapacityAwareRouter.RelayNotFound.selector,
+                ICapacityAwareRouter.RelayNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -227,7 +228,7 @@ contract CapacityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CapacityAwareRouter.RelayNotFound.selector,
+                ICapacityAwareRouter.RelayNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -238,7 +239,7 @@ contract CapacityAwareRouterTest is Test {
         vm.prank(executor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CapacityAwareRouter.RelayNotFound.selector,
+                ICapacityAwareRouter.RelayNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -249,7 +250,7 @@ contract CapacityAwareRouterTest is Test {
         vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CapacityAwareRouter.RelayNotFound.selector,
+                ICapacityAwareRouter.RelayNotFound.selector,
                 keccak256("fake")
             )
         );
@@ -261,7 +262,7 @@ contract CapacityAwareRouterTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_GetPairMetrics_InitiallyZero() public view {
-        CapacityAwareRouter.PairMetrics memory pm = router.getPairMetrics(
+        ICapacityAwareRouter.PairMetrics memory pm = router.getPairMetrics(
             CHAIN_ETH,
             CHAIN_ARB
         );
@@ -276,13 +277,13 @@ contract CapacityAwareRouterTest is Test {
 
     function test_WithdrawFees_RevertNoFees() public {
         vm.prank(admin);
-        vm.expectRevert(CapacityAwareRouter.NoFeesToWithdraw.selector);
+        vm.expectRevert(ICapacityAwareRouter.NoFeesToWithdraw.selector);
         router.withdrawFees(admin);
     }
 
     function test_WithdrawFees_RevertZeroRecipient() public {
         vm.prank(admin);
-        vm.expectRevert(CapacityAwareRouter.ZeroAddress.selector);
+        vm.expectRevert(ICapacityAwareRouter.ZeroAddress.selector);
         router.withdrawFees(address(0));
     }
 

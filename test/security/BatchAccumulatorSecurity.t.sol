@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/privacy/BatchAccumulator.sol";
+import "../../contracts/interfaces/IBatchAccumulator.sol";
 import "../../contracts/interfaces/IProofVerifier.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -132,9 +133,9 @@ contract BatchAccumulatorSecurityTest is Test {
         vm.prank(relayer);
         accumulator.processBatch(batchId, bytes(""));
 
-        (, , BatchAccumulator.BatchStatus status2, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status2, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(status2), uint8(BatchAccumulator.BatchStatus.FAILED));
+        assertEq(uint8(status2), uint8(IBatchAccumulator.BatchStatus.FAILED));
     }
 
     /// @notice Attack: Reject short proof when no verifier configured
@@ -175,8 +176,8 @@ contract BatchAccumulatorSecurityTest is Test {
         vm.prank(relayer);
         acc2.processBatch(bid, bytes(new bytes(100)));
 
-        (, , BatchAccumulator.BatchStatus status, , ) = acc2.getBatchInfo(bid);
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.FAILED));
+        (, , IBatchAccumulator.BatchStatus status, , ) = acc2.getBatchInfo(bid);
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.FAILED));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -191,7 +192,7 @@ contract BatchAccumulatorSecurityTest is Test {
         accumulator.submitToBatch(commitment1, nullifier, bytes("p"), 10);
 
         // Try same nullifier with different commitment
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
             keccak256("commit2"),
             nullifier,
@@ -206,7 +207,7 @@ contract BatchAccumulatorSecurityTest is Test {
 
         accumulator.submitToBatch(commitment, keccak256("n1"), bytes("p"), 10);
 
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(commitment, keccak256("n2"), bytes("p"), 10);
     }
 
@@ -258,7 +259,7 @@ contract BatchAccumulatorSecurityTest is Test {
         accumulator.processBatch(batchId, proof);
 
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchAlreadyCompleted.selector);
+        vm.expectRevert(IBatchAccumulator.BatchAlreadyCompleted.selector);
         accumulator.processBatch(batchId, proof);
     }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/privacy/BatchAccumulator.sol";
+import "../../contracts/interfaces/IBatchAccumulator.sol";
 import "../../contracts/interfaces/IProofVerifier.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -115,13 +116,13 @@ contract BatchAccumulatorFuzzTest is Test {
         uint256 batchSize
     ) public {
         vm.assume(batchSize < 2 || batchSize > 64);
-        vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
         accumulator.configureRoute(1, 2, batchSize, 10 minutes);
     }
 
     /// @notice Fuzz: Zero chain IDs always revert
     function testFuzz_configureRoute_zeroChainId(uint256 dstChain) public {
-        vm.expectRevert(BatchAccumulator.InvalidChainId.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidChainId.selector);
         accumulator.configureRoute(0, dstChain, 8, 10 minutes);
     }
 
@@ -162,7 +163,7 @@ contract BatchAccumulatorFuzzTest is Test {
         accumulator.submitToBatch(commitment, null1, bytes("payload1"), 10);
 
         vm.prank(user1);
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(commitment, null2, bytes("payload2"), 10);
     }
 
@@ -181,7 +182,7 @@ contract BatchAccumulatorFuzzTest is Test {
         accumulator.submitToBatch(commit1, nullifier, bytes("p1"), 10);
 
         vm.prank(user1);
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(commit2, nullifier, bytes("p2"), 10);
     }
 
@@ -198,7 +199,7 @@ contract BatchAccumulatorFuzzTest is Test {
 
     /// @notice Zero address rejected for proof verifier
     function test_setProofVerifier_rejectsZero() public {
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         accumulator.setProofVerifier(address(0));
     }
 

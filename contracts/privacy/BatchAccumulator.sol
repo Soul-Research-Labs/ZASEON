@@ -34,6 +34,7 @@ import "../interfaces/IBatchAccumulator.sol";
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 contract BatchAccumulator is
+    IBatchAccumulator,
     Initializable,
     UUPSUpgradeable,
     AccessControlUpgradeable,
@@ -70,57 +71,8 @@ contract BatchAccumulator is
     /// @notice Fixed payload size for uniformity (2 KB)
     uint256 public constant FIXED_PAYLOAD_SIZE = 2048;
 
-    // =========================================================================
-    // ENUMS
-    // =========================================================================
-
-    enum BatchStatus {
-        ACCUMULATING, // Still collecting transactions
-        READY, // Min size reached or max time elapsed
-        PROCESSING, // Being processed by relayer
-        COMPLETED, // Successfully processed
-        FAILED // Processing failed
-    }
-
-    // =========================================================================
-    // STRUCTS
-    // =========================================================================
-
-    /**
-     * @notice Configuration for a specific route
-     */
-    struct RouteConfig {
-        uint256 minBatchSize;
-        uint256 maxWaitTime;
-        bool isActive;
-    }
-
-    /**
-     * @notice Individual transaction in a batch
-     */
-    struct BatchedTransaction {
-        bytes32 commitment;
-        bytes32 nullifierHash;
-        bytes encryptedPayload; // Padded to FIXED_PAYLOAD_SIZE
-        uint256 submittedAt;
-        address submitter;
-        bool processed;
-    }
-
-    /**
-     * @notice Batch of transactions
-     */
-    struct Batch {
-        bytes32 batchId;
-        uint256 sourceChainId;
-        uint256 targetChainId;
-        bytes32[] commitments;
-        uint256 createdAt;
-        uint256 readyAt; // When batch became ready (0 if not ready)
-        BatchStatus status;
-        bytes32 aggregateProofHash; // Hash of aggregated proof (set after processing)
-        uint256 processedAt;
-    }
+    // Enums, structs inherited from IBatchAccumulator:
+    // BatchStatus, RouteConfig, BatchedTransaction, Batch
 
     // =========================================================================
     // STATE
@@ -157,64 +109,7 @@ contract BatchAccumulator is
     /// @notice Cross-chain hub address
     address public crossChainHub;
 
-    // =========================================================================
-    // EVENTS
-    // =========================================================================
-
-    event BatchCreated(
-        bytes32 indexed batchId,
-        uint256 indexed sourceChainId,
-        uint256 indexed targetChainId,
-        uint256 minSize,
-        uint256 maxWaitTime
-    );
-
-    event TransactionAdded(
-        bytes32 indexed batchId,
-        bytes32 indexed commitment,
-        uint256 batchSize,
-        uint256 remaining
-    );
-
-    event BatchReady(
-        bytes32 indexed batchId,
-        uint256 size,
-        string reason // "SIZE_REACHED" or "TIME_ELAPSED"
-    );
-
-    event BatchProcessing(bytes32 indexed batchId, address indexed relayer);
-
-    event BatchCompleted(
-        bytes32 indexed batchId,
-        bytes32 aggregateProofHash,
-        uint256 processedCount
-    );
-
-    event BatchFailed(bytes32 indexed batchId, string reason);
-
-    event RouteConfigured(
-        bytes32 indexed routeHash,
-        uint256 minBatchSize,
-        uint256 maxWaitTime
-    );
-
-    // =========================================================================
-    // ERRORS
-    // =========================================================================
-
-    error InvalidChainId();
-    error InvalidPayloadSize();
-    error CommitmentAlreadyUsed();
-    error NullifierAlreadyUsed();
-    error BatchNotFound();
-    error BatchNotReady();
-    error BatchAlreadyProcessing();
-    error BatchAlreadyCompleted();
-    error InvalidBatchSize();
-    error InvalidWaitTime();
-    error RouteNotActive();
-    error InvalidProof();
-    error ZeroAddress();
+    // Events and errors inherited from IBatchAccumulator
 
     // =========================================================================
     // INITIALIZER
@@ -234,7 +129,6 @@ contract BatchAccumulator is
         if (_proofVerifier == address(0)) revert ZeroAddress();
         if (_crossChainHub == address(0)) revert ZeroAddress();
 
-        __UUPSUpgradeable_init();
         __AccessControl_init();
         __ReentrancyGuard_init();
         __Pausable_init();
@@ -381,7 +275,7 @@ contract BatchAccumulator is
      * @notice Check and release a batch if conditions are met
      * @param batchId The batch to check
      */
-    function releaseBatch(bytes32 batchId) external {
+    function releaseBatch(bytes32 batchId) external override {
         Batch storage batch = batches[batchId];
         if (batch.createdAt == 0) revert BatchNotFound();
         if (batch.status != BatchStatus.ACCUMULATING)
@@ -401,7 +295,7 @@ contract BatchAccumulator is
      */
     function forceReleaseBatch(
         bytes32 batchId
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         Batch storage batch = batches[batchId];
         if (batch.createdAt == 0) revert BatchNotFound();
         if (batch.status != BatchStatus.ACCUMULATING)
@@ -425,7 +319,7 @@ contract BatchAccumulator is
     function processBatch(
         bytes32 batchId,
         bytes calldata aggregateProof
-    ) external onlyRole(RELAYER_ROLE) nonReentrant {
+    ) external override onlyRole(RELAYER_ROLE) nonReentrant {
         Batch storage batch = batches[batchId];
         if (batch.createdAt == 0) revert BatchNotFound();
         if (batch.status == BatchStatus.ACCUMULATING) revert BatchNotReady();
@@ -486,6 +380,7 @@ contract BatchAccumulator is
     )
         external
         view
+        override
         returns (
             uint256 size,
             uint256 age,
@@ -511,6 +406,7 @@ contract BatchAccumulator is
     )
         external
         view
+        override
         returns (
             bytes32 batchId,
             uint256 currentSize,
@@ -543,6 +439,7 @@ contract BatchAccumulator is
     )
         external
         view
+        override
         returns (
             bytes32 batchId,
             uint256 submittedAt,
@@ -577,7 +474,7 @@ contract BatchAccumulator is
      */
     function getAnonymitySet(
         bytes32 commitment
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         bytes32 batchId = commitmentToBatch[commitment];
         if (batchId == bytes32(0)) return 0;
         return batches[batchId].commitments.length;
@@ -725,24 +622,24 @@ contract BatchAccumulator is
     // ADMIN FUNCTIONS
     // =========================================================================
 
-    function pause() external onlyRole(OPERATOR_ROLE) {
+    function pause() external override onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+    function unpause() external override onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
     function setProofVerifier(
         address _proofVerifier
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_proofVerifier == address(0)) revert ZeroAddress();
         proofVerifier = _proofVerifier;
     }
 
     function setCrossChainHub(
         address _crossChainHub
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_crossChainHub == address(0)) revert ZeroAddress();
         crossChainHub = _crossChainHub;
     }

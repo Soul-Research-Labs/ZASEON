@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/privacy/StealthAddressRegistry.sol";
+import "../../contracts/interfaces/IStealthAddressRegistry.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
@@ -85,7 +86,7 @@ contract StealthAddressEdgeCasesTest is Test {
         registry.registerMetaAddress(
             secp256k1Key33,
             secp256k1Key33,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
     }
@@ -251,7 +252,7 @@ contract StealthAddressEdgeCasesTest is Test {
         );
 
         vm.prank(admin);
-        vm.expectRevert(StealthAddressRegistry.InvalidProof.selector);
+        vm.expectRevert(IStealthAddressRegistry.InvalidProof.selector);
         registry.deriveCrossChainStealth(sourceKey, 0, proof);
     }
 
@@ -278,7 +279,7 @@ contract StealthAddressEdgeCasesTest is Test {
         );
 
         vm.prank(admin);
-        vm.expectRevert(StealthAddressRegistry.InvalidProof.selector);
+        vm.expectRevert(IStealthAddressRegistry.InvalidProof.selector);
         registry.deriveCrossChainStealth(sourceKey, destChain, proof);
     }
 
@@ -297,7 +298,7 @@ contract StealthAddressEdgeCasesTest is Test {
         bytes memory proof = new bytes(64);
 
         vm.prank(admin);
-        vm.expectRevert(StealthAddressRegistry.InvalidProof.selector);
+        vm.expectRevert(IStealthAddressRegistry.InvalidProof.selector);
         registry.deriveCrossChainStealth(sourceKey, destChain, proof);
     }
 
@@ -314,7 +315,7 @@ contract StealthAddressEdgeCasesTest is Test {
         bytes memory proof = new bytes(64);
 
         vm.prank(admin);
-        vm.expectRevert(StealthAddressRegistry.InvalidProof.selector);
+        vm.expectRevert(IStealthAddressRegistry.InvalidProof.selector);
         registry.deriveCrossChainStealth(sourceKey, 10, proof);
     }
 
@@ -356,7 +357,7 @@ contract StealthAddressEdgeCasesTest is Test {
         );
 
         // Announcement should be stored successfully
-        StealthAddressRegistry.Announcement memory ann = registry
+        IStealthAddressRegistry.Announcement memory ann = registry
             .getAnnouncement(address(0x1234));
         assertEq(ann.viewTag.length, 0, "View tag should be empty");
         assertEq(ann.stealthAddress, address(0x1234));
@@ -391,7 +392,7 @@ contract StealthAddressEdgeCasesTest is Test {
         registry.registerMetaAddress(
             bobKey,
             bobKey,
-            StealthAddressRegistry.CurveType.SECP256K1,
+            IStealthAddressRegistry.CurveType.SECP256K1,
             1
         );
 

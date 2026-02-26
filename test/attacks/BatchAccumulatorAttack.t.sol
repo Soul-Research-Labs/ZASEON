@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../../contracts/privacy/BatchAccumulator.sol";
+import "../../contracts/interfaces/IBatchAccumulator.sol";
 
 /// @dev Mock proof verifier that accepts all proofs
 contract MockProofVerifier {
@@ -155,7 +156,7 @@ contract BatchAccumulatorAttackTest is Test {
         );
 
         // Second submission with same nullifier MUST fail
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
             commitment2,
             nullifier,
@@ -178,7 +179,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         // Second attacker with same nullifier MUST fail
         vm.prank(attacker2);
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
             keccak256("a2_commit"),
             nullifier,
@@ -204,7 +205,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         // Same nullifier on different route MUST also fail
         // (nullifiers are global, not per-route)
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
             keccak256("cr_commit2"),
             nullifier,
@@ -229,7 +230,7 @@ contract BatchAccumulatorAttackTest is Test {
         );
 
         // Replay with same commitment MUST fail
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(
             commitment,
             keccak256("null2"),
@@ -265,7 +266,7 @@ contract BatchAccumulatorAttackTest is Test {
         accumulator.processBatch(batchId, hex"aabbccdd");
 
         // Replay commitment after batch is complete — MUST still fail
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(
             commitment,
             keccak256("new_null"),
@@ -290,9 +291,9 @@ contract BatchAccumulatorAttackTest is Test {
         accumulator.processBatch(batchId, hex"00112233");
 
         // Verify batch is in FAILED state, not permanently bricked
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.FAILED));
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.FAILED));
     }
 
     function test_Attack_EmptyProofGrief() public {
@@ -303,9 +304,9 @@ contract BatchAccumulatorAttackTest is Test {
         accumulator.processBatch(batchId, hex"");
 
         // Verify batch is in FAILED state, not permanently bricked
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.FAILED));
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.FAILED));
     }
 
     // =========================================================================
@@ -324,9 +325,9 @@ contract BatchAccumulatorAttackTest is Test {
         vm.prank(relayer);
         accumulator.processBatch(batchId, hex"aabbccdd");
 
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.COMPLETED));
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.COMPLETED));
     }
 
     function test_Attack_FrontrunForceRelease() public {
@@ -346,9 +347,9 @@ contract BatchAccumulatorAttackTest is Test {
         vm.prank(operator);
         accumulator.forceReleaseBatch(batchId);
 
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.READY));
     }
 
     // =========================================================================
@@ -365,11 +366,11 @@ contract BatchAccumulatorAttackTest is Test {
         bytes32 batchId = accumulator.activeBatches(routeHash);
 
         // Try releasing before timeout — should fail since conditions not met
-        (, , BatchAccumulator.BatchStatus statusBefore, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus statusBefore, , ) = accumulator
             .getBatchInfo(batchId);
         assertEq(
             uint8(statusBefore),
-            uint8(BatchAccumulator.BatchStatus.ACCUMULATING),
+            uint8(IBatchAccumulator.BatchStatus.ACCUMULATING),
             "Should still be accumulating"
         );
 
@@ -379,11 +380,11 @@ contract BatchAccumulatorAttackTest is Test {
         // Now release should succeed (time elapsed)
         accumulator.releaseBatch(batchId);
 
-        (, , BatchAccumulator.BatchStatus statusAfter, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus statusAfter, , ) = accumulator
             .getBatchInfo(batchId);
         assertEq(
             uint8(statusAfter),
-            uint8(BatchAccumulator.BatchStatus.READY),
+            uint8(IBatchAccumulator.BatchStatus.READY),
             "Should be READY after timeout"
         );
     }
@@ -397,7 +398,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         // Second process attempt MUST fail
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchAlreadyCompleted.selector);
+        vm.expectRevert(IBatchAccumulator.BatchAlreadyCompleted.selector);
         accumulator.processBatch(batchId, hex"aabbccdd");
     }
 
@@ -412,7 +413,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         // Try to process while still ACCUMULATING
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchNotReady.selector);
+        vm.expectRevert(IBatchAccumulator.BatchNotReady.selector);
         accumulator.processBatch(batchId, hex"aabb");
     }
 
@@ -441,11 +442,11 @@ contract BatchAccumulatorAttackTest is Test {
         bytes32 batchId = accumulator.activeBatches(routeHash);
 
         // Batch should still be ACCUMULATING (7 < 8)
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
         assertEq(
             uint8(status),
-            uint8(BatchAccumulator.BatchStatus.ACCUMULATING)
+            uint8(IBatchAccumulator.BatchStatus.ACCUMULATING)
         );
 
         // Adding the 8th should trigger READY
@@ -456,9 +457,9 @@ contract BatchAccumulatorAttackTest is Test {
             TARGET_CHAIN
         );
 
-        (, , BatchAccumulator.BatchStatus statusAfter, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus statusAfter, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint8(statusAfter), uint8(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint8(statusAfter), uint8(IBatchAccumulator.BatchStatus.READY));
 
         // Verify anonymity set size is 8
         uint256 anonSet = accumulator.getAnonymitySet(
@@ -571,21 +572,21 @@ contract BatchAccumulatorAttackTest is Test {
 
     function test_Attack_ConfigureRoute_invalidBatchSize() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 1, 10 minutes); // min=1 < 2
 
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 65, 10 minutes); // 65 > MAX 64
     }
 
     function test_Attack_ConfigureRoute_invalidWaitTime() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidWaitTime.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidWaitTime.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, 30 seconds); // < MIN_WAIT_TIME
 
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidWaitTime.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidWaitTime.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, 2 hours); // > MAX_WAIT_TIME
     }
 
@@ -609,7 +610,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         accumulator.submitToBatch(commit1, nullifier, hex"aa", TARGET_CHAIN);
 
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(commit2, nullifier, hex"bb", TARGET_CHAIN);
     }
 
@@ -629,7 +630,7 @@ contract BatchAccumulatorAttackTest is Test {
 
         accumulator.submitToBatch(commitment, null1, hex"aa", TARGET_CHAIN);
 
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(commitment, null2, hex"bb", TARGET_CHAIN);
     }
 }

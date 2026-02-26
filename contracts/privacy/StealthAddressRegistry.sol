@@ -67,7 +67,8 @@ contract StealthAddressRegistry is
     Initializable,
     UUPSUpgradeable,
     AccessControlUpgradeable,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    IStealthAddressRegistry
 {
     // =========================================================================
     // ROLES (Pre-computed for gas efficiency)
@@ -109,78 +110,11 @@ contract StealthAddressRegistry is
     /// @notice Announcement expiry (90 days)
     uint256 public constant ANNOUNCEMENT_EXPIRY = 90 days;
 
-    // =========================================================================
-    // ENUMS
-    // =========================================================================
+    // Enums inherited from IStealthAddressRegistry:
+    //   CurveType, KeyStatus
 
-    enum CurveType {
-        SECP256K1,
-        ED25519,
-        BLS12_381,
-        PALLAS,
-        VESTA,
-        BN254
-    }
-
-    enum KeyStatus {
-        INACTIVE,
-        ACTIVE,
-        REVOKED
-    }
-
-    // =========================================================================
-    // STRUCTS
-    // =========================================================================
-
-    /**
-     * @notice Stealth meta-address (published by recipient)
-     */
-    struct StealthMetaAddress {
-        bytes spendingPubKey; // Compressed public key for spending
-        bytes viewingPubKey; // Compressed public key for viewing
-        CurveType curveType;
-        KeyStatus status;
-        uint256 registeredAt;
-        uint256 schemeId; // ERC-5564 scheme ID
-    }
-
-    /**
-     * @notice Stealth address announcement (published by sender)
-     */
-    struct Announcement {
-        bytes32 schemeId; // Identifies the stealth scheme
-        address stealthAddress; // The derived stealth address
-        bytes ephemeralPubKey; // R = r*G, needed for scanning
-        bytes viewTag; // First byte of shared secret (optimization)
-        bytes metadata; // Optional encrypted metadata
-        uint256 timestamp;
-        uint256 chainId;
-    }
-
-    /**
-     * @notice Cross-chain stealth binding
-     */
-    struct CrossChainStealth {
-        bytes32 sourceStealthKey;
-        bytes32 destStealthKey;
-        uint256 sourceChainId;
-        uint256 destChainId;
-        bytes derivationProof;
-        uint256 timestamp;
-    }
-
-    /**
-     * @notice Dual-key stealth address for enhanced privacy
-     */
-    struct DualKeyStealth {
-        bytes32 spendingPubKeyHash;
-        bytes32 viewingPubKeyHash;
-        bytes32 stealthAddressHash;
-        bytes32 ephemeralPubKeyHash;
-        bytes32 sharedSecretHash;
-        address derivedAddress;
-        uint256 chainId;
-    }
+    // Structs inherited from IStealthAddressRegistry:
+    //   StealthMetaAddress, Announcement, CrossChainStealth, DualKeyStealth
 
     // =========================================================================
     // STATE
@@ -219,68 +153,15 @@ contract StealthAddressRegistry is
     /// @notice Minimum proof length for derivation proofs
     uint256 public constant MIN_DERIVATION_PROOF_LENGTH = 192;
 
-    // =========================================================================
-    // EVENTS
-    // =========================================================================
+    // Events inherited from IStealthAddressRegistry:
+    //   MetaAddressRegistered, MetaAddressUpdated, StealthAnnouncement,
+    //   CrossChainStealthDerived, DualKeyStealthGenerated, DerivationVerifierUpdated
 
-    event MetaAddressRegistered(
-        address indexed owner,
-        bytes spendingPubKey,
-        bytes viewingPubKey,
-        CurveType curveType,
-        uint256 schemeId
-    );
-
-    event MetaAddressUpdated(address indexed owner, KeyStatus newStatus);
-
-    event StealthAnnouncement(
-        bytes32 indexed schemeId,
-        address indexed stealthAddress,
-        address indexed caller,
-        bytes ephemeralPubKey,
-        bytes viewTag,
-        bytes metadata
-    );
-
-    event CrossChainStealthDerived(
-        bytes32 indexed sourceKey,
-        bytes32 indexed destKey,
-        uint256 sourceChainId,
-        uint256 destChainId
-    );
-
-    event DualKeyStealthGenerated(
-        bytes32 indexed stealthHash,
-        address indexed derivedAddress,
-        uint256 chainId
-    );
-
-    event DerivationVerifierUpdated(
-        address indexed oldVerifier,
-        address indexed newVerifier
-    );
-
-    // =========================================================================
-    // ERRORS
-    // =========================================================================
-
-    error InvalidPubKey();
-    error MetaAddressAlreadyExists();
-    error MetaAddressNotFound();
-    error MetaAddressRevoked();
-    error InvalidCurveType();
-    error InvalidSchemeId();
-    error AnnouncementNotFound();
-    error CrossChainBindingExists();
-    error InvalidProof();
-    error ZeroAddress();
-    error InsufficientFee();
-    error InvalidSecp256k1Key();
-    error InvalidEd25519Key();
-    error InvalidBLSKey();
-    error InvalidBN254Key();
-    error InvalidPallasVestaKey();
-    error ViewTagIndexFull();
+    // Errors inherited from IStealthAddressRegistry:
+    //   InvalidPubKey, MetaAddressAlreadyExists, MetaAddressNotFound, MetaAddressRevoked,
+    //   InvalidCurveType, InvalidSchemeId, AnnouncementNotFound, CrossChainBindingExists,
+    //   InvalidProof, ZeroAddress, InsufficientFee, InvalidSecp256k1Key, InvalidEd25519Key,
+    //   InvalidBLSKey, InvalidBN254Key, InvalidPallasVestaKey, ViewTagIndexFull
 
     // =========================================================================
     // INITIALIZER
@@ -291,8 +172,7 @@ contract StealthAddressRegistry is
         _disableInitializers();
     }
 
-    function initialize(address admin) external initializer {
-        __UUPSUpgradeable_init();
+    function initialize(address admin) external override initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
 
@@ -310,7 +190,7 @@ contract StealthAddressRegistry is
      */
     function setDerivationVerifier(
         address _derivationVerifier
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         address oldVerifier = address(derivationVerifier);
         derivationVerifier = IDerivationVerifier(_derivationVerifier);
         emit DerivationVerifierUpdated(oldVerifier, _derivationVerifier);
@@ -332,7 +212,7 @@ contract StealthAddressRegistry is
         bytes calldata viewingPubKey,
         CurveType curveType,
         uint256 schemeId
-    ) external nonReentrant {
+    ) external override nonReentrant {
         if (spendingPubKey.length == 0 || viewingPubKey.length == 0) {
             revert InvalidPubKey();
         }
@@ -368,7 +248,7 @@ contract StealthAddressRegistry is
      * @notice Update meta-address status
      * @dev Cannot re-activate a revoked meta-address
      */
-    function updateMetaAddressStatus(KeyStatus newStatus) external {
+    function updateMetaAddressStatus(KeyStatus newStatus) external override {
         StealthMetaAddress storage meta = metaAddresses[msg.sender];
         if (meta.status == KeyStatus.INACTIVE) revert MetaAddressNotFound();
         if (meta.status == KeyStatus.REVOKED) revert MetaAddressRevoked();
@@ -381,7 +261,7 @@ contract StealthAddressRegistry is
     /**
      * @notice Revoke meta-address (cannot be undone)
      */
-    function revokeMetaAddress() external {
+    function revokeMetaAddress() external override {
         StealthMetaAddress storage meta = metaAddresses[msg.sender];
         if (meta.status == KeyStatus.INACTIVE) revert MetaAddressNotFound();
 
@@ -405,7 +285,7 @@ contract StealthAddressRegistry is
         address recipient,
         bytes calldata /* ephemeralPubKey */,
         bytes32 sharedSecretHash
-    ) external view returns (address stealthAddress, bytes1 viewTag) {
+    ) external view override returns (address stealthAddress, bytes1 viewTag) {
         StealthMetaAddress storage meta = metaAddresses[recipient];
         if (meta.status != KeyStatus.ACTIVE) revert MetaAddressNotFound();
 
@@ -442,6 +322,7 @@ contract StealthAddressRegistry is
         uint256 chainId
     )
         external
+        override
         nonReentrant
         returns (bytes32 stealthHash, address derivedAddress)
     {
@@ -497,7 +378,7 @@ contract StealthAddressRegistry is
         bytes calldata ephemeralPubKey,
         bytes calldata viewTag,
         bytes calldata metadata
-    ) external onlyRole(ANNOUNCER_ROLE) {
+    ) external override onlyRole(ANNOUNCER_ROLE) {
         if (stealthAddress == address(0)) revert ZeroAddress();
         if (ephemeralPubKey.length == 0) revert InvalidPubKey();
 
@@ -543,7 +424,7 @@ contract StealthAddressRegistry is
         bytes calldata ephemeralPubKey,
         bytes calldata viewTag,
         bytes calldata metadata
-    ) external payable nonReentrant {
+    ) external payable override nonReentrant {
         if (msg.value < 0.0001 ether) revert InsufficientFee();
 
         if (stealthAddress == address(0)) revert ZeroAddress();
@@ -590,7 +471,7 @@ contract StealthAddressRegistry is
      */
     function getAnnouncementsByViewTag(
         bytes1 viewTag
-    ) external view returns (address[] memory) {
+    ) external view override returns (address[] memory) {
         return viewTagIndex[viewTag];
     }
 
@@ -605,7 +486,7 @@ contract StealthAddressRegistry is
         address stealthAddress,
         bytes32 viewingPrivKeyHash,
         bytes32 spendingPubKeyHash
-    ) external view returns (bool isOwner) {
+    ) external view override returns (bool isOwner) {
         Announcement storage ann = announcements[stealthAddress];
         if (ann.stealthAddress == address(0)) return false;
 
@@ -640,7 +521,7 @@ contract StealthAddressRegistry is
         bytes32 viewingPrivKeyHash,
         bytes32 spendingPubKeyHash,
         address[] calldata candidates
-    ) external view returns (address[] memory owned) {
+    ) external view override returns (address[] memory owned) {
         uint256 count = 0;
         address[] memory temp = new address[](candidates.length);
 
@@ -686,7 +567,7 @@ contract StealthAddressRegistry is
         bytes32 sourceStealthKey,
         uint256 destChainId,
         bytes calldata derivationProof
-    ) external nonReentrant returns (bytes32 destStealthKey) {
+    ) external override nonReentrant returns (bytes32 destStealthKey) {
         // Verify derivation proof
         if (
             !_verifyDerivationProof(
@@ -844,37 +725,38 @@ contract StealthAddressRegistry is
 
     function getMetaAddress(
         address owner
-    ) external view returns (StealthMetaAddress memory) {
+    ) external view override returns (StealthMetaAddress memory) {
         return metaAddresses[owner];
     }
 
     function getAnnouncement(
         address stealthAddress
-    ) external view returns (Announcement memory) {
+    ) external view override returns (Announcement memory) {
         return announcements[stealthAddress];
     }
 
     function getDualKeyRecord(
         bytes32 stealthHash
-    ) external view returns (DualKeyStealth memory) {
+    ) external view override returns (DualKeyStealth memory) {
         return dualKeyRecords[stealthHash];
     }
 
     function getCrossChainBinding(
         bytes32 sourceKey,
         bytes32 destKey
-    ) external view returns (CrossChainStealth memory) {
+    ) external view override returns (CrossChainStealth memory) {
         bytes32 bindingId = keccak256(abi.encodePacked(sourceKey, destKey));
         return crossChainBindings[bindingId];
     }
 
-    function getRegisteredAddressCount() external view returns (uint256) {
+    function getRegisteredAddressCount() external view override returns (uint256) {
         return registeredAddresses.length;
     }
 
     function getStats()
         external
         view
+        override
         returns (
             uint256 _registeredCount,
             uint256 _announcementCount,
@@ -901,7 +783,7 @@ contract StealthAddressRegistry is
     function withdrawFees(
         address payable recipient,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (recipient == address(0)) revert ZeroAddress();
         uint256 balance = address(this).balance;
         uint256 transferAmount = amount == 0 ? balance : amount;

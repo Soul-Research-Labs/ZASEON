@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../../contracts/privacy/BatchAccumulator.sol";
+import "../../contracts/interfaces/IBatchAccumulator.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // ─── Mock Proof Verifier
@@ -165,7 +166,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_initialize_revertsZeroAdmin() public {
         BatchAccumulator impl2 = new BatchAccumulator();
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl2),
             abi.encodeCall(
@@ -177,7 +178,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_initialize_revertsZeroVerifier() public {
         BatchAccumulator impl2 = new BatchAccumulator();
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl2),
             abi.encodeCall(
@@ -189,7 +190,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_initialize_revertsZeroCrossChainHub() public {
         BatchAccumulator impl2 = new BatchAccumulator();
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl2),
             abi.encodeCall(
@@ -228,37 +229,37 @@ contract BatchAccumulatorTest is Test {
 
     function test_configureRoute_revertsInvalidSourceChainId() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidChainId.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidChainId.selector);
         accumulator.configureRoute(0, TARGET_CHAIN, 8, 10 minutes);
     }
 
     function test_configureRoute_revertsInvalidTargetChainId() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidChainId.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidChainId.selector);
         accumulator.configureRoute(SOURCE_CHAIN, 0, 8, 10 minutes);
     }
 
     function test_configureRoute_revertsInvalidBatchSizeTooSmall() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 1, 10 minutes);
     }
 
     function test_configureRoute_revertsInvalidBatchSizeTooLarge() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 65, 10 minutes);
     }
 
     function test_configureRoute_revertsInvalidWaitTimeTooShort() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidWaitTime.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidWaitTime.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, 30 seconds);
     }
 
     function test_configureRoute_revertsInvalidWaitTimeTooLong() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.InvalidWaitTime.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidWaitTime.selector);
         accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, 2 hours);
     }
 
@@ -353,7 +354,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_submitToBatch_revertsOnZeroTargetChain() public {
         vm.prank(user1);
-        vm.expectRevert(BatchAccumulator.InvalidChainId.selector);
+        vm.expectRevert(IBatchAccumulator.InvalidChainId.selector);
         accumulator.submitToBatch(
             keccak256("c"),
             keccak256("n"),
@@ -369,7 +370,7 @@ contract BatchAccumulatorTest is Test {
         _submitTx(commitment, keccak256("n1"), user1);
 
         vm.prank(user2);
-        vm.expectRevert(BatchAccumulator.CommitmentAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.CommitmentAlreadyUsed.selector);
         accumulator.submitToBatch(
             commitment,
             keccak256("n2"),
@@ -385,7 +386,7 @@ contract BatchAccumulatorTest is Test {
         _submitTx(keccak256("c1"), nullifier, user1);
 
         vm.prank(user2);
-        vm.expectRevert(BatchAccumulator.NullifierAlreadyUsed.selector);
+        vm.expectRevert(IBatchAccumulator.NullifierAlreadyUsed.selector);
         accumulator.submitToBatch(
             keccak256("c2"),
             nullifier,
@@ -425,14 +426,14 @@ contract BatchAccumulatorTest is Test {
         (
             uint256 size,
             ,
-            BatchAccumulator.BatchStatus status,
+            IBatchAccumulator.BatchStatus status,
             bool isReady,
 
         ) = accumulator.getBatchInfo(batchId);
 
         assertEq(size, 8);
         assertTrue(isReady);
-        assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint256(status), uint256(IBatchAccumulator.BatchStatus.READY));
     }
 
     function test_submitToBatch_padsPayloadToFixedSize() public {
@@ -475,14 +476,14 @@ contract BatchAccumulatorTest is Test {
 
         accumulator.releaseBatch(batchId);
 
-        (, , BatchAccumulator.BatchStatus status, bool isReady, ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, bool isReady, ) = accumulator
             .getBatchInfo(batchId);
         assertTrue(isReady);
-        assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint256(status), uint256(IBatchAccumulator.BatchStatus.READY));
     }
 
     function test_releaseBatch_revertsIfBatchNotFound() public {
-        vm.expectRevert(BatchAccumulator.BatchNotFound.selector);
+        vm.expectRevert(IBatchAccumulator.BatchNotFound.selector);
         accumulator.releaseBatch(keccak256("nonexistent"));
     }
 
@@ -497,7 +498,7 @@ contract BatchAccumulatorTest is Test {
             abi.encodePacked(bytes32(uint256(1)))
         );
 
-        vm.expectRevert(BatchAccumulator.BatchAlreadyProcessing.selector);
+        vm.expectRevert(IBatchAccumulator.BatchAlreadyProcessing.selector);
         accumulator.releaseBatch(batchId);
     }
 
@@ -512,9 +513,9 @@ contract BatchAccumulatorTest is Test {
         vm.prank(operator);
         accumulator.forceReleaseBatch(batchId);
 
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
-        assertEq(uint256(status), uint256(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint256(status), uint256(IBatchAccumulator.BatchStatus.READY));
     }
 
     function test_forceReleaseBatch_revertsIfNotOperator() public {
@@ -528,7 +529,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_forceReleaseBatch_revertsIfBatchNotFound() public {
         vm.prank(operator);
-        vm.expectRevert(BatchAccumulator.BatchNotFound.selector);
+        vm.expectRevert(IBatchAccumulator.BatchNotFound.selector);
         accumulator.forceReleaseBatch(keccak256("nonexistent"));
     }
 
@@ -548,11 +549,11 @@ contract BatchAccumulatorTest is Test {
         vm.prank(relayer);
         accumulator.processBatch(batchId, proof);
 
-        (, , BatchAccumulator.BatchStatus status, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status, , ) = accumulator
             .getBatchInfo(batchId);
         assertEq(
             uint256(status),
-            uint256(BatchAccumulator.BatchStatus.COMPLETED)
+            uint256(IBatchAccumulator.BatchStatus.COMPLETED)
         );
     }
 
@@ -620,7 +621,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_processBatch_revertsIfBatchNotFound() public {
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchNotFound.selector);
+        vm.expectRevert(IBatchAccumulator.BatchNotFound.selector);
         accumulator.processBatch(
             keccak256("nonexistent"),
             abi.encodePacked(bytes32(uint256(1)))
@@ -632,7 +633,7 @@ contract BatchAccumulatorTest is Test {
         bytes32 batchId = _submitTx(keccak256("c1"), keccak256("n1"), user1);
 
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchNotReady.selector);
+        vm.expectRevert(IBatchAccumulator.BatchNotReady.selector);
         accumulator.processBatch(
             batchId,
             abi.encodePacked(bytes32(uint256(1)))
@@ -650,7 +651,7 @@ contract BatchAccumulatorTest is Test {
         );
 
         vm.prank(relayer);
-        vm.expectRevert(BatchAccumulator.BatchAlreadyCompleted.selector);
+        vm.expectRevert(IBatchAccumulator.BatchAlreadyCompleted.selector);
         accumulator.processBatch(
             batchId,
             abi.encodePacked(bytes32(uint256(1)))
@@ -698,10 +699,10 @@ contract BatchAccumulatorTest is Test {
         vm.prank(relayer);
         acc2.processBatch(batchId, abi.encodePacked(bytes32(uint256(1))));
 
-        (, , BatchAccumulator.BatchStatus status, , ) = acc2.getBatchInfo(
+        (, , IBatchAccumulator.BatchStatus status, , ) = acc2.getBatchInfo(
             batchId
         );
-        assertEq(uint8(status), uint8(BatchAccumulator.BatchStatus.FAILED));
+        assertEq(uint8(status), uint8(IBatchAccumulator.BatchStatus.FAILED));
     }
 
     function test_processBatch_emitsBatchCompleted() public {
@@ -729,7 +730,7 @@ contract BatchAccumulatorTest is Test {
         (
             uint256 size,
             uint256 age,
-            BatchAccumulator.BatchStatus status,
+            IBatchAccumulator.BatchStatus status,
             bool isReady,
             uint256 targetChain
         ) = accumulator.getBatchInfo(batchId);
@@ -738,7 +739,7 @@ contract BatchAccumulatorTest is Test {
         assertGe(age, 0);
         assertEq(
             uint256(status),
-            uint256(BatchAccumulator.BatchStatus.ACCUMULATING)
+            uint256(IBatchAccumulator.BatchStatus.ACCUMULATING)
         );
         assertFalse(isReady);
         assertEq(targetChain, TARGET_CHAIN);
@@ -780,7 +781,7 @@ contract BatchAccumulatorTest is Test {
             bytes32 batchId,
             uint256 submittedAt,
             bool processed,
-            BatchAccumulator.BatchStatus batchStatus
+            IBatchAccumulator.BatchStatus batchStatus
         ) = accumulator.getTransactionByCommitment(commitment);
 
         assertNotEq(batchId, bytes32(0));
@@ -788,7 +789,7 @@ contract BatchAccumulatorTest is Test {
         assertFalse(processed);
         assertEq(
             uint256(batchStatus),
-            uint256(BatchAccumulator.BatchStatus.ACCUMULATING)
+            uint256(IBatchAccumulator.BatchStatus.ACCUMULATING)
         );
     }
 
@@ -846,7 +847,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_setProofVerifier_revertsZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         accumulator.setProofVerifier(address(0));
     }
 
@@ -867,7 +868,7 @@ contract BatchAccumulatorTest is Test {
 
     function test_setCrossChainHub_revertsZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert(BatchAccumulator.ZeroAddress.selector);
+        vm.expectRevert(IBatchAccumulator.ZeroAddress.selector);
         accumulator.setCrossChainHub(address(0));
     }
 
@@ -912,7 +913,7 @@ contract BatchAccumulatorTest is Test {
             assertEq(minBatchSize, batchSize);
         } else {
             vm.prank(operator);
-            vm.expectRevert(BatchAccumulator.InvalidBatchSize.selector);
+            vm.expectRevert(IBatchAccumulator.InvalidBatchSize.selector);
             accumulator.configureRoute(
                 SOURCE_CHAIN,
                 TARGET_CHAIN,
@@ -935,7 +936,7 @@ contract BatchAccumulatorTest is Test {
             assertEq(maxWaitTime, waitTime);
         } else {
             vm.prank(operator);
-            vm.expectRevert(BatchAccumulator.InvalidWaitTime.selector);
+            vm.expectRevert(IBatchAccumulator.InvalidWaitTime.selector);
             accumulator.configureRoute(SOURCE_CHAIN, TARGET_CHAIN, 8, waitTime);
         }
     }
@@ -970,9 +971,9 @@ contract BatchAccumulatorTest is Test {
 
         // Fill first batch
         bytes32 batch1 = _fillBatch(8, 2000);
-        (, , BatchAccumulator.BatchStatus status1, , ) = accumulator
+        (, , IBatchAccumulator.BatchStatus status1, , ) = accumulator
             .getBatchInfo(batch1);
-        assertEq(uint256(status1), uint256(BatchAccumulator.BatchStatus.READY));
+        assertEq(uint256(status1), uint256(IBatchAccumulator.BatchStatus.READY));
 
         // Next submission should create a new batch
         bytes32 batch2 = _submitTx(
