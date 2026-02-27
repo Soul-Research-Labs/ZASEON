@@ -10,6 +10,11 @@ pragma solidity ^0.8.24;
 // Storage slot definitions for Soul contracts
 // These must remain constant across upgrades
 
+/**
+ * @title StorageSlots
+ * @author Soul Protocol Team
+ * @notice Storage Slots library
+ */
 library StorageSlots {
     // PC³ Storage Slots
     bytes32 public constant PC3_CONTAINERS_SLOT =
@@ -52,7 +57,11 @@ contract StorageLayoutReport {
         string contractName;
     }
 
-    function getPC3Slots() external pure returns (SlotInfo[] memory) {
+        /**
+     * @notice Returns the p c3 slots
+     * @return The result value
+     */
+function getPC3Slots() external pure returns (SlotInfo[] memory) {
         SlotInfo[] memory slots = new SlotInfo[](3);
         slots[0] = SlotInfo(
             StorageSlots.PC3_CONTAINERS_SLOT,
@@ -72,7 +81,11 @@ contract StorageLayoutReport {
         return slots;
     }
 
-    function getPBPSlots() external pure returns (SlotInfo[] memory) {
+        /**
+     * @notice Returns the p b p slots
+     * @return The result value
+     */
+function getPBPSlots() external pure returns (SlotInfo[] memory) {
         SlotInfo[] memory slots = new SlotInfo[](2);
         slots[0] = SlotInfo(
             StorageSlots.PBP_POLICIES_SLOT,
@@ -87,7 +100,11 @@ contract StorageLayoutReport {
         return slots;
     }
 
-    function getEASCSlots() external pure returns (SlotInfo[] memory) {
+        /**
+     * @notice Returns the e a s c slots
+     * @return The result value
+     */
+function getEASCSlots() external pure returns (SlotInfo[] memory) {
         SlotInfo[] memory slots = new SlotInfo[](2);
         slots[0] = SlotInfo(
             StorageSlots.EASC_COMMITMENTS_SLOT,
@@ -102,7 +119,11 @@ contract StorageLayoutReport {
         return slots;
     }
 
-    function getCDNASlots() external pure returns (SlotInfo[] memory) {
+        /**
+     * @notice Returns the c d n a slots
+     * @return The result value
+     */
+function getCDNASlots() external pure returns (SlotInfo[] memory) {
         SlotInfo[] memory slots = new SlotInfo[](2);
         slots[0] = SlotInfo(
             StorageSlots.CDNA_DOMAINS_SLOT,

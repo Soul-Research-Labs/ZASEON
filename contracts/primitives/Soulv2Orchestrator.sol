@@ -25,31 +25,76 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 ///    - Cross-domain nullifier for replay protection
 ///    - Policy-bound verification for compliance
 
+/**
+ * @title IProofCarryingContainer
+ * @author Soul Protocol Team
+ * @notice I Proof Carrying Container interface
+ */
 interface IProofCarryingContainer {
+    /**
+     * @notice Total containers
+     * @return The result value
+     */
     function totalContainers() external view returns (uint256);
 
+    /**
+     * @notice Consume container
+     * @param containerId The container identifier
+     */
     function consumeContainer(bytes32 containerId) external;
 
+    /**
+     * @notice Checks if nullifier consumed
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
     function isNullifierConsumed(
         bytes32 nullifier
     ) external view returns (bool);
 }
 
 interface IPolicyBoundProofs {
+    /**
+     * @notice Total policies
+     * @return The result value
+     */
     function totalPolicies() external view returns (uint256);
 
+    /**
+     * @notice Checks if policy valid
+     * @param policyId The policy identifier
+     * @return The result value
+     */
     function isPolicyValid(bytes32 policyId) external view returns (bool);
 }
 
 interface IExecutionAgnosticStateCommitments {
+    /**
+     * @notice Total commitments
+     * @return The result value
+     */
     function totalCommitments() external view returns (uint256);
 
+    /**
+     * @notice Creates commitment
+     * @param stateHash The state hash
+     * @param transitionHash The transitionHash hash value
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
     function createCommitment(
         bytes32 stateHash,
         bytes32 transitionHash,
         bytes32 nullifier
     ) external returns (bytes32);
 
+    /**
+     * @notice Attest commitment
+     * @param commitmentId The commitmentId identifier
+     * @param backendId The backendId identifier
+     * @param attestationProof The attestation proof
+     * @param executionHash The executionHash hash value
+     */
     function attestCommitment(
         bytes32 commitmentId,
         bytes32 backendId,
@@ -59,8 +104,20 @@ interface IExecutionAgnosticStateCommitments {
 }
 
 interface ICrossDomainNullifierAlgebra {
+    /**
+     * @notice Total domains
+     * @return The result value
+     */
     function totalDomains() external view returns (uint256);
 
+    /**
+     * @notice Registers nullifier
+     * @param domainId The domain identifier
+     * @param nullifierValue The nullifier value
+     * @param commitmentHash The commitmentHash hash value
+     * @param transitionId The transitionId identifier
+     * @return The result value
+     */
     function registerNullifier(
         bytes32 domainId,
         bytes32 nullifierValue,
@@ -68,8 +125,17 @@ interface ICrossDomainNullifierAlgebra {
         bytes32 transitionId
     ) external returns (bytes32);
 
+    /**
+     * @notice Consume nullifier
+     * @param nullifier The nullifier hash
+     */
     function consumeNullifier(bytes32 nullifier) external;
 
+    /**
+     * @notice Nullifier exists
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
     function nullifierExists(bytes32 nullifier) external view returns (bool);
 }
 
@@ -189,6 +255,14 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @param stateCommitment The container's state commitment
     /// @param domainId The target domain
     /// @return nullifier The domain-bound nullifier
+    /**
+     * @notice Registers container in domain
+     * @param containerId The container identifier
+     * @param containerNullifier The container nullifier
+     * @param stateCommitment The state commitment
+     * @param domainId The domain identifier
+     * @return nullifier The nullifier
+     */
     function registerContainerInDomain(
         bytes32 containerId,
         bytes32 containerNullifier,
@@ -226,6 +300,14 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @param nullifier Unique nullifier
     /// @param policyId The policy to bind to
     /// @return commitmentId The created commitment ID
+    /**
+     * @notice Creates policy bound commitment
+     * @param stateHash The state hash
+     * @param transitionHash The transitionHash hash value
+     * @param nullifier The nullifier hash
+     * @param policyId The policy identifier
+     * @return commitmentId The commitment id
+     */
     function createPolicyBoundCommitment(
         bytes32 stateHash,
         bytes32 transitionHash,
@@ -258,6 +340,14 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @param attestationProof Proof from the backend
     /// @param executionHash Hash of execution
     /// @param policyId Policy that was verified
+    /**
+     * @notice Adds policy compliant attestation
+     * @param commitmentId The commitmentId identifier
+     * @param backendId The backendId identifier
+     * @param attestationProof The attestation proof
+     * @param executionHash The executionHash hash value
+     * @param policyId The policy identifier
+     */
     function addPolicyCompliantAttestation(
         bytes32 commitmentId,
         bytes32 backendId,
@@ -294,6 +384,16 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @param domainId Target domain for nullifier
     /// @param policyId Policy for compliance
     /// @return transitionId The coordinated transition ID
+    /**
+     * @notice Creates coordinated transition
+     * @param containerId The container identifier
+     * @param containerNullifier The container nullifier
+     * @param stateHash The state hash
+     * @param transitionHash The transitionHash hash value
+     * @param domainId The domain identifier
+     * @param policyId The policy identifier
+     * @return transitionId The transition id
+     */
     function createCoordinatedTransition(
         bytes32 containerId,
         bytes32 containerNullifier,
@@ -369,6 +469,13 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @param backendId Backend for attestation
     /// @param attestationProof Proof from backend
     /// @param executionHash Hash of execution
+    /**
+     * @notice Completes coordinated transition
+     * @param transitionId The transitionId identifier
+     * @param backendId The backendId identifier
+     * @param attestationProof The attestation proof
+     * @param executionHash The executionHash hash value
+     */
     function completeCoordinatedTransition(
         bytes32 transitionId,
         bytes32 backendId,
@@ -407,6 +514,11 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get transition details
     /// @param transitionId The transition ID
     /// @return The coordinated transition data
+    /**
+     * @notice Returns the transition
+     * @param transitionId The transitionId identifier
+     * @return The result value
+     */
     function getTransition(
         bytes32 transitionId
     ) external view returns (CoordinatedTransition memory) {
@@ -416,6 +528,11 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get container's associated domain
     /// @param containerId The container ID
     /// @return domainId The domain ID
+    /**
+     * @notice Returns the container domain
+     * @param containerId The container identifier
+     * @return The result value
+     */
     function getContainerDomain(
         bytes32 containerId
     ) external view returns (bytes32) {
@@ -425,6 +542,11 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get container's associated commitment
     /// @param containerId The container ID
     /// @return commitmentId The commitment ID
+    /**
+     * @notice Returns the container commitment
+     * @param containerId The container identifier
+     * @return The result value
+     */
     function getContainerCommitment(
         bytes32 containerId
     ) external view returns (bytes32) {
@@ -436,6 +558,13 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     /// @return pbpConnected True if PBP is accessible
     /// @return eascConnected True if EASC is accessible
     /// @return cdnaConnected True if CDNA is accessible
+    /**
+     * @notice Checks connections
+     * @return pc3Connected The pc3 connected
+     * @return pbpConnected The pbp connected
+     * @return eascConnected The easc connected
+     * @return cdnaConnected The cdna connected
+     */
     function checkConnections()
         external
         view
@@ -476,11 +605,17 @@ contract Soulv2Orchestrator is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause contract
+    /**
+     * @notice Pauses the operation
+     */
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause contract
+    /**
+     * @notice Unpauses the operation
+     */
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }

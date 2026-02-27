@@ -82,6 +82,8 @@ contract RelaySecurityScorecard is AccessControl {
 
     /**
      * @notice Get the full score details for a bridge.
+          * @param bridge The bridge contract address
+     * @return The result value
      */
     function getScore(address bridge) external view returns (SecurityScore memory) {
         return bridgeScores[bridge];
@@ -89,6 +91,7 @@ contract RelaySecurityScorecard is AccessControl {
 
     /**
      * @notice Update the minimum score required for a bridge to be considered safe.
+          * @param newMin The new Min value
      */
     function setMinimumSafeScore(uint256 newMin) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(newMin <= 100, "Invalid score");

@@ -10,6 +10,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 /// @title Soulv2OrchestratorUpgradeable
 /// @author Soul Protocol - Soul v2
 /// @notice Upgradeable orchestrator that coordinates all Soul v2 primitives
+/**
+ * @title Soulv2OrchestratorUpgradeable
+ * @author Soul Protocol Team
+ * @notice Soulv2 Orchestrator Upgradeable contract
+ */
 contract Soulv2OrchestratorUpgradeable is
     Initializable,
     AccessControlUpgradeable,
@@ -158,7 +163,15 @@ contract Soulv2OrchestratorUpgradeable is
     }
 
     /// @notice Initialize the orchestrator
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _pc3 The _pc3
+     * @param _pbp The _pbp
+     * @param _easc The _easc
+     * @param _cdna The _cdna
+     */
+function initialize(
         address admin,
         address _pc3,
         address _pbp,
@@ -211,7 +224,12 @@ contract Soulv2OrchestratorUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Execute a private transfer operation
-    function executePrivateTransfer(
+        /**
+     * @notice Executes private transfer
+     * @param request The request
+     * @return result The result
+     */
+function executePrivateTransfer(
         OperationRequest calldata request
     )
         external
@@ -299,7 +317,11 @@ contract Soulv2OrchestratorUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get system status
-    function getSystemStatus() external view returns (SystemStatus memory) {
+        /**
+     * @notice Returns the system status
+     * @return The result value
+     */
+function getSystemStatus() external view returns (SystemStatus memory) {
         return
             SystemStatus({
                 pc3Active: primitiveActive[PC3_PRIMITIVE],
@@ -313,14 +335,24 @@ contract Soulv2OrchestratorUpgradeable is
     }
 
     /// @notice Get operation result
-    function getOperationResult(
+        /**
+     * @notice Returns the operation result
+     * @param operationId The operationId identifier
+     * @return The result value
+     */
+function getOperationResult(
         bytes32 operationId
     ) external view returns (OperationResult memory) {
         return operationHistory[operationId];
     }
 
     /// @notice Get user operation count
-    function getUserOperationCount(
+        /**
+     * @notice Returns the user operation count
+     * @param user The user
+     * @return The result value
+     */
+function getUserOperationCount(
         address user
     ) external view returns (uint256) {
         return userOperationCount[user];
@@ -331,7 +363,12 @@ contract Soulv2OrchestratorUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Update a primitive address
-    function updatePrimitive(
+        /**
+     * @notice Updates primitive
+     * @param primitiveId The primitiveId identifier
+     * @param newAddress The newAddress address
+     */
+function updatePrimitive(
         bytes32 primitiveId,
         address newAddress
     ) external onlyRole(ORCHESTRATOR_ADMIN_ROLE) {
@@ -357,7 +394,12 @@ contract Soulv2OrchestratorUpgradeable is
     }
 
     /// @notice Set primitive active status
-    function setPrimitiveActive(
+        /**
+     * @notice Sets the primitive active
+     * @param primitiveId The primitiveId identifier
+     * @param active Whether the feature is active
+     */
+function setPrimitiveActive(
         bytes32 primitiveId,
         bool active
     ) external onlyRole(ORCHESTRATOR_ADMIN_ROLE) {
@@ -365,16 +407,26 @@ contract Soulv2OrchestratorUpgradeable is
         emit PrimitiveStatusChanged(primitiveId, active);
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+ */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     /// @notice Get implementation version
-    function getImplementationVersion() external pure returns (string memory) {
+        /**
+     * @notice Returns the implementation version
+     * @return The result value
+     */
+function getImplementationVersion() external pure returns (string memory) {
         return "1.0.0";
     }
 }

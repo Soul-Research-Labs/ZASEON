@@ -13,6 +13,9 @@ contract PolicyVerifierAdapter is NoirVerifierAdapter {
     /**
      * @notice Custom verification for Policy compliance
      * @dev Decodes policy-specific public inputs: policy_hash, user_commitment, merkle_root
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
      */
     function verify(
         bytes32 /* circuitHash */,
@@ -36,7 +39,11 @@ contract PolicyVerifierAdapter is NoirVerifierAdapter {
         return INoirVerifier(noirVerifier).verify(proof, inputs);
     }
 
-    function getPublicInputCount() public pure override returns (uint256) {
+        /**
+     * @notice Returns the public input count
+     * @return The result value
+     */
+function getPublicInputCount() public pure override returns (uint256) {
         return 4;
     }
 }

@@ -282,22 +282,38 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     uint256 private constant _STAT_SHIFT_DISPUTES = 192;
 
     /// @notice Get total locks created
-    function totalLocksCreated() external view returns (uint256) {
+        /**
+     * @notice Total locks created
+     * @return The result value
+     */
+function totalLocksCreated() external view returns (uint256) {
         return uint64(_packedStats);
     }
 
     /// @notice Get total locks unlocked
-    function totalLocksUnlocked() external view returns (uint256) {
+        /**
+     * @notice Total locks unlocked
+     * @return The result value
+     */
+function totalLocksUnlocked() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_UNLOCKED);
     }
 
     /// @notice Get total optimistic unlocks
-    function totalOptimisticUnlocks() external view returns (uint256) {
+        /**
+     * @notice Total optimistic unlocks
+     * @return The result value
+     */
+function totalOptimisticUnlocks() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_OPTIMISTIC);
     }
 
     /// @notice Get total disputes
-    function totalDisputes() external view returns (uint256) {
+        /**
+     * @notice Total disputes
+     * @return The result value
+     */
+function totalDisputes() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_DISPUTES);
     }
 
@@ -433,7 +449,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Set the canonical nullifier registry for cross-system propagation
     /// @dev ZKBoundStateLocks must be granted REGISTRAR_ROLE on the NullifierRegistryV3
     /// @param _registry Address of NullifierRegistryV3 (address(0) to disable propagation)
-    function setNullifierRegistry(
+        /**
+     * @notice Sets the nullifier registry
+     * @param _registry The _registry
+     */
+function setNullifierRegistry(
         address _registry
     ) external onlyRole(VERIFIER_ADMIN_ROLE) {
         nullifierRegistry = _registry;
@@ -807,6 +827,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
      * @param appId The application ID
      * @param epoch The epoch for versioning
      * @param name Human-readable domain name
+          * @return domainSeparator The domain separator
      */
     function registerDomain(
         uint64 chainId,
@@ -1031,7 +1052,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /// @dev Callable by OPERATOR_ROLE. Processes up to `maxRetries` pending nullifiers.
     ///      Successfully propagated nullifiers are removed from the queue.
     /// @param maxRetries Maximum number of pending nullifiers to retry
-    function retryNullifierPropagation(
+        /**
+     * @notice Retry nullifier propagation
+     * @param maxRetries The maxRetries bound
+     */
+function retryNullifierPropagation(
         uint256 maxRetries
     ) external onlyRole(OPERATOR_ROLE) {
         address registry = nullifierRegistry;
@@ -1075,7 +1100,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Get the number of pending (failed) nullifier propagations
-    function pendingNullifierCount() external view returns (uint256) {
+        /**
+     * @notice Pending nullifier count
+     * @return The result value
+     */
+function pendingNullifierCount() external view returns (uint256) {
         return pendingNullifiers.length;
     }
 
@@ -1163,6 +1192,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
      * SECURITY: This pattern avoids the rotate-left optimization that caused
      * the Aave/ZKsync vulnerability where 64-bit constants were incorrectly
      * used in 256-bit register operations.
+          * @param chainId The chain identifier
+     * @param appId The appId identifier
+     * @param epoch The epoch
+     * @return The result value
      */
     function generateDomainSeparator(
         uint16 chainId,
@@ -1186,6 +1219,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Generates domain separator with extended chain ID support
+          * @param chainId The chain identifier
+     * @param appId The appId identifier
+     * @param epoch The epoch
+     * @return The result value
      */
     function generateDomainSeparatorExtended(
         uint64 chainId,
@@ -1197,6 +1234,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Generates cross-domain nullifier
+          * @param secret The secret value
+     * @param lockId The lock identifier
+     * @param domainSeparator The domain separator
+     * @return The result value
      */
     function generateNullifier(
         bytes32 secret,
@@ -1221,6 +1262,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
      * @notice Get active lock IDs with pagination to prevent DoS
      * @param offset Start index
      * @param limit Maximum number of items to return
+          * @return The result value
      */
     function getActiveLockIds(
         uint256 offset,
@@ -1248,6 +1290,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Returns the number of active locks
+          * @return The result value
      */
     function getActiveLockCount() external view returns (uint256) {
         return _activeLockIds.length;
@@ -1256,6 +1299,7 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Returns all active lock IDs (up to 100)
      * @dev Convenience method for tests - in production use the paginated version
+          * @return The result value
      */
     function getActiveLockIds() external view returns (bytes32[] memory) {
         uint256 count = _activeLockIds.length;
@@ -1274,6 +1318,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Returns lock details
+          * @param lockId The lock identifier
+     * @return The result value
      */
     function getLock(bytes32 lockId) external view returns (ZKSLock memory) {
         return locks[lockId];
@@ -1281,6 +1327,8 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Checks if lock can be unlocked
+          * @param lockId The lock identifier
+     * @return The result value
      */
     function canUnlock(bytes32 lockId) external view returns (bool) {
         ZKSLock storage lock = locks[lockId];
@@ -1292,6 +1340,9 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Returns commitment chain history
+          * @param startCommitment The start commitment
+     * @param maxDepth The maxDepth bound
+     * @return chain The chain
      */
     function getCommitmentChain(
         bytes32 startCommitment,
@@ -1322,6 +1373,11 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get statistics
+          * @return created The created
+     * @return unlocked The unlocked
+     * @return active The active
+     * @return optimistic The optimistic
+     * @return disputed The disputed
      */
     function getStats()
         external
@@ -1358,7 +1414,10 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Confirms that critical roles have been separated
     /// @dev M-15: Adds centralization protection - call before mainnet to verify
     ///      different addresses hold different roles
-    function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Confirm role separation
+     */
+function confirmRoleSeparation() external onlyRole(DEFAULT_ADMIN_ROLE) {
         address admin = msg.sender;
 
         // Verify admin doesn't hold other critical roles
@@ -1372,11 +1431,17 @@ contract ZKBoundStateLocks is AccessControl, ReentrancyGuard, Pausable {
         rolesSeparated = true;
     }
 
-    function pause() external onlyRole(LOCK_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(LOCK_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(LOCK_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(LOCK_ADMIN_ROLE) {
         _unpause();
     }
 }

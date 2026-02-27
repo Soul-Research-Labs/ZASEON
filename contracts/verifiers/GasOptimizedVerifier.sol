@@ -280,6 +280,7 @@ library GasOptimizedVerifier {
      * @param publicInputs Array of public inputs for each proof
      * @param vk Verification key
      * @param randomness Random seed for linear combination
+          * @return The result value
      */
     function batchVerify(
         uint256[8][] memory proofs,
@@ -408,6 +409,10 @@ library GasOptimizedVerifier {
 
     /**
      * @notice Verify a single proof
+          * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param vk The vk
+     * @return The result value
      */
     function verifySingle(
         uint256[8] memory proof,
@@ -545,6 +550,8 @@ contract BatchProofVerifier {
 
     /**
      * @notice Get verification key alpha component
+          * @param vkId The vkId identifier
+     * @return The result value
      */
     function getVkAlpha(
         bytes32 vkId
@@ -554,6 +561,8 @@ contract BatchProofVerifier {
 
     /**
      * @notice Register a verification key
+          * @param vkId The vkId identifier
+     * @param vk The vk
      */
     function registerVk(bytes32 vkId, VerificationKey calldata vk) external {
         _verificationKeys[vkId] = vk;
@@ -561,6 +570,10 @@ contract BatchProofVerifier {
 
     /**
      * @notice Verify a single proof
+          * @param vkId The vkId identifier
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
      */
     function verify(
         bytes32 vkId,
@@ -607,6 +620,10 @@ contract BatchProofVerifier {
 
     /**
      * @notice Batch verify multiple proofs
+          * @param vkId The vkId identifier
+     * @param proofs The proofs
+     * @param publicInputs The public inputs
+     * @return The result value
      */
     function batchVerify(
         bytes32 vkId,

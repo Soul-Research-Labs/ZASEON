@@ -14,6 +14,11 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /// @author Soul Protocol - Soul v2
 /// @notice Upgradeable version of PC³ using UUPS proxy pattern
 /// @dev Self-authenticating confidential containers with embedded ZK proofs
+/**
+ * @title ProofCarryingContainerUpgradeable
+ * @author Soul Protocol Team
+ * @notice Proof Carrying Container Upgradeable contract
+ */
 contract ProofCarryingContainerUpgradeable is
     Initializable,
     AccessControlUpgradeable,
@@ -185,7 +190,11 @@ contract ProofCarryingContainerUpgradeable is
 
     /// @notice Initialize the contract (replaces constructor)
     /// @param admin The initial admin address
-    function initialize(address admin) public initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) public initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -218,7 +227,16 @@ contract ProofCarryingContainerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Create a new self-authenticating container
-    function createContainer(
+        /**
+     * @notice Creates container
+     * @param encryptedPayload The encrypted payload
+     * @param stateCommitment The state commitment
+     * @param nullifier The nullifier hash
+     * @param proofs The proofs
+     * @param policyHash The policyHash hash value
+     * @return containerId The container id
+     */
+function createContainer(
         bytes calldata encryptedPayload,
         bytes32 stateCommitment,
         bytes32 nullifier,
@@ -298,7 +316,12 @@ contract ProofCarryingContainerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Verify a container's embedded proofs
-    function verifyContainer(
+        /**
+     * @notice Verifys container
+     * @param containerId The container identifier
+     * @return result The result
+     */
+function verifyContainer(
         bytes32 containerId
     ) external view returns (VerificationResult memory result) {
         Container storage container = containers[containerId];
@@ -374,7 +397,11 @@ contract ProofCarryingContainerUpgradeable is
     }
 
     /// @notice Consume a verified container
-    function consumeContainer(
+        /**
+     * @notice Consume container
+     * @param containerId The container identifier
+     */
+function consumeContainer(
         bytes32 containerId
     ) external whenNotPaused nonReentrant onlyRole(VERIFIER_ROLE) {
         Container storage container = containers[containerId];
@@ -409,7 +436,14 @@ contract ProofCarryingContainerUpgradeable is
         return keccak256(abi.encodePacked(stateCommitment, nullifier, chainId));
     }
 
-    function _verifyWithRegistry(
+        /**
+     * @notice _verify with registry
+     * @param proof The ZK proof data
+     * @param publicInput The public input
+     * @param circuitType The circuit type
+     * @return valid The valid
+     */
+function _verifyWithRegistry(
         bytes memory proof,
         bytes32 publicInput,
         VerifierRegistryV2.CircuitType circuitType
@@ -431,19 +465,35 @@ contract ProofCarryingContainerUpgradeable is
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getContainer(
+        /**
+     * @notice Returns the container
+     * @param containerId The container identifier
+     * @return The result value
+     */
+function getContainer(
         bytes32 containerId
     ) external view returns (Container memory) {
         return containers[containerId];
     }
 
-    function isNullifierConsumed(
+        /**
+     * @notice Checks if nullifier consumed
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierConsumed(
         bytes32 nullifier
     ) external view returns (bool) {
         return consumedNullifiers[nullifier];
     }
 
-    function getContainerIds(
+        /**
+     * @notice Returns the container ids
+     * @param offset The offset
+     * @param limit The limit value
+     * @return ids The ids
+     */
+function getContainerIds(
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory ids) {
@@ -466,27 +516,43 @@ contract ProofCarryingContainerUpgradeable is
                           ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function addPolicy(
+        /**
+     * @notice Adds policy
+     * @param policyHash The policyHash hash value
+     */
+function addPolicy(
         bytes32 policyHash
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         supportedPolicies[policyHash] = true;
         emit PolicyAdded(policyHash);
     }
 
-    function removePolicy(
+        /**
+     * @notice Removes policy
+     * @param policyHash The policyHash hash value
+     */
+function removePolicy(
         bytes32 policyHash
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         supportedPolicies[policyHash] = false;
         emit PolicyRemoved(policyHash);
     }
 
-    function setProofValidityWindow(
+        /**
+     * @notice Sets the proof validity window
+     * @param window The window
+     */
+function setProofValidityWindow(
         uint256 window
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         proofValidityWindow = window;
     }
 
-    function setVerifierRegistry(
+        /**
+     * @notice Sets the verifier registry
+     * @param _registry The _registry
+     */
+function setVerifierRegistry(
         address _registry
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         address oldRegistry = address(verifierRegistry);
@@ -494,23 +560,37 @@ contract ProofCarryingContainerUpgradeable is
         emit VerifierRegistryUpdated(oldRegistry, _registry);
     }
 
-    function setRealVerification(
+        /**
+     * @notice Sets the real verification
+     * @param enabled Whether the feature is enabled
+     */
+function setRealVerification(
         bool enabled
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         useRealVerification = enabled;
         emit RealVerificationToggled(enabled);
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+ */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     /// @notice Get the implementation version
-    function getImplementationVersion() external pure returns (string memory) {
+        /**
+     * @notice Returns the implementation version
+     * @return The result value
+     */
+function getImplementationVersion() external pure returns (string memory) {
         return "1.0.0";
     }
 }

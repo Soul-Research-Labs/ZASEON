@@ -8,6 +8,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title IRouterClient
 /// @notice Minimal interface for the Chainlink CCIP Router contract
+/**
+ * @title IRouterClient
+ * @author Soul Protocol Team
+ * @notice I Router Client interface
+ */
 interface IRouterClient {
     struct EVM2AnyMessage {
         bytes receiver; // abi.encode(receiver address) for EVM chains
@@ -21,7 +26,13 @@ interface IRouterClient {
     /// @param destinationChainSelector CCIP chain selector for the destination
     /// @param message The cross-chain message to send
     /// @return messageId Unique identifier for the sent message
-    function ccipSend(
+        /**
+     * @notice Ccip send
+     * @param destinationChainSelector The destination chain selector
+     * @param message The message data
+     * @return The result value
+     */
+function ccipSend(
         uint64 destinationChainSelector,
         EVM2AnyMessage calldata message
     ) external payable returns (bytes32);
@@ -30,7 +41,13 @@ interface IRouterClient {
     /// @param destinationChainSelector CCIP chain selector for the destination
     /// @param message The cross-chain message to estimate fees for
     /// @return fee The estimated fee in wei (or fee token units)
-    function getFee(
+        /**
+     * @notice Returns the fee
+     * @param destinationChainSelector The destination chain selector
+     * @param message The message data
+     * @return The result value
+     */
+function getFee(
         uint64 destinationChainSelector,
         EVM2AnyMessage calldata message
     ) external view returns (uint256);
@@ -65,7 +82,13 @@ contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function bridgeMessage(
+        /**
+     * @notice Bridges message
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @return messageId The message id
+ */
+function bridgeMessage(
         address targetAddress,
         bytes calldata payload,
         address /*refundAddress*/
@@ -99,7 +122,13 @@ contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @return nativeFee The native fee
+     */
+function estimateFee(
         address targetAddress,
         bytes calldata payload
     ) external view override returns (uint256 nativeFee) {
@@ -116,7 +145,12 @@ contract ChainlinkCCIPAdapter is IBridgeAdapter, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageVerified(
+        /**
+     * @notice Checks if message verified
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         return verifiedMessages[messageId];

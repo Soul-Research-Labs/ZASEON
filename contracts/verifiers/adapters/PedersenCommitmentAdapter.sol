@@ -15,7 +15,13 @@ contract PedersenCommitmentAdapter {
     }
 
     /// @notice Standard interface for proof verification
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
@@ -23,7 +29,14 @@ contract PedersenCommitmentAdapter {
     }
 
     /// @notice Verify commitment ownership
-    function verifyCommitment(
+        /**
+     * @notice Verifys commitment
+     * @param proof The ZK proof data
+     * @param commitment The cryptographic commitment
+     * @param ownerPubkey The owner pubkey
+     * @return The result value
+     */
+function verifyCommitment(
         bytes calldata proof,
         bytes32 commitment,
         bytes32 ownerPubkey
@@ -34,7 +47,15 @@ contract PedersenCommitmentAdapter {
         return verifier.verify(proof, inputs);
     }
 
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param commitment The cryptographic commitment
+     * @param value The value to set
+     * @param blinding The blinding
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         bytes32 commitment,
         uint256 value,

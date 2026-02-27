@@ -285,6 +285,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Authorize or revoke relayer
+          * @param relayer The relayer address
+     * @param authorized The authorized
      */
     function setRelayerAuthorization(
         address relayer,
@@ -462,6 +464,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Check if nullifier is used locally
+          * @param nullifierHash The nullifier hash value
+     * @return The result value
      */
     function isLocalNullifierUsed(
         bytes32 nullifierHash
@@ -685,6 +689,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Get relay record
+          * @param requestId The requestId identifier
+     * @return The result value
      */
     function getRelayRecord(
         bytes32 requestId
@@ -694,6 +700,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Get user relay requests
+          * @param user The user
+     * @return The result value
      */
     function getUserRequests(
         address user
@@ -703,6 +711,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Get chain config
+          * @param chainId The chain identifier
+     * @return The result value
      */
     function getChainConfig(
         uint256 chainId
@@ -712,6 +722,7 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Get supported chains
+          * @return The result value
      */
     function getSupportedChains() external view returns (uint256[] memory) {
         return supportedChains;
@@ -719,6 +730,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Check if chain is supported
+          * @param chainId The chain identifier
+     * @return The result value
      */
     function isChainSupported(uint256 chainId) external view returns (bool) {
         return chainConfigs[chainId].isSupported;
@@ -730,6 +743,7 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Update proof verifier
+          * @param _proofVerifier The _proof verifier
      */
     function setProofVerifier(
         address _proofVerifier
@@ -740,6 +754,7 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Update message verifier
+          * @param _messageVerifier The _message verifier
      */
     function setMessageVerifier(
         address _messageVerifier
@@ -764,6 +779,8 @@ contract PrivateProofRelayIntegration is ReentrancyGuard, AccessControl, Pausabl
 
     /**
      * @notice Emergency withdraw (only admin)
+          * @param token The token address
+     * @param to The destination address
      */
     function emergencyWithdraw(
         address token,

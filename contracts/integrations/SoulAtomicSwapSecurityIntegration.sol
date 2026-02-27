@@ -290,6 +290,7 @@ contract SoulAtomicSwapSecurityIntegration is
      * @param hashLock HTLC hash lock
      * @param timeLock HTLC time lock
      * @param salt Random salt used in commitment
+          * @return swapId The swap id
      */
     function revealSwap(
         bytes32 commitmentId,
@@ -394,6 +395,7 @@ contract SoulAtomicSwapSecurityIntegration is
      * @param user User to validate
      * @param token Token to check
      * @param expectedBalance Expected balance (used for validation threshold)
+          * @return The result value
      */
     function validateBalance(
         address user,
@@ -716,6 +718,7 @@ contract SoulAtomicSwapSecurityIntegration is
     /**
      * @notice Get swap details
      * @param swapId Swap identifier
+          * @return The result value
      */
     function getSwap(
         bytes32 swapId
@@ -726,6 +729,7 @@ contract SoulAtomicSwapSecurityIntegration is
     /**
      * @notice Get commitment details
      * @param commitmentId Commitment identifier
+          * @return The result value
      */
     function getCommitment(
         bytes32 commitmentId
@@ -736,6 +740,7 @@ contract SoulAtomicSwapSecurityIntegration is
     /**
      * @notice Get user limits
      * @param user User address
+          * @return The result value
      */
     function getUserLimits(
         address user
@@ -748,6 +753,8 @@ contract SoulAtomicSwapSecurityIntegration is
      * @param user User address
      * @param amount Swap amount
      * @param token Token address
+          * @return The result value
+     * @return The result value at index 1
      */
     function canSwap(
         address user,

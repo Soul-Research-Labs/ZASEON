@@ -669,6 +669,10 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Compute cache key for a proof
+          * @param proofType The proof type
+     * @param proofData The proof data bytes
+     * @param publicInputs The public inputs
+     * @return The result value
      */
     function _computeCacheKey(
         ProofType proofType,
@@ -916,12 +920,18 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause proof routing operations
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Unpause proof routing operations
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
@@ -932,14 +942,24 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     /// @notice Retrieve a stored proof by its identifier
     /// @param proofId The unique proof identifier
     /// @return The Proof struct associated with the given ID
-    function getProof(bytes32 proofId) external view returns (Proof memory) {
+        /**
+     * @notice Returns the proof
+     * @param proofId The proofId identifier
+     * @return The result value
+     */
+function getProof(bytes32 proofId) external view returns (Proof memory) {
         return proofs[proofId];
     }
 
     /// @notice Retrieve a proof batch by its identifier
     /// @param batchId The unique batch identifier
     /// @return The ProofBatch struct for the given batch
-    function getBatch(
+        /**
+     * @notice Returns the batch
+     * @param batchId The batchId identifier
+     * @return The result value
+     */
+function getBatch(
         bytes32 batchId
     ) external view returns (ProofBatch memory) {
         return batches[batchId];
@@ -948,7 +968,12 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     /// @notice Get the currently active batch for a destination chain
     /// @param destChainId The destination chain ID
     /// @return The active batch identifier
-    function getActiveBatch(
+        /**
+     * @notice Returns the active batch
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function getActiveBatch(
         uint256 destChainId
     ) external view returns (bytes32) {
         return activeBatch[destChainId];
@@ -956,14 +981,23 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
 
     /// @notice Get the number of cached proofs
     /// @return The total count of entries in the proof cache
-    function getCacheSize() external view returns (uint256) {
+        /**
+     * @notice Returns the cache size
+     * @return The result value
+     */
+function getCacheSize() external view returns (uint256) {
         return cacheKeys.length;
     }
 
     /// @notice Retrieve a cached proof by its cache key
     /// @param cacheKey The cache key (typically a hash of proof parameters)
     /// @return The CachedProof struct for the given key
-    function getCachedProof(
+        /**
+     * @notice Returns the cached proof
+     * @param cacheKey The cache key
+     * @return The result value
+     */
+function getCachedProof(
         bytes32 cacheKey
     ) external view returns (CachedProof memory) {
         return proofCache[cacheKey];
@@ -973,7 +1007,13 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
     /// @param sourceChainId The source chain ID
     /// @param destChainId The destination chain ID
     /// @return The RouteMetrics struct for the given route
-    function getRouteMetrics(
+        /**
+     * @notice Returns the route metrics
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function getRouteMetrics(
         uint256 sourceChainId,
         uint256 destChainId
     ) external view returns (RouteMetrics memory) {
@@ -987,6 +1027,11 @@ contract L2ProofRouter is ReentrancyGuard, AccessControl, Pausable {
                          INTERFACES
 //////////////////////////////////////////////////////////////*/
 
+/**
+ * @title IDirectL2Messenger
+ * @author Soul Protocol Team
+ * @notice \1 \1irect \12 \1essenger interface
+ */
 interface IDirectL2Messenger {
     enum MessagePath {
         SUPERCHAIN,
@@ -995,7 +1040,16 @@ interface IDirectL2Messenger {
         SLOW_L1
     }
 
-    function sendMessage(
+        /**
+     * @notice Send message
+     * @param destChainId The destination chain identifier
+     * @param recipient The recipient address
+     * @param payload The message payload
+     * @param path The path
+     * @param nullifierBinding The nullifier binding
+     * @return messageId The message id
+     */
+function sendMessage(
         uint256 destChainId,
         address recipient,
         bytes calldata payload,
@@ -1004,8 +1058,19 @@ interface IDirectL2Messenger {
     ) external payable returns (bytes32 messageId);
 }
 
+/**
+ * @title IL1Adapter
+ * @author Soul Protocol Team
+ * @notice \1 \11 \1dapter interface
+ */
 interface IL1Adapter {
-    function routeProofs(
+        /**
+     * @notice Route proofs
+     * @param destChainId The destination chain identifier
+     * @param data The calldata payload
+     * @return The result value
+     */
+function routeProofs(
         uint256 destChainId,
         bytes calldata data
     ) external payable returns (bool);

@@ -257,7 +257,13 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function registerPool(
+        /**
+     * @notice Registers pool
+     * @param chainId The chain identifier
+     * @param totalCapacity The total capacity
+     * @param initialFee The initial fee
+     */
+function registerPool(
         uint256 chainId,
         uint256 totalCapacity,
         uint256 initialFee
@@ -283,7 +289,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function updateCapacity(
+        /**
+     * @notice Updates capacity
+     * @param chainId The chain identifier
+     * @param newAvailableCapacity The new AvailableCapacity value
+     */
+function updateCapacity(
         uint256 chainId,
         uint256 newAvailableCapacity
     ) external onlyRole(ORACLE_ROLE) whenNotPaused {
@@ -308,7 +319,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function batchUpdateCapacity(
+        /**
+     * @notice Batchs update capacity
+     * @param chainIds The chainIds identifier
+     * @param newCapacities The new Capacities value
+     */
+function batchUpdateCapacity(
         uint256[] calldata chainIds,
         uint256[] calldata newCapacities
     ) external onlyRole(ORACLE_ROLE) whenNotPaused {
@@ -335,7 +351,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function setPoolStatus(
+        /**
+     * @notice Sets the pool status
+     * @param chainId The chain identifier
+     * @param newStatus The new Status value
+     */
+function setPoolStatus(
         uint256 chainId,
         PoolStatus newStatus
     ) external onlyRole(ADAPTER_ADMIN_ROLE) {
@@ -353,7 +374,13 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function registerAdapter(
+        /**
+     * @notice Registers adapter
+     * @param adapter The bridge adapter address
+     * @param supportedChains The supported chains
+     * @param securityScoreBps The security score bps
+     */
+function registerAdapter(
         address adapter,
         uint256[] calldata supportedChains,
         uint16 securityScoreBps
@@ -383,7 +410,14 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function recordAdapterOutcome(
+        /**
+     * @notice Record adapter outcome
+     * @param adapter The bridge adapter address
+     * @param success The success
+     * @param latency The latency
+     * @param value The value to set
+     */
+function recordAdapterOutcome(
         address adapter,
         bool success,
         uint48 latency,
@@ -451,7 +485,12 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function findOptimalRoute(
+        /**
+     * @notice Find optimal route
+     * @param request The request
+     * @return route The route
+     */
+function findOptimalRoute(
         RouteRequest calldata request
     ) external view override returns (Route memory route) {
         _validateRequest(request);
@@ -479,7 +518,13 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function findRoutes(
+        /**
+     * @notice Find routes
+     * @param request The request
+     * @param maxRoutes The maxRoutes bound
+     * @return routes The routes
+     */
+function findRoutes(
         RouteRequest calldata request,
         uint8 maxRoutes
     ) external view override returns (Route[] memory routes) {
@@ -542,7 +587,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function executeRoute(
+        /**
+     * @notice Executes route
+     * @param routeId The routeId identifier
+     * @return executionId The execution id
+     */
+function executeRoute(
         bytes32 routeId
     )
         external
@@ -622,7 +672,15 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function predictCompletionTime(
+        /**
+     * @notice Predict completion time
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param amount The amount to process
+     * @return estimatedTime The estimated time
+     * @return confidence The confidence
+     */
+function predictCompletionTime(
         uint256 sourceChainId,
         uint256 destChainId,
         uint256 amount
@@ -690,7 +748,12 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getPool(
+        /**
+     * @notice Returns the pool
+     * @param chainId The chain identifier
+     * @return pool The pool
+     */
+function getPool(
         uint256 chainId
     ) external view override returns (AdapterCapacity memory pool) {
         if (!poolExists[chainId]) revert PoolNotFound(chainId);
@@ -698,7 +761,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getAdapterMetrics(
+        /**
+     * @notice Returns the adapter metrics
+     * @param adapter The bridge adapter address
+     * @return metrics The metrics
+     */
+function getAdapterMetrics(
         address adapter
     ) external view override returns (AdapterMetrics memory metrics) {
         if (!adapterRegistered[adapter]) revert AdapterNotRegistered(adapter);
@@ -706,7 +774,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getRoute(
+        /**
+     * @notice Returns the route
+     * @param routeId The routeId identifier
+     * @return route The route
+     */
+function getRoute(
         bytes32 routeId
     ) external view override returns (Route memory route) {
         if (_routes[routeId].chainPath.length == 0)
@@ -715,7 +788,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function isRouteValid(
+        /**
+     * @notice Checks if route valid
+     * @param routeId The routeId identifier
+     * @return valid The valid
+     */
+function isRouteValid(
         bytes32 routeId
     ) external view override returns (bool valid) {
         Route storage route = _routes[routeId];
@@ -726,7 +804,14 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param amount The amount to process
+     * @return fee The fee
+     */
+function estimateFee(
         uint256 sourceChainId,
         uint256 destChainId,
         uint256 amount
@@ -752,7 +837,12 @@ contract DynamicRoutingOrchestrator is
     }
 
     /// @inheritdoc IDynamicRoutingOrchestrator
-    function getAdaptersForChain(
+        /**
+     * @notice Returns the adapters for chain
+     * @param chainId The chain identifier
+     * @return adapters The adapters
+     */
+function getAdaptersForChain(
         uint256 chainId
     ) external view override returns (address[] memory adapters) {
         return _chainAdapters[chainId];
@@ -775,12 +865,18 @@ contract DynamicRoutingOrchestrator is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause the orchestrator
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the orchestrator
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

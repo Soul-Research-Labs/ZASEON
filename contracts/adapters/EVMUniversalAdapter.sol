@@ -179,7 +179,11 @@ contract EVMUniversalAdapter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IUniversalChainAdapter
-    function getChainDescriptor()
+        /**
+     * @notice Returns the chain descriptor
+     * @return The result value
+     */
+function getChainDescriptor()
         external
         view
         override
@@ -189,12 +193,20 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function getUniversalChainId() external view override returns (bytes32) {
+        /**
+     * @notice Returns the universal chain id
+     * @return The result value
+     */
+function getUniversalChainId() external view override returns (bytes32) {
         return chainDescriptor.universalChainId;
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function getNativeProofSystem()
+        /**
+     * @notice Returns the native proof system
+     * @return The result value
+     */
+function getNativeProofSystem()
         external
         view
         override
@@ -204,7 +216,14 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param proofSystem The proof system
+     * @return valid The valid
+     */
+function verifyProof(
         bytes calldata proof,
         bytes32[] calldata publicInputs,
         ProofSystem proofSystem
@@ -232,7 +251,12 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function receiveEncryptedState(
+        /**
+     * @notice Receive encrypted state
+     * @param transfer The transfer
+     * @return The result value
+     */
+function receiveEncryptedState(
         EncryptedStateTransfer calldata transfer
     )
         external
@@ -322,7 +346,16 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function sendEncryptedState(
+        /**
+     * @notice Send encrypted state
+     * @param destChainId The destination chain identifier
+     * @param stateCommitment The state commitment
+     * @param encryptedPayload The encrypted payload
+     * @param proof The ZK proof data
+     * @param nullifier The nullifier hash
+     * @return transferId The transfer id
+     */
+function sendEncryptedState(
         bytes32 destChainId,
         bytes32 stateCommitment,
         bytes calldata encryptedPayload,
@@ -397,7 +430,12 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function submitUniversalProof(
+        /**
+     * @notice Submits universal proof
+     * @param universalProof The universal proof
+     * @return The result value
+     */
+function submitUniversalProof(
         UniversalProof calldata universalProof
     )
         external
@@ -490,21 +528,38 @@ contract EVMUniversalAdapter is
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function isNullifierUsed(
+        /**
+     * @notice Checks if nullifier used
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierUsed(
         bytes32 nullifier
     ) external view override returns (bool) {
         return nullifierUsed[nullifier];
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function isProofSystemSupported(
+        /**
+     * @notice Checks if proof system supported
+     * @param proofSystem The proof system
+     * @return The result value
+     */
+function isProofSystemSupported(
         ProofSystem proofSystem
     ) external view override returns (bool) {
         return supportedProofSystems[proofSystem];
     }
 
     /// @inheritdoc IUniversalChainAdapter
-    function translateProof(
+        /**
+     * @notice Translate proof
+     * @param proof The ZK proof data
+     * @param fromSystem The from system
+     * @param toSystem The to system
+     * @return The result value
+ */
+function translateProof(
         bytes calldata proof,
         bytes32[] calldata /* publicInputs */,
         ProofSystem fromSystem,
@@ -544,7 +599,12 @@ contract EVMUniversalAdapter is
     /// @notice Register a remote chain adapter
     /// @param chainId The universal chain ID of the remote chain
     /// @param adapter The adapter address/identifier (bytes for cross-VM compatibility)
-    function registerRemoteAdapter(
+        /**
+     * @notice Registers remote adapter
+     * @param chainId The chain identifier
+     * @param adapter The bridge adapter address
+     */
+function registerRemoteAdapter(
         bytes32 chainId,
         bytes calldata adapter
     ) external onlyRole(OPERATOR_ROLE) {
@@ -556,7 +616,12 @@ contract EVMUniversalAdapter is
     /// @notice Set a proof verifier contract for a specific proof system
     /// @param proofSystem The proof system
     /// @param verifier The verifier contract address
-    function setProofVerifier(
+        /**
+     * @notice Sets the proof verifier
+     * @param proofSystem The proof system
+     * @param verifier The verifier contract address
+     */
+function setProofVerifier(
         ProofSystem proofSystem,
         address verifier
     ) external onlyRole(OPERATOR_ROLE) {
@@ -569,7 +634,12 @@ contract EVMUniversalAdapter is
     /// @notice Enable or disable a proof system
     /// @param proofSystem The proof system to toggle
     /// @param enabled Whether to enable or disable
-    function setProofSystemSupport(
+        /**
+     * @notice Sets the proof system support
+     * @param proofSystem The proof system
+     * @param enabled Whether the feature is enabled
+     */
+function setProofSystemSupport(
         ProofSystem proofSystem,
         bool enabled
     ) external onlyRole(OPERATOR_ROLE) {
@@ -578,13 +648,21 @@ contract EVMUniversalAdapter is
 
     /// @notice Update the chain descriptor
     /// @param active Whether the adapter is active
-    function setActive(bool active) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the active
+     * @param active Whether the feature is active
+     */
+function setActive(bool active) external onlyRole(OPERATOR_ROLE) {
         chainDescriptor.active = active;
     }
 
     /// @notice Set the proof translator contract
     /// @param translator The UniversalProofTranslator address
-    function setProofTranslator(
+        /**
+     * @notice Sets the proof translator
+     * @param translator The translator
+     */
+function setProofTranslator(
         address translator
     ) external onlyRole(OPERATOR_ROLE) {
         if (translator == address(0)) revert ZeroAddress();
@@ -592,12 +670,18 @@ contract EVMUniversalAdapter is
     }
 
     /// @notice Emergency pause
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
     /// @notice Unpause
-    function unpause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(EMERGENCY_ROLE) {
         _unpause();
     }
 
@@ -631,7 +715,14 @@ contract EVMUniversalAdapter is
     /// @return received Total states received
     /// @return sent Total states sent
     /// @return nullifiers Total nullifiers consumed
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return proofs The proofs
+     * @return received The received
+     * @return sent The sent
+     * @return nullifiers The nullifiers
+     */
+function getStats()
         external
         view
         returns (
@@ -652,7 +743,12 @@ contract EVMUniversalAdapter is
     /// @notice Check if a remote adapter is registered for a chain
     /// @param chainId The universal chain ID
     /// @return registered Whether an adapter is registered
-    function isRemoteAdapterRegistered(
+        /**
+     * @notice Checks if remote adapter registered
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function isRemoteAdapterRegistered(
         bytes32 chainId
     ) external view returns (bool) {
         return remoteAdapters[chainId].length > 0;

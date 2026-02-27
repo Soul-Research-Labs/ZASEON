@@ -76,7 +76,14 @@ contract LayerZeroBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function bridgeMessage(
+        /**
+     * @notice Bridges message
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @param refundAddress The refundAddress address
+     * @return messageId The message id
+     */
+function bridgeMessage(
         address targetAddress,
         bytes calldata payload,
         address refundAddress
@@ -114,7 +121,13 @@ contract LayerZeroBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @return nativeFee The native fee
+     */
+function estimateFee(
         address targetAddress,
         bytes calldata payload
     ) external view override returns (uint256 nativeFee) {
@@ -143,7 +156,12 @@ contract LayerZeroBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageVerified(
+        /**
+     * @notice Checks if message verified
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         return verifiedMessages[messageId];
@@ -151,27 +169,43 @@ contract LayerZeroBridgeWrapper is
 
     /// @notice Mark a message as verified (called by receive handler)
     /// @param messageId The message identifier to mark verified
-    function markVerified(bytes32 messageId) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Mark verified
+     * @param messageId The message identifier
+     */
+function markVerified(bytes32 messageId) external onlyRole(ADMIN_ROLE) {
         verifiedMessages[messageId] = true;
         emit MessageVerified(messageId);
     }
 
     /// @notice Update LayerZero endpoint address
     /// @param _endpoint New endpoint contract address
-    function setEndpoint(address _endpoint) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the endpoint
+     * @param _endpoint The _endpoint
+     */
+function setEndpoint(address _endpoint) external onlyRole(ADMIN_ROLE) {
         if (_endpoint == address(0)) revert InvalidEndpoint();
         lzEndpoint = _endpoint;
     }
 
     /// @notice Update destination endpoint ID
     /// @param _dstEid New destination endpoint ID
-    function setDstEid(uint32 _dstEid) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the dst eid
+     * @param _dstEid The _dstEid identifier
+     */
+function setDstEid(uint32 _dstEid) external onlyRole(ADMIN_ROLE) {
         defaultDstEid = _dstEid;
     }
 
     /// @notice Update peer address on destination chain
     /// @param _peer New peer address (bytes32)
-    function setPeer(bytes32 _peer) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the peer
+     * @param _peer The _peer
+     */
+function setPeer(bytes32 _peer) external onlyRole(ADMIN_ROLE) {
         peer = _peer;
     }
 }

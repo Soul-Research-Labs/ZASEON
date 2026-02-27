@@ -164,7 +164,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set the verifier registry
-    function setVerifierRegistry(
+        /**
+     * @notice Sets the verifier registry
+     * @param _registry The _registry
+     */
+function setVerifierRegistry(
         address _registry
     ) external onlyRole(OPERATOR_ROLE) {
         if (_registry == address(0)) revert ZeroAddress();
@@ -178,7 +182,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set the universal verifier
-    function setUniversalVerifier(
+        /**
+     * @notice Sets the universal verifier
+     * @param _verifier The _verifier
+     */
+function setUniversalVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -192,7 +200,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set the multi-prover hub
-    function setMultiProver(
+        /**
+     * @notice Sets the multi prover
+     * @param _multiProver The _multi prover
+     */
+function setMultiProver(
         address _multiProver
     ) external onlyRole(OPERATOR_ROLE) {
         if (_multiProver == address(0)) revert ZeroAddress();
@@ -206,7 +218,13 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Register a verifier by type
-    function registerVerifier(
+        /**
+     * @notice Registers verifier
+     * @param verifierType The verifier type
+     * @param _verifier The _verifier
+     * @param gasLimit The gas limit
+     */
+function registerVerifier(
         bytes32 verifierType,
         address _verifier,
         uint256 gasLimit
@@ -224,7 +242,13 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Batch register verifiers
-    function batchRegisterVerifiers(
+        /**
+     * @notice Batchs register verifiers
+     * @param verifierTypes The verifier types
+     * @param verifierAddresses The verifierAddresses address
+     * @param gasLimits The gas limits
+     */
+function batchRegisterVerifiers(
         bytes32[] calldata verifierTypes,
         address[] calldata verifierAddresses,
         uint256[] calldata gasLimits
@@ -264,7 +288,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set the cross-chain message relay
-    function setCrossChainMessageRelay(
+        /**
+     * @notice Sets the cross chain message relay
+     * @param _relay The _relay
+     */
+function setCrossChainMessageRelay(
         address _relay
     ) external onlyRole(OPERATOR_ROLE) {
         if (_relay == address(0)) revert ZeroAddress();
@@ -278,7 +306,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set the cross-chain privacy hub
-    function setCrossChainPrivacyHub(
+        /**
+     * @notice Sets the cross chain privacy hub
+     * @param _hub The _hub
+     */
+function setCrossChainPrivacyHub(
         address _hub
     ) external onlyRole(OPERATOR_ROLE) {
         if (_hub == address(0)) revert ZeroAddress();
@@ -292,7 +324,14 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Register a bridge adapter for a chain
-    function registerRelayAdapter(
+        /**
+     * @notice Registers relay adapter
+     * @param chainId The chain identifier
+     * @param adapter The bridge adapter address
+     * @param supportsPrivacy The supports privacy
+     * @param minConfirmations The minConfirmations bound
+     */
+function registerRelayAdapter(
         uint256 chainId,
         address adapter,
         bool supportsPrivacy,
@@ -316,7 +355,14 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Batch register bridge adapters
-    function batchRegisterRelayAdapters(
+        /**
+     * @notice Batchs register relay adapters
+     * @param chainIds The chainIds identifier
+     * @param adapters The adapters
+     * @param supportsPrivacy The supports privacy
+     * @param minConfirmations The minConfirmations bound
+     */
+function batchRegisterRelayAdapters(
         uint256[] calldata chainIds,
         address[] calldata adapters,
         bool[] calldata supportsPrivacy,
@@ -363,7 +409,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set Stealth Address Registry
-    function setStealthAddressRegistry(
+        /**
+     * @notice Sets the stealth address registry
+     * @param _module The _module
+     */
+function setStealthAddressRegistry(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -372,7 +422,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Private Relayer Network
-    function setPrivateRelayerNetwork(
+        /**
+     * @notice Sets the private relayer network
+     * @param _module The _module
+     */
+function setPrivateRelayerNetwork(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -381,7 +435,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set View Key Registry
-    function setViewKeyRegistry(
+        /**
+     * @notice Sets the view key registry
+     * @param _module The _module
+     */
+function setViewKeyRegistry(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -390,14 +448,22 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Shielded Pool
-    function setShieldedPool(address _module) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the shielded pool
+     * @param _module The _module
+     */
+function setShieldedPool(address _module) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
         shieldedPool = _module;
         emit PrivacyModuleRegistered("SHIELDED_POOL", _module);
     }
 
     /// @notice Set Nullifier Manager
-    function setNullifierManager(
+        /**
+     * @notice Sets the nullifier manager
+     * @param _module The _module
+     */
+function setNullifierManager(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -406,7 +472,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Compliance Oracle
-    function setComplianceOracle(
+        /**
+     * @notice Sets the compliance oracle
+     * @param _module The _module
+     */
+function setComplianceOracle(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -415,7 +485,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Proof Translator
-    function setProofTranslator(
+        /**
+     * @notice Sets the proof translator
+     * @param _module The _module
+     */
+function setProofTranslator(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -424,7 +498,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Privacy Router
-    function setPrivacyRouter(
+        /**
+     * @notice Sets the privacy router
+     * @param _module The _module
+     */
+function setPrivacyRouter(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -437,7 +515,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set Relay Proof Validator
-    function setRelayProofValidator(
+        /**
+     * @notice Sets the relay proof validator
+     * @param _module The _module
+     */
+function setRelayProofValidator(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -446,7 +528,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Relay Watchtower
-    function setRelayWatchtower(
+        /**
+     * @notice Sets the relay watchtower
+     * @param _module The _module
+     */
+function setRelayWatchtower(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -455,7 +541,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Relay Circuit Breaker
-    function setRelayCircuitBreaker(
+        /**
+     * @notice Sets the relay circuit breaker
+     * @param _module The _module
+     */
+function setRelayCircuitBreaker(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -468,7 +558,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set ZK-Bound State Locks
-    function setZKBoundStateLocks(
+        /**
+     * @notice Sets the z k bound state locks
+     * @param _module The _module
+     */
+function setZKBoundStateLocks(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -482,7 +576,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Proof-Carrying Container
-    function setProofCarryingContainer(
+        /**
+     * @notice Sets the proof carrying container
+     * @param _module The _module
+     */
+function setProofCarryingContainer(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -496,7 +594,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Cross-Domain Nullifier Algebra
-    function setCrossDomainNullifierAlgebra(
+        /**
+     * @notice Sets the cross domain nullifier algebra
+     * @param _module The _module
+     */
+function setCrossDomainNullifierAlgebra(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -510,7 +612,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Policy Bound Proofs
-    function setPolicyBoundProofs(
+        /**
+     * @notice Sets the policy bound proofs
+     * @param _module The _module
+     */
+function setPolicyBoundProofs(
         address _module
     ) external onlyRole(OPERATOR_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -528,7 +634,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set Timelock
-    function setTimelock(
+        /**
+     * @notice Sets the timelock
+     * @param _module The _module
+     */
+function setTimelock(
         address _module
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -542,7 +652,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Set Upgrade Timelock
-    function setUpgradeTimelock(
+        /**
+     * @notice Sets the upgrade timelock
+     * @param _module The _module
+     */
+function setUpgradeTimelock(
         address _module
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_module == address(0)) revert ZeroAddress();
@@ -560,34 +674,63 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get verifier address by type
-    function getVerifier(bytes32 verifierType) external view returns (address) {
+        /**
+     * @notice Returns the verifier
+     * @param verifierType The verifier type
+     * @return The result value
+     */
+function getVerifier(bytes32 verifierType) external view returns (address) {
         return verifiers[verifierType].verifier;
     }
 
     /// @notice Get relay adapter for a chain
-    function getRelayAdapter(uint256 chainId) external view returns (address) {
+        /**
+     * @notice Returns the relay adapter
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getRelayAdapter(uint256 chainId) external view returns (address) {
         return relayAdapters[chainId].adapter;
     }
 
     /// @notice Check if a chain is supported
-    function isChainSupported(uint256 chainId) external view returns (bool) {
+        /**
+     * @notice Checks if chain supported
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function isChainSupported(uint256 chainId) external view returns (bool) {
         return relayAdapters[chainId].isActive;
     }
 
     /// @notice Get all supported chain IDs
-    function getSupportedChainIds() external view returns (uint256[] memory) {
+        /**
+     * @notice Returns the supported chain ids
+     * @return The result value
+     */
+function getSupportedChainIds() external view returns (uint256[] memory) {
         return supportedChainIds;
     }
 
     /// @notice Get verifier info
-    function getVerifierInfo(
+        /**
+     * @notice Returns the verifier info
+     * @param verifierType The verifier type
+     * @return The result value
+     */
+function getVerifierInfo(
         bytes32 verifierType
     ) external view returns (VerifierInfo memory) {
         return verifiers[verifierType];
     }
 
     /// @notice Get relay info
-    function getRelayInfo(
+        /**
+     * @notice Returns the relay info
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getRelayInfo(
         uint256 chainId
     ) external view returns (RelayInfo memory) {
         return relayAdapters[chainId];
@@ -598,7 +741,11 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Wire all core protocol components in a single transaction
-    function wireAll(
+        /**
+     * @notice Wire all
+     * @param p The p
+     */
+function wireAll(
         WireAllParams calldata p
     ) external onlyRole(OPERATOR_ROLE) nonReentrant {
         uint256 updated;
@@ -806,7 +953,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Check if all critical protocol components are configured
-    function isFullyConfigured() external view returns (bool configured) {
+        /**
+     * @notice Checks if fully configured
+     * @return configured The configured
+     */
+function isFullyConfigured() external view returns (bool configured) {
         return (verifierRegistry != address(0) &&
             universalVerifier != address(0) &&
             nullifierManager != address(0) &&
@@ -826,7 +977,12 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Get a summary of which components are configured
-    function getComponentStatus()
+        /**
+     * @notice Returns the component status
+     * @return names The names
+     * @return addresses The addresses
+     */
+function getComponentStatus()
         external
         view
         returns (string[] memory names, address[] memory addresses)
@@ -890,17 +1046,27 @@ contract SoulProtocolHubUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emergency pause
-    function pause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
     /// @notice Deactivate a verifier
-    function deactivateVerifier(
+        /**
+     * @notice Deactivate verifier
+     * @param verifierType The verifier type
+     */
+function deactivateVerifier(
         bytes32 verifierType
     ) external onlyRole(GUARDIAN_ROLE) {
         verifiers[verifierType].isActive = false;
@@ -908,7 +1074,11 @@ contract SoulProtocolHubUpgradeable is
     }
 
     /// @notice Deactivate a bridge adapter
-    function deactivateRelay(
+        /**
+     * @notice Deactivate relay
+     * @param chainId The chain identifier
+     */
+function deactivateRelay(
         uint256 chainId
     ) external onlyRole(GUARDIAN_ROLE) {
         relayAdapters[chainId].isActive = false;

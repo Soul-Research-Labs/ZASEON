@@ -22,7 +22,12 @@ pragma solidity ^0.8.24;
  *
  * @custom:security-contact security@soul.network
  */
-abstract contract SecurityModule {
+abstract /**
+ * @title SecurityModule
+ * @author Soul Protocol Team
+ * @notice Security Module contract
+ */
+contract SecurityModule {
     /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -190,31 +195,51 @@ abstract contract SecurityModule {
 
     /// @notice Whether rate limiting is enabled
     /// @return True if rate limiting is active
-    function rateLimitingEnabled() public view returns (bool) {
+        /**
+     * @notice Rate limiting enabled
+     * @return The result value
+     */
+function rateLimitingEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_RATE_LIMITING) != 0;
     }
 
     /// @notice Whether circuit breaker is enabled
     /// @return True if circuit breaker is active
-    function circuitBreakerEnabled() public view returns (bool) {
+        /**
+     * @notice Circuit breaker enabled
+     * @return The result value
+     */
+function circuitBreakerEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_CIRCUIT_BREAKER) != 0;
     }
 
     /// @notice Whether circuit breaker is currently tripped
     /// @return True if circuit breaker has been triggered
-    function circuitBreakerTripped() public view returns (bool) {
+        /**
+     * @notice Circuit breaker tripped
+     * @return The result value
+     */
+function circuitBreakerTripped() public view returns (bool) {
         return (_securityFlags & FLAG_CIRCUIT_TRIPPED) != 0;
     }
 
     /// @notice Whether flash loan guard is enabled
     /// @return True if flash loan guard is active
-    function flashLoanGuardEnabled() public view returns (bool) {
+        /**
+     * @notice Flash loan guard enabled
+     * @return The result value
+     */
+function flashLoanGuardEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_FLASH_LOAN_GUARD) != 0;
     }
 
     /// @notice Whether withdrawal limits are enabled
     /// @return True if withdrawal limits are active
-    function withdrawalLimitsEnabled() public view returns (bool) {
+        /**
+     * @notice Withdrawal limits enabled
+     * @return The result value
+     */
+function withdrawalLimitsEnabled() public view returns (bool) {
         return (_securityFlags & FLAG_WITHDRAWAL_LIMITS) != 0;
     }
 

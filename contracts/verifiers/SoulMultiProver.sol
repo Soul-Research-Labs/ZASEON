@@ -44,6 +44,11 @@ import {ISoulMultiProver} from "../interfaces/ISoulMultiProver.sol";
 /// - https://vitalik.eth.limo/general/2024/10/23/futures4.html
 /// - https://docs.succinct.xyz/sp1
 /// - https://github.com/a16z/jolt
+/**
+ * @title SoulMultiProver
+ * @author Soul Protocol Team
+ * @notice Soul Multi Prover contract
+ */
 contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -193,7 +198,13 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     /// @param system The prover system
     /// @param verifier On-chain verifier address
     /// @param weight Voting weight
-    function registerProver(
+        /**
+     * @notice Registers prover
+     * @param system The system
+     * @param verifier The verifier contract address
+     * @param weight The weight value
+     */
+function registerProver(
         ProverSystem system,
         address verifier,
         uint256 weight
@@ -218,7 +229,11 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     }
 
     /// @notice Deactivate a prover
-    function deactivateProver(
+        /**
+     * @notice Deactivate prover
+     * @param system The system
+     */
+function deactivateProver(
         ProverSystem system
     ) external onlyRole(OPERATOR_ROLE) {
         provers[system].isActive = false;
@@ -234,7 +249,14 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     /// @param publicInputsHash Hash of public inputs
     /// @param prover The prover system
     /// @param proof The proof bytes
-    function submitProof(
+        /**
+     * @notice Submits proof
+     * @param proofId The proofId identifier
+     * @param publicInputsHash The publicInputsHash hash value
+     * @param prover The prover
+     * @param proof The ZK proof data
+     */
+function submitProof(
         bytes32 proofId,
         bytes32 publicInputsHash,
         ProverSystem prover,
@@ -284,7 +306,14 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     /// @param publicInputsHash Hash of public inputs
     /// @param proverList List of provers
     /// @param proofs List of proofs
-    function submitMultipleProofs(
+        /**
+     * @notice Submits multiple proofs
+     * @param proofId The proofId identifier
+     * @param publicInputsHash The publicInputsHash hash value
+     * @param proverList The prover list
+     * @param proofs The proofs
+     */
+function submitMultipleProofs(
         bytes32 proofId,
         bytes32 publicInputsHash,
         ProverSystem[] calldata proverList,
@@ -382,7 +411,11 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     }
 
     /// @notice Force consensus check (called after timeout)
-    function finalizeProof(bytes32 proofId) external nonReentrant {
+        /**
+     * @notice Finalizes proof
+     * @param proofId The proofId identifier
+     */
+function finalizeProof(bytes32 proofId) external nonReentrant {
         MultiProof storage mp = multiProofs[proofId];
         if (mp.proofId == bytes32(0)) revert ProofNotFound();
         if (mp.isVerified) return;
@@ -459,7 +492,12 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get verification result for a proof
-    function getVerificationResult(
+        /**
+     * @notice Returns the verification result
+     * @param proofId The proofId identifier
+     * @return result The result
+     */
+function getVerificationResult(
         bytes32 proofId
     ) external view returns (VerificationResult memory result) {
         MultiProof storage mp = multiProofs[proofId];
@@ -495,12 +533,21 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     }
 
     /// @notice Check if a proof is verified
-    function isProofVerified(bytes32 proofId) external view returns (bool) {
+        /**
+     * @notice Checks if proof verified
+     * @param proofId The proofId identifier
+     * @return The result value
+     */
+function isProofVerified(bytes32 proofId) external view returns (bool) {
         return multiProofs[proofId].isVerified;
     }
 
     /// @notice Get active prover count
-    function getActiveProverCount() external view returns (uint256) {
+        /**
+     * @notice Returns the active prover count
+     * @return The result value
+     */
+function getActiveProverCount() external view returns (uint256) {
         uint256 count = 0;
         for (uint i = 0; i < activeProvers.length; ) {
             if (provers[activeProvers[i]].isActive) {
@@ -514,7 +561,11 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     }
 
     /// @notice Get all active provers
-    function getActiveProvers() external view returns (ProverSystem[] memory) {
+        /**
+     * @notice Returns the active provers
+     * @return The result value
+     */
+function getActiveProvers() external view returns (ProverSystem[] memory) {
         return activeProvers;
     }
 
@@ -523,7 +574,12 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Update consensus requirements
-    function updateConsensusRequirements(
+        /**
+     * @notice Updates consensus requirements
+     * @param _requiredConsensus The _required consensus
+     * @param _minProvers The _minProvers bound
+     */
+function updateConsensusRequirements(
         uint256 _requiredConsensus,
         uint256 _minProvers
     ) external onlyRole(OPERATOR_ROLE) {
@@ -532,7 +588,11 @@ contract SoulMultiProver is ReentrancyGuard, AccessControl, ISoulMultiProver {
     }
 
     /// @notice Update proof timeout
-    function setProofTimeout(uint256 timeout) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the proof timeout
+     * @param timeout The timeout duration
+     */
+function setProofTimeout(uint256 timeout) external onlyRole(OPERATOR_ROLE) {
         proofTimeout = timeout;
     }
 }

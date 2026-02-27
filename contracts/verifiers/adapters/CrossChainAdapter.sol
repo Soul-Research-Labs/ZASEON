@@ -11,7 +11,13 @@ import "./NoirVerifierAdapter.sol";
 contract CrossChainAdapter is NoirVerifierAdapter {
     constructor(address _noirVerifier) NoirVerifierAdapter(_noirVerifier) {}
 
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+ */
+function verify(
         bytes32 /* circuitHash */,
         bytes calldata proof,
         bytes calldata publicInputs
@@ -29,7 +35,11 @@ contract CrossChainAdapter is NoirVerifierAdapter {
         return INoirVerifier(noirVerifier).verify(proof, inputs);
     }
 
-    function getPublicInputCount() public pure override returns (uint256) {
+        /**
+     * @notice Returns the public input count
+     * @return The result value
+     */
+function getPublicInputCount() public pure override returns (uint256) {
         return 7;
     }
 }

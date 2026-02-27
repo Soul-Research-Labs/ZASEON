@@ -17,7 +17,20 @@ interface IExperimentalFeatureRegistry {
         PRODUCTION
     }
 
-    function features(
+        /**
+     * @notice Features
+     * @param featureId The featureId identifier
+     * @return name The name
+     * @return status The status
+     * @return implementation The implementation
+     * @return maxValueLocked The max value locked
+     * @return currentValueLocked The current value locked
+     * @return requiresWarning The requires warning
+     * @return documentationUrl The documentation url
+     * @return createdAt The created at
+     * @return lastStatusChange The last status change
+     */
+function features(
         bytes32 featureId
     )
         external
@@ -34,7 +47,12 @@ interface IExperimentalFeatureRegistry {
             uint256 lastStatusChange
         );
 
-    function updateFeatureStatus(
+        /**
+     * @notice Updates feature status
+     * @param featureId The featureId identifier
+     * @param newStatus The new Status value
+     */
+function updateFeatureStatus(
         bytes32 featureId,
         FeatureStatus newStatus
     ) external;
@@ -553,14 +571,24 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get the full graduation state for a feature
-    function getGraduation(
+        /**
+     * @notice Returns the graduation
+     * @param featureId The featureId identifier
+     * @return The result value
+     */
+function getGraduation(
         bytes32 featureId
     ) external view returns (FeatureGraduation memory) {
         return _graduations[featureId];
     }
 
     /// @notice Check if a feature meets all graduation criteria
-    function isGraduationReady(bytes32 featureId) external view returns (bool) {
+        /**
+     * @notice Checks if graduation ready
+     * @param featureId The featureId identifier
+     * @return The result value
+     */
+function isGraduationReady(bytes32 featureId) external view returns (bool) {
         if (!criteriaConfigured[featureId]) return false;
 
         try this.checkCriteria(featureId) {
@@ -571,7 +599,17 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Get a breakdown of which criteria are met/unmet
-    function getGraduationProgress(
+        /**
+     * @notice Returns the graduation progress
+     * @param featureId The featureId identifier
+     * @return timeMet The time met
+     * @return testsMet The tests met
+     * @return fuzzMet The fuzz met
+     * @return auditMet The audit met
+     * @return securityMet The security met
+     * @return certoraMet The certora met
+     */
+function getGraduationProgress(
         bytes32 featureId
     )
         external
@@ -612,6 +650,7 @@ contract ExperimentalGraduationManager is AccessControl, ReentrancyGuard {
     /**
      * @notice External wrapper for criteria validation (used by isGraduationReady)
      * @dev Reverts with CriteriaNotMet if any criterion fails
+          * @param featureId The featureId identifier
      */
     function checkCriteria(bytes32 featureId) external view {
         _validateCriteria(featureId);

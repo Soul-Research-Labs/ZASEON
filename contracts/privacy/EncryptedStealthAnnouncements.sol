@@ -9,6 +9,11 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /// @notice Enables encrypted stealth address announcements to prevent front-running
 /// @dev Announcements are encrypted with recipient's view key, preventing MEV extraction
 /// @custom:security-contact security@soulprotocol.io
+/**
+ * @title EncryptedStealthAnnouncements
+ * @author Soul Protocol Team
+ * @notice Encrypted Stealth Announcements contract
+ */
 contract EncryptedStealthAnnouncements is
     AccessControl,
     ReentrancyGuard,
@@ -155,7 +160,14 @@ contract EncryptedStealthAnnouncements is
     /// @param encryptedPayload AES-GCM encrypted announcement data
     /// @param viewTagCommitment Commitment to view tag for filtering
     /// @return announcementId The ID of the created announcement
-    function announce(
+        /**
+     * @notice Announce
+     * @param ephemeralPubKey The ephemeral pub key
+     * @param encryptedPayload The encrypted payload
+     * @param viewTagCommitment The view tag commitment
+     * @return announcementId The announcement id
+     */
+function announce(
         bytes32 ephemeralPubKey,
         bytes calldata encryptedPayload,
         bytes32 viewTagCommitment
@@ -221,7 +233,12 @@ contract EncryptedStealthAnnouncements is
     /// @notice Create multiple announcements in a batch
     /// @param batch The batch of announcements
     /// @return startId The first announcement ID
-    function announceBatch(
+        /**
+     * @notice Announce batch
+     * @param batch The batch
+     * @return startId The start id
+     */
+function announceBatch(
         BatchAnnouncement calldata batch
     ) external payable nonReentrant whenNotPaused returns (uint256 startId) {
         uint256 count = batch.ephemeralPubKeys.length;
@@ -301,7 +318,12 @@ contract EncryptedStealthAnnouncements is
     /// @notice Get announcements by view tag commitment
     /// @param viewTagCommitment The view tag commitment to search for
     /// @return ids Array of announcement IDs
-    function getAnnouncementsByViewTag(
+        /**
+     * @notice Returns the announcements by view tag
+     * @param viewTagCommitment The view tag commitment
+     * @return ids The ids
+     */
+function getAnnouncementsByViewTag(
         bytes32 viewTagCommitment
     ) external view returns (uint256[] memory ids) {
         return announcementsByViewTag[viewTagCommitment];
@@ -311,7 +333,13 @@ contract EncryptedStealthAnnouncements is
     /// @param startBlock Start block (inclusive)
     /// @param endBlock End block (inclusive)
     /// @return result Array of announcements
-    function getAnnouncementsInRange(
+        /**
+     * @notice Returns the announcements in range
+     * @param startBlock The start block
+     * @param endBlock The end block
+     * @return result The result
+     */
+function getAnnouncementsInRange(
         uint256 startBlock,
         uint256 endBlock
     ) external view returns (EncryptedAnnouncement[] memory result) {
@@ -338,7 +366,12 @@ contract EncryptedStealthAnnouncements is
     /// @notice Get announcement by ID
     /// @param announcementId The announcement ID
     /// @return The announcement
-    function getAnnouncement(
+        /**
+     * @notice Returns the announcement
+     * @param announcementId The announcementId identifier
+     * @return The result value
+     */
+function getAnnouncement(
         uint256 announcementId
     ) external view returns (EncryptedAnnouncement memory) {
         return announcements[announcementId];
@@ -347,7 +380,12 @@ contract EncryptedStealthAnnouncements is
     /// @notice Get multiple announcements by IDs
     /// @param ids Array of announcement IDs
     /// @return result Array of announcements
-    function getAnnouncements(
+        /**
+     * @notice Returns the announcements
+     * @param ids The ids identifier
+     * @return result The result
+     */
+function getAnnouncements(
         uint256[] calldata ids
     ) external view returns (EncryptedAnnouncement[] memory result) {
         result = new EncryptedAnnouncement[](ids.length);
@@ -364,7 +402,14 @@ contract EncryptedStealthAnnouncements is
     /// @param limit Maximum number to return
     /// @return result Array of announcements
     /// @return nextIndex Index to continue from
-    function getAnnouncementsSince(
+        /**
+     * @notice Returns the announcements since
+     * @param since The since
+     * @param limit The limit value
+     * @return result The result
+     * @return nextIndex The next index
+     */
+function getAnnouncementsSince(
         uint256 since,
         uint256 limit
     )
@@ -416,7 +461,11 @@ contract EncryptedStealthAnnouncements is
     /// @notice Register a viewing key hash for a user
     /// @dev The actual viewing key is never stored on-chain
     /// @param viewingKeyHash Hash of the viewing key
-    function registerViewingKey(bytes32 viewingKeyHash) external {
+        /**
+     * @notice Registers viewing key
+     * @param viewingKeyHash The viewingKeyHash hash value
+     */
+function registerViewingKey(bytes32 viewingKeyHash) external {
         registeredViewingKeys[msg.sender] = viewingKeyHash;
         emit ViewingKeyRegistered(msg.sender, viewingKeyHash);
     }
@@ -427,7 +476,11 @@ contract EncryptedStealthAnnouncements is
 
     /// @notice Update the announcement fee
     /// @param newFee New fee in wei
-    function setAnnouncementFee(
+        /**
+     * @notice Sets the announcement fee
+     * @param newFee The new Fee value
+     */
+function setAnnouncementFee(
         uint256 newFee
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 oldFee = announcementFee;
@@ -437,7 +490,11 @@ contract EncryptedStealthAnnouncements is
 
     /// @notice Update the fee recipient
     /// @param newRecipient New fee recipient address
-    function setFeeRecipient(
+        /**
+     * @notice Sets the fee recipient
+     * @param newRecipient The new Recipient value
+     */
+function setFeeRecipient(
         address newRecipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newRecipient == address(0)) revert InvalidRecipient();
@@ -445,7 +502,10 @@ contract EncryptedStealthAnnouncements is
     }
 
     /// @notice Collect accumulated fees
-    function collectFees() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Collect fees
+     */
+function collectFees() external onlyRole(OPERATOR_ROLE) {
         uint256 balance = address(this).balance;
         if (balance > 0) {
             (bool success, ) = payable(feeRecipient).call{value: balance}("");
@@ -455,12 +515,18 @@ contract EncryptedStealthAnnouncements is
     }
 
     /// @notice Pause the contract
-    function pause() external onlyRole(PAUSER_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the contract
-    function unpause() external onlyRole(PAUSER_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -469,12 +535,21 @@ contract EncryptedStealthAnnouncements is
     // =========================================================================
 
     /// @notice Get total number of announcements
-    function getAnnouncementCount() external view returns (uint256) {
+        /**
+     * @notice Returns the announcement count
+     * @return The result value
+     */
+function getAnnouncementCount() external view returns (uint256) {
         return totalAnnouncements;
     }
 
     /// @notice Check if an announcement is expired
-    function isExpired(uint256 announcementId) external view returns (bool) {
+        /**
+     * @notice Checks if expired
+     * @param announcementId The announcementId identifier
+     * @return The result value
+     */
+function isExpired(uint256 announcementId) external view returns (bool) {
         return
             block.timestamp >
             announcements[announcementId].timestamp + ANNOUNCEMENT_EXPIRY;
@@ -496,7 +571,13 @@ contract StealthAnnouncementScanner {
     /// @param viewTag The view tag (first byte of shared secret)
     /// @param salt Random salt for commitment
     /// @return commitment The view tag commitment
-    function computeViewTagCommitment(
+        /**
+     * @notice Computes view tag commitment
+     * @param viewTag The view tag
+     * @param salt The random salt
+     * @return commitment The commitment
+     */
+function computeViewTagCommitment(
         uint8 viewTag,
         bytes32 salt
     ) external pure returns (bytes32 commitment) {
@@ -508,7 +589,13 @@ contract StealthAnnouncementScanner {
     /// @param viewingPrivateKey User's viewing private key
     /// @param ephemeralPubKey Sender's ephemeral public key
     /// @return sharedSecret The ECDH shared secret
-    function computeSharedSecret(
+        /**
+     * @notice Computes shared secret
+     * @param viewingPrivateKey The viewing private key
+     * @param ephemeralPubKey The ephemeral pub key
+     * @return sharedSecret The shared secret
+     */
+function computeSharedSecret(
         bytes32 viewingPrivateKey,
         bytes32 ephemeralPubKey
     ) external pure returns (bytes32 sharedSecret) {
@@ -521,7 +608,12 @@ contract StealthAnnouncementScanner {
     /// @notice Derive view tag from shared secret
     /// @param sharedSecret The ECDH shared secret
     /// @return viewTag First byte of hashed shared secret
-    function deriveViewTag(
+        /**
+     * @notice Derive view tag
+     * @param sharedSecret The shared secret
+     * @return viewTag The view tag
+     */
+function deriveViewTag(
         bytes32 sharedSecret
     ) external pure returns (uint8 viewTag) {
         viewTag = uint8(
@@ -535,7 +627,14 @@ contract StealthAnnouncementScanner {
     /// @param viewTag The view tag to match
     /// @param salt Salt used in commitment
     /// @return matches True if view tag commitment matches
-    function checkViewTagMatch(
+        /**
+     * @notice Checks view tag match
+     * @param announcementId The announcementId identifier
+     * @param viewTag The view tag
+     * @param salt The random salt
+     * @return matches The matches
+     */
+function checkViewTagMatch(
         uint256 announcementId,
         uint8 viewTag,
         bytes32 salt

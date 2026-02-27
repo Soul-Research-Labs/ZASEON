@@ -303,7 +303,11 @@ contract CrossChainCommitmentRelay is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Set the shielded pool contract address
     /// @param _pool The new shielded pool address (must be non-zero)
-    function setShieldedPool(address _pool) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the shielded pool
+     * @param _pool The _pool
+     */
+function setShieldedPool(address _pool) external onlyRole(OPERATOR_ROLE) {
         if (_pool == address(0)) revert ZeroAddress();
         address old = shieldedPool;
         shieldedPool = _pool;
@@ -312,7 +316,11 @@ contract CrossChainCommitmentRelay is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Set the privacy hub contract address
     /// @param _hub The new privacy hub address (must be non-zero)
-    function setPrivacyHub(address _hub) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the privacy hub
+     * @param _hub The _hub
+     */
+function setPrivacyHub(address _hub) external onlyRole(OPERATOR_ROLE) {
         if (_hub == address(0)) revert ZeroAddress();
         address old = privacyHub;
         privacyHub = _hub;
@@ -320,12 +328,18 @@ contract CrossChainCommitmentRelay is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Pause commitment relay operations
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause commitment relay operations
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -336,7 +350,12 @@ contract CrossChainCommitmentRelay is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get the number of commitments relayed for a given chain
     /// @param chainId The universal chain identifier
     /// @return The total commitment count for the chain
-    function getChainStats(bytes32 chainId) external view returns (uint256) {
+        /**
+     * @notice Returns the chain stats
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getChainStats(bytes32 chainId) external view returns (uint256) {
         return chainCommitmentCounts[chainId];
     }
 }

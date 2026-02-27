@@ -390,6 +390,10 @@ contract SoulRecursiveVerifier is
 
     /**
      * @notice Internal aggregated proof verification
+          * @param proof The ZK proof data
+     * @param proofHash The proofHash hash value
+     * @param proofData The proof data bytes
+     * @return The result value
      */
     function _verifyAggregatedProof(
         bytes calldata proof,

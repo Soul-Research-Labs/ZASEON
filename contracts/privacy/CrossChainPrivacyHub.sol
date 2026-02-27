@@ -439,7 +439,13 @@ contract CrossChainPrivacyHub is
         _disableInitializers();
     }
 
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param guardian The guardian
+     * @param _feeRecipient The _fee recipient
+     */
+function initialize(
         address admin,
         address guardian,
         address _feeRecipient
@@ -469,6 +475,14 @@ contract CrossChainPrivacyHub is
 
     /**
      * @notice Register a new chain adapter
+          * @param chainId The chain identifier
+     * @param adapter The bridge adapter address
+     * @param chainType The chain type
+     * @param proofSystem The proof system
+     * @param supportsPrivacy The supports privacy
+     * @param minConfirmations The minConfirmations bound
+     * @param maxRelayAmount The maxRelayAmount amount
+     * @param dailyLimit The daily limit
      */
     function registerAdapter(
         uint256 chainId,
@@ -505,6 +519,10 @@ contract CrossChainPrivacyHub is
 
     /**
      * @notice Update adapter configuration
+          * @param chainId The chain identifier
+     * @param isActive Whether isActive
+     * @param maxRelayAmount The maxRelayAmount amount
+     * @param dailyLimit The daily limit
      */
     function updateAdapter(
         uint256 chainId,
@@ -531,6 +549,7 @@ contract CrossChainPrivacyHub is
      * @param amount Relay amount
      * @param privacyLevel Desired privacy level
      * @param proof Privacy proof (if required)
+          * @return requestId The request id
      */
     function initiatePrivateTransfer(
         uint256 destChainId,
@@ -777,12 +796,10 @@ contract CrossChainPrivacyHub is
         PrivacyProof calldata proof
     ) external onlyRole(RELAYER_ROLE) nonReentrant whenCircuitBreakerOff {
         RelayRequest storage transfer = relayRequests[requestId];
-        if (transfer.requestId == bytes32(0))
-            revert RequestNotFound(requestId);
+        if (transfer.requestId == bytes32(0)) revert RequestNotFound(requestId);
         if (transfer.status != RequestStatus.PENDING)
             revert RequestAlreadyProcessed(requestId);
-        if (block.timestamp > transfer.expiry)
-            revert RequestExpired(requestId);
+        if (block.timestamp > transfer.expiry) revert RequestExpired(requestId);
 
         // Verify proof
         if (!_verifyPrivacyProof(proof, transfer.destChainId)) {
@@ -817,8 +834,7 @@ contract CrossChainPrivacyHub is
         PrivacyProof calldata proof
     ) external onlyRole(RELAYER_ROLE) nonReentrant whenCircuitBreakerOff {
         RelayRequest storage transfer = relayRequests[requestId];
-        if (transfer.requestId == bytes32(0))
-            revert RequestNotFound(requestId);
+        if (transfer.requestId == bytes32(0)) revert RequestNotFound(requestId);
         if (transfer.status != RequestStatus.RELAYED)
             revert RequestAlreadyProcessed(requestId);
 
@@ -867,14 +883,15 @@ contract CrossChainPrivacyHub is
 
     /**
      * @notice Refund expired or failed relay request
+          * @param requestId The requestId identifier
+     * @param reason The reason string
      */
     function refundRelay(
         bytes32 requestId,
         string calldata reason
     ) external nonReentrant {
         RelayRequest storage transfer = relayRequests[requestId];
-        if (transfer.requestId == bytes32(0))
-            revert RequestNotFound(requestId);
+        if (transfer.requestId == bytes32(0)) revert RequestNotFound(requestId);
         if (transfer.status != RequestStatus.PENDING)
             revert RequestAlreadyProcessed(requestId);
 
@@ -900,12 +917,7 @@ contract CrossChainPrivacyHub is
             );
         }
 
-        emit RelayRefunded(
-            requestId,
-            transfer.sender,
-            transfer.amount,
-            reason
-        );
+        emit RelayRefunded(requestId, transfer.sender, transfer.amount, reason);
     }
 
     // =========================================================================
@@ -921,6 +933,8 @@ contract CrossChainPrivacyHub is
      *      For production use, ephemeral keys should be generated off-chain with proper
      *      randomness (e.g., CSPRNG) and only verified on-chain. This on-chain generation
      *      is provided for testing and low-value use cases only.
+          * @return stealthPubKey The stealth pub key
+     * @return ephemeralPubKey The ephemeral pub key
      */
     function generateStealthAddress(
         bytes32 spendingPubKey,
@@ -965,6 +979,7 @@ contract CrossChainPrivacyHub is
      * @param stealthPubKey The stealth public key
      * @param ephemeralPubKey The ephemeral public key from sender
      * @param viewingPrivKey The recipient's viewing private key (hashed)
+          * @return The result value
      */
     function canClaimStealth(
         bytes32 stealthPubKey,
@@ -995,6 +1010,8 @@ contract CrossChainPrivacyHub is
      * @param amount The amount to relay (hidden)
      * @param decoyKeys Public keys of decoy outputs
      * @param blindingFactor Random blinding factor
+          * @return confidentialAmount The confidential amount
+     * @return keyImage The key image
      */
     function createRingCT(
         uint256 amount,
@@ -1043,6 +1060,7 @@ contract CrossChainPrivacyHub is
      * @notice Verify a ring signature
      * @param signature The ring signature
      * @param message The signed message
+          * @return The result value
      */
     function verifyRingSignature(
         RingSignature calldata signature,
@@ -1099,6 +1117,8 @@ contract CrossChainPrivacyHub is
 
     /**
      * @notice Check if nullifier is valid (not consumed)
+          * @param nullifier The nullifier hash
+     * @return The result value
      */
     function isNullifierValid(bytes32 nullifier) external view returns (bool) {
         return !consumedNullifiers[nullifier];
@@ -1106,6 +1126,8 @@ contract CrossChainPrivacyHub is
 
     /**
      * @notice Get nullifier binding
+          * @param sourceNullifier The source nullifier
+     * @return The result value
      */
     function getNullifierBinding(
         bytes32 sourceNullifier
@@ -1323,7 +1345,11 @@ contract CrossChainPrivacyHub is
     // CIRCUIT BREAKER
     // =========================================================================
 
-    function triggerCircuitBreaker(
+        /**
+     * @notice Triggers circuit breaker
+     * @param reason The reason string
+     */
+function triggerCircuitBreaker(
         string calldata reason
     ) external onlyRole(GUARDIAN_ROLE) {
         circuitBreakerActive = true;
@@ -1333,7 +1359,10 @@ contract CrossChainPrivacyHub is
         emit CircuitBreakerTriggered(msg.sender, reason, block.timestamp);
     }
 
-    function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Resets circuit breaker
+     */
+function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
         circuitBreakerActive = false;
 
         emit CircuitBreakerReset(msg.sender, block.timestamp);
@@ -1343,7 +1372,11 @@ contract CrossChainPrivacyHub is
     // ADMIN FUNCTIONS
     // =========================================================================
 
-    function setProtocolFee(
+        /**
+     * @notice Sets the protocol fee
+     * @param feeBps The fee bps
+     */
+function setProtocolFee(
         uint256 feeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (feeBps > MAX_FEE_BPS) revert FeeTooHigh();
@@ -1352,7 +1385,11 @@ contract CrossChainPrivacyHub is
         emit ProtocolFeeUpdated(oldFeeBps, feeBps);
     }
 
-    function setFeeRecipient(
+        /**
+     * @notice Sets the fee recipient
+     * @param recipient The recipient address
+     */
+function setFeeRecipient(
         address recipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (recipient == address(0)) revert ZeroAddress();
@@ -1361,7 +1398,11 @@ contract CrossChainPrivacyHub is
         emit FeeRecipientUpdated(oldRecipient, recipient);
     }
 
-    function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the default ring size
+     * @param size The size
+     */
+function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
         if (size < MIN_RING_SIZE || size > MAX_RING_SIZE)
             revert InvalidRingSize(size);
         uint256 oldSize = defaultRingSize;
@@ -1384,11 +1425,17 @@ contract CrossChainPrivacyHub is
         emit ProofVerifierUpdated(system, oldVerifier, verifier);
     }
 
-    function pause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -1396,35 +1443,67 @@ contract CrossChainPrivacyHub is
     // VIEW FUNCTIONS
     // =========================================================================
 
-    function getRelayRequest(
+        /**
+     * @notice Returns the relay request
+     * @param requestId The requestId identifier
+     * @return The result value
+     */
+function getRelayRequest(
         bytes32 requestId
     ) external view returns (RelayRequest memory) {
         return relayRequests[requestId];
     }
 
-    function getUserRequests(
+        /**
+     * @notice Returns the user requests
+     * @param user The user
+     * @return The result value
+     */
+function getUserRequests(
         address user
     ) external view returns (bytes32[] memory) {
         return userRequests[user];
     }
 
-    function getUserStealthAddresses(
+        /**
+     * @notice Returns the user stealth addresses
+     * @param user The user
+     * @return The result value
+     */
+function getUserStealthAddresses(
         address user
     ) external view returns (bytes32[] memory) {
         return userStealthAddresses[user];
     }
 
-    function getSupportedChains() external view returns (uint256[] memory) {
+        /**
+     * @notice Returns the supported chains
+     * @return The result value
+     */
+function getSupportedChains() external view returns (uint256[] memory) {
         return supportedChainIds;
     }
 
-    function getAdapterConfig(
+        /**
+     * @notice Returns the adapter config
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getAdapterConfig(
         uint256 chainId
     ) external view returns (AdapterConfig memory) {
         return adapters[chainId];
     }
 
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return _totalRelays The _total relays
+     * @return _totalVolume The _total volume
+     * @return _totalPrivateRelays The _total private relays
+     * @return _supportedChainsCount The _supported chains count
+     * @return _circuitBreakerActive The _circuit breaker active
+     */
+function getStats()
         external
         view
         returns (

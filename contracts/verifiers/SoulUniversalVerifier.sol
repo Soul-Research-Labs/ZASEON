@@ -158,7 +158,14 @@ contract SoulUniversalVerifier is Ownable, ReentrancyGuard {
      * @return gasUsed Gas used for verification
      */
     // slither-disable-start reentrancy-no-eth
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return valid The valid
+     * @return gasUsed The gas used
+     */
+function verify(
         UniversalProof calldata proof,
         bytes calldata publicInputs
     ) external nonReentrant returns (bool valid, uint256 gasUsed) {

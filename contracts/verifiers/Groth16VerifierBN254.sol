@@ -161,7 +161,13 @@ contract Groth16VerifierBN254 is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view override whenInitialized returns (bool) {
@@ -199,7 +205,13 @@ contract Groth16VerifierBN254 is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function verifySingle(
+        /**
+     * @notice Verifys single
+     * @param proof The ZK proof data
+     * @param publicInput The public input
+     * @return The result value
+     */
+function verifySingle(
         bytes calldata proof,
         uint256 publicInput
     ) external view override whenInitialized returns (bool) {
@@ -226,14 +238,24 @@ contract Groth16VerifierBN254 is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function getPublicInputCount() external view override returns (uint256) {
+        /**
+     * @notice Returns the public input count
+     * @return The result value
+     */
+function getPublicInputCount() external view override returns (uint256) {
         return vkIC.length > 0 ? vkIC.length - 1 : 0;
     }
 
     /**
      * @inheritdoc IProofVerifier
      */
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view override returns (bool) {
@@ -245,7 +267,11 @@ contract Groth16VerifierBN254 is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function isReady() external view override returns (bool) {
+        /**
+     * @notice Checks if ready
+     * @return The result value
+     */
+function isReady() external view override returns (bool) {
         return initialized;
     }
 
@@ -285,6 +311,11 @@ contract Groth16VerifierBN254 is IProofVerifier {
     /**
      * @notice Verify the Groth16 pairing equation
      * @dev e(A, B) = e(α, β) · e(∑ IC_i * input_i, γ) · e(C, δ)
+          * @param piA The pi a
+     * @param piB The pi b
+     * @param piC The pi c
+     * @param publicInputs The public inputs
+     * @return The result value
      */
     function _verifyPairing(
         uint256[2] memory piA,

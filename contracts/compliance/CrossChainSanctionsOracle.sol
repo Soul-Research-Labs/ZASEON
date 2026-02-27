@@ -91,7 +91,12 @@ contract CrossChainSanctionsOracle is
     /// @dev Called by ShieldedPool, PrivacyRouter, etc.
     /// @param addr The address to screen
     /// @return sanctioned Whether the address is sanctioned
-    function isSanctioned(
+        /**
+     * @notice Checks if sanctioned
+     * @param addr The target address
+     * @return sanctioned The sanctioned
+     */
+function isSanctioned(
         address addr
     ) external view returns (bool sanctioned) {
         SanctionsEntry storage entry = sanctions[addr];
@@ -108,7 +113,14 @@ contract CrossChainSanctionsOracle is
     }
 
     /// @notice Check if address is sanctioned and get details
-    function getSanctionsStatus(
+        /**
+     * @notice Returns the sanctions status
+     * @param addr The target address
+     * @return flagged The flagged
+     * @return flagCount The flag count
+     * @return lastUpdated The last updated
+     */
+function getSanctionsStatus(
         address addr
     )
         external
@@ -126,7 +138,12 @@ contract CrossChainSanctionsOracle is
     /// @notice Flag an address as sanctioned
     /// @param addr The address to flag
     /// @param reason Reason hash (e.g., keccak256 of sanctions list entry)
-    function flagAddress(
+        /**
+     * @notice Flag address
+     * @param addr The target address
+     * @param reason The reason string
+     */
+function flagAddress(
         address addr,
         bytes32 reason
     ) external onlyRole(PROVIDER_ROLE) {
@@ -156,7 +173,11 @@ contract CrossChainSanctionsOracle is
 
     /// @notice Clear a sanctioned address
     /// @param addr The address to clear
-    function clearAddress(address addr) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Clear address
+     * @param addr The target address
+ */
+function clearAddress(address addr) external onlyRole(OPERATOR_ROLE) {
         sanctions[addr].flagged = false;
         sanctions[addr].flagCount = 0;
         sanctions[addr].lastUpdated = block.timestamp;
@@ -165,7 +186,12 @@ contract CrossChainSanctionsOracle is
     }
 
     /// @notice Batch screen multiple addresses
-    function batchScreen(
+        /**
+     * @notice Batchs screen
+     * @param addrs The addrs address
+     * @return results The results
+     */
+function batchScreen(
         address[] calldata addrs
     ) external view returns (bool[] memory results) {
         results = new bool[](addrs.length);
@@ -190,7 +216,13 @@ contract CrossChainSanctionsOracle is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Register a screening provider
-    function registerProvider(
+        /**
+     * @notice Registers provider
+     * @param providerAddress The providerAddress address
+     * @param name The name
+     * @param weight The weight value
+     */
+function registerProvider(
         address providerAddress,
         string calldata name,
         uint256 weight
@@ -217,7 +249,11 @@ contract CrossChainSanctionsOracle is
     }
 
     /// @notice Deactivate a provider
-    function deactivateProvider(
+        /**
+     * @notice Deactivate provider
+     * @param providerAddress The providerAddress address
+     */
+function deactivateProvider(
         address providerAddress
     ) external onlyRole(OPERATOR_ROLE) {
         ScreeningProvider storage provider = providers[providerAddress];
@@ -231,7 +267,11 @@ contract CrossChainSanctionsOracle is
     }
 
     /// @notice Update quorum threshold
-    function setQuorumThreshold(
+        /**
+     * @notice Sets the quorum threshold
+     * @param _threshold The _threshold
+     */
+function setQuorumThreshold(
         uint256 _threshold
     ) external onlyRole(OPERATOR_ROLE) {
         if (_threshold == 0) revert InvalidThreshold();
@@ -240,12 +280,20 @@ contract CrossChainSanctionsOracle is
     }
 
     /// @notice Set fail-open/closed policy
-    function setFailOpen(bool _failOpen) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the fail open
+     * @param _failOpen The _fail open
+     */
+function setFailOpen(bool _failOpen) external onlyRole(OPERATOR_ROLE) {
         failOpen = _failOpen;
     }
 
     /// @notice Set sanctions expiry period
-    function setSanctionsExpiry(
+        /**
+     * @notice Sets the sanctions expiry
+     * @param _expiry The _expiry
+     */
+function setSanctionsExpiry(
         uint256 _expiry
     ) external onlyRole(OPERATOR_ROLE) {
         // SECURITY FIX M-5: Enforce minimum expiry to prevent accidental sanctions bypass

@@ -20,6 +20,11 @@
 
 pragma solidity ^0.8.24;
 
+/**
+ * @title StateTransferVerifier
+ * @author Soul Protocol Team
+ * @notice State Transfer Verifier contract
+ */
 contract StateTransferVerifier {
     // Scalar field size
     uint256 internal constant r =
@@ -104,7 +109,15 @@ contract StateTransferVerifier {
 
     uint16 internal constant pLastMem = 896;
 
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param _pA The _p a
+     * @param _pB The _p b
+     * @param _pC The _p c
+     * @param _pubSignals The _pub signals
+     * @return The result value
+     */
+function verifyProof(
         uint[2] calldata _pA,
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,

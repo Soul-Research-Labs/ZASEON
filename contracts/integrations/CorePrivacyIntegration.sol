@@ -49,6 +49,11 @@ import {IPrivacyIntegration} from "../interfaces/IPrivacyIntegration.sol";
  *
  * @custom:security-contact security@soulprotocol.io
  */
+/**
+ * @title CorePrivacyIntegration
+ * @author Soul Protocol Team
+ * @notice Core Privacy Integration contract
+ */
 contract CorePrivacyIntegration is
     IPrivacyIntegration,
     ReentrancyGuard,
@@ -171,7 +176,11 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function registerStealthMetaAddress(
+        /**
+     * @notice Registers stealth meta address
+     * @param metaAddress The metaAddress address
+     */
+function registerStealthMetaAddress(
         StealthMetaAddress calldata metaAddress
     ) external override whenNotPaused {
         if (metaAddress.spendPubKey == bytes32(0)) revert InvalidPublicKey();
@@ -190,7 +199,13 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function deriveStealthAddress(
+        /**
+     * @notice Derive stealth address
+     * @param recipient The recipient address
+     * @param ephemeralPrivateKey The ephemeral private key
+     * @return stealthAddress The stealth address
+     */
+function deriveStealthAddress(
         StealthMetaAddress calldata recipient,
         uint256 ephemeralPrivateKey
     ) external pure override returns (StealthAddress memory stealthAddress) {
@@ -228,7 +243,13 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function checkStealthAddressOwnership(
+        /**
+     * @notice Checks stealth address ownership
+     * @param stealthAddress The stealthAddress address
+     * @param viewPrivateKey The view private key
+     * @return isOwner The is owner
+     */
+function checkStealthAddressOwnership(
         StealthAddress calldata stealthAddress,
         uint256 viewPrivateKey
     ) external pure override returns (bool isOwner) {
@@ -262,7 +283,14 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function verifyRingSignature(
+        /**
+     * @notice Verifys ring signature
+     * @param message The message data
+     * @param ring The ring
+     * @param signature The cryptographic signature
+     * @return valid The valid
+     */
+function verifyRingSignature(
         bytes32 message,
         RingMember[] calldata ring,
         RingSignature calldata signature
@@ -286,7 +314,12 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function isKeyImageUsed(
+        /**
+     * @notice Checks if key image used
+     * @param keyImage The key image
+     * @return used The used
+     */
+function isKeyImageUsed(
         KeyImage calldata keyImage
     ) external view override returns (bool used) {
         bytes32 keyImageHash = keccak256(abi.encode(keyImage.x, keyImage.y));
@@ -296,7 +329,11 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function registerKeyImage(
+        /**
+     * @notice Registers key image
+     * @param keyImage The key image
+     */
+function registerKeyImage(
         KeyImage calldata keyImage
     ) external override onlyRole(VERIFIER_ROLE) whenNotPaused {
         bytes32 keyImageHash = keccak256(abi.encode(keyImage.x, keyImage.y));
@@ -317,7 +354,13 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function createCommitment(
+        /**
+     * @notice Creates commitment
+     * @param value The value to set
+     * @param blinding The blinding
+     * @return commitment The commitment
+     */
+function createCommitment(
         uint256 value,
         uint256 blinding
     ) external pure override returns (PedersenCommitment memory commitment) {
@@ -347,7 +390,14 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function verifyCommitment(
+        /**
+     * @notice Verifys commitment
+     * @param commitment The cryptographic commitment
+     * @param value The value to set
+     * @param blinding The blinding
+     * @return valid The valid
+     */
+function verifyCommitment(
         PedersenCommitment calldata commitment,
         uint256 value,
         uint256 blinding
@@ -376,7 +426,13 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function verifyRangeProof(
+        /**
+     * @notice Verifys range proof
+     * @param commitment The cryptographic commitment
+     * @param proof The ZK proof data
+     * @return valid The valid
+     */
+function verifyRangeProof(
         PedersenCommitment calldata commitment,
         RangeProof calldata proof
     ) external view override returns (bool valid) {
@@ -392,7 +448,14 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function computeNullifier(
+        /**
+     * @notice Computes nullifier
+     * @param secret The secret value
+     * @param commitment The cryptographic commitment
+     * @param chainId The chain identifier
+     * @return nullifier The nullifier
+     */
+function computeNullifier(
         uint256 secret,
         bytes32 commitment,
         uint256 chainId
@@ -418,7 +481,12 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function isNullifierUsed(
+        /**
+     * @notice Checks if nullifier used
+     * @param nullifier The nullifier hash
+     * @return used The used
+     */
+function isNullifierUsed(
         Nullifier calldata nullifier
     ) external view override returns (bool used) {
         return usedNullifiers[nullifier.chainId][nullifier.nullifierHash];
@@ -427,7 +495,11 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function registerNullifier(
+        /**
+     * @notice Registers nullifier
+     * @param nullifier The nullifier hash
+     */
+function registerNullifier(
         Nullifier calldata nullifier
     ) external override onlyRole(VERIFIER_ROLE) whenNotPaused {
         if (nullifier.nullifierHash == bytes32(0)) revert InvalidNullifier();
@@ -444,7 +516,13 @@ contract CorePrivacyIntegration is
     /**
      * @inheritdoc IPrivacyIntegration
      */
-    function verifyNullifierProof(
+        /**
+     * @notice Verifys nullifier proof
+     * @param nullifier The nullifier hash
+     * @param proof The ZK proof data
+     * @return valid The valid
+     */
+function verifyNullifierProof(
         Nullifier calldata nullifier,
         bytes calldata proof
     ) external view override returns (bool valid) {
@@ -467,6 +545,9 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Compute shared secret (ECDH)
+          * @param privateKey The private key
+     * @param publicKey The public key
+     * @return The result value
      */
     function _computeSharedSecret(
         uint256 privateKey,
@@ -559,6 +640,8 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Get stealth meta-address for account
+          * @param account The account address
+     * @return The result value
      */
     function getStealthMetaAddress(
         address account
@@ -568,6 +651,8 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Check if account has registered meta-address
+          * @param account The account address
+     * @return The result value
      */
     function hasStealthMetaAddress(
         address account
@@ -577,6 +662,8 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Get chains where nullifier is used
+          * @param nullifierHash The nullifier hash value
+     * @return The result value
      */
     function getNullifierChains(
         bytes32 nullifierHash
@@ -586,6 +673,8 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Get transaction hash for key image
+          * @param keyImage The key image
+     * @return The result value
      */
     function getKeyImageTransaction(
         KeyImage calldata keyImage
@@ -600,6 +689,9 @@ contract CorePrivacyIntegration is
 
     /**
      * @notice Update verifiers
+          * @param _ringSignatureVerifier The _ring signature verifier
+     * @param _rangeProofVerifier The _range proof verifier
+     * @param _nullifierProofVerifier The _nullifier proof verifier
      */
     function setVerifiers(
         address _ringSignatureVerifier,

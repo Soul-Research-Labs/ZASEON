@@ -11,7 +11,14 @@ interface IRelayerAdapter {
     /// @param payload The calldata to forward to the target
     /// @param gasLimit The gas limit for the relay execution
     /// @return taskId Unique identifier for tracking the relayed transaction
-    function relayMessage(
+        /**
+     * @notice Relays message
+     * @param target The target
+     * @param payload The message payload
+     * @param gasLimit The gas limit
+     * @return taskId The task id
+     */
+function relayMessage(
         address target,
         bytes calldata payload,
         uint256 gasLimit
@@ -20,5 +27,10 @@ interface IRelayerAdapter {
     /// @notice Get the estimated fee for relaying a message
     /// @param gasLimit The gas limit to estimate the fee for
     /// @return fee The estimated relay fee in wei
-    function getFee(uint256 gasLimit) external view returns (uint256 fee);
+        /**
+     * @notice Returns the fee
+     * @param gasLimit The gas limit
+     * @return fee The fee
+     */
+function getFee(uint256 gasLimit) external view returns (uint256 fee);
 }

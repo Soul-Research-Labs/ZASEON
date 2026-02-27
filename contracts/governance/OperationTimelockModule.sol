@@ -790,6 +790,7 @@ contract OperationTimelockModule is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Get total number of operations
+          * @return The result value
      */
     function operationCount() external view returns (uint256) {
         return operationIds.length;
@@ -797,6 +798,7 @@ contract OperationTimelockModule is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Get total number of batch operations
+          * @return The result value
      */
     function batchCount() external view returns (uint256) {
         return batchIds.length;

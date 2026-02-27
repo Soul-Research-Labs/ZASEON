@@ -15,14 +15,26 @@ contract AggregatorAdapter {
     }
 
     /// @notice Standard interface for proof verification
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-    function verifyBatch(
+        /**
+     * @notice Verifys batch
+     * @param aggregatedProof The aggregated proof
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyBatch(
         bytes calldata aggregatedProof,
         bytes32[] calldata publicInputs
     ) external view returns (bool) {

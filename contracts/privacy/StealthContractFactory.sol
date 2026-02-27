@@ -171,7 +171,11 @@ contract StealthContractFactory is
         _disableInitializers();
     }
 
-    function initialize(address admin) external initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) external initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -193,6 +197,7 @@ contract StealthContractFactory is
      * @notice Register as a stealth address recipient
      * @param spendingPubKey Public key for spending (33 bytes compressed)
      * @param viewingPubKey Public key for viewing/scanning (33 bytes compressed)
+          * @return recipientId The recipient id
      */
     function registerRecipient(
         bytes calldata spendingPubKey,
@@ -216,6 +221,7 @@ contract StealthContractFactory is
     /**
      * @notice Deactivate recipient registration
      * @dev Only callable by an operator to prevent unauthorized deactivation
+          * @param recipientId The recipientId identifier
      */
     function deactivateRecipient(
         bytes32 recipientId
@@ -296,6 +302,7 @@ contract StealthContractFactory is
      * @param ephemeralPubKey Ephemeral public key
      * @param encryptedMetadata Encrypted metadata
      * @param nonce Expected nonce
+          * @return The result value
      */
     function computeStealthAddress(
         bytes calldata ephemeralPubKey,
@@ -368,6 +375,10 @@ contract StealthContractFactory is
 
     /**
      * @notice Batch withdraw from multiple stealth contracts
+          * @param contractAddresses The contractAddresses address
+     * @param recipient The recipient address
+     * @param signatures The signatures
+     * @param zkProofs The zk proofs
      */
     function batchWithdraw(
         address[] calldata contractAddresses,
@@ -486,6 +497,9 @@ contract StealthContractFactory is
      * @notice Get all deployed contract addresses for scanning
      * @param offset Start index
      * @param limit Maximum results
+          * @return addresses The addresses
+     * @return metaHashes The meta hashes
+     * @return values The values
      */
     function getDeployedContracts(
         uint256 offset,
@@ -525,6 +539,9 @@ contract StealthContractFactory is
 
     /**
      * @notice Get deployments since timestamp (for efficient scanning)
+          * @param timestamp The timestamp timestamp
+     * @return addresses The addresses
+     * @return metaHashes The meta hashes
      */
     function getDeploymentsSince(
         uint256 timestamp
@@ -567,6 +584,8 @@ contract StealthContractFactory is
 
     /**
      * @notice Get deployment info
+          * @param contractAddress The contractAddress address
+     * @return The result value
      */
     function getDeployment(
         address contractAddress
@@ -576,6 +595,8 @@ contract StealthContractFactory is
 
     /**
      * @notice Get recipient keys
+          * @param recipientId The recipientId identifier
+     * @return The result value
      */
     function getRecipientKeys(
         bytes32 recipientId
@@ -585,6 +606,7 @@ contract StealthContractFactory is
 
     /**
      * @notice Get total deployed count
+          * @return The result value
      */
     function getTotalDeployments() external view returns (uint256) {
         return deployedContracts.length;
@@ -592,6 +614,7 @@ contract StealthContractFactory is
 
     /**
      * @notice Get unwithdrawn contracts count
+          * @return The result value
      */
     function getUnwithdrawnCount() external view returns (uint256) {
         return totalDeployments - totalWithdrawn;
@@ -618,13 +641,22 @@ contract StealthWallet {
     error NotFactory();
     error TransferFailed();
 
-    function initialize(address _factory) external payable {
+        /**
+     * @notice Initializes the operation
+     * @param _factory The _factory
+     */
+function initialize(address _factory) external payable {
         if (initialized) revert AlreadyInitialized();
         factory = _factory;
         initialized = true;
     }
 
-    function withdraw(address recipient, uint256 amount) external {
+        /**
+     * @notice Withdraws the operation
+     * @param recipient The recipient address
+     * @param amount The amount to process
+     */
+function withdraw(address recipient, uint256 amount) external {
         if (msg.sender != factory) revert NotFactory();
 
         (bool success, ) = recipient.call{value: amount}("");

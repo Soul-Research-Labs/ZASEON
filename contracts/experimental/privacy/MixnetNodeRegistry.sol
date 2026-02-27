@@ -160,7 +160,13 @@ contract MixnetNodeRegistry is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMixnetNodeRegistry
-    function registerNode(
+        /**
+     * @notice Registers node
+     * @param publicKey The public key
+     * @param encryptionKey The encryption key
+     * @param layer The layer
+     */
+function registerNode(
         bytes32 publicKey,
         bytes calldata encryptionKey,
         uint16 layer
@@ -208,7 +214,11 @@ contract MixnetNodeRegistry is
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function deregisterNode(bytes32 nodeId) external override nonReentrant {
+        /**
+     * @notice Deregister node
+     * @param nodeId The nodeId identifier
+     */
+function deregisterNode(bytes32 nodeId) external override nonReentrant {
         _requireNodeOperator(nodeId);
         MixnetNode storage node = nodes[nodeId];
         if (node.status != NodeStatus.Active) revert NodeNotActive(nodeId);
@@ -224,7 +234,11 @@ contract MixnetNodeRegistry is
 
     /// @notice Complete exit and reclaim stake after delay period
     /// @param nodeId The node to exit
-    function finalizeExit(bytes32 nodeId) external nonReentrant {
+        /**
+     * @notice Finalizes exit
+     * @param nodeId The nodeId identifier
+     */
+function finalizeExit(bytes32 nodeId) external nonReentrant {
         _requireNodeOperator(nodeId);
         MixnetNode storage node = nodes[nodeId];
         if (node.status != NodeStatus.Exiting) revert NodeNotExiting(nodeId);
@@ -243,7 +257,13 @@ contract MixnetNodeRegistry is
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function rotateKeys(
+        /**
+     * @notice Rotates keys
+     * @param nodeId The nodeId identifier
+     * @param newPublicKey The new PublicKey value
+     * @param newEncryptionKey The new EncryptionKey value
+     */
+function rotateKeys(
         bytes32 nodeId,
         bytes32 newPublicKey,
         bytes calldata newEncryptionKey
@@ -264,7 +284,12 @@ contract MixnetNodeRegistry is
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function slashNode(
+        /**
+     * @notice Slashs node
+     * @param nodeId The nodeId identifier
+     * @param evidence The evidence identifier
+     */
+function slashNode(
         bytes32 nodeId,
         bytes calldata evidence
     ) external override onlyRole(SLASHER_ROLE) nonReentrant {
@@ -292,14 +317,24 @@ contract MixnetNodeRegistry is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMixnetNodeRegistry
-    function getActiveNodes(
+        /**
+     * @notice Returns the active nodes
+     * @param layer The layer
+     * @return The result value
+     */
+function getActiveNodes(
         uint16 layer
     ) external view override returns (bytes32[] memory) {
         return _layerNodes[layer];
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function getNode(
+        /**
+     * @notice Returns the node
+     * @param nodeId The nodeId identifier
+     * @return The result value
+     */
+function getNode(
         bytes32 nodeId
     ) external view override returns (MixnetNode memory) {
         if (!nodeExists[nodeId]) revert NodeNotFound(nodeId);
@@ -307,21 +342,35 @@ contract MixnetNodeRegistry is
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function isNodeActive(
+        /**
+     * @notice Checks if node active
+     * @param nodeId The nodeId identifier
+     * @return The result value
+     */
+function isNodeActive(
         bytes32 nodeId
     ) external view override returns (bool) {
         return nodeExists[nodeId] && nodes[nodeId].status == NodeStatus.Active;
     }
 
     /// @inheritdoc IMixnetNodeRegistry
-    function minimumStake() external pure override returns (uint256) {
+        /**
+     * @notice Minimum stake
+     * @return The result value
+     */
+function minimumStake() external pure override returns (uint256) {
         return MIN_STAKE;
     }
 
     /// @inheritdoc IMixnetNodeRegistry
     /// @dev Selects one random node per layer for a route of the given path length.
     ///      Uses block-based entropy (suitable for relay selection, NOT for security-critical randomness).
-    function getRouteNodes(
+        /**
+     * @notice Returns the route nodes
+     * @param pathLength The path length
+     * @return The result value
+     */
+function getRouteNodes(
         uint256 pathLength
     ) external view override returns (bytes32[] memory) {
         require(
@@ -352,7 +401,12 @@ contract MixnetNodeRegistry is
     /// @notice Update a node's reputation score
     /// @param nodeId The node to update
     /// @param newScore The new reputation score (0–10000)
-    function updateReputation(
+        /**
+     * @notice Updates reputation
+     * @param nodeId The nodeId identifier
+     * @param newScore The new Score value
+     */
+function updateReputation(
         bytes32 nodeId,
         uint32 newScore
     ) external onlyRole(OPERATOR_ROLE) {
@@ -366,18 +420,28 @@ contract MixnetNodeRegistry is
     }
 
     /// @notice Pause the registry (emergency)
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the registry
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     /// @notice Withdraw accumulated slashing pool
     /// @param recipient The address to receive slashed funds
-    function withdrawSlashingPool(
+        /**
+     * @notice Withdraws slashing pool
+     * @param recipient The recipient address
+     */
+function withdrawSlashingPool(
         address recipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (recipient == address(0)) revert ZeroAddress();

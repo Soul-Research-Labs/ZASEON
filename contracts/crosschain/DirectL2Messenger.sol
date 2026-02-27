@@ -58,6 +58,11 @@ import {IL2DirectMessenger} from "../interfaces/IL2DirectMessenger.sol";
  * - Superchain: OP Stack native security model
  * - Fallback: L1 completion for disputed messages
  */
+/**
+ * @title DirectL2Messenger
+ * @author Soul Protocol Team
+ * @notice Direct L2 Messenger contract
+ */
 contract DirectL2Messenger is
     ReentrancyGuard,
     AccessControl,
@@ -953,13 +958,19 @@ contract DirectL2Messenger is
 
     /// @notice Pause all messaging operations (emergency use)
     /// @dev Only callable by addresses with OPERATOR_ROLE. Blocks sendMessage, receiveMessage, and relayer operations.
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Resume messaging operations after pause
     /// @dev Only callable by addresses with OPERATOR_ROLE. Re-enables all paused functions.
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
@@ -970,7 +981,12 @@ contract DirectL2Messenger is
     /// @notice Retrieve a message by its unique identifier
     /// @param messageId The unique hash identifying the message
     /// @return The L2Message struct containing sender, target, data, and status
-    function getMessage(
+        /**
+     * @notice Returns the message
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function getMessage(
         bytes32 messageId
     ) external view returns (L2Message memory) {
         return messages[messageId];
@@ -979,7 +995,12 @@ contract DirectL2Messenger is
     /// @notice Get relayer registration details
     /// @param addr The relayer address to query
     /// @return The Relayer struct (stake, active status, performance stats)
-    function getRelayer(address addr) external view returns (Relayer memory) {
+        /**
+     * @notice Returns the relayer
+     * @param addr The target address
+     * @return The result value
+     */
+function getRelayer(address addr) external view returns (Relayer memory) {
         return relayers[addr];
     }
 
@@ -987,7 +1008,13 @@ contract DirectL2Messenger is
     /// @param sourceChainId The source chain identifier
     /// @param destChainId The destination chain identifier
     /// @return The RouteConfig including enabled status, gas limits, and fees
-    function getRoute(
+        /**
+     * @notice Returns the route
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function getRoute(
         uint256 sourceChainId,
         uint256 destChainId
     ) external view returns (RouteConfig memory) {
@@ -997,7 +1024,12 @@ contract DirectL2Messenger is
     /// @notice Get the number of relayer confirmations for a message
     /// @param messageId The message to check confirmations for
     /// @return The count of unique relayer confirmations
-    function getConfirmationCount(
+        /**
+     * @notice Returns the confirmation count
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function getConfirmationCount(
         bytes32 messageId
     ) external view returns (uint256) {
         return messageConfirmations[messageId].length;
@@ -1006,7 +1038,12 @@ contract DirectL2Messenger is
     /// @notice Check whether a message has already been processed
     /// @param messageId The message to check
     /// @return True if the message has been executed on this chain
-    function isMessageProcessed(
+        /**
+     * @notice Checks if message processed
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageProcessed(
         bytes32 messageId
     ) external view returns (bool) {
         return processedMessages[messageId];
@@ -1014,7 +1051,11 @@ contract DirectL2Messenger is
 
     /// @notice Get the total number of registered relayers
     /// @return The count of relayers in the relayer list
-    function getRelayerCount() external view returns (uint256) {
+        /**
+     * @notice Returns the relayer count
+     * @return The result value
+     */
+function getRelayerCount() external view returns (uint256) {
         return relayerList.length;
     }
 
@@ -1026,7 +1067,13 @@ contract DirectL2Messenger is
 //////////////////////////////////////////////////////////////*/
 
 interface IL2ToL2CrossDomainMessenger {
-    function sendMessage(
+        /**
+     * @notice Send message
+     * @param _destination The _destination
+     * @param _target The _target
+     * @param _message The _message
+     */
+function sendMessage(
         uint256 _destination,
         address _target,
         bytes calldata _message
@@ -1034,14 +1081,25 @@ interface IL2ToL2CrossDomainMessenger {
 }
 
 interface ISharedSequencer {
-    function submitCrossChainMessage(
+        /**
+     * @notice Submits cross chain message
+     * @param destChainId The destination chain identifier
+     * @param payload The message payload
+     */
+function submitCrossChainMessage(
         uint256 destChainId,
         bytes calldata payload
     ) external;
 }
 
 interface IL1BridgeAdapter {
-    function sendMessage(
+        /**
+     * @notice Send message
+     * @param destChainId The destination chain identifier
+     * @param recipient The recipient address
+     * @param payload The message payload
+     */
+function sendMessage(
         uint256 destChainId,
         address recipient,
         bytes calldata payload

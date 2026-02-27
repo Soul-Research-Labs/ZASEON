@@ -655,13 +655,25 @@ contract VerifierRegistryV2 is AccessControl {
  * @notice Interface for VerifierRegistryV2
  */
 interface IVerifierRegistryV2 {
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param circuitType The circuit type
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verify(
         VerifierRegistryV2.CircuitType circuitType,
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool);
 
-    function getAdapter(
+        /**
+     * @notice Returns the adapter
+     * @param circuitType The circuit type
+     * @return The result value
+     */
+function getAdapter(
         VerifierRegistryV2.CircuitType circuitType
     ) external view returns (address);
 }

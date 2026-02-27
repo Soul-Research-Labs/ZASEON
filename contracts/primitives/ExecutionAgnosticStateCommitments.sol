@@ -21,6 +21,11 @@ import "../interfaces/IProofVerifier.sol";
 /// - Multi-attestation prevents single backend compromise
 /// - Nullifiers prevent double-consumption
 /// - Backend deactivation isolates compromised backends
+/**
+ * @title ExecutionAgnosticStateCommitments
+ * @author Soul Protocol Team
+ * @notice Execution Agnostic State Commitments contract
+ */
 contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -216,7 +221,15 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @param attestationKey Key for verifying attestations
     /// @param configHash Hash of backend configuration
     /// @return backendId The unique backend identifier
-    function registerBackend(
+        /**
+     * @notice Registers backend
+     * @param backendType The backend type
+     * @param name The name
+     * @param attestationKey The attestation key
+     * @param configHash The configHash hash value
+     * @return backendId The backend id
+     */
+function registerBackend(
         BackendType backendType,
         string calldata name,
         bytes32 attestationKey,
@@ -254,7 +267,12 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @notice Update backend trust score
     /// @param backendId The backend to update
     /// @param trustScore New trust score (0-10000)
-    function updateBackendTrust(
+        /**
+     * @notice Updates backend trust
+     * @param backendId The backendId identifier
+     * @param trustScore The trust score
+     */
+function updateBackendTrust(
         bytes32 backendId,
         uint256 trustScore
     ) external onlyRole(BACKEND_ADMIN_ROLE) {
@@ -274,7 +292,11 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
 
     /// @notice Deactivate a backend
     /// @param backendId The backend to deactivate
-    function deactivateBackend(
+        /**
+     * @notice Deactivate backend
+     * @param backendId The backendId identifier
+     */
+function deactivateBackend(
         bytes32 backendId
     ) external onlyRole(BACKEND_ADMIN_ROLE) {
         if (backends[backendId].registeredAt == 0) {
@@ -294,7 +316,14 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @param transitionHash Hash of the state transition
     /// @param nullifier Unique nullifier
     /// @return commitmentId The unique commitment identifier
-    function createCommitment(
+        /**
+     * @notice Creates commitment
+     * @param stateHash The state hash
+     * @param transitionHash The transitionHash hash value
+     * @param nullifier The nullifier hash
+     * @return commitmentId The commitment id
+     */
+function createCommitment(
         bytes32 stateHash,
         bytes32 transitionHash,
         bytes32 nullifier
@@ -343,7 +372,14 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @param backendId The attesting backend
     /// @param attestationProof Proof from the backend
     /// @param executionHash Hash of execution trace
-    function attestCommitment(
+        /**
+     * @notice Attest commitment
+     * @param commitmentId The commitmentId identifier
+     * @param backendId The backendId identifier
+     * @param attestationProof The attestation proof
+     * @param executionHash The executionHash hash value
+     */
+function attestCommitment(
         bytes32 commitmentId,
         bytes32 backendId,
         bytes calldata attestationProof,
@@ -437,7 +473,11 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
 
     /// @notice Consume a finalized commitment
     /// @param commitmentId The commitment to consume
-    function consumeCommitment(
+        /**
+     * @notice Consume commitment
+     * @param commitmentId The commitmentId identifier
+     */
+function consumeCommitment(
         bytes32 commitmentId
     ) external whenNotPaused onlyRole(COMMITMENT_REGISTRAR_ROLE) {
         AgnosticCommitment storage commitment = _commitments[commitmentId];
@@ -464,7 +504,12 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get commitment details
-    function getCommitment(
+        /**
+     * @notice Returns the commitment
+     * @param commitmentId The commitmentId identifier
+     * @return view_ The view_
+     */
+function getCommitment(
         bytes32 commitmentId
     ) external view returns (CommitmentView memory view_) {
         AgnosticCommitment storage commitment = _commitments[commitmentId];
@@ -481,7 +526,17 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     }
 
     /// @notice Get attestation for a commitment by backend
-    function getAttestation(
+        /**
+     * @notice Returns the attestation
+     * @param commitmentId The commitmentId identifier
+     * @param backendId The backendId identifier
+     * @return backendType The backend type
+     * @return attestationProof The attestation proof
+     * @return executionHash The execution hash
+     * @return attestedAt The attested at
+     * @return isValid The is valid
+     */
+function getAttestation(
         bytes32 commitmentId,
         bytes32 backendId
     )
@@ -507,21 +562,35 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     }
 
     /// @notice Get backend details
-    function getBackend(
+        /**
+     * @notice Returns the backend
+     * @param backendId The backendId identifier
+     * @return The result value
+     */
+function getBackend(
         bytes32 backendId
     ) external view returns (ExecutionBackend memory) {
         return backends[backendId];
     }
 
     /// @notice Get backends by type
-    function getBackendsByType(
+        /**
+     * @notice Returns the backends by type
+     * @param backendType The backend type
+     * @return The result value
+     */
+function getBackendsByType(
         BackendType backendType
     ) external view returns (bytes32[] memory) {
         return backendsByType[backendType];
     }
 
     /// @notice Get all active backend IDs
-    function getActiveBackends() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the active backends
+     * @return The result value
+     */
+function getActiveBackends() external view returns (bytes32[] memory) {
         // First pass: count active backends
         uint256 activeCount = 0;
         uint256 typeCount = uint256(BackendType.Native) + 1;
@@ -572,7 +641,12 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     }
 
     /// @notice Check if commitment is valid and finalized
-    function isCommitmentValid(
+        /**
+     * @notice Checks if commitment valid
+     * @param commitmentId The commitmentId identifier
+     * @return The result value
+     */
+function isCommitmentValid(
         bytes32 commitmentId
     ) external view returns (bool) {
         AgnosticCommitment storage commitment = _commitments[commitmentId];
@@ -582,7 +656,12 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @notice Batch check commitment validity
     /// @param commitmentIds Array of commitment IDs to check
     /// @return validities Array of validity results
-    function batchCheckCommitments(
+        /**
+     * @notice Batchs check commitments
+     * @param commitmentIds The commitmentIds identifier
+     * @return validities The validities
+     */
+function batchCheckCommitments(
         bytes32[] calldata commitmentIds
     ) external view returns (bool[] memory validities) {
         uint256 len = commitmentIds.length;
@@ -599,7 +678,13 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @return total Total commitments
     /// @return finalized Total finalized commitments (approximate)
     /// @return backends_ Total registered backends
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return total The total
+     * @return finalized The finalized
+     * @return backends_ The backends_
+     */
+function getStats()
         external
         view
         returns (uint256 total, uint256 finalized, uint256 backends_)
@@ -614,14 +699,22 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set required attestation count
-    function setRequiredAttestations(
+        /**
+     * @notice Sets the required attestations
+     * @param count The count value
+     */
+function setRequiredAttestations(
         uint256 count
     ) external onlyRole(BACKEND_ADMIN_ROLE) {
         requiredAttestations = count;
     }
 
     /// @notice Set minimum trust score
-    function setMinTrustScore(
+        /**
+     * @notice Sets the min trust score
+     * @param score The score value
+     */
+function setMinTrustScore(
         uint256 score
     ) external onlyRole(BACKEND_ADMIN_ROLE) {
         minTrustScore = score;
@@ -630,7 +723,11 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     /// @notice Set the ZK verifier for attestation proofs
     /// @dev Phase 3: Required for real SNARK verification of attestations
     /// @param _verifier Address of the IProofVerifier-compatible contract
-    function setAttestationVerifier(
+        /**
+     * @notice Sets the attestation verifier
+     * @param _verifier The _verifier
+     */
+function setAttestationVerifier(
         address _verifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_verifier != address(0), "Zero verifier address");
@@ -641,12 +738,18 @@ contract ExecutionAgnosticStateCommitments is AccessControl, Pausable {
     event AttestationVerifierUpdated(address indexed newVerifier);
 
     /// @notice Pause contract
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 }

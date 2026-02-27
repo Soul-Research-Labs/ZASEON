@@ -5,8 +5,16 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
+/**
+ * @title IPausable
+ * @author Soul Protocol Team
+ * @notice I Pausable interface
+ */
 interface IPausable {
-    function pause() external;
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external;
 }
 
 /**
@@ -366,6 +374,7 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
      * @param reportType Type of anomaly
      * @param subjectHash Hash of the suspicious entity
      * @param evidence Supporting evidence
+          * @return reportId The report id
      */
     function submitReport(
         ReportType reportType,
@@ -483,6 +492,11 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get proof attestation status
+          * @param proofHash The proofHash hash value
+     * @return attestations The attestations
+     * @return rejections The rejections
+     * @return finalized The finalized
+     * @return valid The valid
      */
     function getProofAttestation(
         bytes32 proofHash
@@ -620,6 +634,7 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get active watchtower count
+          * @return The result value
      */
     function getActiveWatchtowerCount() external view returns (uint256) {
         return activeWatchtowers.length;
@@ -627,6 +642,8 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get watchtower info
+          * @param operator The operator address
+     * @return The result value
      */
     function getWatchtowerInfo(
         address operator
@@ -636,6 +653,8 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get report info
+          * @param reportId The reportId identifier
+     * @return The result value
      */
     function getReport(
         bytes32 reportId
@@ -645,6 +664,8 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Check if proof has sufficient attestations
+          * @param proofHash The proofHash hash value
+     * @return The result value
      */
     function hasConsensus(bytes32 proofHash) external view returns (bool) {
         ProofAttestation storage attestation = proofAttestations[proofHash];
@@ -662,6 +683,7 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get required confirmations
+          * @return The result value
      */
     function getRequiredConfirmations() external view returns (uint256) {
         // SECURITY FIX H-8: Prevent truncation
@@ -805,14 +827,24 @@ contract RelayWatchtower is AccessControl, ReentrancyGuard, Pausable {
     }
 
     // Configuration
-    function setReportAction(
+        /**
+     * @notice Sets the report action
+     * @param reportType The report type
+     * @param action The action
+     */
+function setReportAction(
         ReportType reportType,
         ResponseAction action
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         reportActions[reportType] = action;
     }
 
-    function setTargetContracts(
+        /**
+     * @notice Sets the target contracts
+     * @param _bridge The _bridge identifier
+     * @param _rateLimiter The _rate limiter
+     */
+function setTargetContracts(
         address _bridge,
         address _rateLimiter
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {

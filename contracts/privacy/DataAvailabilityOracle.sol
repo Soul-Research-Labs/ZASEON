@@ -129,7 +129,16 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-    function submitDACommitment(
+        /**
+     * @notice Submits d a commitment
+     * @param payloadHash The payloadHash hash value
+     * @param erasureCodingRoot The erasure coding root
+     * @param dataSize The data size
+     * @param storageURI The storage u r i
+     * @param ttlSeconds The ttl seconds
+     * @return commitmentId The commitment id
+     */
+function submitDACommitment(
         bytes32 payloadHash,
         bytes32 erasureCodingRoot,
         uint256 dataSize,
@@ -181,7 +190,11 @@ contract DataAvailabilityOracle is
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function attestAvailability(bytes32 commitmentId) external whenNotPaused {
+        /**
+     * @notice Attest availability
+     * @param commitmentId The commitmentId identifier
+     */
+function attestAvailability(bytes32 commitmentId) external whenNotPaused {
         DACommitment storage commitment = _commitments[commitmentId];
         if (commitment.submittedAt == 0)
             revert CommitmentDoesNotExist(commitmentId);
@@ -226,7 +239,12 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-    function challengeAvailability(
+        /**
+     * @notice Challenge availability
+     * @param commitmentId The commitmentId identifier
+     * @return challengeId The challenge id
+     */
+function challengeAvailability(
         bytes32 commitmentId
     )
         external
@@ -278,7 +296,12 @@ contract DataAvailabilityOracle is
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function resolveChallenge(
+        /**
+     * @notice Resolves challenge
+     * @param challengeId The challengeId identifier
+     * @param retrievalProof The retrieval proof
+     */
+function resolveChallenge(
         bytes32 challengeId,
         bytes calldata retrievalProof
     ) external nonReentrant {
@@ -317,7 +340,11 @@ contract DataAvailabilityOracle is
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function finalizeExpiredChallenge(
+        /**
+     * @notice Finalizes expired challenge
+     * @param challengeId The challengeId identifier
+     */
+function finalizeExpiredChallenge(
         bytes32 challengeId
     ) external nonReentrant {
         Challenge storage challenge = _challenges[challengeId];
@@ -354,7 +381,10 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-    function registerAttestor() external payable nonReentrant {
+        /**
+     * @notice Registers attestor
+     */
+function registerAttestor() external payable nonReentrant {
         if (msg.value < MIN_ATTESTOR_STAKE) {
             revert InsufficientStake(msg.value, MIN_ATTESTOR_STAKE);
         }
@@ -381,7 +411,10 @@ contract DataAvailabilityOracle is
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function exitAttestor() external nonReentrant {
+        /**
+     * @notice Exit attestor
+     */
+function exitAttestor() external nonReentrant {
         Attestor storage attestor = _attestors[msg.sender];
         if (!attestor.active) revert NotActiveAttestor(msg.sender);
 
@@ -404,26 +437,46 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-    function getCommitment(
+        /**
+     * @notice Returns the commitment
+     * @param commitmentId The commitmentId identifier
+     * @return The result value
+     */
+function getCommitment(
         bytes32 commitmentId
     ) external view returns (DACommitment memory) {
         return _commitments[commitmentId];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function getAttestor(address addr) external view returns (Attestor memory) {
+        /**
+     * @notice Returns the attestor
+     * @param addr The target address
+     * @return The result value
+     */
+function getAttestor(address addr) external view returns (Attestor memory) {
         return _attestors[addr];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function getChallenge(
+        /**
+     * @notice Returns the challenge
+     * @param challengeId The challengeId identifier
+     * @return The result value
+     */
+function getChallenge(
         bytes32 challengeId
     ) external view returns (Challenge memory) {
         return _challenges[challengeId];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function isDataAvailable(
+        /**
+     * @notice Checks if data available
+     * @param commitmentId The commitmentId identifier
+     * @return The result value
+     */
+function isDataAvailable(
         bytes32 commitmentId
     ) external view returns (bool) {
         DACommitment storage c = _commitments[commitmentId];
@@ -433,12 +486,20 @@ contract DataAvailabilityOracle is
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function getMinAttestorStake() external pure returns (uint256) {
+        /**
+     * @notice Returns the min attestor stake
+     * @return The result value
+     */
+function getMinAttestorStake() external pure returns (uint256) {
         return MIN_ATTESTOR_STAKE;
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-    function getMinChallengerBond() external pure returns (uint256) {
+        /**
+     * @notice Returns the min challenger bond
+     * @return The result value
+     */
+function getMinChallengerBond() external pure returns (uint256) {
         return MIN_CHALLENGER_BOND;
     }
 
@@ -447,7 +508,11 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @notice Withdraw accumulated protocol fees
-    function withdrawProtocolFees(
+        /**
+     * @notice Withdraws protocol fees
+     * @param to The destination address
+     */
+function withdrawProtocolFees(
         address to
     ) external onlyRole(DA_ADMIN_ROLE) nonReentrant {
         require(to != address(0), "Zero address");
@@ -458,12 +523,18 @@ contract DataAvailabilityOracle is
     }
 
     /// @notice Pause the oracle
-    function pause() external onlyRole(DA_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DA_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the oracle
-    function unpause() external onlyRole(DA_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DA_ADMIN_ROLE) {
         _unpause();
     }
 

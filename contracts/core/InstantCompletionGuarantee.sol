@@ -135,7 +135,11 @@ contract InstantCompletionGuarantee is
 
     /// @notice Set the IntentCompletionLayer address
     /// @param _intentLayer New intent layer address
-    function setIntentLayer(
+        /**
+     * @notice Sets the intent layer
+     * @param _intentLayer The _intent layer
+     */
+function setIntentLayer(
         address _intentLayer
     ) external onlyRole(OPERATOR_ROLE) {
         if (_intentLayer == address(0)) revert ZeroAddress();
@@ -146,7 +150,11 @@ contract InstantCompletionGuarantee is
 
     /// @notice Update the collateral ratio
     /// @param newRatioBps New ratio in basis points (must be >= 10000 = 100%)
-    function setCollateralRatio(
+        /**
+     * @notice Sets the collateral ratio
+     * @param newRatioBps The new RatioBps value
+     */
+function setCollateralRatio(
         uint256 newRatioBps
     ) external onlyRole(OPERATOR_ROLE) {
         if (newRatioBps < BPS) revert InvalidCollateralRatio();
@@ -159,7 +167,11 @@ contract InstantCompletionGuarantee is
     /// @notice Mark an intent as finalized (COMPLETION_ROLE)
     /// @dev Used when IntentCompletionLayer is not set or for manual override
     /// @param intentId The intent to mark as finalized
-    function markIntentFinalized(
+        /**
+     * @notice Mark intent finalized
+     * @param intentId The intentId identifier
+     */
+function markIntentFinalized(
         bytes32 intentId
     ) external onlyRole(COMPLETION_ROLE) {
         intentFinalized[intentId] = true;
@@ -169,7 +181,12 @@ contract InstantCompletionGuarantee is
     /// @notice Withdraw from insurance pool (governance only)
     /// @param to Recipient address
     /// @param amount Amount to withdraw
-    function withdrawInsurance(
+        /**
+     * @notice Withdraws insurance
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function withdrawInsurance(
         address to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
@@ -186,7 +203,15 @@ contract InstantCompletionGuarantee is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function postGuarantee(
+        /**
+     * @notice Post guarantee
+     * @param intentId The intentId identifier
+     * @param beneficiary The beneficiary
+     * @param amount The amount to process
+     * @param duration The duration in seconds
+     * @return guaranteeId The guarantee id
+     */
+function postGuarantee(
         bytes32 intentId,
         address beneficiary,
         uint256 amount,
@@ -249,7 +274,11 @@ contract InstantCompletionGuarantee is
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function settleGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Settle guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function settleGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.guarantor == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -280,7 +309,11 @@ contract InstantCompletionGuarantee is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function claimGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Claims guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function claimGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.beneficiary == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -313,7 +346,11 @@ contract InstantCompletionGuarantee is
     /// @notice Expire an active guarantee where the underlying was finalized
     ///         but the guarantor didn't settle. Returns bond to guarantor.
     /// @param guaranteeId The guarantee to expire
-    function expireGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Expire guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function expireGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.guarantor == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -344,14 +381,24 @@ contract InstantCompletionGuarantee is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function getGuarantee(
+        /**
+     * @notice Returns the guarantee
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function getGuarantee(
         bytes32 guaranteeId
     ) external view returns (Guarantee memory) {
         return _guarantees[guaranteeId];
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function canSettle(bytes32 guaranteeId) external view returns (bool) {
+        /**
+     * @notice Can settle
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function canSettle(bytes32 guaranteeId) external view returns (bool) {
         Guarantee storage g = _guarantees[guaranteeId];
         return
             g.status == GuaranteeStatus.ACTIVE &&
@@ -359,7 +406,12 @@ contract InstantCompletionGuarantee is
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function canClaim(bytes32 guaranteeId) external view returns (bool) {
+        /**
+     * @notice Can claim
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function canClaim(bytes32 guaranteeId) external view returns (bool) {
         Guarantee storage g = _guarantees[guaranteeId];
         return
             g.status == GuaranteeStatus.ACTIVE &&
@@ -370,7 +422,12 @@ contract InstantCompletionGuarantee is
     /// @notice Get the required bond for a given guarantee amount
     /// @param amount The guarantee amount
     /// @return bond The minimum bond required
-    function requiredBond(uint256 amount) external view returns (uint256 bond) {
+        /**
+     * @notice Required bond
+     * @param amount The amount to process
+     * @return bond The bond
+     */
+function requiredBond(uint256 amount) external view returns (uint256 bond) {
         return (amount * collateralRatioBps) / BPS;
     }
 

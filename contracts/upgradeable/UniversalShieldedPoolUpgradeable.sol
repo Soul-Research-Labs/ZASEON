@@ -247,7 +247,13 @@ contract UniversalShieldedPoolUpgradeable is
     /// @param _admin Admin / default-admin address
     /// @param _withdrawalVerifier Address of the ZK withdrawal verifier
     /// @param _testMode Whether test-mode proof bypass is enabled
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param _admin The _admin bound
+     * @param _withdrawalVerifier The _withdrawal verifier
+     * @param _testMode The _test mode
+     */
+function initialize(
         address _admin,
         address _withdrawalVerifier,
         bool _testMode
@@ -309,7 +315,11 @@ contract UniversalShieldedPoolUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deposit native ETH into the shielded pool
-    function depositETH(
+        /**
+     * @notice Deposits e t h
+     * @param commitment The cryptographic commitment
+     */
+function depositETH(
         bytes32 commitment
     ) external payable nonReentrant whenNotPaused {
         if (commitment == bytes32(0) || uint256(commitment) >= FIELD_SIZE)
@@ -323,7 +333,13 @@ contract UniversalShieldedPoolUpgradeable is
     }
 
     /// @notice Deposit ERC20 tokens into the shielded pool
-    function depositERC20(
+        /**
+     * @notice Deposits e r c20
+     * @param assetId The assetId identifier
+     * @param amount The amount to process
+     * @param commitment The cryptographic commitment
+     */
+function depositERC20(
         bytes32 assetId,
         uint256 amount,
         bytes32 commitment
@@ -354,7 +370,11 @@ contract UniversalShieldedPoolUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Withdraw from the shielded pool using a ZK proof
-    function withdraw(
+        /**
+     * @notice Withdraws the operation
+     * @param wp The wp
+     */
+function withdraw(
         WithdrawalProof calldata wp
     ) external nonReentrant whenNotPaused {
         if (wp.recipient == address(0)) revert InvalidRecipient();
@@ -414,7 +434,11 @@ contract UniversalShieldedPoolUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Insert commitments from a remote chain (bridged by relayer)
-    function insertCrossChainCommitments(
+        /**
+     * @notice Insert cross chain commitments
+     * @param batch The batch
+     */
+function insertCrossChainCommitments(
         CrossChainCommitmentBatch calldata batch
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
         if (processedBatches[batch.batchRoot])
@@ -459,7 +483,12 @@ contract UniversalShieldedPoolUpgradeable is
                           ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function registerAsset(
+        /**
+     * @notice Registers asset
+     * @param assetId The assetId identifier
+     * @param tokenAddress The tokenAddress address
+     */
+function registerAsset(
         bytes32 assetId,
         address tokenAddress
     ) external onlyRole(OPERATOR_ROLE) {
@@ -478,7 +507,11 @@ contract UniversalShieldedPoolUpgradeable is
         emit AssetRegistered(assetId, tokenAddress);
     }
 
-    function setWithdrawalVerifier(
+        /**
+     * @notice Sets the withdrawal verifier
+     * @param _verifier The _verifier
+     */
+function setWithdrawalVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -486,7 +519,10 @@ contract UniversalShieldedPoolUpgradeable is
         emit VerifierUpdated(_verifier, "withdrawal");
     }
 
-    function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Disables test mode
+     */
+function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         testMode = false;
         emit TestModeDisabled(msg.sender);
     }
@@ -494,13 +530,20 @@ contract UniversalShieldedPoolUpgradeable is
     /// @notice Assert production readiness on-chain (reverts if not ready)
     /// @dev Call after deployment to confirm verifier is set and testMode is off.
     ///      Emits ProductionReadinessConfirmed for off-chain monitoring.
-    function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Confirm production ready
+     */
+function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(!testMode, "Test mode still enabled");
         require(withdrawalVerifier != address(0), "No withdrawal verifier set");
         emit ProductionReadinessConfirmed(msg.sender, withdrawalVerifier);
     }
 
-    function setBatchVerifier(
+        /**
+     * @notice Sets the batch verifier
+     * @param _verifier The _verifier
+     */
+function setBatchVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -508,19 +551,32 @@ contract UniversalShieldedPoolUpgradeable is
         emit VerifierUpdated(_verifier, "batch");
     }
 
-    function setSanctionsOracle(
+        /**
+     * @notice Sets the sanctions oracle
+     * @param _oracle The _oracle
+     */
+function setSanctionsOracle(
         address _oracle
     ) external onlyRole(COMPLIANCE_ROLE) {
         sanctionsOracle = _oracle;
         emit SanctionsOracleUpdated(_oracle);
     }
 
-    function deactivateAsset(bytes32 assetId) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Deactivate asset
+     * @param assetId The assetId identifier
+     */
+function deactivateAsset(bytes32 assetId) external onlyRole(OPERATOR_ROLE) {
         assets[assetId].active = false;
     }
 
     /// @notice Configure deposit rate limiting
-    function setDepositRateLimit(
+        /**
+     * @notice Sets the deposit rate limit
+     * @param _window The _window
+     * @param _maxDeposits The _maxDeposits bound
+     */
+function setDepositRateLimit(
         uint256 _window,
         uint256 _maxDeposits
     ) external onlyRole(OPERATOR_ROLE) {
@@ -529,7 +585,12 @@ contract UniversalShieldedPoolUpgradeable is
     }
 
     /// @notice Configure circuit breaker threshold
-    function setCircuitBreaker(
+        /**
+     * @notice Sets the circuit breaker
+     * @param _threshold The _threshold
+     * @param _window The _window
+     */
+function setCircuitBreaker(
         uint256 _threshold,
         uint256 _window
     ) external onlyRole(OPERATOR_ROLE) {
@@ -537,11 +598,17 @@ contract UniversalShieldedPoolUpgradeable is
         withdrawalWindow = _window;
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -549,19 +616,41 @@ contract UniversalShieldedPoolUpgradeable is
                           VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getLastRoot() external view returns (bytes32) {
+        /**
+     * @notice Returns the last root
+     * @return The result value
+     */
+function getLastRoot() external view returns (bytes32) {
         return currentRoot;
     }
 
-    function isKnownRoot(bytes32 root) external view returns (bool) {
+        /**
+     * @notice Checks if known root
+     * @param root The Merkle root
+     * @return The result value
+     */
+function isKnownRoot(bytes32 root) external view returns (bool) {
         return _isKnownRoot(root);
     }
 
-    function isSpent(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Checks if spent
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isSpent(bytes32 nullifier) external view returns (bool) {
         return nullifiers[nullifier];
     }
 
-    function getPoolStats()
+        /**
+     * @notice Returns the pool stats
+     * @return deposits The deposits
+     * @return withdrawalsCount The withdrawals count
+     * @return crossChainDeposits The cross chain deposits
+     * @return treeSize The tree size
+     * @return root The root
+     */
+function getPoolStats()
         external
         view
         returns (
@@ -581,7 +670,11 @@ contract UniversalShieldedPoolUpgradeable is
         );
     }
 
-    function getRegisteredAssets() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the registered assets
+     * @return The result value
+     */
+function getRegisteredAssets() external view returns (bytes32[] memory) {
         return assetIds;
     }
 
@@ -703,7 +796,12 @@ contract UniversalShieldedPoolUpgradeable is
         return success && result.length >= 32 && abi.decode(result, (bool));
     }
 
-    function _verifyBatchProof(
+        /**
+     * @notice _verify batch proof
+     * @param batch The batch
+     * @return The result value
+     */
+function _verifyBatchProof(
         CrossChainCommitmentBatch calldata batch
     ) internal view returns (bool) {
         bytes memory publicInputs = abi.encode(

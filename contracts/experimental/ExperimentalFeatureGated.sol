@@ -18,7 +18,12 @@ import {ExperimentalFeatureRegistry} from "../security/ExperimentalFeatureRegist
  *       function doSomething() external onlyIfFeatureEnabled { ... }
  *   }
  */
-abstract contract ExperimentalFeatureGated {
+abstract /**
+ * @title ExperimentalFeatureGated
+ * @author Soul Protocol Team
+ * @notice Experimental Feature Gated contract
+ */
+contract ExperimentalFeatureGated {
     /// @notice The feature registry that controls this contract
     ExperimentalFeatureRegistry public featureRegistry;
 

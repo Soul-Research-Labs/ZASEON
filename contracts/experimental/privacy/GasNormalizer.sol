@@ -182,7 +182,12 @@ contract GasNormalizer is
         _disableInitializers();
     }
 
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _featureRegistry The _feature registry
+     */
+function initialize(
         address admin,
         address _featureRegistry
     ) external initializer {
@@ -301,6 +306,7 @@ contract GasNormalizer is
      * @param targets Array of target contracts
      * @param opTypes Array of operation types
      * @param dataArray Array of calldata
+          * @return successes The successes
      */
     function executeBatchNormalized(
         address[] calldata targets,
@@ -398,6 +404,10 @@ contract GasNormalizer is
 
     /**
      * @notice Set gas profile for operation type
+          * @param opType The op type
+     * @param targetGas The target gas
+     * @param minGas The minGas bound
+     * @param variance The variance
      */
     function setGasProfile(
         OperationType opType,
@@ -420,6 +430,7 @@ contract GasNormalizer is
 
     /**
      * @notice Deactivate a gas profile
+          * @param opType The op type
      */
     function deactivateProfile(
         OperationType opType
@@ -499,6 +510,8 @@ contract GasNormalizer is
 
     /**
      * @notice Authorize caller for normalized execution
+          * @param caller The caller
+     * @param authorized The authorized
      */
     function authorizeCaller(
         address caller,
@@ -511,6 +524,7 @@ contract GasNormalizer is
 
     /**
      * @notice Toggle normalization on/off
+          * @param enabled Whether the feature is enabled
      */
     function setNormalizationEnabled(
         bool enabled
@@ -525,6 +539,8 @@ contract GasNormalizer is
 
     /**
      * @notice Get gas profile for operation type
+          * @param opType The op type
+     * @return The result value
      */
     function getGasProfile(
         OperationType opType
@@ -534,6 +550,8 @@ contract GasNormalizer is
 
     /**
      * @notice Get target gas for operation type
+          * @param opType The op type
+     * @return The result value
      */
     function getTargetGas(
         OperationType opType
@@ -543,6 +561,7 @@ contract GasNormalizer is
 
     /**
      * @notice Get execution metrics
+          * @return The result value
      */
     function getMetrics() external view returns (ExecutionMetrics memory) {
         return metrics;
@@ -550,6 +569,8 @@ contract GasNormalizer is
 
     /**
      * @notice Get caller-specific metrics
+          * @param caller The caller
+     * @return The result value
      */
     function getCallerMetrics(
         address caller
@@ -561,6 +582,7 @@ contract GasNormalizer is
      * @notice Estimate gas to burn for reaching target
      * @param opType Operation type
      * @param estimatedActualGas Estimated actual gas usage
+          * @return The result value
      */
     function estimateGasToBurn(
         OperationType opType,
@@ -572,6 +594,10 @@ contract GasNormalizer is
 
     /**
      * @notice Check if normalization would activate for given gas usage
+          * @param opType The op type
+     * @param actualGas The actual gas
+     * @return The result value
+     * @return gasToBurn The gas to burn
      */
     function wouldNormalize(
         OperationType opType,

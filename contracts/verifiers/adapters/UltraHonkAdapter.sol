@@ -9,7 +9,13 @@ import {IProofVerifier} from "../../interfaces/IProofVerifier.sol";
  * @dev bb write_solidity_verifier generates contracts with this signature
  */
 interface IUltraHonkVerifier {
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param _proof The _proof
+     * @param _publicInputs The _public inputs
+     * @return The result value
+     */
+function verify(
         bytes calldata _proof,
         bytes32[] calldata _publicInputs
     ) external view returns (bool);
@@ -68,7 +74,13 @@ contract UltraHonkAdapter is IProofVerifier {
     }
 
     /// @inheritdoc IProofVerifier
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return success The success
+     */
+function verify(
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view override returns (bool success) {
@@ -92,7 +104,13 @@ contract UltraHonkAdapter is IProofVerifier {
     }
 
     /// @inheritdoc IProofVerifier
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return success The success
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view override returns (bool success) {
@@ -114,7 +132,13 @@ contract UltraHonkAdapter is IProofVerifier {
     }
 
     /// @inheritdoc IProofVerifier
-    function verifySingle(
+        /**
+     * @notice Verifys single
+     * @param proof The ZK proof data
+     * @param publicInput The public input
+     * @return success The success
+     */
+function verifySingle(
         bytes calldata proof,
         uint256 publicInput
     ) external view override returns (bool success) {
@@ -125,12 +149,20 @@ contract UltraHonkAdapter is IProofVerifier {
     }
 
     /// @inheritdoc IProofVerifier
-    function getPublicInputCount() external view override returns (uint256) {
+        /**
+     * @notice Returns the public input count
+     * @return The result value
+     */
+function getPublicInputCount() external view override returns (uint256) {
         return publicInputCount;
     }
 
     /// @inheritdoc IProofVerifier
-    function isReady() external view override returns (bool) {
+        /**
+     * @notice Checks if ready
+     * @return The result value
+     */
+function isReady() external view override returns (bool) {
         return _initialized && address(honkVerifier) != address(0);
     }
 }

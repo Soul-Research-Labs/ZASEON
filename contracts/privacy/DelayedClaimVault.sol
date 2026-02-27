@@ -197,7 +197,11 @@ contract DelayedClaimVault is
         _disableInitializers();
     }
 
-    function initialize(address admin) external initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) external initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -280,6 +284,7 @@ contract DelayedClaimVault is
      * @param denomination Fixed tier amount
      * @param minDelay Minimum delay in seconds
      * @param maxDelay Maximum delay in seconds
+          * @return claimId The claim id
      */
     function depositWithCustomDelay(
         bytes32 commitment,
@@ -396,6 +401,9 @@ contract DelayedClaimVault is
 
     /**
      * @notice Claim using commitment directly (alternative lookup)
+          * @param commitment The cryptographic commitment
+     * @param recipient The recipient address
+     * @param proof The ZK proof data
      */
     function claimByCommitment(
         bytes32 commitment,
@@ -593,6 +601,8 @@ contract DelayedClaimVault is
 
     /**
      * @notice Get claim details
+          * @param claimId The claimId identifier
+     * @return The result value
      */
     function getClaim(
         bytes32 claimId
@@ -602,6 +612,9 @@ contract DelayedClaimVault is
 
     /**
      * @notice Check if claim is ready
+          * @param claimId The claimId identifier
+     * @return ready The ready
+     * @return timeRemaining The time remaining
      */
     function isClaimReady(
         bytes32 claimId
@@ -624,6 +637,8 @@ contract DelayedClaimVault is
 
     /**
      * @notice Get anonymity set size for a denomination
+          * @param denomination The denomination bound
+     * @return The result value
      */
     function getAnonymitySetSize(
         uint256 denomination
@@ -633,6 +648,7 @@ contract DelayedClaimVault is
 
     /**
      * @notice Get all denomination tiers
+          * @return tiers The tiers
      */
     function getDenominationTiers()
         external
@@ -648,6 +664,8 @@ contract DelayedClaimVault is
 
     /**
      * @notice Calculate time until claim is ready
+          * @param claimId The claimId identifier
+     * @return The result value
      */
     function timeUntilClaimable(
         bytes32 claimId
@@ -661,18 +679,28 @@ contract DelayedClaimVault is
     // ADMIN FUNCTIONS
     // =========================================================================
 
-    function setClaimWindowDuration(
+        /**
+     * @notice Sets the claim window duration
+     * @param duration The duration in seconds
+     */
+function setClaimWindowDuration(
         uint256 duration
     ) external onlyRole(OPERATOR_ROLE) {
         require(duration >= 1 days && duration <= 30 days, "Invalid duration");
         claimWindowDuration = duration;
     }
 
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 

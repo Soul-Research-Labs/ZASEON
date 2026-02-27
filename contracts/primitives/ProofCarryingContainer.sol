@@ -23,6 +23,11 @@ import "../verifiers/VerifierRegistryV2.sol";
 /// - Nullifier consumption prevents double-spend
 /// - Policy binding ensures compliance scope
 /// - Cross-chain imports require source chain proofs
+/**
+ * @title ProofCarryingContainer
+ * @author Soul Protocol Team
+ * @notice Proof Carrying Container contract
+ */
 contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     using SafeCast for uint256;
 
@@ -209,7 +214,16 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @param proofs The embedded proof bundle
     /// @param policyHash Hash of the applicable policy
     /// @return containerId The unique container identifier
-    function createContainer(
+        /**
+     * @notice Creates container
+     * @param encryptedPayload The encrypted payload
+     * @param stateCommitment The state commitment
+     * @param nullifier The nullifier hash
+     * @param proofs The proofs
+     * @param policyHash The policyHash hash value
+     * @return containerId The container id
+     */
+function createContainer(
         bytes calldata encryptedPayload,
         bytes32 stateCommitment,
         bytes32 nullifier,
@@ -299,7 +313,12 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Verify a container's embedded proofs
     /// @param containerId The container to verify
     /// @return result The verification result
-    function verifyContainer(
+        /**
+     * @notice Verifys container
+     * @param containerId The container identifier
+     * @return result The result
+     */
+function verifyContainer(
         bytes32 containerId
     ) external view returns (VerificationResult memory result) {
         Container storage container = containers[containerId];
@@ -390,7 +409,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Consume a verified container (marks nullifier as used)
     /// @param containerId The container to consume
-    function consumeContainer(
+        /**
+     * @notice Consume container
+     * @param containerId The container identifier
+     */
+function consumeContainer(
         bytes32 containerId
     ) external whenNotPaused nonReentrant onlyRole(VERIFIER_ROLE) {
         Container storage container = containers[containerId];
@@ -427,7 +450,13 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @param containerData Serialized container data
     /// @param sourceChainProof Proof of existence on source chain
     /// @return containerId The imported container ID
-    function importContainer(
+        /**
+     * @notice Import container
+     * @param containerData The container data
+     * @param sourceChainProof The source chain proof
+     * @return containerId The container id
+     */
+function importContainer(
         bytes calldata containerData,
         bytes calldata sourceChainProof
     ) external whenNotPaused nonReentrant returns (bytes32 containerId) {
@@ -506,7 +535,12 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Export a container for cross-chain transfer
     /// @param containerId The container to export
     /// @return data Serialized container data
-    function exportContainer(
+        /**
+     * @notice Export container
+     * @param containerId The container identifier
+     * @return data The data
+     */
+function exportContainer(
         bytes32 containerId
     ) external view returns (bytes memory data) {
         Container storage container = containers[containerId];
@@ -534,7 +568,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Add a supported policy
-    function addPolicy(
+        /**
+     * @notice Adds policy
+     * @param policyHash The policyHash hash value
+     */
+function addPolicy(
         bytes32 policyHash
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         supportedPolicies[policyHash] = true;
@@ -542,7 +580,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Remove a policy
-    function removePolicy(
+        /**
+     * @notice Removes policy
+     * @param policyHash The policyHash hash value
+     */
+function removePolicy(
         bytes32 policyHash
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         supportedPolicies[policyHash] = false;
@@ -567,7 +609,14 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @param publicInput The public input (as bytes32)
     /// @param circuitType The circuit type for verification
     /// @return valid Whether the proof is valid
-    function _verifyWithRegistry(
+        /**
+     * @notice _verify with registry
+     * @param proof The ZK proof data
+     * @param publicInput The public input
+     * @param circuitType The circuit type
+     * @return valid The valid
+     */
+function _verifyWithRegistry(
         bytes memory proof,
         bytes32 publicInput,
         VerifierRegistryV2.CircuitType circuitType
@@ -595,14 +644,24 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get container details
-    function getContainer(
+        /**
+     * @notice Returns the container
+     * @param containerId The container identifier
+     * @return The result value
+     */
+function getContainer(
         bytes32 containerId
     ) external view returns (Container memory) {
         return containers[containerId];
     }
 
     /// @notice Check if nullifier is consumed
-    function isNullifierConsumed(
+        /**
+     * @notice Checks if nullifier consumed
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierConsumed(
         bytes32 nullifier
     ) external view returns (bool) {
         return consumedNullifiers[nullifier];
@@ -611,7 +670,13 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Get all container IDs (paginated)
     /// @param offset Starting index
     /// @param limit Maximum number to return
-    function getContainerIds(
+        /**
+     * @notice Returns the container ids
+     * @param offset The offset
+     * @param limit The limit value
+     * @return ids The ids
+     */
+function getContainerIds(
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory ids) {
@@ -633,7 +698,12 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Batch verify multiple containers
     /// @param containerIds Array of container IDs to verify
     /// @return results Array of verification results
-    function batchVerifyContainers(
+        /**
+     * @notice Batchs verify containers
+     * @param containerIds The containerIds identifier
+     * @return results The results
+     */
+function batchVerifyContainers(
         bytes32[] calldata containerIds
     ) external view returns (VerificationResult[] memory results) {
         uint256 len = containerIds.length;
@@ -651,7 +721,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Update proof validity window
-    function setProofValidityWindow(
+        /**
+     * @notice Sets the proof validity window
+     * @param window The window
+     */
+function setProofValidityWindow(
         uint256 window
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         proofValidityWindow = window;
@@ -659,7 +733,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Set the verifier registry (V2)
     /// @param _registry The new verifier registry address
-    function setVerifierRegistry(
+        /**
+     * @notice Sets the verifier registry
+     * @param _registry The _registry
+     */
+function setVerifierRegistry(
         address _registry
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         address oldRegistry = address(verifierRegistry);
@@ -670,7 +748,11 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Enable or disable real verification mode
     /// @dev Once `lockVerificationMode()` has been called, disabling is permanently blocked.
     /// @param enabled True to use real verifiers, false for placeholder
-    function setRealVerification(
+        /**
+     * @notice Sets the real verification
+     * @param enabled Whether the feature is enabled
+     */
+function setRealVerification(
         bool enabled
     ) external onlyRole(CONTAINER_ADMIN_ROLE) {
         if (!enabled && verificationLocked)
@@ -681,19 +763,28 @@ contract ProofCarryingContainer is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Permanently prevent disabling real verification.
     /// @dev This is a one-way operation — call before production deployment.
-    function lockVerificationMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Locks verification mode
+     */
+function lockVerificationMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         verificationLocked = true;
         useRealVerification = true;
         emit VerificationModeLocked();
     }
 
     /// @notice Pause contract
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 }

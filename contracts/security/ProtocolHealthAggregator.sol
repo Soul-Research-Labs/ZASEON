@@ -601,12 +601,18 @@ contract ProtocolHealthAggregator is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Emergency pause this aggregator itself
-    function pause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause this aggregator
-    function unpause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(GUARDIAN_ROLE) {
         _unpause();
     }
 
@@ -687,6 +693,7 @@ contract ProtocolHealthAggregator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get count of registered subsystems
+          * @return The result value
      */
     function subsystemCount() external view returns (uint256) {
         return subsystemIds.length;
@@ -694,6 +701,7 @@ contract ProtocolHealthAggregator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get count of registered pausable targets
+          * @return The result value
      */
     function pausableTargetCount() external view returns (uint256) {
         return pausableTargetList.length;

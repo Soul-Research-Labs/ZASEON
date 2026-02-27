@@ -51,6 +51,7 @@ contract SimpleMultiBridgeRouter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Add a bridge adapter
+          * @param _adapter The _adapter
      */
     function addAdapter(address _adapter) external onlyRole(ADMIN_ROLE) {
         _grantRole(ADAPTER_ROLE, _adapter);
@@ -59,6 +60,10 @@ contract SimpleMultiBridgeRouter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Send a message via all active adapters
+          * @param target The target
+     * @param payload The message payload
+     * @param refundAddress The refundAddress address
+     * @return messageId The message id
      */
     function sendMultiBridgeMessage(
         address target,
@@ -118,6 +123,7 @@ contract SimpleMultiBridgeRouter is AccessControl, ReentrancyGuard {
     /**
      * @notice Receive a message from an adapter
      * @dev Wrapper function that decodes valid MultiBridge payloads
+          * @param wrappedPayload The wrapped payload
      */
     function receiveBridgeMessage(
         bytes calldata wrappedPayload
@@ -160,6 +166,7 @@ contract SimpleMultiBridgeRouter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Set required confirmations (N)
+          * @param _n The _n
      */
     function setRequiredConfirmations(
         uint256 _n

@@ -59,6 +59,11 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - Composed messaging
  * - Multi-chain deployments
  */
+/**
+ * @title LayerZeroBridgeAdapter
+ * @author Soul Protocol Team
+ * @notice Layer Zero Bridge Adapter contract
+ */
 contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -973,7 +978,11 @@ contract LayerZeroBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @param recipient Address to receive the fees (must be trusted)
      */
     // slither-disable-next-line arbitrary-send-eth
-    function withdrawFees(
+        /**
+     * @notice Withdraws fees
+     * @param recipient The recipient address
+     */
+function withdrawFees(
         address payable recipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (recipient == address(0)) revert InvalidRecipient();

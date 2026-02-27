@@ -5,14 +5,33 @@ import "./IRelayerAdapter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Mock Gelato Interface
+/**
+ * @title IGelatoRelay
+ * @author Soul Protocol Team
+ * @notice I Gelato Relay interface
+ */
 interface IGelatoRelay {
-    function callWithSyncFee(
+        /**
+     * @notice Call with sync fee
+     * @param _target The _target
+     * @param _data The _data
+     * @param _feeToken The _fee token
+     * @return The result value
+     */
+function callWithSyncFee(
         address _target,
         bytes calldata _data,
         address _feeToken
     ) external returns (bytes32);
 
-    function getFeeEstimate(
+        /**
+     * @notice Returns the fee estimate
+     * @param _target The _target
+     * @param _data The _data
+     * @param _feeToken The _fee token
+     * @return The result value
+     */
+function getFeeEstimate(
         address _target,
         bytes calldata _data,
         address _feeToken

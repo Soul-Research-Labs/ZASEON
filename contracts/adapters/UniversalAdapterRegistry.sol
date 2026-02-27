@@ -201,7 +201,16 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     /// @param layer The chain layer classification
     /// @param proofSystem The native proof system
     /// @param name Human-readable chain name
-    function registerEVMAdapter(
+        /**
+     * @notice Registers e v m adapter
+     * @param universalChainId The universalChainId identifier
+     * @param adapterContract The adapter contract
+     * @param vm The vm
+     * @param layer The layer
+     * @param proofSystem The proof system
+     * @param name The name
+     */
+function registerEVMAdapter(
         bytes32 universalChainId,
         address adapterContract,
         IUniversalChainAdapter.ChainVM vm,
@@ -237,7 +246,16 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     /// @param layer The chain layer classification
     /// @param proofSystem The native proof system
     /// @param name Human-readable chain name
-    function registerExternalAdapter(
+        /**
+     * @notice Registers external adapter
+     * @param universalChainId The universalChainId identifier
+     * @param adapterIdentifier The adapterIdentifier identifier
+     * @param vm The vm
+     * @param layer The layer
+     * @param proofSystem The proof system
+     * @param name The name
+     */
+function registerExternalAdapter(
         bytes32 universalChainId,
         bytes calldata adapterIdentifier,
         IUniversalChainAdapter.ChainVM vm,
@@ -278,7 +296,12 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     /// @notice Create a cross-chain route between two chains
     /// @param sourceChainId The source chain universal ID
     /// @param destChainId The destination chain universal ID
-    function createRoute(
+        /**
+     * @notice Creates route
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     */
+function createRoute(
         bytes32 sourceChainId,
         bytes32 destChainId
     ) external onlyRole(OPERATOR_ROLE) {
@@ -308,7 +331,12 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Create bidirectional route between two chains
-    function createBidirectionalRoute(
+        /**
+     * @notice Creates bidirectional route
+     * @param chainA The chain a
+     * @param chainB The chain b
+     */
+function createBidirectionalRoute(
         bytes32 chainA,
         bytes32 chainB
     ) external onlyRole(OPERATOR_ROLE) {
@@ -346,7 +374,12 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Deactivate a route
-    function deactivateRoute(
+        /**
+     * @notice Deactivate route
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     */
+function deactivateRoute(
         bytes32 sourceChainId,
         bytes32 destChainId
     ) external onlyRole(OPERATOR_ROLE) {
@@ -368,7 +401,11 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deactivate a chain adapter
-    function deactivateAdapter(
+        /**
+     * @notice Deactivate adapter
+     * @param universalChainId The universalChainId identifier
+     */
+function deactivateAdapter(
         bytes32 universalChainId
     ) external onlyRole(OPERATOR_ROLE) {
         if (!isChainRegistered[universalChainId])
@@ -385,7 +422,11 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Activate a chain adapter
-    function activateAdapter(
+        /**
+     * @notice Activate adapter
+     * @param universalChainId The universalChainId identifier
+     */
+function activateAdapter(
         bytes32 universalChainId
     ) external onlyRole(OPERATOR_ROLE) {
         if (!isChainRegistered[universalChainId])
@@ -401,7 +442,13 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Record a proof relay between chains (called by relayer)
-    function recordProofRelay(
+        /**
+     * @notice Record proof relay
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param proofId The proofId identifier
+     */
+function recordProofRelay(
         bytes32 sourceChainId,
         bytes32 destChainId,
         bytes32 proofId
@@ -427,11 +474,17 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
                           EMERGENCY
     //////////////////////////////////////////////////////////////*/
 
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(EMERGENCY_ROLE) {
         _unpause();
     }
 
@@ -440,12 +493,22 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get all registered chain IDs
-    function getRegisteredChains() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the registered chains
+     * @return The result value
+     */
+function getRegisteredChains() external view returns (bytes32[] memory) {
         return registeredChains;
     }
 
     /// @notice Check if a route is active between two chains
-    function isRouteActive(
+        /**
+     * @notice Checks if route active
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function isRouteActive(
         bytes32 sourceChainId,
         bytes32 destChainId
     ) external view returns (bool) {
@@ -453,21 +516,36 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Get the EVM adapter address for a chain
-    function getEVMAdapterAddress(
+        /**
+     * @notice Returns the e v m adapter address
+     * @param universalChainId The universalChainId identifier
+     * @return The result value
+     */
+function getEVMAdapterAddress(
         bytes32 universalChainId
     ) external view returns (address) {
         return evmAdapters[universalChainId].adapterContract;
     }
 
     /// @notice Get the external adapter identifier for a chain
-    function getExternalAdapterIdentifier(
+        /**
+     * @notice Returns the external adapter identifier
+     * @param universalChainId The universalChainId identifier
+     * @return The result value
+     */
+function getExternalAdapterIdentifier(
         bytes32 universalChainId
     ) external view returns (bytes memory) {
         return externalAdapters[universalChainId].adapterIdentifier;
     }
 
     /// @notice Check if an adapter is active
-    function isAdapterActive(
+        /**
+     * @notice Checks if adapter active
+     * @param universalChainId The universalChainId identifier
+     * @return The result value
+     */
+function isAdapterActive(
         bytes32 universalChainId
     ) external view returns (bool) {
         if (evmAdapters[universalChainId].adapterContract != address(0)) {
@@ -477,7 +555,12 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Get the VM type for a chain
-    function getChainVM(
+        /**
+     * @notice Returns the chain v m
+     * @param universalChainId The universalChainId identifier
+     * @return The result value
+     */
+function getChainVM(
         bytes32 universalChainId
     ) external view returns (IUniversalChainAdapter.ChainVM) {
         if (evmAdapters[universalChainId].adapterContract != address(0)) {
@@ -487,7 +570,14 @@ contract UniversalAdapterRegistry is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Get route statistics
-    function getRouteStats(
+        /**
+     * @notice Returns the route stats
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return totalRelays The total relays
+     * @return lastRelayAt The last relay at
+     */
+function getRouteStats(
         bytes32 sourceChainId,
         bytes32 destChainId
     ) external view returns (uint256 totalRelays, uint256 lastRelayAt) {

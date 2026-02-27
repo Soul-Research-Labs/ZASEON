@@ -187,6 +187,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure RuntimeSecurityMonitor address
+          * @param _runtimeMonitor The _runtimeMonitor timestamp
      */
     function setRuntimeMonitor(
         address _runtimeMonitor
@@ -198,6 +199,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure EmergencyResponseAutomation address
+          * @param _emergencyResponse The _emergency response
      */
     function setEmergencyResponse(
         address _emergencyResponse
@@ -212,6 +214,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure ZKFraudProof address
+          * @param _zkFraudProof The _zk fraud proof
      */
     function setZKFraudProof(
         address _zkFraudProof
@@ -223,6 +226,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure ThresholdSignature address
+          * @param _thresholdSignature The _threshold signature
      */
     function setThresholdSignature(
         address _thresholdSignature
@@ -234,6 +238,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure CryptographicAttestation address
+          * @param _cryptoAttestation The _crypto attestation
      */
     function setCryptoAttestation(
         address _cryptoAttestation
@@ -245,6 +250,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure FormalBugBounty address
+          * @param _bugBounty The _bug bounty
      */
     function setBugBounty(
         address _bugBounty
@@ -256,6 +262,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure circuit breaker
+          * @param _circuitBreaker The _circuit breaker
      */
     function setCircuitBreaker(
         address _circuitBreaker
@@ -267,6 +274,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure rate limiter
+          * @param _rateLimiter The _rate limiter
      */
     function setRateLimiter(
         address _rateLimiter
@@ -278,6 +286,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure MEV protection
+          * @param _mevProtection The _mev protection
      */
     function setMEVProtection(
         address _mevProtection
@@ -289,6 +298,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Configure flash loan guard
+          * @param _flashLoanGuard The _flash loan guard
      */
     function setFlashLoanGuard(
         address _flashLoanGuard
@@ -378,6 +388,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
      * @param target Affected contract
      * @param severity Alert severity
      * @param description Alert description
+          * @return alertId The alert id
      */
     function createAlert(
         address target,
@@ -465,6 +476,12 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get all configured module addresses
+          * @return _runtimeMonitor The _runtime monitor
+     * @return _emergencyResponse The _emergency response
+     * @return _zkFraudProof The _zk fraud proof
+     * @return _thresholdSignature The _threshold signature
+     * @return _cryptoAttestation The _crypto attestation
+     * @return _bugBounty The _bug bounty
      */
     function getModuleAddresses()
         external
@@ -490,6 +507,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get all protected contract addresses
+          * @return The result value
      */
     function getProtectedAddresses() external view returns (address[] memory) {
         return protectedAddresses;
@@ -497,6 +515,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get active protected contract count
+          * @return count The count
      */
     function getActiveProtectedCount() external view returns (uint256 count) {
         for (uint256 i = 0; i < protectedAddresses.length; ) {
@@ -511,6 +530,8 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get alert details
+          * @param alertId The alertId identifier
+     * @return The result value
      */
     function getAlert(
         uint256 alertId
@@ -521,6 +542,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get total alert count
+          * @return The result value
      */
     function getAlertCount() external view returns (uint256) {
         return alerts.length;
@@ -528,6 +550,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get unresolved alert count
+          * @return count The count
      */
     function getUnresolvedAlertCount() external view returns (uint256 count) {
         for (uint256 i = 0; i < alerts.length; ) {
@@ -542,6 +565,8 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get alerts for a specific contract
+          * @param target The target
+     * @return The result value
      */
     function getContractAlerts(
         address target
@@ -551,6 +576,11 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get security posture summary
+          * @return protectedCount The protected count
+     * @return totalAlerts The total alerts
+     * @return unresolvedAlerts The unresolved alerts
+     * @return criticalAlerts The critical alerts
+     * @return avgScore The avg score
      */
     function getSecurityPosture()
         external
@@ -595,6 +625,7 @@ contract AddedSecurityOrchestrator is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Check if all added security modules are configured
+          * @return The result value
      */
     function isFullyConfigured() external view returns (bool) {
         return

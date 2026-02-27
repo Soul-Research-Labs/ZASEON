@@ -954,13 +954,19 @@ contract DirectL2MessengerUpgradeable is
 
     /// @notice Pause all messaging operations (emergency use)
     /// @dev Only callable by addresses with OPERATOR_ROLE
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Resume messaging operations after pause
     /// @dev Only callable by addresses with OPERATOR_ROLE
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
@@ -985,19 +991,35 @@ contract DirectL2MessengerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Retrieve a message by its unique identifier
-    function getMessage(
+        /**
+     * @notice Returns the message
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function getMessage(
         bytes32 messageId
     ) external view returns (L2Message memory) {
         return messages[messageId];
     }
 
     /// @notice Get relayer registration details
-    function getRelayer(address addr) external view returns (Relayer memory) {
+        /**
+     * @notice Returns the relayer
+     * @param addr The target address
+     * @return The result value
+     */
+function getRelayer(address addr) external view returns (Relayer memory) {
         return relayers[addr];
     }
 
     /// @notice Get the route configuration between two chains
-    function getRoute(
+        /**
+     * @notice Returns the route
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function getRoute(
         uint256 sourceChainId,
         uint256 destChainId
     ) external view returns (RouteConfig memory) {
@@ -1005,21 +1027,35 @@ contract DirectL2MessengerUpgradeable is
     }
 
     /// @notice Get the number of relayer confirmations for a message
-    function getConfirmationCount(
+        /**
+     * @notice Returns the confirmation count
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function getConfirmationCount(
         bytes32 messageId
     ) external view returns (uint256) {
         return messageConfirmations[messageId].length;
     }
 
     /// @notice Check whether a message has already been processed
-    function isMessageProcessed(
+        /**
+     * @notice Checks if message processed
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageProcessed(
         bytes32 messageId
     ) external view returns (bool) {
         return processedMessages[messageId];
     }
 
     /// @notice Get the total number of registered relayers
-    function getRelayerCount() external view returns (uint256) {
+        /**
+     * @notice Returns the relayer count
+     * @return The result value
+     */
+function getRelayerCount() external view returns (uint256) {
         return relayerList.length;
     }
 
@@ -1031,7 +1067,13 @@ contract DirectL2MessengerUpgradeable is
 //////////////////////////////////////////////////////////////*/
 
 interface IL2ToL2CrossDomainMessenger {
-    function sendMessage(
+        /**
+     * @notice Send message
+     * @param _destination The _destination
+     * @param _target The _target
+     * @param _message The _message
+     */
+function sendMessage(
         uint256 _destination,
         address _target,
         bytes calldata _message
@@ -1039,14 +1081,25 @@ interface IL2ToL2CrossDomainMessenger {
 }
 
 interface ISharedSequencer {
-    function submitCrossChainMessage(
+        /**
+     * @notice Submits cross chain message
+     * @param destChainId The destination chain identifier
+     * @param payload The message payload
+     */
+function submitCrossChainMessage(
         uint256 destChainId,
         bytes calldata payload
     ) external;
 }
 
 interface IL1BridgeAdapter {
-    function sendMessage(
+        /**
+     * @notice Send message
+     * @param destChainId The destination chain identifier
+     * @param recipient The recipient address
+     * @param payload The message payload
+     */
+function sendMessage(
         uint256 destChainId,
         address recipient,
         bytes calldata payload

@@ -15,14 +15,27 @@ contract NullifierAdapter {
     }
 
     /// @notice Standard interface for proof verification
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param nullifier The nullifier hash
+     * @param commitment The cryptographic commitment
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         bytes32 nullifier,
         bytes32 commitment

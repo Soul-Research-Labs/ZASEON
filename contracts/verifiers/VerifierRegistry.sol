@@ -251,7 +251,12 @@ contract VerifierRegistry is AccessControl, IVerifierRegistry {
     /**
      * @inheritdoc IVerifierRegistry
      */
-    function getVerifier(
+        /**
+     * @notice Returns the verifier
+     * @param proofType The proof type
+     * @return The result value
+     */
+function getVerifier(
         bytes32 proofType
     ) external view override returns (IProofVerifier) {
         if (!isTypeRegistered[proofType]) revert VerifierNotFound(proofType);
@@ -261,7 +266,12 @@ contract VerifierRegistry is AccessControl, IVerifierRegistry {
     /**
      * @inheritdoc IVerifierRegistry
      */
-    function hasVerifier(
+        /**
+     * @notice Checks if has verifier
+     * @param proofType The proof type
+     * @return The result value
+     */
+function hasVerifier(
         bytes32 proofType
     ) external view override returns (bool) {
         return isTypeRegistered[proofType];

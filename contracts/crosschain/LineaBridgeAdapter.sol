@@ -163,7 +163,13 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Update Linea bridge addresses
-    function configureLineaBridge(
+        /**
+     * @notice Configures linea bridge
+     * @param _messageService The _message service
+     * @param _tokenBridge The _tokenBridge identifier
+     * @param _rollup The _rollup
+     */
+function configureLineaBridge(
         address _messageService,
         address _tokenBridge,
         address _rollup
@@ -176,7 +182,11 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Set Soul Hub L2 address on Linea
-    function setSoulHubL2(
+        /**
+     * @notice Sets the soul hub l2
+     * @param _soulHubL2 The _soul hub l2
+     */
+function setSoulHubL2(
         address _soulHubL2
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_soulHubL2 != address(0), "Invalid address");
@@ -185,7 +195,11 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     }
 
     /// @notice Set Proof Registry address
-    function setProofRegistry(
+        /**
+     * @notice Sets the proof registry
+     * @param _proofRegistry The _proof registry
+     */
+function setProofRegistry(
         address _proofRegistry
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_proofRegistry != address(0), "Invalid address");
@@ -199,25 +213,41 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Get the Linea mainnet chain ID
     /// @return The chain ID (59144)
-    function chainId() external pure returns (uint256) {
+        /**
+     * @notice Chain id
+     * @return The result value
+     */
+function chainId() external pure returns (uint256) {
         return LINEA_MAINNET_CHAIN_ID;
     }
 
     /// @notice Get the human-readable chain name
     /// @return The chain name string
-    function chainName() external pure returns (string memory) {
+        /**
+     * @notice Chain name
+     * @return The result value
+     */
+function chainName() external pure returns (string memory) {
         return "Linea";
     }
 
     /// @notice Check whether the adapter is fully configured
     /// @return True if both messageService and soulHubL2 are set
-    function isConfigured() external view returns (bool) {
+        /**
+     * @notice Checks if configured
+     * @return The result value
+     */
+function isConfigured() external view returns (bool) {
         return messageService != address(0) && soulHubL2 != address(0);
     }
 
     /// @notice Get the number of blocks required for finality
     /// @return The finality block count
-    function getFinalityBlocks() external pure returns (uint256) {
+        /**
+     * @notice Returns the finality blocks
+     * @return The result value
+     */
+function getFinalityBlocks() external pure returns (uint256) {
         return FINALITY_BLOCKS;
     }
 
@@ -323,6 +353,7 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Verify a message from Linea
      * @param messageHash Hash of the message
      * @param proof Proof data
+          * @return The result value
      */
     function verifyMessage(
         bytes32 messageHash,
@@ -353,17 +384,28 @@ contract LineaBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause the adapter (emergency use)
-    function pause() external onlyRole(PAUSER_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /// @notice Resume the adapter after a pause
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
     /// @notice Emergency withdrawal of ETH
-    function emergencyWithdrawETH(
+        /**
+     * @notice Emergency withdraw e t h
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function emergencyWithdrawETH(
         address payable to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {

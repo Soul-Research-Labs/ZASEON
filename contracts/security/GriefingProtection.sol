@@ -248,6 +248,7 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
      * @param user User performing operation
      * @param operationType Type of operation
      * @param estimatedGas Estimated gas usage
+          * @return valid The valid
      */
     function validateOperation(
         address user,
@@ -587,6 +588,8 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
      * @param maxGas Max gas limit
      * @param maxRefund Max refund amount
      * @param maxBatchSize Max batch size
+          * @param minDeposit The minDeposit bound
+     * @param requiresDeposit The requires deposit
      */
     function setOperationLimits(
         bytes32 operationType,
@@ -613,6 +616,7 @@ contract GriefingProtection is ReentrancyGuard, AccessControl, Pausable {
      * @param maxGas Max gas for callback
      * @param maxRetries Max retry attempts
      * @param enabled Whether callbacks are enabled
+          * @param retryDelay The retry delay
      */
     function configureCallback(
         address target,

@@ -15,14 +15,28 @@ contract StateTransferAdapter {
     }
 
     /// @notice Standard interface for proof verification
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param oldStateRoot The old state root
+     * @param newStateRoot The new StateRoot value
+     * @param transferHash The transferHash hash value
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         bytes32 oldStateRoot,
         bytes32 newStateRoot,

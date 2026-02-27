@@ -85,7 +85,14 @@ contract NativeL2BridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function bridgeMessage(
+        /**
+     * @notice Bridges message
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @param refundAddress The refundAddress address
+     * @return messageId The message id
+     */
+function bridgeMessage(
         address targetAddress,
         bytes calldata payload,
         address refundAddress
@@ -138,7 +145,11 @@ contract NativeL2BridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @return nativeFee The native fee
+ */
+function estimateFee(
         address,
         bytes calldata
     ) external view override returns (uint256 nativeFee) {
@@ -155,7 +166,12 @@ contract NativeL2BridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageVerified(
+        /**
+     * @notice Checks if message verified
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         return verifiedMessages[messageId];
@@ -163,21 +179,33 @@ contract NativeL2BridgeWrapper is
 
     /// @notice Mark a message as verified (called by cross-chain receive handler)
     /// @param messageId The message identifier to mark verified
-    function markVerified(bytes32 messageId) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Mark verified
+     * @param messageId The message identifier
+     */
+function markVerified(bytes32 messageId) external onlyRole(ADMIN_ROLE) {
         verifiedMessages[messageId] = true;
         emit MessageVerified(messageId);
     }
 
     /// @notice Update the native bridge contract address
     /// @param _bridge New bridge contract address
-    function setBridge(address _bridge) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the bridge
+     * @param _bridge The _bridge identifier
+     */
+function setBridge(address _bridge) external onlyRole(ADMIN_ROLE) {
         if (_bridge == address(0)) revert InvalidBridge();
         nativeBridge = _bridge;
     }
 
     /// @notice Update the gas limit for cross-chain execution
     /// @param _gasLimit New gas limit value
-    function setGasLimit(uint256 _gasLimit) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the gas limit
+     * @param _gasLimit The _gas limit
+     */
+function setGasLimit(uint256 _gasLimit) external onlyRole(ADMIN_ROLE) {
         gasLimit = _gasLimit;
     }
 }

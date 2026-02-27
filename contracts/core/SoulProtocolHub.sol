@@ -369,6 +369,10 @@ contract SoulProtocolHub is
 
     /**
      * @notice Batch register bridge adapters
+          * @param chainIds The chainIds identifier
+     * @param adapters The adapters
+     * @param supportsPrivacy The supports privacy
+     * @param minConfirmations The minConfirmations bound
      */
     function batchRegisterRelayAdapters(
         uint256[] calldata chainIds,
@@ -419,6 +423,7 @@ contract SoulProtocolHub is
 
     /**
      * @notice Set Stealth Address Registry
+          * @param _module The _module
      */
     function setStealthAddressRegistry(
         address _module
@@ -430,6 +435,7 @@ contract SoulProtocolHub is
 
     /**
      * @notice Set Private Relayer Network
+          * @param _module The _module
      */
     function setPrivateRelayerNetwork(
         address _module
@@ -441,6 +447,7 @@ contract SoulProtocolHub is
 
     /**
      * @notice Set View Key Registry
+          * @param _module The _module
      */
     function setViewKeyRegistry(
         address _module
@@ -990,7 +997,11 @@ contract SoulProtocolHub is
     ///      instantCompletionGuarantee, dynamicRoutingOrchestrator, proofTranslator,
     ///      intentCompletionLayer) are not required.
     /// @return configured True if all required components have non-zero addresses
-    function isFullyConfigured() external view returns (bool configured) {
+        /**
+     * @notice Checks if fully configured
+     * @return configured The configured
+     */
+function isFullyConfigured() external view returns (bool configured) {
         return (// Core privacy infrastructure
         verifierRegistry != address(0) &&
             universalVerifier != address(0) &&
@@ -1015,7 +1026,12 @@ contract SoulProtocolHub is
     /// @notice Get a summary of which components are configured
     /// @return names Array of component names
     /// @return addresses Array of component addresses
-    function getComponentStatus()
+        /**
+     * @notice Returns the component status
+     * @return names The names
+     * @return addresses The addresses
+     */
+function getComponentStatus()
         external
         view
         returns (string[] memory names, address[] memory addresses)

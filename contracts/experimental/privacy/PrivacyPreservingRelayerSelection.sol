@@ -11,6 +11,11 @@ import {ExperimentalFeatureRegistry} from "../../security/ExperimentalFeatureReg
 /// @dev Uses commitment schemes and VRF for unbiased, private relayer selection
 /// @custom:experimental This contract is research-tier and NOT production-ready. See contracts/experimental/README.md for promotion criteria.
 /// @custom:security-contact security@soulprotocol.io
+/**
+ * @title PrivacyPreservingRelayerSelection
+ * @author Soul Protocol Team
+ * @notice Privacy Preserving Relayer Selection contract
+ */
 contract PrivacyPreservingRelayerSelection is
     AccessControl,
     ReentrancyGuard,
@@ -177,7 +182,11 @@ contract PrivacyPreservingRelayerSelection is
 
     /// @notice Register as a relayer
     /// @param publicKeyHash Hash of encryption public key for private communication
-    function registerRelayer(bytes32 publicKeyHash) external payable {
+        /**
+     * @notice Registers relayer
+     * @param publicKeyHash The publicKeyHash hash value
+     */
+function registerRelayer(bytes32 publicKeyHash) external payable {
         if (msg.value < MIN_STAKE) revert InsufficientStake();
 
         Relayer storage relayer = relayers[msg.sender];
@@ -203,14 +212,20 @@ contract PrivacyPreservingRelayerSelection is
     }
 
     /// @notice Add stake to existing registration
-    function addStake() external payable onlyRole(RELAYER_ROLE) {
+        /**
+     * @notice Adds stake
+     */
+function addStake() external payable onlyRole(RELAYER_ROLE) {
         Relayer storage relayer = relayers[msg.sender];
         relayer.stake += msg.value;
         totalStake += msg.value;
     }
 
     /// @notice Deactivate and withdraw stake
-    function deactivateRelayer() external nonReentrant onlyRole(RELAYER_ROLE) {
+        /**
+     * @notice Deactivate relayer
+     */
+function deactivateRelayer() external nonReentrant onlyRole(RELAYER_ROLE) {
         Relayer storage relayer = relayers[msg.sender];
         if (!relayer.active) revert RelayerNotActive();
 
@@ -240,7 +255,13 @@ contract PrivacyPreservingRelayerSelection is
     /// @param commitmentHash H(sender, randomness, preferences)
     /// @param numRelayers Number of relayers to select
     /// @return requestId The selection request ID
-    function requestSelection(
+        /**
+     * @notice Requests selection
+     * @param commitmentHash The commitmentHash hash value
+     * @param numRelayers The num relayers
+     * @return requestId The request id
+     */
+function requestSelection(
         bytes32 commitmentHash,
         uint256 numRelayers
     ) external returns (bytes32 requestId) {
@@ -275,7 +296,13 @@ contract PrivacyPreservingRelayerSelection is
     /// @param requestId The request ID
     /// @param randomness The randomness used in commitment
     /// @param preferences The selection preferences
-    function revealSelection(
+        /**
+     * @notice Reveal selection
+     * @param requestId The requestId identifier
+     * @param randomness The randomness
+     * @param preferences The preferences
+     */
+function revealSelection(
         bytes32 requestId,
         bytes32 randomness,
         SelectionPreferences calldata preferences
@@ -312,7 +339,12 @@ contract PrivacyPreservingRelayerSelection is
     /// @notice Complete selection using VRF (oracle fulfills)
     /// @param requestId The request ID
     /// @param vrfProof VRF proof for verifiable randomness
-    function fulfillSelection(
+        /**
+     * @notice Fulfill selection
+     * @param requestId The requestId identifier
+     * @param vrfProof The vrf proof
+     */
+function fulfillSelection(
         bytes32 requestId,
         VRFProof calldata vrfProof
     ) external onlyRole(ORACLE_ROLE) {
@@ -435,7 +467,13 @@ contract PrivacyPreservingRelayerSelection is
     /// @param relayer The relayer address
     /// @param requestId The request ID
     /// @param success Whether relay was successful
-    function reportRelayCompletion(
+        /**
+     * @notice Reports relay completion
+     * @param relayer The relayer address
+     * @param requestId The requestId identifier
+     * @param success The success
+     */
+function reportRelayCompletion(
         address relayer,
         bytes32 requestId,
         bool success
@@ -463,31 +501,54 @@ contract PrivacyPreservingRelayerSelection is
     // =========================================================================
 
     /// @notice Get selected relayers for a request
-    function getSelectedRelayers(
+        /**
+     * @notice Returns the selected relayers
+     * @param requestId The requestId identifier
+     * @return The result value
+     */
+function getSelectedRelayers(
         bytes32 requestId
     ) external view returns (address[] memory) {
         return selectionRequests[requestId].selectedRelayers;
     }
 
     /// @notice Get relayer info
-    function getRelayerInfo(
+        /**
+     * @notice Returns the relayer info
+     * @param relayer The relayer address
+     * @return The result value
+     */
+function getRelayerInfo(
         address relayer
     ) external view returns (Relayer memory) {
         return relayers[relayer];
     }
 
     /// @notice Get active relayer count
-    function getActiveRelayerCount() external view returns (uint256) {
+        /**
+     * @notice Returns the active relayer count
+     * @return The result value
+     */
+function getActiveRelayerCount() external view returns (uint256) {
         return activeRelayers.length;
     }
 
     /// @notice Get all active relayers
-    function getActiveRelayers() external view returns (address[] memory) {
+        /**
+     * @notice Returns the active relayers
+     * @return The result value
+     */
+function getActiveRelayers() external view returns (address[] memory) {
         return activeRelayers;
     }
 
     /// @notice Check if selection is valid
-    function isSelectionValid(bytes32 requestId) external view returns (bool) {
+        /**
+     * @notice Checks if selection valid
+     * @param requestId The requestId identifier
+     * @return The result value
+     */
+function isSelectionValid(bytes32 requestId) external view returns (bool) {
         SelectionRequest storage request = selectionRequests[requestId];
         return
             request.fulfilled &&
@@ -495,7 +556,13 @@ contract PrivacyPreservingRelayerSelection is
     }
 
     /// @notice Get system statistics
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return relayerCount The relayer count
+     * @return totalStakeAmount The total stake amount
+     * @return requests The requests
+     */
+function getStats()
         external
         view
         returns (

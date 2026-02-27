@@ -629,37 +629,67 @@ contract AggregateDisclosureAlgebra is
                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getCredential(
+        /**
+     * @notice Returns the credential
+     * @param credentialId The credentialId identifier
+     * @return The result value
+     */
+function getCredential(
         bytes32 credentialId
     ) external view returns (AttributeCredential memory) {
         return credentials[credentialId];
     }
 
-    function getDisclosure(
+        /**
+     * @notice Returns the disclosure
+     * @param disclosureId The disclosureId identifier
+     * @return The result value
+     */
+function getDisclosure(
         bytes32 disclosureId
     ) external view returns (SelectiveDisclosure memory) {
         return disclosures[disclosureId];
     }
 
-    function getAggregate(
+        /**
+     * @notice Returns the aggregate
+     * @param aggregateId The aggregateId identifier
+     * @return The result value
+     */
+function getAggregate(
         bytes32 aggregateId
     ) external view returns (AggregateDisclosure memory) {
         return aggregates[aggregateId];
     }
 
-    function getSubjectCredentials(
+        /**
+     * @notice Returns the subject credentials
+     * @param subject The subject
+     * @return The result value
+     */
+function getSubjectCredentials(
         address subject
     ) external view returns (bytes32[] memory) {
         return subjectCredentials[subject];
     }
 
-    function getSubjectDisclosures(
+        /**
+     * @notice Returns the subject disclosures
+     * @param subject The subject
+     * @return The result value
+     */
+function getSubjectDisclosures(
         address subject
     ) external view returns (bytes32[] memory) {
         return subjectDisclosures[subject];
     }
 
-    function isCredentialValid(
+        /**
+     * @notice Checks if credential valid
+     * @param credentialId The credentialId identifier
+     * @return The result value
+     */
+function isCredentialValid(
         bytes32 credentialId
     ) external view returns (bool) {
         AttributeCredential storage cred = credentials[credentialId];
@@ -674,15 +704,25 @@ contract AggregateDisclosureAlgebra is
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
-    function setDisclosureProofVerifier(
+        /**
+     * @notice Sets the disclosure proof verifier
+     * @param verifier The verifier contract address
+     */
+function setDisclosureProofVerifier(
         address verifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(verifier != address(0), "Zero address");

@@ -273,6 +273,7 @@ contract VerifierHub is AccessControl, Pausable {
      * @param proof The Groth16 proof
      * @param commitment The state commitment
      * @param ownerPubkey The owner's public key
+          * @return The result value
      */
     function verifyStateCommitment(
         uint256[8] calldata proof,
@@ -319,6 +320,7 @@ contract VerifierHub is AccessControl, Pausable {
      * @param nullifier The nullifier to prevent double-spending
      * @param senderPubkey The sender's public key
      * @param recipientPubkey The recipient's public key
+          * @return The result value
      */
     function verifyStateTransfer(
         uint256[8] calldata proof,

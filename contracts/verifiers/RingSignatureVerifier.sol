@@ -214,12 +214,20 @@ contract RingSignatureVerifier is IRingSignatureVerifier {
     }
 
     /// @inheritdoc IRingSignatureVerifier
-    function getMinRingSize() external pure override returns (uint256) {
+        /**
+     * @notice Returns the min ring size
+     * @return The result value
+     */
+function getMinRingSize() external pure override returns (uint256) {
         return MIN_RING_SIZE;
     }
 
     /// @inheritdoc IRingSignatureVerifier
-    function getMaxRingSize() external pure override returns (uint256) {
+        /**
+     * @notice Returns the max ring size
+     * @return The result value
+     */
+function getMaxRingSize() external pure override returns (uint256) {
         return MAX_RING_SIZE;
     }
 }

@@ -20,6 +20,11 @@ import {SelectiveDisclosureManager} from "../compliance/SelectiveDisclosureManag
 /// - Immutable chain ID and domain separator (saves ~2100 gas per access)
 /// - Assembly for hash operations (saves ~500 gas)
 /// - Unchecked arithmetic in safe contexts (saves ~40 gas per operation)
+/**
+ * @title ConfidentialStateContainerV3
+ * @author Soul Protocol Team
+ * @notice Confidential State Container V3 contract
+ */
 contract ConfidentialStateContainerV3 is
     AccessControl,
     ReentrancyGuard,
@@ -179,46 +184,83 @@ contract ConfidentialStateContainerV3 is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Total states registered
-    function totalStates() external view returns (uint256) {
+        /**
+     * @notice Total states
+     * @return The result value
+     */
+function totalStates() external view returns (uint256) {
         return _packedCounters >> _COUNTER_SHIFT;
     }
 
     /// @notice Total active states
-    function activeStates() external view returns (uint256) {
+        /**
+     * @notice Active states
+     * @return The result value
+     */
+function activeStates() external view returns (uint256) {
         return uint128(_packedCounters);
     }
 
     /// @notice Minimum proof validity window
-    function proofValidityWindow() external view returns (uint256) {
+        /**
+     * @notice Proof validity window
+     * @return The result value
+     */
+function proofValidityWindow() external view returns (uint256) {
         return _packedConfig >> _COUNTER_SHIFT;
     }
 
     /// @notice Maximum encrypted state size
-    function maxStateSize() public view returns (uint256) {
+        /**
+     * @notice Max state size
+     * @return The result value
+     */
+function maxStateSize() public view returns (uint256) {
         return uint128(_packedConfig);
     }
 
     /// @notice Public getter for states mapping
-    function states(
+        /**
+     * @notice States
+     * @param commitment The cryptographic commitment
+     * @return The result value
+     */
+function states(
         bytes32 commitment
     ) external view returns (EncryptedState memory) {
         return _states[commitment];
     }
 
     /// @notice Public getter for nullifiers
-    function nullifiers(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Nullifiers
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function nullifiers(bytes32 nullifier) external view returns (bool) {
         return _nullifiers[nullifier];
     }
 
     /// @notice Public getter for nullifier to commitment
-    function nullifierToCommitment(
+        /**
+     * @notice Nullifier to commitment
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function nullifierToCommitment(
         bytes32 nullifier
     ) external view returns (bytes32) {
         return _nullifierToCommitment[nullifier];
     }
 
     /// @notice Public getter for owner commitments
-    function ownerCommitments(
+        /**
+     * @notice Owner commitments
+     * @param owner The owner address
+     * @param index The index in the collection
+     * @return The result value
+     */
+function ownerCommitments(
         address owner,
         uint256 index
     ) external view returns (bytes32) {
@@ -235,7 +277,15 @@ contract ConfidentialStateContainerV3 is
     /// @param nullifier The nullifier for double-spend prevention
     /// @param proof The ZK proof bytes
     /// @param metadata Optional metadata hash
-    function registerState(
+        /**
+     * @notice Registers state
+     * @param encryptedState The encrypted state
+     * @param commitment The cryptographic commitment
+     * @param nullifier The nullifier hash
+     * @param proof The ZK proof data
+     * @param metadata The metadata bytes
+     */
+function registerState(
         bytes calldata encryptedState,
         bytes32 commitment,
         bytes32 nullifier,
@@ -263,7 +313,18 @@ contract ConfidentialStateContainerV3 is
     /// @param owner The intended owner
     /// @param deadline Signature deadline
     /// @param signature Owner's signature
-    function registerStateWithSignature(
+        /**
+     * @notice Registers state with signature
+     * @param encryptedState The encrypted state
+     * @param commitment The cryptographic commitment
+     * @param nullifier The nullifier hash
+     * @param proof The ZK proof data
+     * @param metadata The metadata bytes
+     * @param owner The owner address
+     * @param deadline The deadline timestamp
+     * @param signature The cryptographic signature
+     */
+function registerStateWithSignature(
         bytes calldata encryptedState,
         bytes32 commitment,
         bytes32 nullifier,
@@ -316,7 +377,11 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Batch registers multiple states
     /// @param stateInputs Array of state data to register
-    function batchRegisterStates(
+        /**
+     * @notice Batchs register states
+     * @param stateInputs The state inputs
+     */
+function batchRegisterStates(
         BatchStateInput[] calldata stateInputs
     ) external nonReentrant whenNotPaused {
         uint256 len = stateInputs.length;
@@ -350,7 +415,17 @@ contract ConfidentialStateContainerV3 is
     /// @param newNullifier The new nullifier
     /// @param proof The ZK proof
     /// @param newOwner The new owner address
-    function transferState(
+        /**
+     * @notice Transfers state
+     * @param oldCommitment The old commitment
+     * @param newEncryptedState The new EncryptedState value
+     * @param newCommitment The new Commitment value
+     * @param newNullifier The new Nullifier value
+     * @param spendingNullifier The spending nullifier
+     * @param proof The ZK proof data
+     * @param newOwner The new Owner value
+     */
+function transferState(
         bytes32 oldCommitment,
         bytes calldata newEncryptedState,
         bytes32 newCommitment,
@@ -474,7 +549,16 @@ contract ConfidentialStateContainerV3 is
     }
 
     /// @dev Verifies transfer proof
-    function _verifyTransferProof(
+        /**
+     * @notice _verify transfer proof
+     * @param oldCommitment The old commitment
+     * @param newCommitment The new Commitment value
+     * @param newNullifier The new Nullifier value
+     * @param spendingNullifier The spending nullifier
+     * @param newOwner The new Owner value
+     * @param proof The ZK proof data
+     */
+function _verifyTransferProof(
         bytes32 oldCommitment,
         bytes32 newCommitment,
         bytes32 newNullifier,
@@ -635,7 +719,12 @@ contract ConfidentialStateContainerV3 is
     /// @notice Checks if a state exists and is active
     /// @param commitment The commitment to check
     /// @return exists True if exists and active
-    function isStateActive(
+        /**
+     * @notice Checks if state active
+     * @param commitment The cryptographic commitment
+     * @return exists The exists
+     */
+function isStateActive(
         bytes32 commitment
     ) external view returns (bool exists) {
         return _states[commitment].status == StateStatus.Active;
@@ -644,7 +733,12 @@ contract ConfidentialStateContainerV3 is
     /// @notice Gets full state details
     /// @param commitment The commitment to query
     /// @return state The encrypted state struct
-    function getState(
+        /**
+     * @notice Returns the state
+     * @param commitment The cryptographic commitment
+     * @return state The state
+     */
+function getState(
         bytes32 commitment
     ) external view returns (EncryptedState memory state) {
         return _states[commitment];
@@ -654,7 +748,12 @@ contract ConfidentialStateContainerV3 is
     /// @param owner The owner address
     /// @return commitments Array of commitment hashes
     /// @dev WARNING: This may run out of gas for owners with many commitments. Use paginated version for large sets.
-    function getOwnerCommitments(
+        /**
+     * @notice Returns the owner commitments
+     * @param owner The owner address
+     * @return commitments The commitments
+     */
+function getOwnerCommitments(
         address owner
     ) external view returns (bytes32[] memory commitments) {
         return _ownerCommitments[owner];
@@ -667,7 +766,15 @@ contract ConfidentialStateContainerV3 is
     /// @return commitments Array of commitment hashes
     /// @return total Total number of commitments for this owner
     /// @dev M-14: Added pagination to prevent out-of-gas for large arrays
-    function getOwnerCommitmentsPaginated(
+        /**
+     * @notice Returns the owner commitments paginated
+     * @param owner The owner address
+     * @param offset The offset
+     * @param limit The limit value
+     * @return commitments The commitments
+     * @return total The total
+     */
+function getOwnerCommitmentsPaginated(
         address owner,
         uint256 offset,
         uint256 limit
@@ -694,7 +801,12 @@ contract ConfidentialStateContainerV3 is
     /// @notice Gets state transition history
     /// @param commitment The commitment to query
     /// @return transitions Array of state transitions
-    function getStateHistory(
+        /**
+     * @notice Returns the state history
+     * @param commitment The cryptographic commitment
+     * @return transitions The transitions
+     */
+function getStateHistory(
         bytes32 commitment
     ) external view returns (StateTransition[] memory transitions) {
         return _stateHistory[commitment];
@@ -703,7 +815,12 @@ contract ConfidentialStateContainerV3 is
     /// @notice Gets current nonce for an address
     /// @param account The account to query
     /// @return nonce The current nonce
-    function getNonce(address account) external view returns (uint256 nonce) {
+        /**
+     * @notice Returns the nonce
+     * @param account The account address
+     * @return nonce The nonce
+     */
+function getNonce(address account) external view returns (uint256 nonce) {
         return nonces[account];
     }
 
@@ -713,7 +830,11 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Updates proof validity window
     /// @param _window The new window in seconds
-    function setProofValidityWindow(
+        /**
+     * @notice Sets the proof validity window
+     * @param _window The _window
+     */
+function setProofValidityWindow(
         uint256 _window
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 packed = _packedConfig;
@@ -725,7 +846,11 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Updates maximum state size
     /// @param _maxSize The new maximum size in bytes
-    function setMaxStateSize(
+        /**
+     * @notice Sets the max state size
+     * @param _maxSize The _maxSize bound
+     */
+function setMaxStateSize(
         uint256 _maxSize
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_maxSize <= type(uint128).max, "Size exceeds uint128");
@@ -741,7 +866,11 @@ contract ConfidentialStateContainerV3 is
     /// @notice Locks a state (e.g., during dispute resolution)
     /// @dev Only Active states can be locked
     /// @param commitment The commitment to lock
-    function lockState(bytes32 commitment) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Locks state
+     * @param commitment The cryptographic commitment
+     */
+function lockState(bytes32 commitment) external onlyRole(OPERATOR_ROLE) {
         EncryptedState storage state = _states[commitment];
         if (state.owner == address(0)) revert CommitmentNotFound(commitment);
         if (state.status != StateStatus.Active)
@@ -760,7 +889,11 @@ contract ConfidentialStateContainerV3 is
     /// @notice Unlocks a previously locked state
     /// @dev Only Locked states can be unlocked
     /// @param commitment The commitment to unlock
-    function unlockState(bytes32 commitment) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unlocks state
+     * @param commitment The cryptographic commitment
+     */
+function unlockState(bytes32 commitment) external onlyRole(OPERATOR_ROLE) {
         EncryptedState storage state = _states[commitment];
         if (state.owner == address(0)) revert CommitmentNotFound(commitment);
         if (state.status != StateStatus.Locked)
@@ -779,7 +912,11 @@ contract ConfidentialStateContainerV3 is
     /// @notice Freezes a state (compliance action)
     /// @dev Only Active or Locked states can be frozen; counter only decremented for Active
     /// @param commitment The commitment to freeze
-    function freezeState(bytes32 commitment) external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Freeze state
+     * @param commitment The cryptographic commitment
+     */
+function freezeState(bytes32 commitment) external onlyRole(EMERGENCY_ROLE) {
         EncryptedState storage state = _states[commitment];
         if (state.owner == address(0)) revert CommitmentNotFound(commitment);
 
@@ -805,7 +942,11 @@ contract ConfidentialStateContainerV3 is
 
     /// @notice Set the disclosure manager for compliance integration
     /// @param _disclosureManager Address of the SelectiveDisclosureManager (address(0) to disable)
-    function setDisclosureManager(
+        /**
+     * @notice Sets the disclosure manager
+     * @param _disclosureManager The _disclosure manager
+     */
+function setDisclosureManager(
         address _disclosureManager
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         disclosureManager = SelectiveDisclosureManager(_disclosureManager);
@@ -813,12 +954,18 @@ contract ConfidentialStateContainerV3 is
     }
 
     /// @notice Pauses the contract
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
     /// @notice Unpauses the contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

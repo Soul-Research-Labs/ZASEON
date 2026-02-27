@@ -373,19 +373,31 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Get the number of nullifiers pending synchronisation
     /// @return The count of pending nullifiers
-    function getPendingCount() external view returns (uint256) {
+        /**
+     * @notice Returns the pending count
+     * @return The result value
+     */
+function getPendingCount() external view returns (uint256) {
         return pendingNullifiers.length - pendingHead;
     }
 
     /// @notice Get all target chain IDs configured for sync
     /// @return Array of target chain IDs
-    function getTargetChains() external view returns (uint256[] memory) {
+        /**
+     * @notice Returns the target chains
+     * @return The result value
+     */
+function getTargetChains() external view returns (uint256[] memory) {
         return targetChainIds;
     }
 
     /// @notice Get the total number of sync batches sent
     /// @return The count of historical batches
-    function getBatchCount() external view returns (uint256) {
+        /**
+     * @notice Returns the batch count
+     * @return The result value
+     */
+function getBatchCount() external view returns (uint256) {
         return batchHistory.length;
     }
 
@@ -394,12 +406,18 @@ contract CrossChainNullifierSync is AccessControl, ReentrancyGuard, Pausable {
     // ──────────────────────────────────────────────
 
     /// @notice Pause nullifier synchronisation
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Unpause nullifier synchronisation
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 }

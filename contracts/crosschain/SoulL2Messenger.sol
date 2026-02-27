@@ -37,6 +37,11 @@ import {ISoulL2Messenger} from "../interfaces/ISoulL2Messenger.sol";
 /// - RIP-7755: https://github.com/wilsoncusack/RIPs/blob/cross-l2-call-standard/RIPS/rip-7755.md
 /// - L1SLOAD: https://ethereum-magicians.org/t/rip-7728-l1sload-precompile/20388
 /// - https://vitalik.eth.limo/general/2024/10/17/futures2.html
+/**
+ * @title SoulL2Messenger
+ * @author Soul Protocol Team
+ * @notice Soul L2 Messenger contract
+ */
 contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -159,7 +164,17 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @param nullifier Unique nullifier
     /// @param gasLimit Gas limit for execution
     /// @return messageId Unique message identifier
-    function sendPrivacyMessage(
+        /**
+     * @notice Send privacy message
+     * @param destChainId The destination chain identifier
+     * @param target The target
+     * @param encryptedCalldata The encrypted calldata
+     * @param calldataCommitment The calldata commitment
+     * @param nullifier The nullifier hash
+     * @param gasLimit The gas limit
+     * @return messageId The message id
+     */
+function sendPrivacyMessage(
         uint256 destChainId,
         address target,
         bytes calldata encryptedCalldata,
@@ -233,7 +248,12 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @notice RIP-7755 compatible: Request cross-L2 call execution
     /// @param request The cross-L2 request
     /// @return requestId The request identifier
-    function requestL2Call(
+        /**
+     * @notice Requests l2 call
+     * @param request The request
+     * @return requestId The request id
+     */
+function requestL2Call(
         CrossL2Request calldata request
     ) external payable nonReentrant returns (bytes32 requestId) {
         if (request.calls.length == 0) revert ExecutionFailed();
@@ -271,7 +291,13 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @param messageId The message to fulfill
     /// @param decryptedCalldata The decrypted call data
     /// @param zkProof Proof that decryption is correct
-    function fulfillMessage(
+        /**
+     * @notice Fulfill message
+     * @param messageId The message identifier
+     * @param decryptedCalldata The decrypted calldata
+     * @param zkProof The zk proof
+     */
+function fulfillMessage(
         bytes32 messageId,
         bytes calldata decryptedCalldata,
         bytes calldata zkProof
@@ -334,7 +360,15 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @param target Target contract
     /// @param decryptedCalldata Decrypted call data
     /// @param value ETH value
-    function receiveMessage(
+        /**
+     * @notice Receive message
+     * @param sourceChainId The source chain identifier
+     * @param messageId The message identifier
+     * @param target The target
+     * @param decryptedCalldata The decrypted calldata
+     * @param value The value to set
+     */
+function receiveMessage(
         uint256 sourceChainId,
         bytes32 messageId,
         address target,
@@ -375,7 +409,13 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @param l1Contract L1 contract address
     /// @param slot Storage slot to read
     /// @return value The storage value
-    function readL1State(
+        /**
+     * @notice Read l1 state
+     * @param l1Contract The l1 contract
+     * @param slot The slot
+     * @return value The value
+     */
+function readL1State(
         address l1Contract,
         bytes32 slot
     ) external view returns (bytes32 value) {
@@ -404,7 +444,13 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @param wallet The wallet address
     /// @param expectedKeyHash Expected key hash
     /// @return valid Whether the key matches
-    function verifyKeystoreWallet(
+        /**
+     * @notice Verifys keystore wallet
+     * @param wallet The wallet
+     * @param expectedKeyHash The expectedKeyHash hash value
+     * @return valid The valid
+     */
+function verifyKeystoreWallet(
         address wallet,
         bytes32 expectedKeyHash
     ) external view returns (bool valid) {
@@ -420,7 +466,10 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Register as a fulfiller
-    function registerFulfiller() external payable {
+        /**
+     * @notice Registers fulfiller
+     */
+function registerFulfiller() external payable {
         if (msg.value < minFulfillerBond) revert InsufficientBond();
         fulfillerBonds[msg.sender] += msg.value;
         _grantRole(FULFILLER_ROLE, msg.sender);
@@ -430,7 +479,11 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
 
     /// @notice Withdraw fulfiller bond
     /// @param amount The amount of bond to withdraw (in wei)
-    function withdrawBond(uint256 amount) external nonReentrant {
+        /**
+     * @notice Withdraws bond
+     * @param amount The amount to process
+     */
+function withdrawBond(uint256 amount) external nonReentrant {
         if (fulfillerBonds[msg.sender] < amount) revert InsufficientBond();
         fulfillerBonds[msg.sender] -= amount;
 
@@ -449,7 +502,12 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
     /// @notice Set counterpart messenger for a chain
     /// @param chainId The chain ID of the counterpart network
     /// @param messenger The address of the messenger contract on the counterpart chain
-    function setCounterpart(
+        /**
+     * @notice Sets the counterpart
+     * @param chainId The chain identifier
+     * @param messenger The messenger
+     */
+function setCounterpart(
         uint256 chainId,
         address messenger
     ) external onlyRole(OPERATOR_ROLE) {
@@ -459,7 +517,11 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
 
     /// @notice Set proof hub address
     /// @param _proofHub The address of the CrossChainProofHubV3 contract
-    function setProofHub(address _proofHub) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the proof hub
+     * @param _proofHub The _proof hub
+     */
+function setProofHub(address _proofHub) external onlyRole(OPERATOR_ROLE) {
         if (_proofHub == address(0)) revert ZeroAddress();
         address oldHub = proofHub;
         proofHub = _proofHub;
@@ -502,7 +564,11 @@ contract SoulL2Messenger is ReentrancyGuard, AccessControl, ISoulL2Messenger {
 
     /// @notice Set the ZK decryption proof verifier
     /// @param _verifier The IProofVerifier address (address(0) to disable)
-    function setDecryptionVerifier(
+        /**
+     * @notice Sets the decryption verifier
+     * @param _verifier The _verifier
+     */
+function setDecryptionVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         address oldVerifier = decryptionVerifier;

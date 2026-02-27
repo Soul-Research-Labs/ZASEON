@@ -10,30 +10,74 @@ import {IPrivacyRouter} from "../interfaces/IPrivacyRouter.sol";
 import {IUniversalShieldedPool} from "../interfaces/IUniversalShieldedPool.sol";
 
 /// @notice Minimal interface for SoulProtocolHub address resolution
+/**
+ * @title ISoulProtocolHub
+ * @author Soul Protocol Team
+ * @notice I Soul Protocol Hub interface
+ */
 interface ISoulProtocolHub {
-    function shieldedPool() external view returns (address);
+        /**
+     * @notice Shielded pool
+     * @return The result value
+     */
+function shieldedPool() external view returns (address);
 
-    function crossChainPrivacyHub() external view returns (address);
+        /**
+     * @notice Cross chain privacy hub
+     * @return The result value
+     */
+function crossChainPrivacyHub() external view returns (address);
 
-    function stealthAddressRegistry() external view returns (address);
+        /**
+     * @notice Stealth address registry
+     * @return The result value
+     */
+function stealthAddressRegistry() external view returns (address);
 
-    function nullifierManager() external view returns (address);
+        /**
+     * @notice Nullifier manager
+     * @return The result value
+     */
+function nullifierManager() external view returns (address);
 
-    function complianceOracle() external view returns (address);
+        /**
+     * @notice Compliance oracle
+     * @return The result value
+     */
+function complianceOracle() external view returns (address);
 
-    function proofTranslator() external view returns (address);
+        /**
+     * @notice Proof translator
+     * @return The result value
+     */
+function proofTranslator() external view returns (address);
 }
 
 /// @notice Minimal interface for StealthAddressRegistry operations
 interface IStealthRegistryMinimal {
-    function registerMetaAddress(
+        /**
+     * @notice Registers meta address
+     * @param spendingPubKey The spending pub key
+     * @param viewingPubKey The viewing pub key
+     * @param curveType The curve type
+     * @param schemeId The schemeId identifier
+     */
+function registerMetaAddress(
         bytes calldata spendingPubKey,
         bytes calldata viewingPubKey,
         uint8 curveType,
         uint256 schemeId
     ) external;
 
-    function deriveStealthAddress(
+        /**
+     * @notice Derive stealth address
+     * @param recipient The recipient address
+     * @param ephemeralPubKey The ephemeral pub key
+     * @param sharedSecretHash The sharedSecretHash hash value
+     * @return stealthAddress The stealth address
+     * @return viewTag The view tag
+     */
+function deriveStealthAddress(
         address recipient,
         bytes calldata ephemeralPubKey,
         bytes32 sharedSecretHash
@@ -42,11 +86,27 @@ interface IStealthRegistryMinimal {
 
 /// @notice Minimal interface for compliance oracle queries
 interface IComplianceOracleMinimal {
-    function isKYCValid(address user) external view returns (bool);
+        /**
+     * @notice Checks if k y c valid
+     * @param user The user
+     * @return The result value
+     */
+function isKYCValid(address user) external view returns (bool);
 
-    function sanctionedAddresses(address user) external view returns (bool);
+        /**
+     * @notice Sanctioned addresses
+     * @param user The user
+     * @return The result value
+     */
+function sanctionedAddresses(address user) external view returns (bool);
 
-    function meetsKYCTier(
+        /**
+     * @notice Meets k y c tier
+     * @param user The user
+     * @param tier The tier
+     * @return The result value
+     */
+function meetsKYCTier(
         address user,
         uint8 tier
     ) external view returns (bool);
@@ -213,7 +273,12 @@ contract PrivacyRouter is
     ///      atomicity. A unique operation ID is derived from `(msg.sender, chainId, block.number, nonce)`.
     /// @param commitment The Pedersen commitment: H(secret, nullifier, amount)
     /// @return operationId Unique operation identifier for tracking via `getReceipt()`
-    function depositETH(
+        /**
+     * @notice Deposits e t h
+     * @param commitment The cryptographic commitment
+     * @return operationId The operation id
+     */
+function depositETH(
         bytes32 commitment
     )
         external
@@ -249,7 +314,14 @@ contract PrivacyRouter is
     /// @param amount Token amount to deposit (must be > 0)
     /// @param commitment The Pedersen commitment: H(secret, nullifier, amount)
     /// @return operationId Unique operation identifier for tracking via `getReceipt()`
-    function depositERC20(
+        /**
+     * @notice Deposits e r c20
+     * @param assetId The assetId identifier
+     * @param amount The amount to process
+     * @param commitment The cryptographic commitment
+     * @return operationId The operation id
+     */
+function depositERC20(
         bytes32 assetId,
         uint256 amount,
         bytes32 commitment
@@ -302,7 +374,12 @@ contract PrivacyRouter is
     /// @param params Withdrawal parameters including ZK proof, Merkle root, nullifier,
     ///        recipient, relayer details, amount, fees, asset ID, and destination chain ID
     /// @return operationId Unique operation identifier for tracking via `getReceipt()`
-    function withdraw(
+        /**
+     * @notice Withdraws the operation
+     * @param params The params
+     * @return operationId The operation id
+     */
+function withdraw(
         WithdrawParams calldata params
     ) external nonReentrant whenNotPaused returns (bytes32 operationId) {
         _requireComponent(shieldedPool, "shieldedPool");
@@ -349,7 +426,12 @@ contract PrivacyRouter is
     /// @param params Transfer parameters including destination chain, stealth recipient,
     ///        amount, privacy level, proof system type, and the ZK proof itself
     /// @return operationId Unique operation identifier for tracking via `getReceipt()`
-    function initiatePrivateTransfer(
+        /**
+     * @notice Initiates private transfer
+     * @param params The params
+     * @return operationId The operation id
+     */
+function initiatePrivateTransfer(
         CrossChainTransferParams calldata params
     )
         external
@@ -411,7 +493,14 @@ contract PrivacyRouter is
     /// @param viewingPubKey The viewing public key (enables recipient to scan for payments)
     /// @param curveType Elliptic curve type (0=SECP256K1, 1=ED25519, 2=BN254, etc.)
     /// @param schemeId Stealth address scheme identifier (per ERC-5564 scheme registry)
-    function registerStealthMetaAddress(
+        /**
+     * @notice Registers stealth meta address
+     * @param spendingPubKey The spending pub key
+     * @param viewingPubKey The viewing pub key
+     * @param curveType The curve type
+     * @param schemeId The schemeId identifier
+     */
+function registerStealthMetaAddress(
         bytes calldata spendingPubKey,
         bytes calldata viewingPubKey,
         uint8 curveType,
@@ -439,7 +528,15 @@ contract PrivacyRouter is
     /// @param sharedSecretHash Hash of the Diffie-Hellman shared secret
     /// @return stealthAddress The derived one-time stealth address for this payment
     /// @return viewTag Single-byte view tag for efficient announcement scanning
-    function deriveStealthAddress(
+        /**
+     * @notice Derive stealth address
+     * @param recipient The recipient address
+     * @param ephemeralPubKey The ephemeral pub key
+     * @param sharedSecretHash The sharedSecretHash hash value
+     * @return stealthAddress The stealth address
+     * @return viewTag The view tag
+     */
+function deriveStealthAddress(
         address recipient,
         bytes calldata ephemeralPubKey,
         bytes32 sharedSecretHash
@@ -462,7 +559,12 @@ contract PrivacyRouter is
     ///      both calls fail (fail-open for read-only queries; state-changing ops use fail-closed).
     /// @param nullifier The nullifier hash to check (derived from the note's secret)
     /// @return True if the nullifier has already been spent, false otherwise
-    function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Checks if nullifier spent
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         if (nullifierManager == address(0)) return false;
 
         // Try isNullifierSpent(bytes32) — UnifiedNullifierManager signature
@@ -486,7 +588,12 @@ contract PrivacyRouter is
     ///      not revert on failure — it returns `false` instead, making it safe for UI queries.
     /// @param user The address to check compliance for
     /// @return passes True if the user passes all compliance checks (KYC valid + not sanctioned)
-    function checkCompliance(address user) external view returns (bool passes) {
+        /**
+     * @notice Checks compliance
+     * @param user The user
+     * @return passes The passes
+     */
+function checkCompliance(address user) external view returns (bool passes) {
         if (!complianceEnabled || compliance == address(0)) return true;
 
         try IComplianceOracleMinimal(compliance).isKYCValid(user) returns (
@@ -501,7 +608,12 @@ contract PrivacyRouter is
     /// @notice Get total operations by type
     /// @param opType The operation type to query
     /// @return The total number of operations of the given type
-    function getOperationCount(
+        /**
+     * @notice Returns the operation count
+     * @param opType The op type
+     * @return The result value
+     */
+function getOperationCount(
         OperationType opType
     ) external view returns (uint256) {
         return operationCounts[opType];
@@ -510,7 +622,12 @@ contract PrivacyRouter is
     /// @notice Get operation receipt
     /// @param operationId The unique identifier of the operation
     /// @return The receipt containing operation details and status
-    function getReceipt(
+        /**
+     * @notice Returns the receipt
+     * @param operationId The operationId identifier
+     * @return The result value
+     */
+function getReceipt(
         bytes32 operationId
     ) external view returns (OperationReceipt memory) {
         return receipts[operationId];
@@ -527,7 +644,12 @@ contract PrivacyRouter is
     ///      if the name is not recognized. Use `syncFromHub()` to batch-update from SoulProtocolHub.
     /// @param name The component name (must match one of the six supported components)
     /// @param addr The new non-zero address for the component
-    function setComponent(
+        /**
+     * @notice Sets the component
+     * @param name The name
+     * @param addr The target address
+     */
+function setComponent(
         string calldata name,
         address addr
     ) external onlyRole(OPERATOR_ROLE) {
@@ -552,7 +674,11 @@ contract PrivacyRouter is
     ///      any manually-configured value. This is the preferred way to keep PrivacyRouter
     ///      in sync after hub component upgrades.
     /// @param hub The SoulProtocolHub contract address to read component addresses from
-    function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sync from hub
+     * @param hub The hub
+     */
+function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
         if (hub == address(0)) revert ZeroAddress();
         ISoulProtocolHub h = ISoulProtocolHub(hub);
 
@@ -576,7 +702,11 @@ contract PrivacyRouter is
 
     /// @notice Toggle compliance enforcement
     /// @param enabled True to enable compliance checks, false to disable
-    function setComplianceEnabled(
+        /**
+     * @notice Sets the compliance enabled
+     * @param enabled Whether the feature is enabled
+     */
+function setComplianceEnabled(
         bool enabled
     ) external onlyRole(OPERATOR_ROLE) {
         complianceEnabled = enabled;
@@ -585,7 +715,11 @@ contract PrivacyRouter is
 
     /// @notice Set minimum KYC tier required
     /// @param tier The new minimum KYC tier (0 = no minimum)
-    function setMinimumKYCTier(uint8 tier) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the minimum k y c tier
+     * @param tier The tier
+     */
+function setMinimumKYCTier(uint8 tier) external onlyRole(OPERATOR_ROLE) {
         uint8 oldTier = minimumKYCTier;
         minimumKYCTier = tier;
         emit MinimumKYCTierUpdated(oldTier, tier);
@@ -596,7 +730,12 @@ contract PrivacyRouter is
     ///      both EOA and contract recipients. Reverts if the transfer fails.
     /// @param to The recipient address for the withdrawn ETH (must be non-zero)
     /// @param amount The amount of ETH to withdraw (must be > 0 and <= contract balance)
-    function withdrawETH(
+        /**
+     * @notice Withdraws e t h
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function withdrawETH(
         address payable to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -610,12 +749,18 @@ contract PrivacyRouter is
     }
 
     /// @notice Emergency pause
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
     /// @notice Unpause
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

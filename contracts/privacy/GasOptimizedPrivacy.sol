@@ -200,6 +200,11 @@ contract GasOptimizedStealthRegistry {
     /**
      * @notice Verify view tag matches for scanning
      * @dev Pure function, no gas cost when called externally
+          * @param viewingPubKeyX The viewing pub key x
+     * @param viewingPubKeyY The viewing pub key y
+     * @param ephemeralKeyX The ephemeral key x
+     * @param ephemeralKeyY The ephemeral key y
+     * @return viewTag The view tag
      */
     function computeViewTag(
         uint256 viewingPubKeyX,
@@ -221,6 +226,9 @@ contract GasOptimizedStealthRegistry {
     /**
      * @notice Scan for stealth addresses by view tag (off-chain helper)
      * @dev Returns addresses matching a view tag range
+          * @param candidates The candidates identifier
+     * @param targetViewTag The target view tag
+     * @return matches The matches
      */
     function scanByViewTag(
         address[] calldata candidates,
@@ -356,7 +364,11 @@ contract GasOptimizedNullifierManager is Ownable2Step {
     // DOMAIN MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
-    function registerDomain(bytes32 domain) external onlyOwner {
+        /**
+     * @notice Registers domain
+     * @param domain The domain identifier
+     */
+function registerDomain(bytes32 domain) external onlyOwner {
         registeredDomains[domain] = true;
     }
 
@@ -368,6 +380,8 @@ contract GasOptimizedNullifierManager is Ownable2Step {
      * @notice Consume nullifier with minimal gas
      * @dev Uses single storage write, ~45k gas vs ~120k original
      * SECURITY FIX C-5: Added onlyOwner to prevent arbitrary nullifier consumption
+          * @param nullifier The nullifier hash
+     * @param domain The domain identifier
      */
     function consumeNullifier(
         bytes32 nullifier,
@@ -385,6 +399,8 @@ contract GasOptimizedNullifierManager is Ownable2Step {
      * @notice Batch consume nullifiers
      * @dev Amortizes event emission and checks, ~30k gas per nullifier
      * SECURITY FIX C-5: Added onlyOwner to prevent arbitrary nullifier consumption
+          * @param nullifiers The nullifiers
+     * @param domain The domain identifier
      */
     function batchConsumeNullifiers(
         bytes32[] calldata nullifiers,
@@ -415,6 +431,10 @@ contract GasOptimizedNullifierManager is Ownable2Step {
     /**
      * @notice Derive cross-domain nullifier
      * @dev Pure function for off-chain computation
+          * @param sourceNullifier The source nullifier
+     * @param sourceDomain The source domain
+     * @param targetDomain The target domain
+     * @return The result value
      */
     function deriveCrossDomainNullifier(
         bytes32 sourceNullifier,
@@ -437,6 +457,9 @@ contract GasOptimizedNullifierManager is Ownable2Step {
     /**
      * @notice Check multiple nullifiers in one call
      * @dev Returns bitmap of consumed status
+          * @param nullifiers The nullifiers
+     * @param domain The domain identifier
+     * @return consumedBitmap The consumed bitmap
      */
     function checkNullifiersBatch(
         bytes32[] calldata nullifiers,
@@ -526,6 +549,11 @@ contract GasOptimizedRingCT is Ownable2Step {
     /**
      * @notice Process RingCT transaction with minimal gas
      * @dev Optimized verification, ~180k gas vs ~500k original
+          * @param inputCommitments The input commitments
+     * @param outputCommitments The output commitments
+     * @param keyImages The key images
+     * @param ringSignature The ring signature
+     * @param pseudoOutputCommitment The pseudo output commitment
      */
     function processRingCT(
         bytes32[] calldata inputCommitments,
@@ -620,6 +648,8 @@ contract GasOptimizedRingCT is Ownable2Step {
     /**
      * @notice Batch verify multiple RingCT transactions
      * @dev Amortizes verification overhead
+          * @param allKeyImages The all key images
+     * @return valid The valid
      */
     function batchVerifyRingCT(
         bytes32[][] calldata allKeyImages

@@ -465,6 +465,7 @@ contract SoulUpgradeTimelock is TimelockController, ISoulUpgradeTimelock {
 
     /**
      * @notice Get proposal count
+          * @return The result value
      */
     function getProposalCount() external view returns (uint256) {
         return proposalIds.length;
@@ -472,6 +473,8 @@ contract SoulUpgradeTimelock is TimelockController, ISoulUpgradeTimelock {
 
     /**
      * @notice Get proposal details
+          * @param operationId The operationId identifier
+     * @return The result value
      */
     function getProposal(
         bytes32 operationId
@@ -481,6 +484,8 @@ contract SoulUpgradeTimelock is TimelockController, ISoulUpgradeTimelock {
 
     /**
      * @notice Check if upgrade is ready to execute
+          * @param operationId The operationId identifier
+     * @return The result value
      */
     function isUpgradeReady(bytes32 operationId) external view returns (bool) {
         UpgradeProposal storage proposal = upgradeProposals[operationId];
@@ -494,6 +499,8 @@ contract SoulUpgradeTimelock is TimelockController, ISoulUpgradeTimelock {
 
     /**
      * @notice Get time until upgrade can be executed
+          * @param operationId The operationId identifier
+     * @return The result value
      */
     function getTimeUntilExecutable(
         bytes32 operationId

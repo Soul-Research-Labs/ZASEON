@@ -697,8 +697,20 @@ contract HyperlaneAdapter is ReentrancyGuard, AccessControl, Pausable {
     receive() external payable {}
 }
 
+/**
+ * @title IMailbox
+ * @author Soul Protocol Team
+ * @notice \1 \1ailbox interface
+ */
 interface IMailbox {
-    function dispatch(
+        /**
+     * @notice Dispatch
+     * @param destinationDomain The destination domain
+     * @param recipientBody The recipient body
+     * @param messageBody The message body
+     * @return messageId The message id
+     */
+function dispatch(
         uint32 destinationDomain,
         bytes32 recipientBody,
         bytes calldata messageBody

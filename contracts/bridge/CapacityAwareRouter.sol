@@ -39,7 +39,12 @@ import {RouteOptimizer} from "../libraries/RouteOptimizer.sol";
  *      - Stale route detection (routes expire after 5 minutes)
  *      - Zero-address validation
  */
-contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable, ICapacityAwareRouter {
+contract CapacityAwareRouter is
+    AccessControl,
+    ReentrancyGuard,
+    Pausable,
+    ICapacityAwareRouter
+{
     using RouteOptimizer for RouteOptimizer.ScoringWeights;
 
     /*//////////////////////////////////////////////////////////////
@@ -182,7 +187,14 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable, ICapac
     function commitRelay(
         bytes32 routeId,
         address destRecipient
-    ) external payable override nonReentrant whenNotPaused returns (bytes32 relayId) {
+    )
+        external
+        payable
+        override
+        nonReentrant
+        whenNotPaused
+        returns (bytes32 relayId)
+    {
         if (destRecipient == address(0)) revert ZeroAddress();
 
         // Check cooldown
@@ -500,12 +512,18 @@ contract CapacityAwareRouter is AccessControl, ReentrancyGuard, Pausable, ICapac
     }
 
     /// @notice Pause the router
-    function pause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the router
-    function unpause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

@@ -11,6 +11,11 @@ import {IProtocolEmergencyCoordinator} from "../interfaces/IProtocolEmergencyCoo
 //////////////////////////////////////////////////////////////*/
 
 /// @dev Subset of ProtocolHealthAggregator
+/**
+ * @title IHealthAggregator
+ * @author Soul Protocol Team
+ * @notice I Health Aggregator interface
+ */
 interface IHealthAggregator {
     enum HealthStatus {
         HEALTHY,
@@ -19,13 +24,25 @@ interface IHealthAggregator {
         OVERRIDE
     }
 
+    /**
+     * @notice Returns the protocol health
+     * @return score The score
+     * @return status The status
+     * @return staleCount The stale count
+     */
     function getProtocolHealth()
         external
         view
         returns (uint16 score, HealthStatus status, uint8 staleCount);
 
+    /**
+     * @notice Guardian emergency pause
+     */
     function guardianEmergencyPause() external;
 
+    /**
+     * @notice Guardian recover pause
+     */
     function guardianRecoverPause() external;
 }
 
@@ -39,8 +56,16 @@ interface IEmergencyRecovery {
         Recovery
     }
 
+    /**
+     * @notice Current stage
+     * @return The result value
+     */
     function currentStage() external view returns (RecoveryStage);
 
+    /**
+     * @notice Pauses all
+     * @param reason The reason string
+     */
     function pauseAll(string calldata reason) external;
 }
 
@@ -55,8 +80,17 @@ interface IKillSwitch {
         PERMANENT
     }
 
+    /**
+     * @notice Current level
+     * @return The result value
+     */
     function currentLevel() external view returns (EmergencyLevel);
 
+    /**
+     * @notice Escalates emergency
+     * @param newLevel The new Level value
+     * @param reason The reason string
+     */
     function escalateEmergency(
         EmergencyLevel newLevel,
         string calldata reason
@@ -72,17 +106,34 @@ interface ICircuitBreaker {
         HALTED
     }
 
+    /**
+     * @notice Current state
+     * @return The result value
+     */
     function currentState() external view returns (SystemState);
 
+    /**
+     * @notice Emergency halt
+     */
     function emergencyHalt() external;
 }
 
 /// @dev Subset of SoulProtocolHub
 interface IProtocolHub {
+    /**
+     * @notice Pauses the operation
+     */
     function pause() external;
 
+    /**
+     * @notice Unpauses the operation
+     */
     function unpause() external;
 
+    /**
+     * @notice Paused
+     * @return The result value
+     */
     function paused() external view returns (bool);
 }
 
@@ -488,6 +539,10 @@ contract ProtocolEmergencyCoordinator is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Aggregate status of all connected subsystems
+    /**
+     * @notice Returns the subsystem status
+     * @return status The status
+     */
     function getSubsystemStatus()
         public
         view
@@ -544,6 +599,11 @@ contract ProtocolEmergencyCoordinator is
     }
 
     /// @inheritdoc IProtocolEmergencyCoordinator
+    /**
+     * @notice Returns the incident
+     * @param incidentId The incidentId identifier
+     * @return The result value
+     */
     function getIncident(
         uint256 incidentId
     ) external view override returns (Incident memory) {
@@ -551,6 +611,12 @@ contract ProtocolEmergencyCoordinator is
     }
 
     /// @notice Get all incidents in a range
+    /**
+     * @notice Returns the incidents
+     * @param from The source address
+     * @param to The destination address
+     * @return incidents The incidents
+     */
     function getIncidents(
         uint256 from,
         uint256 to
@@ -569,6 +635,10 @@ contract ProtocolEmergencyCoordinator is
     }
 
     /// @notice Whether an incident is currently active
+    /**
+     * @notice Checks if has active incident
+     * @return The result value
+     */
     function hasActiveIncident() external view returns (bool) {
         return activeIncidentId != 0;
     }

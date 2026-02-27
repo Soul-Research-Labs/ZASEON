@@ -401,6 +401,7 @@ contract RelayerSLAEnforcer is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Update default SLA terms for new registrations
+          * @param terms The terms
      */
     function setDefaultSLA(
         SLATerms calldata terms
@@ -430,6 +431,7 @@ contract RelayerSLAEnforcer is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Withdraw collected fines to a recipient
+          * @param recipient The recipient address
      */
     function withdrawFines(
         address recipient
@@ -447,14 +449,25 @@ contract RelayerSLAEnforcer is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get relayer's SLA state
-    function getRelayerSLA(
+        /**
+     * @notice Returns the relayer s l a
+     * @param relayer The relayer address
+     * @return The result value
+     */
+function getRelayerSLA(
         address relayer
     ) external view returns (RelayerSLA memory) {
         return _relayers[relayer];
     }
 
     /// @notice Get epoch metrics for a relayer
-    function getEpochMetrics(
+        /**
+     * @notice Returns the epoch metrics
+     * @param relayer The relayer address
+     * @param epoch The epoch
+     * @return The result value
+     */
+function getEpochMetrics(
         address relayer,
         uint48 epoch
     ) external view returns (EpochMetrics memory) {
@@ -462,23 +475,41 @@ contract RelayerSLAEnforcer is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Current epoch start timestamp
-    function currentEpoch() external view returns (uint48) {
+        /**
+     * @notice Current epoch
+     * @return The result value
+     */
+function currentEpoch() external view returns (uint48) {
         return _currentEpoch();
     }
 
     /// @notice Number of registered relayers
-    function relayerCount() external view returns (uint256) {
+        /**
+     * @notice Relayer count
+     * @return The result value
+     */
+function relayerCount() external view returns (uint256) {
         return relayerList.length;
     }
 
     /// @notice Check if a relayer is active (registered and not suspended)
-    function isActive(address relayer) external view returns (bool) {
+        /**
+     * @notice Checks if active
+     * @param relayer The relayer address
+     * @return The result value
+     */
+function isActive(address relayer) external view returns (bool) {
         RelayerSLA storage sla = _relayers[relayer];
         return sla.isRegistered && !sla.isSuspended;
     }
 
     /// @notice Preview what a relayer's evaluation result would be for the current epoch
-    function previewEvaluation(
+        /**
+     * @notice Preview evaluation
+     * @param relayer The relayer address
+     * @return result The result
+     */
+function previewEvaluation(
         address relayer
     ) external view returns (EvaluationResult memory result) {
         RelayerSLA storage sla = _relayers[relayer];

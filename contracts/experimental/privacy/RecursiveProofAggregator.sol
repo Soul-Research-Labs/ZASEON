@@ -320,6 +320,7 @@ contract RecursiveProofAggregator is
     /**
      * @notice Initialize the aggregator
      * @param admin Admin address
+          * @param _featureRegistry The _feature registry
      */
     function initialize(
         address admin,
@@ -801,7 +802,12 @@ contract RecursiveProofAggregator is
     }
 
     /// @notice Get parallel group details
-    function getParallelGroup(
+        /**
+     * @notice Returns the parallel group
+     * @param groupId The groupId identifier
+     * @return The result value
+     */
+function getParallelGroup(
         bytes32 groupId
     ) external view returns (ParallelGroup memory) {
         return _parallelGroups[groupId];
@@ -836,6 +842,7 @@ contract RecursiveProofAggregator is
      * @param proofSystem The proof system
      * @param proof The proof bytes
      * @param publicInputs Public inputs
+          * @return The result value
      */
     function verifyAggregatedProof(
         ProofSystem proofSystem,
@@ -867,35 +874,60 @@ contract RecursiveProofAggregator is
     // ============================================
 
     /// @notice Get batch details
-    function getBatch(
+        /**
+     * @notice Returns the batch
+     * @param batchId The batchId identifier
+     * @return The result value
+     */
+function getBatch(
         bytes32 batchId
     ) external view returns (AggregationBatch memory) {
         return _batches[batchId];
     }
 
     /// @notice Get proof submission details
-    function getProofSubmission(
+        /**
+     * @notice Returns the proof submission
+     * @param proofId The proofId identifier
+     * @return The result value
+     */
+function getProofSubmission(
         bytes32 proofId
     ) external view returns (ProofSubmission memory) {
         return proofSubmissions[proofId];
     }
 
     /// @notice Get cross-chain bundle details
-    function getCrossChainBundle(
+        /**
+     * @notice Returns the cross chain bundle
+     * @param bundleId The bundleId identifier
+     * @return The result value
+     */
+function getCrossChainBundle(
         bytes32 bundleId
     ) external view returns (CrossChainProofBundle memory) {
         return crossChainBundles[bundleId];
     }
 
     /// @notice Get Nova folding state
-    function getNovaState(
+        /**
+     * @notice Returns the nova state
+     * @param batchId The batchId identifier
+     * @return The result value
+     */
+function getNovaState(
         bytes32 batchId
     ) external view returns (NovaProof memory) {
         return novaStates[batchId];
     }
 
     /// @notice Check if a root is verified
-    function isRootVerified(bytes32 root) external view returns (bool) {
+        /**
+     * @notice Checks if root verified
+     * @param root The Merkle root
+     * @return The result value
+     */
+function isRootVerified(bytes32 root) external view returns (bool) {
         return verifiedRoots[root];
     }
 
@@ -905,6 +937,8 @@ contract RecursiveProofAggregator is
 
     /**
      * @notice Set verifier for a proof system
+          * @param system The system
+     * @param verifier The verifier contract address
      */
     function setVerifier(
         ProofSystem system,

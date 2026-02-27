@@ -20,6 +20,11 @@
 
 pragma solidity ^0.8.24;
 
+/**
+ * @title CrossChainProofVerifier
+ * @author Soul Protocol Team
+ * @notice Cross Chain Proof Verifier contract
+ */
 contract CrossChainProofVerifier {
     // Scalar field size
     uint256 internal constant _r    = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
@@ -74,7 +79,15 @@ contract CrossChainProofVerifier {
 
     uint16 internal constant _pLastMem = 896;
 
-    function verifyProof(uint256[2] calldata _pA, uint256[2][2] calldata _pB, uint256[2] calldata _pC, uint256[7] calldata _pubSignals) public view returns (bool) {
+        /**
+     * @notice Verifys proof
+     * @param _pA The _p a
+     * @param _pB The _p b
+     * @param _pC The _p c
+     * @param _pubSignals The _pub signals
+     * @return The result value
+     */
+function verifyProof(uint256[2] calldata _pA, uint256[2][2] calldata _pB, uint256[2] calldata _pC, uint256[7] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, _r)) {

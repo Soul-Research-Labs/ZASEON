@@ -143,7 +143,12 @@ contract HeterogeneousRelayerRegistry is
     // ============================================
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function registerProofGenerator(
+        /**
+     * @notice Registers proof generator
+     * @param supportedChainIds The supportedChainIds identifier
+     * @param capabilityHash The capabilityHash hash value
+     */
+function registerProofGenerator(
         uint256[] calldata supportedChainIds,
         bytes32 capabilityHash
     ) external payable nonReentrant whenNotPaused {
@@ -158,7 +163,11 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function registerLightRelayer(
+        /**
+     * @notice Registers light relayer
+     * @param supportedChainIds The supportedChainIds identifier
+     */
+function registerLightRelayer(
         uint256[] calldata supportedChainIds
     ) external payable nonReentrant whenNotPaused {
         if (msg.value < LIGHT_RELAYER_MIN_STAKE) {
@@ -172,7 +181,10 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function registerWatchtower() external payable nonReentrant whenNotPaused {
+        /**
+     * @notice Registers watchtower
+     */
+function registerWatchtower() external payable nonReentrant whenNotPaused {
         if (msg.value < WATCHTOWER_MIN_STAKE) {
             revert InsufficientStake(msg.value, WATCHTOWER_MIN_STAKE);
         }
@@ -181,7 +193,10 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function exitRelayer() external nonReentrant {
+        /**
+     * @notice Exit relayer
+     */
+function exitRelayer() external nonReentrant {
         Relayer storage relayer = _relayers[msg.sender];
         if (relayer.registeredAt == 0) revert RelayerNotRegistered(msg.sender);
 
@@ -220,7 +235,16 @@ contract HeterogeneousRelayerRegistry is
     // ============================================
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function assignTask(
+        /**
+     * @notice Assign task
+     * @param taskType The task type
+     * @param proofDataHash The proofDataHash hash value
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param deadline The deadline timestamp
+     * @return taskId The task id
+     */
+function assignTask(
         TaskType taskType,
         bytes32 proofDataHash,
         uint256 sourceChainId,
@@ -266,7 +290,11 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function completeTask(
+        /**
+     * @notice Completes task
+     * @param taskId The taskId identifier
+ */
+function completeTask(
         bytes32 taskId,
         bytes calldata /* result */
     ) external nonReentrant {
@@ -298,7 +326,12 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function reportTaskFailure(
+        /**
+     * @notice Reports task failure
+     * @param taskId The taskId identifier
+     * @param reason The reason string
+     */
+function reportTaskFailure(
         bytes32 taskId,
         string calldata reason
     ) external {
@@ -329,7 +362,12 @@ contract HeterogeneousRelayerRegistry is
     // ============================================
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function reportPerformance(
+        /**
+     * @notice Reports performance
+     * @param relayerAddr The relayerAddr address
+     * @param metrics The metrics
+     */
+function reportPerformance(
         address relayerAddr,
         PerformanceMetrics calldata metrics
     ) external onlyRole(PERFORMANCE_REPORTER_ROLE) {
@@ -350,7 +388,13 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function slashRelayer(
+        /**
+     * @notice Slashs relayer
+     * @param relayerAddr The relayerAddr address
+     * @param amount The amount to process
+     * @param reason The reason string
+     */
+function slashRelayer(
         address relayerAddr,
         uint256 amount,
         string calldata reason
@@ -369,7 +413,10 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @notice Claim accumulated rewards
-    function claimRewards() external nonReentrant {
+        /**
+     * @notice Claims rewards
+     */
+function claimRewards() external nonReentrant {
         uint256 rewards = unclaimedRewards[msg.sender];
         require(rewards > 0, "No rewards");
         unclaimedRewards[msg.sender] = 0;
@@ -383,24 +430,44 @@ contract HeterogeneousRelayerRegistry is
     // ============================================
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function getRelayer(address addr) external view returns (Relayer memory) {
+        /**
+     * @notice Returns the relayer
+     * @param addr The target address
+     * @return The result value
+     */
+function getRelayer(address addr) external view returns (Relayer memory) {
         return _relayers[addr];
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function getTask(bytes32 taskId) external view returns (Task memory) {
+        /**
+     * @notice Returns the task
+     * @param taskId The taskId identifier
+     * @return The result value
+     */
+function getTask(bytes32 taskId) external view returns (Task memory) {
         return _tasks[taskId];
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function getRelayersByRole(
+        /**
+     * @notice Returns the relayers by role
+     * @param role The access control role
+     * @return The result value
+     */
+function getRelayersByRole(
         RelayerRole role
     ) external view returns (address[] memory) {
         return _relayersByRole[role];
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function getMinStake(RelayerRole role) external pure returns (uint256) {
+        /**
+     * @notice Returns the min stake
+     * @param role The access control role
+     * @return The result value
+     */
+function getMinStake(RelayerRole role) external pure returns (uint256) {
         if (role == RelayerRole.ProofGenerator)
             return PROOF_GENERATOR_MIN_STAKE;
         if (role == RelayerRole.LightRelayer) return LIGHT_RELAYER_MIN_STAKE;
@@ -409,7 +476,12 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @inheritdoc IHeterogeneousRelayerRegistry
-    function getRelayerCount(RelayerRole role) external view returns (uint256) {
+        /**
+     * @notice Returns the relayer count
+     * @param role The access control role
+     * @return The result value
+     */
+function getRelayerCount(RelayerRole role) external view returns (uint256) {
         return relayerCounts[role];
     }
 
@@ -418,7 +490,11 @@ contract HeterogeneousRelayerRegistry is
     // ============================================
 
     /// @notice Withdraw slashed funds
-    function withdrawSlashedFunds(
+        /**
+     * @notice Withdraws slashed funds
+     * @param to The destination address
+     */
+function withdrawSlashedFunds(
         address to
     ) external onlyRole(REGISTRY_ADMIN_ROLE) nonReentrant {
         require(to != address(0), "Zero address");
@@ -429,7 +505,11 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @notice Reinstate a suspended relayer
-    function reinstateRelayer(
+        /**
+     * @notice Reinstate relayer
+     * @param relayerAddr The relayerAddr address
+     */
+function reinstateRelayer(
         address relayerAddr
     ) external onlyRole(REGISTRY_ADMIN_ROLE) {
         Relayer storage relayer = _relayers[relayerAddr];
@@ -438,12 +518,18 @@ contract HeterogeneousRelayerRegistry is
     }
 
     /// @notice Pause the registry, disabling registration and task assignment
-    function pause() external onlyRole(REGISTRY_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(REGISTRY_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the registry, re-enabling registration and task assignment
-    function unpause() external onlyRole(REGISTRY_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(REGISTRY_ADMIN_ROLE) {
         _unpause();
     }
 

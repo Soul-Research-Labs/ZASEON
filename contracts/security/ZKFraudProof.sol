@@ -534,6 +534,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Get fraud proof details
      * @param proofId Proof ID
+          * @return The result value
      */
     function getFraudProof(
         bytes32 proofId
@@ -544,6 +545,12 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Get batch details
      * @param batchId Batch ID
+          * @return stateRoot The state root
+     * @return previousStateRoot The previous state root
+     * @return submittedAt The submitted at
+     * @return finalized The finalized
+     * @return disputed The disputed
+     * @return sequencer The sequencer
      */
     function getBatch(
         bytes32 batchId
@@ -573,6 +580,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Get prover statistics
      * @param prover Prover address
+          * @return The result value
      */
     function getProverStats(
         address prover
@@ -583,6 +591,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Check if batch is in dispute period
      * @param batchId Batch ID
+          * @return The result value
      */
     function isInDisputePeriod(bytes32 batchId) external view returns (bool) {
         Batch storage batch = batches[batchId];
@@ -593,6 +602,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get pending proof count
+          * @return The result value
      */
     function getPendingProofCount() external view returns (uint256) {
         return pendingProofs.length;
@@ -601,6 +611,7 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
     /**
      * @notice Get effective dispute period for a proof type
      * @param hasZKProof Whether ZK proof is provided
+          * @return The result value
      */
     function getDisputePeriod(bool hasZKProof) external pure returns (uint256) {
         return hasZKProof ? EXPEDITED_DISPUTE_PERIOD : STANDARD_DISPUTE_PERIOD;
@@ -648,7 +659,12 @@ contract ZKFraudProof is AccessControl, ReentrancyGuard, Pausable {
      * @param amount Amount of ETH to withdraw
      */
     // slither-disable-next-line arbitrary-send-eth
-    function emergencyWithdraw(
+        /**
+     * @notice Emergency withdraw
+     * @param to The destination address
+     * @param amount The amount to process
+ */
+function emergencyWithdraw(
         address to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {

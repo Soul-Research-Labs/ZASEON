@@ -18,6 +18,11 @@ import {INullifierRegistryV3} from "../interfaces/INullifierRegistryV3.sol";
 ///
 /// @custom:security-contact security@soul.network
 /// @custom:oz-upgrades-from NullifierRegistryV3
+/**
+ * @title NullifierRegistryV3Upgradeable
+ * @author Soul Protocol Team
+ * @notice Nullifier Registry V3 Upgradeable contract
+ */
 contract NullifierRegistryV3Upgradeable is
     Initializable,
     AccessControlUpgradeable,
@@ -150,7 +155,11 @@ contract NullifierRegistryV3Upgradeable is
 
     /// @notice Initialize the contract (replaces constructor)
     /// @param admin The initial admin address
-    function initialize(address admin) public initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) public initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -206,7 +215,13 @@ contract NullifierRegistryV3Upgradeable is
     /// @param nullifier The nullifier hash to register
     /// @param commitment Associated commitment (optional)
     /// @return index The index in the merkle tree
-    function registerNullifier(
+        /**
+     * @notice Registers nullifier
+     * @param nullifier The nullifier hash
+     * @param commitment The cryptographic commitment
+     * @return index The index
+     */
+function registerNullifier(
         bytes32 nullifier,
         bytes32 commitment
     )
@@ -223,7 +238,13 @@ contract NullifierRegistryV3Upgradeable is
     /// @param _nullifiers Array of nullifiers to register
     /// @param _commitments Array of associated commitments
     /// @return startIndex The starting index in the merkle tree
-    function batchRegisterNullifiers(
+        /**
+     * @notice Batchs register nullifiers
+     * @param _nullifiers The _nullifiers
+     * @param _commitments The _commitments
+     * @return startIndex The start index
+     */
+function batchRegisterNullifiers(
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments
     )
@@ -259,7 +280,14 @@ contract NullifierRegistryV3Upgradeable is
     /// @param _nullifiers Array of nullifiers
     /// @param _commitments Array of commitments
     /// @param sourceMerkleRoot The merkle root from source chain
-    function receiveCrossChainNullifiers(
+        /**
+     * @notice Receive cross chain nullifiers
+     * @param sourceChainId_ The sourceChainId_ identifier
+     * @param _nullifiers The _nullifiers
+     * @param _commitments The _commitments
+     * @param sourceMerkleRoot The source merkle root
+     */
+function receiveCrossChainNullifiers(
         uint256 sourceChainId_,
         bytes32[] calldata _nullifiers,
         bytes32[] calldata _commitments,
@@ -435,14 +463,24 @@ contract NullifierRegistryV3Upgradeable is
     /// @notice Checks if a nullifier exists
     /// @param nullifier The nullifier to check
     /// @return True if the nullifier exists
-    function exists(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Exists
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function exists(bytes32 nullifier) external view returns (bool) {
         return isNullifierUsed[nullifier];
     }
 
     /// @notice Batch checks if nullifiers exist
     /// @param _nullifiers Array of nullifiers to check
     /// @return results Array of existence results
-    function batchExists(
+        /**
+     * @notice Batchs exists
+     * @param _nullifiers The _nullifiers
+     * @return results The results
+     */
+function batchExists(
         bytes32[] calldata _nullifiers
     ) external view returns (bool[] memory results) {
         uint256 len = _nullifiers.length;
@@ -460,7 +498,12 @@ contract NullifierRegistryV3Upgradeable is
     /// @notice Gets nullifier data
     /// @param nullifier The nullifier to query
     /// @return data The nullifier metadata
-    function getNullifierData(
+        /**
+     * @notice Returns the nullifier data
+     * @param nullifier The nullifier hash
+     * @return data The data
+     */
+function getNullifierData(
         bytes32 nullifier
     ) external view returns (NullifierData memory data) {
         if (!isNullifierUsed[nullifier]) revert NullifierNotFound(nullifier);
@@ -470,7 +513,12 @@ contract NullifierRegistryV3Upgradeable is
     /// @notice Checks if a merkle root is valid (current or historical)
     /// @param root The root to check
     /// @return valid True if the root is valid
-    function isValidRoot(bytes32 root) external view returns (bool valid) {
+        /**
+     * @notice Checks if valid root
+     * @param root The Merkle root
+     * @return valid The valid
+     */
+function isValidRoot(bytes32 root) external view returns (bool valid) {
         return root == merkleRoot || historicalRoots[root];
     }
 
@@ -480,7 +528,15 @@ contract NullifierRegistryV3Upgradeable is
     /// @param siblings The merkle proof siblings
     /// @param root The merkle root to verify against
     /// @return valid True if the proof is valid
-    function verifyMerkleProof(
+        /**
+     * @notice Verifys merkle proof
+     * @param nullifier The nullifier hash
+     * @param index The index in the collection
+     * @param siblings The siblings
+     * @param root The Merkle root
+     * @return valid The valid
+     */
+function verifyMerkleProof(
         bytes32 nullifier,
         uint256 index,
         bytes32[] calldata siblings,
@@ -514,7 +570,13 @@ contract NullifierRegistryV3Upgradeable is
     /// @return _totalNullifiers Total registered nullifiers
     /// @return _merkleRoot Current merkle root
     /// @return _rootHistorySize Number of valid historical roots
-    function getTreeStats()
+        /**
+     * @notice Returns the tree stats
+     * @return _totalNullifiers The _total nullifiers
+     * @return _merkleRoot The _merkle root
+     * @return _rootHistorySize The _root history size
+     */
+function getTreeStats()
         external
         view
         returns (
@@ -529,7 +591,12 @@ contract NullifierRegistryV3Upgradeable is
     /// @notice Gets nullifier count for a specific chain
     /// @param chainId_ The chain ID to query
     /// @return count The number of nullifiers from that chain
-    function getNullifierCountByChain(
+        /**
+     * @notice Returns the nullifier count by chain
+     * @param chainId_ The chainId_ identifier
+     * @return count The count
+     */
+function getNullifierCountByChain(
         uint256 chainId_
     ) external view returns (uint256 count) {
         return chainNullifierCount[chainId_];
@@ -541,7 +608,11 @@ contract NullifierRegistryV3Upgradeable is
 
     /// @notice Adds a registrar
     /// @param registrar The address to add
-    function addRegistrar(
+        /**
+     * @notice Adds registrar
+     * @param registrar The registrar
+     */
+function addRegistrar(
         address registrar
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         grantRole(REGISTRAR_ROLE, registrar);
@@ -550,7 +621,11 @@ contract NullifierRegistryV3Upgradeable is
 
     /// @notice Removes a registrar
     /// @param registrar The address to remove
-    function removeRegistrar(
+        /**
+     * @notice Removes registrar
+     * @param registrar The registrar
+     */
+function removeRegistrar(
         address registrar
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         revokeRole(REGISTRAR_ROLE, registrar);
@@ -558,12 +633,18 @@ contract NullifierRegistryV3Upgradeable is
     }
 
     /// @notice Pauses the contract
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
     /// @notice Unpauses the contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 }

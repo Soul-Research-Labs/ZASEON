@@ -21,6 +21,11 @@ import "../interfaces/IProofVerifier.sol";
 /// - Policy expiration prevents stale policy attacks
 /// - Proof nullifiers prevent replay attacks
 /// - Public input validation ensures policy commitment
+/**
+ * @title PolicyBoundProofs
+ * @author Soul Protocol Team
+ * @notice Policy Bound Proofs contract
+ */
 contract PolicyBoundProofs is AccessControl, Pausable {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -203,7 +208,12 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Register a new disclosure policy
     /// @param policy The policy to register
     /// @return policyId The unique policy identifier
-    function registerPolicy(
+        /**
+     * @notice Registers policy
+     * @param policy The policy data
+     * @return policyId The policy id
+     */
+function registerPolicy(
         DisclosurePolicy calldata policy
     ) external onlyRole(POLICY_ADMIN_ROLE) returns (bytes32 policyId) {
         // Validate inputs
@@ -247,7 +257,11 @@ contract PolicyBoundProofs is AccessControl, Pausable {
 
     /// @notice Deactivate a policy
     /// @param policyId The policy to deactivate
-    function deactivatePolicy(
+        /**
+     * @notice Deactivate policy
+     * @param policyId The policy identifier
+     */
+function deactivatePolicy(
         bytes32 policyId
     ) external onlyRole(POLICY_ADMIN_ROLE) {
         if (policies[policyId].createdAt == 0) {
@@ -267,7 +281,13 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @param vkHash Hash of the verification key
     /// @param policyHash Hash of the policy to bind
     /// @return domainSeparator The computed domain separator
-    function bindVerificationKey(
+        /**
+     * @notice Bind verification key
+     * @param vkHash The vkHash hash value
+     * @param policyHash The policyHash hash value
+     * @return domainSeparator The domain separator
+     */
+function bindVerificationKey(
         bytes32 vkHash,
         bytes32 policyHash
     ) external onlyRole(POLICY_ADMIN_ROLE) returns (bytes32 domainSeparator) {
@@ -310,7 +330,13 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @param boundProof The proof with policy binding
     /// @param vkHash The verification key hash to use
     /// @return result The verification result
-    function verifyBoundProof(
+        /**
+     * @notice Verifys bound proof
+     * @param boundProof The bound proof
+     * @param vkHash The vkHash hash value
+     * @return result The result
+     */
+function verifyBoundProof(
         BoundProof calldata boundProof,
         bytes32 vkHash
     ) external view returns (VerificationResult memory result) {
@@ -431,7 +457,12 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Verify and consume a proof (marks as used)
     /// @param boundProof The proof to verify and consume
     /// @param vkHash The verification key hash
-    function verifyAndConsumeProof(
+        /**
+     * @notice Verifys and consume proof
+     * @param boundProof The bound proof
+     * @param vkHash The vkHash hash value
+     */
+function verifyAndConsumeProof(
         BoundProof calldata boundProof,
         bytes32 vkHash
     ) external whenNotPaused onlyRole(VERIFIER_ROLE) {
@@ -482,7 +513,13 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @param vkHash The verification key hash
     /// @param policyHash The policy hash
     /// @return domainSeparator The computed domain separator
-    function computeDomainSeparator(
+        /**
+     * @notice Computes domain separator
+     * @param vkHash The vkHash hash value
+     * @param policyHash The policyHash hash value
+     * @return domainSeparator The domain separator
+     */
+function computeDomainSeparator(
         bytes32 vkHash,
         bytes32 policyHash
     ) external pure returns (bytes32 domainSeparator) {
@@ -492,7 +529,12 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Get verification key by domain separator
     /// @param domainSeparator The domain separator
     /// @return vkHash The verification key hash
-    function getVkByDomain(
+        /**
+     * @notice Returns the vk by domain
+     * @param domainSeparator The domain separator
+     * @return vkHash The vk hash
+     */
+function getVkByDomain(
         bytes32 domainSeparator
     ) external view returns (bytes32 vkHash) {
         return domainToVk[domainSeparator];
@@ -503,21 +545,36 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get policy details
-    function getPolicy(
+        /**
+     * @notice Returns the policy
+     * @param policyId The policy identifier
+     * @return The result value
+     */
+function getPolicy(
         bytes32 policyId
     ) external view returns (DisclosurePolicy memory) {
         return policies[policyId];
     }
 
     /// @notice Get verification key details
-    function getVerificationKey(
+        /**
+     * @notice Returns the verification key
+     * @param vkHash The vkHash hash value
+     * @return The result value
+     */
+function getVerificationKey(
         bytes32 vkHash
     ) external view returns (BoundVerificationKey memory) {
         return verificationKeys[vkHash];
     }
 
     /// @notice Check if policy is valid and active
-    function isPolicyValid(bytes32 policyId) external view returns (bool) {
+        /**
+     * @notice Checks if policy valid
+     * @param policyId The policy identifier
+     * @return The result value
+     */
+function isPolicyValid(bytes32 policyId) external view returns (bool) {
         DisclosurePolicy storage policy = policies[policyId];
         if (policy.createdAt == 0) return false;
         if (!policy.isActive) return false;
@@ -529,7 +586,13 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Get all policy IDs (paginated)
     /// @param offset Starting index
     /// @param limit Maximum number to return
-    function getPolicyIds(
+        /**
+     * @notice Returns the policy ids
+     * @param offset The offset
+     * @param limit The limit value
+     * @return ids The ids
+     */
+function getPolicyIds(
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory ids) {
@@ -551,7 +614,13 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Get all VK hashes (paginated)
     /// @param offset Starting index
     /// @param limit Maximum number to return
-    function getVkHashes(
+        /**
+     * @notice Returns the vk hashes
+     * @param offset The offset
+     * @param limit The limit value
+     * @return hashes The hashes
+     */
+function getVkHashes(
         uint256 offset,
         uint256 limit
     ) external view returns (bytes32[] memory hashes) {
@@ -573,7 +642,12 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Batch check multiple policies
     /// @param policyIds Array of policy IDs to check
     /// @return validities Array of validity results
-    function batchCheckPolicies(
+        /**
+     * @notice Batchs check policies
+     * @param policyIds The policyIds identifier
+     * @return validities The validities
+     */
+function batchCheckPolicies(
         bytes32[] calldata policyIds
     ) external view returns (bool[] memory validities) {
         uint256 len = policyIds.length;
@@ -591,7 +665,11 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Set default proof validity period
-    function setDefaultProofValidity(
+        /**
+     * @notice Sets the default proof validity
+     * @param validity The validity identifier
+     */
+function setDefaultProofValidity(
         uint256 validity
     ) external onlyRole(POLICY_ADMIN_ROLE) {
         defaultProofValidity = validity;
@@ -600,7 +678,11 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     /// @notice Set the ZK verifier for policy-bound proofs
     /// @dev Phase 3: Required for real SNARK verification of policy proofs
     /// @param _verifier Address of the IProofVerifier-compatible contract
-    function setPolicyVerifier(
+        /**
+     * @notice Sets the policy verifier
+     * @param _verifier The _verifier
+     */
+function setPolicyVerifier(
         address _verifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_verifier != address(0), "Zero verifier address");
@@ -611,12 +693,18 @@ contract PolicyBoundProofs is AccessControl, Pausable {
     event PolicyVerifierUpdated(address indexed newVerifier);
 
     /// @notice Pause contract
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 }

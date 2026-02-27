@@ -603,6 +603,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get commitment details
+          * @param commitmentId The commitmentId identifier
+     * @return The result value
      */
     function getCommitment(
         bytes32 commitmentId
@@ -612,6 +614,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get operation result
+          * @param resultId The resultId identifier
+     * @return The result value
      */
     function getOperation(
         bytes32 resultId
@@ -621,6 +625,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get range proof
+          * @param proofId The proofId identifier
+     * @return The result value
      */
     function getRangeProof(
         bytes32 proofId
@@ -630,6 +636,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get aggregate proof
+          * @param proofId The proofId identifier
+     * @return The result value
      */
     function getAggregateProof(
         bytes32 proofId
@@ -639,6 +647,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get all commitments for an owner
+          * @param owner The owner address
+     * @return The result value
      */
     function getOwnerCommitments(
         address owner
@@ -648,6 +658,8 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Check if a commitment is valid
+          * @param commitmentId The commitmentId identifier
+     * @return The result value
      */
     function isCommitmentValid(
         bytes32 commitmentId
@@ -664,21 +676,35 @@ contract HomomorphicHiding is AccessControl, ReentrancyGuard, Pausable {
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
-    function deactivateCommitment(
+        /**
+     * @notice Deactivate commitment
+     * @param commitmentId The commitmentId identifier
+     */
+function deactivateCommitment(
         bytes32 commitmentId
     ) external onlyRole(COMMITMENT_MANAGER_ROLE) {
         commitments[commitmentId].isActive = false;
     }
 
-    function setRangeProofVerifier(
+        /**
+     * @notice Sets the range proof verifier
+     * @param verifier The verifier contract address
+     */
+function setRangeProofVerifier(
         address verifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(verifier != address(0), "Zero address");

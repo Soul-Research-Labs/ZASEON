@@ -616,6 +616,8 @@ contract RelayProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
     /**
      * @notice Get proof status
+          * @param proofHash The proofHash hash value
+     * @return The result value
      */
     function getProofStatus(
         bytes32 proofHash
@@ -628,6 +630,8 @@ contract RelayProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
     /**
      * @notice Check if proof is valid (finalized and not expired)
+          * @param proofHash The proofHash hash value
+     * @return The result value
      */
     function isProofValid(bytes32 proofHash) external view returns (bool) {
         ProofRecord storage proof = proofRecords[proofHash];
@@ -638,6 +642,7 @@ contract RelayProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
     /**
      * @notice Get remaining withdrawal capacity for current epoch
+          * @return The result value
      */
     function getRemainingEpochCapacity() external view returns (uint256) {
         if (!withdrawalCaps.enabled) return type(uint256).max;
@@ -651,6 +656,8 @@ contract RelayProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
     /**
      * @notice Get challenge count for a proof
+          * @param proofHash The proofHash hash value
+     * @return The result value
      */
     function getChallengeCount(
         bytes32 proofHash
@@ -660,6 +667,7 @@ contract RelayProofValidator is AccessControl, Pausable, ReentrancyGuard {
 
     /**
      * @notice Get current epoch stats
+          * @return The result value
      */
     function getCurrentEpochStats() external view returns (EpochStats memory) {
         return epochStats[_getCurrentEpoch()];

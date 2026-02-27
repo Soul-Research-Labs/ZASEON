@@ -186,7 +186,12 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     /// @param relayId Unique relay identifier
     /// @param requester The user who is paying for the relay
     /// @dev Called by the fee market or intent layer when a relay request is created
-    function depositRelayFee(
+        /**
+     * @notice Deposits relay fee
+     * @param relayId The relayId identifier
+     * @param requester The requester
+     */
+function depositRelayFee(
         bytes32 relayId,
         address requester
     ) external payable nonReentrant onlyRole(RELAY_MANAGER_ROLE) {
@@ -209,7 +214,12 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     /// @notice Record that a relayer has claimed a relay
     /// @param relayId The relay being claimed
     /// @param relayer The relayer claiming it
-    function claimRelay(
+        /**
+     * @notice Claims relay
+     * @param relayId The relayId identifier
+     * @param relayer The relayer address
+     */
+function claimRelay(
         bytes32 relayId,
         address relayer
     ) external nonReentrant onlyRole(RELAY_MANAGER_ROLE) {
@@ -227,7 +237,11 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     /// @notice Complete a relay and pay the instant reward
     /// @param relayId The completed relay
     /// @dev Only callable by RELAY_MANAGER_ROLE. Calculates speed tier and pays tiered reward.
-    function completeRelayWithReward(
+        /**
+     * @notice Completes relay with reward
+     * @param relayId The relayId identifier
+     */
+function completeRelayWithReward(
         bytes32 relayId
     ) external nonReentrant onlyRole(RELAY_MANAGER_ROLE) {
         RelayDeposit storage deposit = deposits[relayId];
@@ -292,7 +306,11 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
 
     /// @notice Refund a deposit that was never completed
     /// @param relayId The relay to refund
-    function refundDeposit(
+        /**
+     * @notice Refund deposit
+     * @param relayId The relayId identifier
+     */
+function refundDeposit(
         bytes32 relayId
     ) external nonReentrant onlyRole(RELAY_MANAGER_ROLE) {
         RelayDeposit storage deposit = deposits[relayId];
@@ -312,7 +330,11 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
 
     /// @notice Withdraw accumulated protocol fees
     /// @param to Recipient address
-    function withdrawProtocolFees(
+        /**
+     * @notice Withdraws protocol fees
+     * @param to The destination address
+     */
+function withdrawProtocolFees(
         address to
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (to == address(0)) revert ZeroAddress();
@@ -331,7 +353,13 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     /// @param responseTime Time in seconds from claim to completion
     /// @return tier The speed tier classification
     /// @return multiplier The reward multiplier in basis points
-    function getSpeedTier(
+        /**
+     * @notice Returns the speed tier
+     * @param responseTime The responseTime timestamp
+     * @return tier The tier
+     * @return multiplier The multiplier
+     */
+function getSpeedTier(
         uint256 responseTime
     ) external pure returns (SpeedTier tier, uint256 multiplier) {
         return _getSpeedTier(responseTime);
@@ -341,7 +369,13 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     /// @param baseReward Deposit amount (funds max possible payout)
     /// @param responseTime Expected response time in seconds
     /// @return reward The calculated reward after tier and protocol fee
-    function calculateReward(
+        /**
+     * @notice Calculates reward
+     * @param baseReward The base reward
+     * @param responseTime The responseTime timestamp
+     * @return reward The reward
+     */
+function calculateReward(
         uint256 baseReward,
         uint256 responseTime
     ) external pure returns (uint256 reward) {
@@ -352,14 +386,24 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Get a relayer's aggregate statistics
-    function getRelayerStats(
+        /**
+     * @notice Returns the relayer stats
+     * @param relayer The relayer address
+     * @return The result value
+     */
+function getRelayerStats(
         address relayer
     ) external view returns (RelayerStats memory) {
         return relayerStats[relayer];
     }
 
     /// @notice Get deposit details
-    function getDeposit(
+        /**
+     * @notice Returns the deposit
+     * @param relayId The relayId identifier
+     * @return The result value
+     */
+function getDeposit(
         bytes32 relayId
     ) external view returns (RelayDeposit memory) {
         return deposits[relayId];
@@ -414,7 +458,12 @@ contract InstantRelayerRewards is AccessControl, ReentrancyGuard {
         }
     }
 
-    function _safeTransferETH(address to, uint256 amount) internal {
+        /**
+     * @notice _safe transfer e t h
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function _safeTransferETH(address to, uint256 amount) internal {
         (bool success, ) = to.call{value: amount}("");
         require(success, "ETH transfer failed");
     }

@@ -216,6 +216,13 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
      * @notice Permissionless self-relay for users.
      *         Allows anyone to relay a proof by paying the bridge fee directly.
      *         Bypasses RELAYER_ROLE check to prevent censorship/downtime.
+          * @param proofId The proofId identifier
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param commitment The cryptographic commitment
+     * @param destChainId The destination chain identifier
+     * @param proofType The proof type
+     * @return messageId The message id
      */
     function selfRelayProof(
         bytes32 proofId,
@@ -234,7 +241,17 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
         return _relayProof(proofId, proof, publicInputs, commitment, destChainId, proofType);
     }
 
-    function _relayProof(
+        /**
+     * @notice _relay proof
+     * @param proofId The proofId identifier
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param commitment The cryptographic commitment
+     * @param destChainId The destination chain identifier
+     * @param proofType The proof type
+     * @return messageId The message id
+     */
+function _relayProof(
         bytes32 proofId,
         bytes calldata proof,
         bytes calldata publicInputs,
@@ -427,14 +444,23 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Get all chain IDs supported by this relay
     /// @return Array of supported chain IDs
-    function getSupportedChains() external view returns (uint256[] memory) {
+        /**
+     * @notice Returns the supported chains
+     * @return The result value
+     */
+function getSupportedChains() external view returns (uint256[] memory) {
         return supportedChains;
     }
 
     /// @notice Check whether a chain ID is supported and active
     /// @param chainId The chain ID to query
     /// @return True if the chain is supported and active
-    function isChainSupported(uint256 chainId) external view returns (bool) {
+        /**
+     * @notice Checks if chain supported
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function isChainSupported(uint256 chainId) external view returns (bool) {
         return chainConfigs[chainId].active;
     }
 
@@ -443,12 +469,18 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
     // ──────────────────────────────────────────────
 
     /// @notice Pause cross-chain relay operations
-    function pause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
     /// @notice Unpause cross-chain relay operations
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
@@ -539,7 +571,11 @@ contract SoulCrossChainRelay is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Update the proof hub contract address
     /// @param _proofHub The new proof hub address (must be non-zero)
-    function updateProofHub(
+        /**
+     * @notice Updates proof hub
+     * @param _proofHub The _proof hub
+     */
+function updateProofHub(
         address _proofHub
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_proofHub == address(0)) revert ZeroAddress();

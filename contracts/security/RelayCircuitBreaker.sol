@@ -496,6 +496,14 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Update threshold configuration
+          * @param largeTransferAmount The largeTransferAmount amount
+     * @param largeTransferPercent The large transfer percent
+     * @param velocityTxPerHour The velocity tx per hour
+     * @param velocityAmountPerHour The velocityAmountPerHour amount
+     * @param tvlDropPercent The tvl drop percent
+     * @param warningScore The warning score
+     * @param degradedScore The degraded score
+     * @param haltedScore The halted score
      */
     function setThresholds(
         uint256 largeTransferAmount,
@@ -531,6 +539,8 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Set cooldown periods
+          * @param _warningCooldown The _warning cooldown
+     * @param _degradedCooldown The _degraded cooldown
      */
     function setCooldowns(
         uint256 _warningCooldown,
@@ -546,6 +556,7 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Check if operations are allowed in current state
+          * @return The result value
      */
     function isOperational() external view returns (bool) {
         return currentState != SystemState.HALTED && !paused();
@@ -553,6 +564,7 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Check if current state is degraded or worse
+          * @return The result value
      */
     function isDegraded() external view returns (bool) {
         return currentState >= SystemState.DEGRADED;
@@ -560,6 +572,11 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Get current metrics
+          * @return txCount The tx count
+     * @return volume The volume
+     * @return largestTx The largest tx
+     * @return score The score
+     * @return state The state
      */
     function getCurrentMetrics()
         external
@@ -584,6 +601,7 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
     /**
      * @notice Get active anomaly count
      * @dev GAS OPT: O(1) lookup using cached counter instead of O(n) iteration
+          * @return The result value
      */
     function getActiveAnomalyCount() external view returns (uint256) {
         return activeAnomalyCount;
@@ -591,6 +609,13 @@ contract RelayCircuitBreaker is AccessControl, Pausable {
 
     /**
      * @notice Get recovery proposal details
+          * @param proposalId The proposalId identifier
+     * @return proposer The proposer
+     * @return targetState The target state
+     * @return proposedAt The proposed at
+     * @return approvalCount The approval count
+     * @return executed The executed
+     * @return canExecute The can execute
      */
     function getRecoveryProposal(
         uint256 proposalId

@@ -83,7 +83,12 @@ contract InstantCompletionGuaranteeUpgradeable is
     /// @notice Initializes the upgradeable instant completion guarantee
     /// @param admin Admin address (DEFAULT_ADMIN_ROLE + UPGRADER_ROLE)
     /// @param _intentLayer Address of the IntentCompletionLayer (address(0) to set later)
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _intentLayer The _intent layer
+     */
+function initialize(
         address admin,
         address _intentLayer
     ) external initializer {
@@ -116,7 +121,11 @@ contract InstantCompletionGuaranteeUpgradeable is
                          ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setIntentLayer(
+        /**
+     * @notice Sets the intent layer
+     * @param _intentLayer The _intent layer
+     */
+function setIntentLayer(
         address _intentLayer
     ) external onlyRole(OPERATOR_ROLE) {
         if (_intentLayer == address(0)) revert ZeroAddress();
@@ -125,7 +134,11 @@ contract InstantCompletionGuaranteeUpgradeable is
         emit IntentLayerUpdated(oldIntentLayer, _intentLayer);
     }
 
-    function setCollateralRatio(
+        /**
+     * @notice Sets the collateral ratio
+     * @param newRatioBps The new RatioBps value
+     */
+function setCollateralRatio(
         uint256 newRatioBps
     ) external onlyRole(OPERATOR_ROLE) {
         if (newRatioBps < BPS) revert InvalidCollateralRatio();
@@ -135,14 +148,23 @@ contract InstantCompletionGuaranteeUpgradeable is
         emit CollateralRatioUpdated(oldRatio, newRatioBps);
     }
 
-    function markIntentFinalized(
+        /**
+     * @notice Mark intent finalized
+     * @param intentId The intentId identifier
+     */
+function markIntentFinalized(
         bytes32 intentId
     ) external onlyRole(COMPLETION_ROLE) {
         intentFinalized[intentId] = true;
         emit IntentFinalized(intentId);
     }
 
-    function withdrawInsurance(
+        /**
+     * @notice Withdraws insurance
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function withdrawInsurance(
         address to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
@@ -159,7 +181,15 @@ contract InstantCompletionGuaranteeUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function postGuarantee(
+        /**
+     * @notice Post guarantee
+     * @param intentId The intentId identifier
+     * @param beneficiary The beneficiary
+     * @param amount The amount to process
+     * @param duration The duration in seconds
+     * @return guaranteeId The guarantee id
+     */
+function postGuarantee(
         bytes32 intentId,
         address beneficiary,
         uint256 amount,
@@ -218,7 +248,11 @@ contract InstantCompletionGuaranteeUpgradeable is
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function settleGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Settle guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function settleGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.guarantor == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -243,7 +277,11 @@ contract InstantCompletionGuaranteeUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function claimGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Claims guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function claimGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.beneficiary == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -269,7 +307,11 @@ contract InstantCompletionGuaranteeUpgradeable is
         emit GuaranteeClaimed(guaranteeId, msg.sender, g.amount);
     }
 
-    function expireGuarantee(bytes32 guaranteeId) external nonReentrant {
+        /**
+     * @notice Expire guarantee
+     * @param guaranteeId The guaranteeId identifier
+     */
+function expireGuarantee(bytes32 guaranteeId) external nonReentrant {
         Guarantee storage g = _guarantees[guaranteeId];
         if (g.guarantor == address(0)) revert GuaranteeNotFound();
         if (g.status != GuaranteeStatus.ACTIVE) revert GuaranteeNotActive();
@@ -295,14 +337,24 @@ contract InstantCompletionGuaranteeUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function getGuarantee(
+        /**
+     * @notice Returns the guarantee
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function getGuarantee(
         bytes32 guaranteeId
     ) external view returns (Guarantee memory) {
         return _guarantees[guaranteeId];
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function canSettle(bytes32 guaranteeId) external view returns (bool) {
+        /**
+     * @notice Can settle
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function canSettle(bytes32 guaranteeId) external view returns (bool) {
         Guarantee storage g = _guarantees[guaranteeId];
         return
             g.status == GuaranteeStatus.ACTIVE &&
@@ -310,7 +362,12 @@ contract InstantCompletionGuaranteeUpgradeable is
     }
 
     /// @inheritdoc IInstantCompletionGuarantee
-    function canClaim(bytes32 guaranteeId) external view returns (bool) {
+        /**
+     * @notice Can claim
+     * @param guaranteeId The guaranteeId identifier
+     * @return The result value
+     */
+function canClaim(bytes32 guaranteeId) external view returns (bool) {
         Guarantee storage g = _guarantees[guaranteeId];
         return
             g.status == GuaranteeStatus.ACTIVE &&
@@ -318,7 +375,12 @@ contract InstantCompletionGuaranteeUpgradeable is
             !_isIntentFinalized(g.intentId);
     }
 
-    function requiredBond(uint256 amount) external view returns (uint256 bond) {
+        /**
+     * @notice Required bond
+     * @param amount The amount to process
+     * @return bond The bond
+     */
+function requiredBond(uint256 amount) external view returns (uint256 bond) {
         return (amount * collateralRatioBps) / BPS;
     }
 
@@ -344,7 +406,12 @@ contract InstantCompletionGuaranteeUpgradeable is
         return false;
     }
 
-    function _safeTransferETH(address to, uint256 amount) internal {
+        /**
+     * @notice _safe transfer e t h
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function _safeTransferETH(address to, uint256 amount) internal {
         (bool success, ) = to.call{value: amount}("");
         require(success, "ETH transfer failed");
     }

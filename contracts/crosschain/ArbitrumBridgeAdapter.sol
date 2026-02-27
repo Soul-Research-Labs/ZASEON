@@ -834,12 +834,18 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause all bridge operations (emergency use)
-    function pause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause bridge operations
-    function unpause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(GUARDIAN_ROLE) {
         _unpause();
     }
 
@@ -917,8 +923,25 @@ contract ArbitrumBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     receive() external payable {}
 }
 
+/**
+ * @title IInbox
+ * @author Soul Protocol Team
+ * @notice \1 \1nbox interface
+ */
 interface IInbox {
-    function createRetryableTicket(
+        /**
+     * @notice Creates retryable ticket
+     * @param to The destination address
+     * @param l2CallValue The l2 call value
+     * @param maxSubmissionCost The maxSubmissionCost bound
+     * @param excessFeeRefundAddress The excessFeeRefundAddress address
+     * @param callValueRefundAddress The callValueRefundAddress address
+     * @param gasLimit The gas limit
+     * @param maxFeePerGas The maxFeePerGas bound
+     * @param data The calldata payload
+     * @return The result value
+     */
+function createRetryableTicket(
         address to,
         uint256 l2CallValue,
         uint256 maxSubmissionCost,
@@ -930,14 +953,43 @@ interface IInbox {
     ) external payable returns (uint256);
 }
 
+/**
+ * @title IOutbox
+ * @author Soul Protocol Team
+ * @notice \1 \1utbox interface
+ */
 interface IOutbox {
-    function l2ToL1Sender() external view returns (address);
+        /**
+     * @notice L2 to l1 sender
+     * @return The result value
+     */
+function l2ToL1Sender() external view returns (address);
 
-    function l2ToL1Block() external view returns (uint256);
+        /**
+     * @notice L2 to l1 block
+     * @return The result value
+     */
+function l2ToL1Block() external view returns (uint256);
 
-    function l2ToL1Timestamp() external view returns (uint256);
+        /**
+     * @notice L2 to l1 timestamp
+     * @return The result value
+     */
+function l2ToL1Timestamp() external view returns (uint256);
 
-    function executeTransaction(
+        /**
+     * @notice Executes transaction
+     * @param proof The ZK proof data
+     * @param index The index in the collection
+     * @param l2Sender The l2 sender
+     * @param to The destination address
+     * @param l2Block The l2 block
+     * @param l1Block The l1 block
+     * @param l2Timestamp The l2Timestamp timestamp
+     * @param value The value to set
+     * @param data The calldata payload
+     */
+function executeTransaction(
         bytes32[] calldata proof,
         uint256 index,
         address l2Sender,

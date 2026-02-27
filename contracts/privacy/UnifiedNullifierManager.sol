@@ -291,7 +291,11 @@ contract UnifiedNullifierManager is
         _disableInitializers();
     }
 
-    function initialize(address admin) external initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) external initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -460,6 +464,7 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Mark nullifier as spent
+          * @param nullifier The nullifier hash
      */
     function spendNullifier(bytes32 nullifier) external onlyRole(RELAY_ROLE) {
         NullifierRecord storage record = nullifierRecords[nullifier];
@@ -479,6 +484,8 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Check if nullifier is spent
+          * @param nullifier The nullifier hash
+     * @return The result value
      */
     function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         return nullifierRecords[nullifier].status == NullifierStatus.SPENT;
@@ -590,6 +597,10 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Verify cross-domain binding exists
+          * @param sourceNullifier The source nullifier
+     * @param destNullifier The dest nullifier
+     * @return valid The valid
+     * @return soulBinding The soul binding
      */
     function verifyCrossDomainBinding(
         bytes32 sourceNullifier,
@@ -611,6 +622,11 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Process batch of nullifiers
+          * @param nullifiers The nullifiers
+     * @param commitments The commitments
+     * @param chainId The chain identifier
+     * @param merkleRoot The Merkle tree root
+     * @return batchId The batch id
      */
     function processBatch(
         bytes32[] calldata nullifiers,
@@ -691,6 +707,9 @@ contract UnifiedNullifierManager is
      * @notice Derive Soul unified nullifier
      * @dev HIGH FIX: Changed from abi.encodePacked to abi.encode to prevent hash collision
      *      abi.encodePacked with multiple bytes32 can have collisions if bits align
+          * @param sourceNullifier The source nullifier
+     * @param domainTag The domain tag
+     * @return The result value
      */
     function deriveSoulBinding(
         bytes32 sourceNullifier,
@@ -702,6 +721,10 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Derive chain-specific nullifier from commitment
+          * @param commitment The cryptographic commitment
+     * @param secret The secret value
+     * @param chainId The chain identifier
+     * @return The result value
      */
     function deriveChainNullifier(
         bytes32 commitment,
@@ -726,6 +749,10 @@ contract UnifiedNullifierManager is
 
     /**
      * @notice Derive cross-domain nullifier
+          * @param sourceNullifier The source nullifier
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
      */
     function deriveCrossDomainNullifier(
         bytes32 sourceNullifier,
@@ -777,13 +804,24 @@ contract UnifiedNullifierManager is
     // VIEW FUNCTIONS
     // =========================================================================
 
-    function getNullifierRecord(
+        /**
+     * @notice Returns the nullifier record
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function getNullifierRecord(
         bytes32 nullifier
     ) external view returns (NullifierRecord memory) {
         return nullifierRecords[nullifier];
     }
 
-    function getCrossDomainBinding(
+        /**
+     * @notice Returns the cross domain binding
+     * @param sourceNullifier The source nullifier
+     * @param destNullifier The dest nullifier
+     * @return The result value
+     */
+function getCrossDomainBinding(
         bytes32 sourceNullifier,
         bytes32 destNullifier
     ) external view returns (CrossDomainBinding memory) {
@@ -794,13 +832,23 @@ contract UnifiedNullifierManager is
         return crossDomainBindings[bindingId];
     }
 
-    function getChainDomain(
+        /**
+     * @notice Returns the chain domain
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getChainDomain(
         uint256 chainId
     ) external view returns (ChainDomain memory) {
         return chainDomains[chainId];
     }
 
-    function getSoulBinding(
+        /**
+     * @notice Returns the soul binding
+     * @param sourceNullifier The source nullifier
+     * @return The result value
+     */
+function getSoulBinding(
         bytes32 sourceNullifier
     ) external view returns (bytes32) {
         return soulBindings[sourceNullifier];
@@ -808,7 +856,12 @@ contract UnifiedNullifierManager is
 
     /// @notice Gets all source nullifiers for a soul binding
     /// @dev WARNING: May run out of gas for bindings with many nullifiers. Use paginated version for large sets.
-    function getSourceNullifiers(
+        /**
+     * @notice Returns the source nullifiers
+     * @param soulBinding The soul binding
+     * @return The result value
+     */
+function getSourceNullifiers(
         bytes32 soulBinding
     ) external view returns (bytes32[] memory) {
         return reverseSoulLookup[soulBinding];
@@ -821,7 +874,15 @@ contract UnifiedNullifierManager is
     /// @return nullifiers Array of source nullifiers
     /// @return total Total number of nullifiers for this binding
     /// @dev M-12: Added pagination to prevent out-of-gas for large arrays
-    function getSourceNullifiersPaginated(
+        /**
+     * @notice Returns the source nullifiers paginated
+     * @param soulBinding The soul binding
+     * @param offset The offset
+     * @param limit The limit value
+     * @return nullifiers The nullifiers
+     * @return total The total
+     */
+function getSourceNullifiersPaginated(
         bytes32 soulBinding,
         uint256 offset,
         uint256 limit
@@ -845,17 +906,33 @@ contract UnifiedNullifierManager is
         }
     }
 
-    function getBatch(
+        /**
+     * @notice Returns the batch
+     * @param batchId The batchId identifier
+     * @return The result value
+     */
+function getBatch(
         bytes32 batchId
     ) external view returns (NullifierBatch memory) {
         return nullifierBatches[batchId];
     }
 
-    function getRegisteredChainCount() external view returns (uint256) {
+        /**
+     * @notice Returns the registered chain count
+     * @return The result value
+     */
+function getRegisteredChainCount() external view returns (uint256) {
         return registeredChains.length;
     }
 
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return _totalNullifiers The _total nullifiers
+     * @return _totalBindings The _total bindings
+     * @return _totalBatches The _total batches
+     * @return _registeredChains The _registered chains
+     */
+function getStats()
         external
         view
         returns (

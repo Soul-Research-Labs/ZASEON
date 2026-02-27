@@ -187,6 +187,7 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get the chain ID this adapter supports
+          * @return The result value
      */
     function chainId() external pure returns (uint256) {
         return SCROLL_MAINNET_CHAIN_ID;
@@ -194,6 +195,7 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get the chain name
+          * @return The result value
      */
     function chainName() external pure returns (string memory) {
         return "Scroll";
@@ -201,6 +203,7 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Check if the adapter is properly configured
+          * @return The result value
      */
     function isConfigured() external view returns (bool) {
         return scrollMessenger != address(0) && gatewayRouter != address(0);
@@ -208,6 +211,7 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /**
      * @notice Get the finality blocks for this chain
+          * @return The result value
      */
     function getFinalityBlocks() external pure returns (uint256) {
         return FINALITY_BLOCKS;
@@ -221,6 +225,8 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Send a message to Scroll L2
      * @param target Target address on L2
      * @param data Message data
+          * @param gasLimit The gas limit
+     * @return The result value
      */
     function sendMessage(
         address target,
@@ -266,6 +272,7 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @notice Verify a message from Scroll
      * @param messageHash Hash of the message
      * @param proof Proof data from Scroll (zkSNARK proof)
+          * @return The result value
      */
     function verifyMessage(
         bytes32 messageHash,
@@ -288,12 +295,18 @@ contract ScrollBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause all bridge operations
-    function pause() external onlyRole(PAUSER_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /// @notice Unpause bridge operations
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

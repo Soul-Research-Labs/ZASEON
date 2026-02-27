@@ -129,7 +129,17 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
     /// @param priorityFee Priority tip above base fee
     /// @param deadline Request deadline (0 = default)
     /// @return requestId The relay request identifier
-    function submitRelayRequest(
+        /**
+     * @notice Submits relay request
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param proofId The proofId identifier
+     * @param maxFee The maxFee bound
+     * @param priorityFee The priority fee
+     * @param deadline The deadline timestamp
+     * @return requestId The request id
+     */
+function submitRelayRequest(
         bytes32 sourceChainId,
         bytes32 destChainId,
         bytes32 proofId,
@@ -199,7 +209,11 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     /// @notice Claim a relay request (relayer)
     /// @param requestId The request to claim
-    function claimRelayRequest(
+        /**
+     * @notice Claims relay request
+     * @param requestId The requestId identifier
+     */
+function claimRelayRequest(
         bytes32 requestId
     ) external nonReentrant onlyRole(RELAYER_ROLE) {
         RelayRequest storage request = requests[requestId];
@@ -216,7 +230,11 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     /// @notice Complete a relay and collect fee (relayer)
     /// @param requestId The completed request
-    function completeRelay(
+        /**
+     * @notice Completes relay
+     * @param requestId The requestId identifier
+     */
+function completeRelay(
         bytes32 requestId
     ) external nonReentrant onlyRole(RELAYER_ROLE) {
         RelayRequest storage request = requests[requestId];
@@ -266,7 +284,11 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     /// @notice Cancel a pending relay request (requester only)
     /// @param requestId Unique identifier of the relay request to cancel
-    function cancelRelayRequest(bytes32 requestId) external nonReentrant {
+        /**
+     * @notice Cancels relay request
+     * @param requestId The requestId identifier
+     */
+function cancelRelayRequest(bytes32 requestId) external nonReentrant {
         RelayRequest storage request = requests[requestId];
         if (request.requester != msg.sender) revert NotRequester();
         if (request.status != RequestStatus.PENDING) revert RequestNotPending();
@@ -281,7 +303,11 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     /// @notice Expire a stale request (anyone can call)
     /// @param requestId Unique identifier of the relay request to expire
-    function expireRequest(bytes32 requestId) external nonReentrant {
+        /**
+     * @notice Expire request
+     * @param requestId The requestId identifier
+     */
+function expireRequest(bytes32 requestId) external nonReentrant {
         RelayRequest storage request = requests[requestId];
         if (request.requester == address(0)) revert RequestNotFound();
         if (
@@ -317,7 +343,13 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
     /// @param sourceChainId The source chain identifier
     /// @param destChainId The destination chain identifier
     /// @return The current base fee in fee-token units
-    function getBaseFee(
+        /**
+     * @notice Returns the base fee
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @return The result value
+     */
+function getBaseFee(
         bytes32 sourceChainId,
         bytes32 destChainId
     ) external view returns (uint256) {
@@ -330,7 +362,15 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
     /// @param priorityFee Additional priority fee offered by the requester
     /// @return totalFee The total fee (base + priority)
     /// @return baseFee The current base fee component
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param priorityFee The priority fee
+     * @return totalFee The total fee
+     * @return baseFee The base fee
+     */
+function estimateFee(
         bytes32 sourceChainId,
         bytes32 destChainId,
         uint256 priorityFee
@@ -348,7 +388,13 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
     /// @param sourceChainId The source chain identifier
     /// @param destChainId The destination chain identifier
     /// @param initialBaseFee The starting base fee for this route
-    function initializeRoute(
+        /**
+     * @notice Initializes route
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param initialBaseFee The initial base fee
+     */
+function initializeRoute(
         bytes32 sourceChainId,
         bytes32 destChainId,
         uint256 initialBaseFee
@@ -367,14 +413,22 @@ contract RelayerFeeMarket is AccessControl, ReentrancyGuard, IRelayerFeeMarket {
 
     /// @notice Update protocol fee percentage
     /// @param _bps The new protocol fee in basis points (max 1000 = 10%)
-    function setProtocolFeeBps(uint256 _bps) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the protocol fee bps
+     * @param _bps The _bps
+     */
+function setProtocolFeeBps(uint256 _bps) external onlyRole(OPERATOR_ROLE) {
         require(_bps <= 1000, "Max 10%");
         protocolFeeBps = _bps;
     }
 
     /// @notice Withdraw accumulated protocol fees
     /// @param to The recipient address for the withdrawn fees
-    function withdrawProtocolFees(
+        /**
+     * @notice Withdraws protocol fees
+     * @param to The destination address
+     */
+function withdrawProtocolFees(
         address to
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert ZeroAddress();

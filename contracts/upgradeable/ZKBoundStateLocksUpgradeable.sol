@@ -348,22 +348,38 @@ contract ZKBoundStateLocksUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get total locks created
-    function totalLocksCreated() external view returns (uint256) {
+        /**
+     * @notice Total locks created
+     * @return The result value
+     */
+function totalLocksCreated() external view returns (uint256) {
         return uint64(_packedStats);
     }
 
     /// @notice Get total locks unlocked
-    function totalLocksUnlocked() external view returns (uint256) {
+        /**
+     * @notice Total locks unlocked
+     * @return The result value
+     */
+function totalLocksUnlocked() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_UNLOCKED);
     }
 
     /// @notice Get total optimistic unlocks
-    function totalOptimisticUnlocks() external view returns (uint256) {
+        /**
+     * @notice Total optimistic unlocks
+     * @return The result value
+     */
+function totalOptimisticUnlocks() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_OPTIMISTIC);
     }
 
     /// @notice Get total disputes
-    function totalDisputes() external view returns (uint256) {
+        /**
+     * @notice Total disputes
+     * @return The result value
+     */
+function totalDisputes() external view returns (uint256) {
         return uint64(_packedStats >> _STAT_SHIFT_DISPUTES);
     }
 
@@ -669,6 +685,7 @@ contract ZKBoundStateLocksUpgradeable is
      * @param appId The application ID
      * @param epoch The epoch for versioning
      * @param name Human-readable domain name
+          * @return domainSeparator The domain separator
      */
     function registerDomain(
         uint64 chainId,
@@ -752,7 +769,13 @@ contract ZKBoundStateLocksUpgradeable is
         }
     }
 
-    function _verifyProof(
+        /**
+     * @notice _verify proof
+     * @param lock The lock
+     * @param unlockProof The unlock proof
+     * @return The result value
+     */
+function _verifyProof(
         ZKSLock storage lock,
         UnlockProof calldata unlockProof
     ) internal view returns (bool) {
@@ -905,6 +928,10 @@ contract ZKBoundStateLocksUpgradeable is
     /**
      * @notice Generates a domain separator from components
      * @dev Uses explicit masking to prevent LLVM optimization bugs on L2s
+          * @param chainId The chain identifier
+     * @param appId The appId identifier
+     * @param epoch The epoch
+     * @return The result value
      */
     function generateDomainSeparator(
         uint16 chainId,
@@ -925,6 +952,10 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Generates domain separator with extended chain ID support
+          * @param chainId The chain identifier
+     * @param appId The appId identifier
+     * @param epoch The epoch
+     * @return The result value
      */
     function generateDomainSeparatorExtended(
         uint64 chainId,
@@ -936,6 +967,10 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Generates cross-domain nullifier
+          * @param secret The secret value
+     * @param lockId The lock identifier
+     * @param domainSeparator The domain separator
+     * @return The result value
      */
     function generateNullifier(
         bytes32 secret,
@@ -957,6 +992,7 @@ contract ZKBoundStateLocksUpgradeable is
      * @notice Get active lock IDs with pagination
      * @param offset Start index
      * @param limit Maximum number of items to return
+          * @return The result value
      */
     function getActiveLockIds(
         uint256 offset,
@@ -984,6 +1020,7 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Returns the number of active locks
+          * @return The result value
      */
     function getActiveLockCount() external view returns (uint256) {
         return _activeLockIds.length;
@@ -992,6 +1029,7 @@ contract ZKBoundStateLocksUpgradeable is
     /**
      * @notice Returns all active lock IDs (up to 100)
      * @dev Convenience method for tests — in production use the paginated version
+          * @return The result value
      */
     function getActiveLockIds() external view returns (bytes32[] memory) {
         uint256 count = _activeLockIds.length;
@@ -1010,6 +1048,8 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Returns lock details
+          * @param lockId The lock identifier
+     * @return The result value
      */
     function getLock(bytes32 lockId) external view returns (ZKSLock memory) {
         return locks[lockId];
@@ -1017,6 +1057,8 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Checks if lock can be unlocked
+          * @param lockId The lock identifier
+     * @return The result value
      */
     function canUnlock(bytes32 lockId) external view returns (bool) {
         ZKSLock storage lock = locks[lockId];
@@ -1028,6 +1070,9 @@ contract ZKBoundStateLocksUpgradeable is
 
     /**
      * @notice Returns commitment chain history
+          * @param startCommitment The start commitment
+     * @param maxDepth The maxDepth bound
+     * @return chain The chain
      */
     function getCommitmentChain(
         bytes32 startCommitment,
@@ -1107,12 +1152,18 @@ contract ZKBoundStateLocksUpgradeable is
     }
 
     /// @notice Pause all lock operations (emergency use)
-    function pause() external onlyRole(LOCK_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(LOCK_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Resume lock operations after pause
-    function unpause() external onlyRole(LOCK_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(LOCK_ADMIN_ROLE) {
         _unpause();
     }
 

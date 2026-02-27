@@ -100,7 +100,14 @@ contract MultiRelayerRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMultiRelayerRouter
-    function relay(
+        /**
+     * @notice Relays the operation
+     * @param target The target
+     * @param payload The message payload
+     * @param gasLimit The gas limit
+     * @return result The result
+     */
+function relay(
         address target,
         bytes calldata payload,
         uint256 gasLimit
@@ -239,7 +246,13 @@ contract MultiRelayerRouter is
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function emergencyRelay(
+        /**
+     * @notice Emergency relay
+     * @param target The target
+     * @param payload The message payload
+     * @param gasLimit The gas limit
+     */
+function emergencyRelay(
         address target,
         bytes calldata payload,
         uint256 gasLimit
@@ -269,7 +282,13 @@ contract MultiRelayerRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMultiRelayerRouter
-    function registerAdapter(
+        /**
+     * @notice Registers adapter
+     * @param adapter The bridge adapter address
+     * @param name The name
+     * @param priority The priority
+     */
+function registerAdapter(
         address adapter,
         string calldata name,
         uint16 priority
@@ -297,7 +316,11 @@ contract MultiRelayerRouter is
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function removeAdapter(
+        /**
+     * @notice Removes adapter
+     * @param adapter The bridge adapter address
+     */
+function removeAdapter(
         address adapter
     ) external onlyRole(ROUTER_ADMIN_ROLE) {
         if (!isRegistered[adapter]) revert AdapterNotRegistered(adapter);
@@ -322,7 +345,12 @@ contract MultiRelayerRouter is
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function setAdapterPriority(
+        /**
+     * @notice Sets the adapter priority
+     * @param adapter The bridge adapter address
+     * @param newPriority The new Priority value
+     */
+function setAdapterPriority(
         address adapter,
         uint16 newPriority
     ) external onlyRole(ROUTER_ADMIN_ROLE) {
@@ -335,7 +363,12 @@ contract MultiRelayerRouter is
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function setAdapterStatus(
+        /**
+     * @notice Sets the adapter status
+     * @param adapter The bridge adapter address
+     * @param status The status value
+     */
+function setAdapterStatus(
         address adapter,
         AdapterStatus status
     ) external onlyRole(ROUTER_ADMIN_ROLE) {
@@ -359,12 +392,18 @@ contract MultiRelayerRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Pause all relay operations (admin only)
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause relay operations (admin only)
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -373,19 +412,34 @@ contract MultiRelayerRouter is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMultiRelayerRouter
-    function getAdapter(
+        /**
+     * @notice Returns the adapter
+     * @param adapter The bridge adapter address
+     * @return The result value
+     */
+function getAdapter(
         address adapter
     ) external view returns (AdapterConfig memory) {
         return _adapters[adapter];
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function getActiveAdapters() external view returns (address[] memory) {
+        /**
+     * @notice Returns the active adapters
+     * @return The result value
+     */
+function getActiveAdapters() external view returns (address[] memory) {
         return _getOrderedAdapters();
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param gasLimit The gas limit
+     * @return fee The fee
+     * @return adapter The adapter
+     */
+function estimateFee(
         uint256 gasLimit
     ) external view returns (uint256 fee, address adapter) {
         address[] memory ordered = _getOrderedAdapters();
@@ -408,12 +462,21 @@ contract MultiRelayerRouter is
     }
 
     /// @inheritdoc IMultiRelayerRouter
-    function adapterCount() external view returns (uint256) {
+        /**
+     * @notice Adapter count
+     * @return The result value
+     */
+function adapterCount() external view returns (uint256) {
         return adapterList.length;
     }
 
     /// @notice Get adapter at index
-    function adapterAt(uint256 index) external view returns (address) {
+        /**
+     * @notice Adapter at
+     * @param index The index in the collection
+     * @return The result value
+     */
+function adapterAt(uint256 index) external view returns (address) {
         return adapterList[index];
     }
 

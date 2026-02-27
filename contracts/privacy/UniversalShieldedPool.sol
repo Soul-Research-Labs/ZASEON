@@ -244,7 +244,11 @@ contract UniversalShieldedPool is
 
     /// @notice Deposit native ETH into the shielded pool
     /// @param commitment The Pedersen commitment: H(assetId || amount || secret || nullifierPreimage)
-    function depositETH(
+        /**
+     * @notice Deposits e t h
+     * @param commitment The cryptographic commitment
+     */
+function depositETH(
         bytes32 commitment
     ) external payable nonReentrant whenNotPaused {
         // SECURITY FIX: Block deposits in testMode to prevent loss of real funds
@@ -264,7 +268,13 @@ contract UniversalShieldedPool is
     /// @param assetId The universal asset identifier
     /// @param amount The deposit amount
     /// @param commitment The Pedersen commitment
-    function depositERC20(
+        /**
+     * @notice Deposits e r c20
+     * @param assetId The assetId identifier
+     * @param amount The amount to process
+     * @param commitment The cryptographic commitment
+     */
+function depositERC20(
         bytes32 assetId,
         uint256 amount,
         bytes32 commitment
@@ -300,7 +310,11 @@ contract UniversalShieldedPool is
 
     /// @notice Withdraw from the shielded pool using a ZK proof
     /// @param wp The withdrawal proof data
-    function withdraw(
+        /**
+     * @notice Withdraws the operation
+     * @param wp The wp
+     */
+function withdraw(
         WithdrawalProof calldata wp
     ) external nonReentrant whenNotPaused {
         // Validate inputs
@@ -367,7 +381,11 @@ contract UniversalShieldedPool is
 
     /// @notice Insert commitments from a remote chain (bridged by relayer)
     /// @param batch The cross-chain commitment batch
-    function insertCrossChainCommitments(
+        /**
+     * @notice Insert cross chain commitments
+     * @param batch The batch
+     */
+function insertCrossChainCommitments(
         CrossChainCommitmentBatch calldata batch
     ) external nonReentrant whenNotPaused onlyRole(RELAYER_ROLE) {
         if (processedBatches[batch.batchRoot]) {
@@ -416,7 +434,12 @@ contract UniversalShieldedPool is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Register a new ERC20 asset
-    function registerAsset(
+        /**
+     * @notice Registers asset
+     * @param assetId The assetId identifier
+     * @param tokenAddress The tokenAddress address
+     */
+function registerAsset(
         bytes32 assetId,
         address tokenAddress
     ) external onlyRole(OPERATOR_ROLE) {
@@ -437,7 +460,11 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Set the withdrawal proof verifier
-    function setWithdrawalVerifier(
+        /**
+     * @notice Sets the withdrawal verifier
+     * @param _verifier The _verifier
+     */
+function setWithdrawalVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -447,7 +474,10 @@ contract UniversalShieldedPool is
 
     /// @notice Permanently disable test mode (one-way, irreversible)
     /// @dev Once disabled, withdrawals require a real verifier contract
-    function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Disables test mode
+     */
+function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         testMode = false;
         emit TestModeDisabled(msg.sender);
     }
@@ -455,14 +485,21 @@ contract UniversalShieldedPool is
     /// @notice Assert production readiness on-chain (reverts if not ready)
     /// @dev Call after deployment to confirm verifier is set and testMode is off.
     ///      Emits ProductionReadinessConfirmed for off-chain monitoring.
-    function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Confirm production ready
+     */
+function confirmProductionReady() external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(!testMode, "Test mode still enabled");
         require(withdrawalVerifier != address(0), "No withdrawal verifier set");
         emit ProductionReadinessConfirmed(msg.sender, withdrawalVerifier);
     }
 
     /// @notice Set the cross-chain batch verifier
-    function setBatchVerifier(
+        /**
+     * @notice Sets the batch verifier
+     * @param _verifier The _verifier
+     */
+function setBatchVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -471,7 +508,11 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Set the sanctions screening oracle
-    function setSanctionsOracle(
+        /**
+     * @notice Sets the sanctions oracle
+     * @param _oracle The _oracle
+     */
+function setSanctionsOracle(
         address _oracle
     ) external onlyRole(COMPLIANCE_ROLE) {
         if (_oracle == address(0)) revert ZeroAddress();
@@ -480,18 +521,28 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Deactivate an asset (no new deposits)
-    function deactivateAsset(bytes32 assetId) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Deactivate asset
+     * @param assetId The assetId identifier
+     */
+function deactivateAsset(bytes32 assetId) external onlyRole(OPERATOR_ROLE) {
         assets[assetId].active = false;
         emit AssetDeactivated(assetId);
     }
 
     /// @notice Emergency pause
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -500,22 +551,44 @@ contract UniversalShieldedPool is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get the current Merkle root
-    function getLastRoot() external view returns (bytes32) {
+        /**
+     * @notice Returns the last root
+     * @return The result value
+     */
+function getLastRoot() external view returns (bytes32) {
         return currentRoot;
     }
 
     /// @notice Check if a Merkle root is in the history
-    function isKnownRoot(bytes32 root) external view returns (bool) {
+        /**
+     * @notice Checks if known root
+     * @param root The Merkle root
+     * @return The result value
+     */
+function isKnownRoot(bytes32 root) external view returns (bool) {
         return _isKnownRoot(root);
     }
 
     /// @notice Check if a nullifier has been spent
-    function isSpent(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Checks if spent
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isSpent(bytes32 nullifier) external view returns (bool) {
         return nullifiers[nullifier];
     }
 
     /// @notice Get pool statistics
-    function getPoolStats()
+        /**
+     * @notice Returns the pool stats
+     * @return deposits The deposits
+     * @return withdrawalsCount The withdrawals count
+     * @return crossChainDeposits The cross chain deposits
+     * @return treeSize The tree size
+     * @return root The root
+     */
+function getPoolStats()
         external
         view
         returns (
@@ -536,7 +609,11 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Get all registered asset IDs
-    function getRegisteredAssets() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the registered assets
+     * @return The result value
+     */
+function getRegisteredAssets() external view returns (bytes32[] memory) {
         return assetIds;
     }
 
@@ -661,7 +738,12 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Verify a cross-chain batch proof
-    function _verifyBatchProof(
+        /**
+     * @notice _verify batch proof
+     * @param batch The batch
+     * @return The result value
+     */
+function _verifyBatchProof(
         CrossChainCommitmentBatch calldata batch
     ) internal view returns (bool) {
         bytes memory publicInputs = abi.encode(
@@ -695,7 +777,12 @@ contract UniversalShieldedPool is
     }
 
     /// @notice Safe ETH transfer
-    function _safeTransferETH(address to, uint256 amount) internal {
+        /**
+     * @notice _safe transfer e t h
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function _safeTransferETH(address to, uint256 amount) internal {
         (bool success, ) = to.call{value: amount}("");
         require(success, "ETH transfer failed");
     }

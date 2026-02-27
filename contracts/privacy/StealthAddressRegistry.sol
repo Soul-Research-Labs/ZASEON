@@ -9,6 +9,8 @@ import "../interfaces/IStealthAddressRegistry.sol";
 
 /**
  * @notice Interface for cross-chain derivation proof verification
+  * @title IDerivationVerifier
+ * @author Soul Protocol Team
  */
 interface IDerivationVerifier {
     /**
@@ -172,7 +174,11 @@ contract StealthAddressRegistry is
         _disableInitializers();
     }
 
-    function initialize(address admin) external override initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) external override initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
 
@@ -247,6 +253,7 @@ contract StealthAddressRegistry is
     /**
      * @notice Update meta-address status
      * @dev Cannot re-activate a revoked meta-address
+          * @param newStatus The new Status value
      */
     function updateMetaAddressStatus(KeyStatus newStatus) external override {
         StealthMetaAddress storage meta = metaAddresses[msg.sender];
@@ -280,6 +287,8 @@ contract StealthAddressRegistry is
      * @param recipient The recipient's address (must have registered meta-address)
 
      * @param sharedSecretHash Hash of the shared secret S = r * P_view
+     * @return stealthAddress The stealth address
+     * @return viewTag The view tag
      */
     function deriveStealthAddress(
         address recipient,
@@ -315,7 +324,16 @@ contract StealthAddressRegistry is
     /// @notice Maximum announcements per view tag to prevent unbounded growth
     uint256 public constant MAX_ANNOUNCEMENTS_PER_TAG = 10_000;
 
-    function computeDualKeyStealth(
+        /**
+     * @notice Computes dual key stealth
+     * @param spendingPubKeyHash The spendingPubKeyHash hash value
+     * @param viewingPubKeyHash The viewingPubKeyHash hash value
+     * @param ephemeralPrivKeyHash The ephemeralPrivKeyHash hash value
+     * @param chainId The chain identifier
+     * @return stealthHash The stealth hash
+     * @return derivedAddress The derived address
+     */
+function computeDualKeyStealth(
         bytes32 spendingPubKeyHash,
         bytes32 viewingPubKeyHash,
         bytes32 ephemeralPrivKeyHash,
@@ -417,6 +435,11 @@ contract StealthAddressRegistry is
 
     /**
      * @notice Announce without role (for decentralized usage, with payment)
+          * @param schemeId The schemeId identifier
+     * @param stealthAddress The stealthAddress address
+     * @param ephemeralPubKey The ephemeral pub key
+     * @param viewTag The view tag
+     * @param metadata The metadata bytes
      */
     function announcePrivate(
         uint256 schemeId,
@@ -468,6 +491,7 @@ contract StealthAddressRegistry is
     /**
      * @notice Get announcements by view tag (for efficient scanning)
      * @param viewTag The first byte of the shared secret
+          * @return The result value
      */
     function getAnnouncementsByViewTag(
         bytes1 viewTag
@@ -481,6 +505,7 @@ contract StealthAddressRegistry is
      * @param stealthAddress The stealth address to check
      * @param viewingPrivKeyHash Hash of recipient's viewing private key
      * @param spendingPubKeyHash Hash of recipient's spending public key
+          * @return isOwner The is owner
      */
     function checkStealthOwnership(
         address stealthAddress,
@@ -516,6 +541,7 @@ contract StealthAddressRegistry is
      * @param viewingPrivKeyHash Recipient's viewing private key hash
      * @param spendingPubKeyHash Recipient's spending public key hash
      * @param candidates Candidate stealth addresses to check
+          * @return owned The owned
      */
     function batchScan(
         bytes32 viewingPrivKeyHash,
@@ -562,6 +588,7 @@ contract StealthAddressRegistry is
      * @param sourceStealthKey Stealth key on source chain
      * @param destChainId Destination chain ID
      * @param derivationProof Proof of valid derivation
+          * @return destStealthKey The dest stealth key
      */
     function deriveCrossChainStealth(
         bytes32 sourceStealthKey,
@@ -723,25 +750,46 @@ contract StealthAddressRegistry is
     // VIEW FUNCTIONS
     // =========================================================================
 
-    function getMetaAddress(
+        /**
+     * @notice Returns the meta address
+     * @param owner The owner address
+     * @return The result value
+     */
+function getMetaAddress(
         address owner
     ) external view override returns (StealthMetaAddress memory) {
         return metaAddresses[owner];
     }
 
-    function getAnnouncement(
+        /**
+     * @notice Returns the announcement
+     * @param stealthAddress The stealthAddress address
+     * @return The result value
+     */
+function getAnnouncement(
         address stealthAddress
     ) external view override returns (Announcement memory) {
         return announcements[stealthAddress];
     }
 
-    function getDualKeyRecord(
+        /**
+     * @notice Returns the dual key record
+     * @param stealthHash The stealthHash hash value
+     * @return The result value
+     */
+function getDualKeyRecord(
         bytes32 stealthHash
     ) external view override returns (DualKeyStealth memory) {
         return dualKeyRecords[stealthHash];
     }
 
-    function getCrossChainBinding(
+        /**
+     * @notice Returns the cross chain binding
+     * @param sourceKey The source key
+     * @param destKey The dest key
+     * @return The result value
+     */
+function getCrossChainBinding(
         bytes32 sourceKey,
         bytes32 destKey
     ) external view override returns (CrossChainStealth memory) {
@@ -749,11 +797,26 @@ contract StealthAddressRegistry is
         return crossChainBindings[bindingId];
     }
 
-    function getRegisteredAddressCount() external view override returns (uint256) {
+        /**
+     * @notice Returns the registered address count
+     * @return The result value
+     */
+function getRegisteredAddressCount()
+        external
+        view
+        override
+        returns (uint256)
+    {
         return registeredAddresses.length;
     }
 
-    function getStats()
+        /**
+     * @notice Returns the stats
+     * @return _registeredCount The _registered count
+     * @return _announcementCount The _announcement count
+     * @return _crossChainCount The _cross chain count
+     */
+function getStats()
         external
         view
         override

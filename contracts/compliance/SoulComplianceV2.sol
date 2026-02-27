@@ -9,6 +9,11 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 /// @author Soul Protocol
 /// @notice KYC, AML, and compliance registry with selective disclosure and audit trails
 /// @dev Implements zero-knowledge KYC verification and regulatory compliance
+/**
+ * @title SoulComplianceV2
+ * @author Soul Protocol Team
+ * @notice Soul Compliance V2 contract
+ */
 contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice KYC status enum
     enum KYCStatus {
@@ -141,7 +146,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Authorizes a KYC provider
     /// @param provider The provider address
-    function authorizeProvider(address provider) external onlyOwner {
+        /**
+     * @notice Authorize provider
+     * @param provider The provider identifier
+     */
+function authorizeProvider(address provider) external onlyOwner {
         if (provider == address(0)) revert ZeroAddress();
         authorizedProviders[provider] = true;
         emit KYCProviderAuthorized(provider);
@@ -149,7 +158,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Revokes a KYC provider
     /// @param provider The provider address
-    function revokeProvider(address provider) external onlyOwner {
+        /**
+     * @notice Revokes provider
+     * @param provider The provider identifier
+     */
+function revokeProvider(address provider) external onlyOwner {
         if (provider == address(0)) revert ZeroAddress();
         authorizedProviders[provider] = false;
         emit KYCProviderRevoked(provider);
@@ -157,7 +170,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Authorizes an auditor
     /// @param auditor The auditor address
-    function authorizeAuditor(address auditor) external onlyOwner {
+        /**
+     * @notice Authorize auditor
+     * @param auditor The auditor
+     */
+function authorizeAuditor(address auditor) external onlyOwner {
         if (auditor == address(0)) revert ZeroAddress();
         authorizedAuditors[auditor] = true;
         emit AuditorAuthorized(auditor);
@@ -165,7 +182,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Revokes an auditor
     /// @param auditor The auditor address
-    function revokeAuditor(address auditor) external onlyOwner {
+        /**
+     * @notice Revokes auditor
+     * @param auditor The auditor
+     */
+function revokeAuditor(address auditor) external onlyOwner {
         if (auditor == address(0)) revert ZeroAddress();
         authorizedAuditors[auditor] = false;
         emit AuditorRevoked(auditor);
@@ -176,7 +197,14 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @param tier The KYC tier achieved
     /// @param credentialHash Hash of credentials
     /// @param jurisdiction User's jurisdiction
-    function verifyKYC(
+        /**
+     * @notice Verifys k y c
+     * @param user The user
+     * @param tier The tier
+     * @param credentialHash The credentialHash hash value
+     * @param jurisdiction The jurisdiction
+     */
+function verifyKYC(
         address user,
         KYCTier tier,
         bytes32 credentialHash,
@@ -202,7 +230,12 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Revokes a user's KYC
     /// @param user The user address
     /// @param reason Reason for revocation
-    function revokeKYC(
+        /**
+     * @notice Revokes k y c
+     * @param user The user
+     * @param reason The reason string
+ */
+function revokeKYC(
         address user,
         string calldata reason
     ) external onlyProvider {
@@ -213,7 +246,12 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Checks if a user's KYC is valid
     /// @param user The user address
     /// @return valid True if KYC is valid
-    function isKYCValid(address user) public view returns (bool valid) {
+        /**
+     * @notice Checks if k y c valid
+     * @param user The user
+     * @return valid The valid
+     */
+function isKYCValid(address user) public view returns (bool valid) {
         KYCRecord storage record = kycRecords[user];
         return
             record.status == KYCStatus.Approved &&
@@ -225,7 +263,13 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @param user The user address
     /// @param requiredTier The required tier
     /// @return meets True if user meets requirement
-    function meetsKYCTier(
+        /**
+     * @notice Meets k y c tier
+     * @param user The user
+     * @param requiredTier The required tier
+     * @return meets The meets
+     */
+function meetsKYCTier(
         address user,
         KYCTier requiredTier
     ) external view returns (bool meets) {
@@ -242,7 +286,15 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @param proof Compliance proof
     /// @param result Audit result
     /// @return auditId The audit trail ID
-    function recordAudit(
+        /**
+     * @notice Record audit
+     * @param user The user
+     * @param stateRoot The state root
+     * @param proof The ZK proof data
+     * @param result The result
+     * @return auditId The audit id
+     */
+function recordAudit(
         address user,
         bytes32 stateRoot,
         bytes calldata proof,
@@ -267,7 +319,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Sanctions an address
     /// @param user The address to sanction
-    function sanctionAddress(address user) external onlyOwner {
+        /**
+     * @notice Sanction address
+     * @param user The user
+     */
+function sanctionAddress(address user) external onlyOwner {
         if (user == address(0)) revert ZeroAddress();
         sanctionedAddresses[user] = true;
         kycRecords[user].status = KYCStatus.Rejected;
@@ -276,7 +332,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Removes sanction from an address
     /// @param user The address to unsanction
-    function unsanctionAddress(address user) external onlyOwner {
+        /**
+     * @notice Unsanction address
+     * @param user The user
+     */
+function unsanctionAddress(address user) external onlyOwner {
         if (user == address(0)) revert ZeroAddress();
         sanctionedAddresses[user] = false;
         emit AddressUnsanctioned(user);
@@ -284,21 +344,33 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Restricts a jurisdiction
     /// @param jurisdiction The jurisdiction code
-    function restrictJurisdiction(bytes2 jurisdiction) external onlyOwner {
+        /**
+     * @notice Restrict jurisdiction
+     * @param jurisdiction The jurisdiction
+     */
+function restrictJurisdiction(bytes2 jurisdiction) external onlyOwner {
         restrictedJurisdictions[jurisdiction] = true;
         emit JurisdictionRestricted(jurisdiction);
     }
 
     /// @notice Unrestricts a jurisdiction
     /// @param jurisdiction The jurisdiction code
-    function unrestrictJurisdiction(bytes2 jurisdiction) external onlyOwner {
+        /**
+     * @notice Unrestrict jurisdiction
+     * @param jurisdiction The jurisdiction
+     */
+function unrestrictJurisdiction(bytes2 jurisdiction) external onlyOwner {
         restrictedJurisdictions[jurisdiction] = false;
         emit JurisdictionUnrestricted(jurisdiction);
     }
 
     /// @notice Updates minimum required KYC tier
     /// @param tier The new minimum tier
-    function setMinRequiredTier(KYCTier tier) external onlyOwner {
+        /**
+     * @notice Sets the min required tier
+     * @param tier The tier
+     */
+function setMinRequiredTier(KYCTier tier) external onlyOwner {
         KYCTier oldTier = minRequiredTier;
         minRequiredTier = tier;
         emit MinRequiredTierUpdated(oldTier, tier);
@@ -306,7 +378,11 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Updates KYC validity duration
     /// @param duration The new duration in seconds
-    function setKYCValidityDuration(uint256 duration) external onlyOwner {
+        /**
+     * @notice Sets the k y c validity duration
+     * @param duration The duration in seconds
+     */
+function setKYCValidityDuration(uint256 duration) external onlyOwner {
         if (duration < 1 days) revert DurationTooShort();
         if (duration > 730 days) revert DurationTooLong();
         uint256 oldDuration = kycValidityDuration;
@@ -317,19 +393,30 @@ contract SoulComplianceV2 is Ownable, ReentrancyGuard, Pausable {
     /// @notice Gets a user's audit history
     /// @param user The user address
     /// @return auditIds Array of audit IDs
-    function getUserAuditHistory(
+        /**
+     * @notice Returns the user audit history
+     * @param user The user
+     * @return auditIds The audit ids
+     */
+function getUserAuditHistory(
         address user
     ) external view returns (bytes32[] memory auditIds) {
         return userAuditHistory[user];
     }
 
     /// @notice Pause the contract
-    function pause() external onlyOwner {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyOwner {
         _pause();
     }
 
     /// @notice Unpause the contract
-    function unpause() external onlyOwner {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyOwner {
         _unpause();
     }
 }

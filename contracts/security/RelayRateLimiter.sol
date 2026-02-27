@@ -538,6 +538,11 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Update global rate limit configuration
+          * @param hourlyLimit The hourly limit
+     * @param dailyLimit The daily limit
+     * @param maxSingleTx The maxSingleTx bound
+     * @param minTimeBetweenTx The minTimeBetweenTx timestamp
+     * @param enabled Whether the feature is enabled
      */
     function setGlobalConfig(
         uint256 hourlyLimit,
@@ -563,6 +568,11 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Update per-user rate limit configuration
+          * @param hourlyLimit The hourly limit
+     * @param dailyLimit The daily limit
+     * @param maxSingleTx The maxSingleTx bound
+     * @param minTimeBetweenTx The minTimeBetweenTx timestamp
+     * @param enabled Whether the feature is enabled
      */
     function setUserConfig(
         uint256 hourlyLimit,
@@ -589,6 +599,11 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Update circuit breaker configuration
+          * @param largeTransferThreshold The large transfer threshold
+     * @param velocityThreshold The velocity threshold
+     * @param tvlDropThreshold The tvl drop threshold
+     * @param cooldownPeriod The cooldown period
+     * @param autoBreakEnabled The auto break enabled
      */
     function setCircuitBreakerConfig(
         uint256 largeTransferThreshold,
@@ -627,6 +642,8 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Add/remove address from whitelist
+          * @param account The account address
+     * @param status The status value
      */
     function setWhitelist(
         address account,
@@ -638,6 +655,8 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Add/remove address from blacklist
+          * @param account The account address
+     * @param status The status value
      */
     function setBlacklist(
         address account,
@@ -667,6 +686,12 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Get remaining limits for a user
+          * @param user The user
+     * @return hourlyRemaining The hourly remaining
+     * @return dailyRemaining The daily remaining
+     * @return globalHourlyRemaining The global hourly remaining
+     * @return globalDailyRemaining The global daily remaining
+     * @return nextTxAllowedAt The next tx allowed at
      */
     function getRemainingLimits(
         address user
@@ -710,6 +735,7 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Check if circuit breaker is currently active
+          * @return The result value
      */
     function isCircuitBreakerActive() external view returns (bool) {
         return
@@ -719,6 +745,10 @@ contract RelayRateLimiter is AccessControl, Pausable {
 
     /**
      * @notice Get current global stats
+          * @return hourlyVolume The hourly volume
+     * @return dailyVolume The daily volume
+     * @return currentTVL The current t v l
+     * @return peakTVL The peak t v l
      */
     function getGlobalStats()
         external

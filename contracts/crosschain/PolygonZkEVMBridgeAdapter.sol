@@ -65,7 +65,11 @@ contract PolygonZkEVMBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Set the Soul Hub L2 contract address
     /// @param _soulHubL2 The address of the Soul Hub on Polygon zkEVM
-    function setSoulHubL2(
+        /**
+     * @notice Sets the soul hub l2
+     * @param _soulHubL2 The _soul hub l2
+ */
+function setSoulHubL2(
         address _soulHubL2
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_soulHubL2 != address(0), "Invalid address");
@@ -75,35 +79,57 @@ contract PolygonZkEVMBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
 
     /// @notice Get the Polygon zkEVM mainnet chain ID
     /// @return The chain ID (1101)
-    function chainId() external pure returns (uint256) {
+        /**
+     * @notice Chain id
+     * @return The result value
+     */
+function chainId() external pure returns (uint256) {
         return POLYGON_ZKEVM_MAINNET;
     }
 
     /// @notice Get the human-readable chain name
     /// @return The chain name string
-    function chainName() external pure returns (string memory) {
+        /**
+     * @notice Chain name
+     * @return The result value
+     */
+function chainName() external pure returns (string memory) {
         return "Polygon zkEVM";
     }
 
     /// @notice Check whether the adapter has its bridge address configured
     /// @return True if the bridge address is set (non-zero)
-    function isConfigured() external view returns (bool) {
+        /**
+     * @notice Checks if configured
+     * @return The result value
+     */
+function isConfigured() external view returns (bool) {
         return bridge != address(0);
     }
 
     /// @notice Get the number of blocks required for finality
     /// @return The finality block count
-    function getFinalityBlocks() external pure returns (uint256) {
+        /**
+     * @notice Returns the finality blocks
+     * @return The result value
+     */
+function getFinalityBlocks() external pure returns (uint256) {
         return FINALITY_BLOCKS;
     }
 
     /// @notice Pause the adapter (emergency use)
-    function pause() external onlyRole(PAUSER_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /// @notice Resume the adapter after a pause
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 }

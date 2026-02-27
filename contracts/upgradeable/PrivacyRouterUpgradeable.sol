@@ -11,18 +11,47 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /// @notice Minimal interface for SoulProtocolHub address resolution
+/**
+ * @title ISoulProtocolHubUpgradeable
+ * @author Soul Protocol Team
+ * @notice I Soul Protocol Hub Upgradeable interface
+ */
 interface ISoulProtocolHubUpgradeable {
-    function shieldedPool() external view returns (address);
+        /**
+     * @notice Shielded pool
+     * @return The result value
+     */
+function shieldedPool() external view returns (address);
 
-    function crossChainPrivacyHub() external view returns (address);
+        /**
+     * @notice Cross chain privacy hub
+     * @return The result value
+     */
+function crossChainPrivacyHub() external view returns (address);
 
-    function stealthAddressRegistry() external view returns (address);
+        /**
+     * @notice Stealth address registry
+     * @return The result value
+     */
+function stealthAddressRegistry() external view returns (address);
 
-    function nullifierManager() external view returns (address);
+        /**
+     * @notice Nullifier manager
+     * @return The result value
+     */
+function nullifierManager() external view returns (address);
 
-    function complianceOracle() external view returns (address);
+        /**
+     * @notice Compliance oracle
+     * @return The result value
+     */
+function complianceOracle() external view returns (address);
 
-    function proofTranslator() external view returns (address);
+        /**
+     * @notice Proof translator
+     * @return The result value
+     */
+function proofTranslator() external view returns (address);
 }
 
 /**
@@ -215,7 +244,17 @@ contract PrivacyRouterUpgradeable is
     }
 
     /// @notice Initialize the upgradeable privacy router
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param _admin The _admin bound
+     * @param _shieldedPool The _shielded pool
+     * @param _crossChainHub The _cross chain hub
+     * @param _stealthRegistry The _stealth registry
+     * @param _nullifierManager The _nullifier manager
+     * @param _compliance The _compliance
+     * @param _proofTranslator The _proof translator
+     */
+function initialize(
         address _admin,
         address _shieldedPool,
         address _crossChainHub,
@@ -257,7 +296,12 @@ contract PrivacyRouterUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Deposit native ETH into the shielded pool
-    function depositETH(
+        /**
+     * @notice Deposits e t h
+     * @param commitment The cryptographic commitment
+     * @return operationId The operation id
+     */
+function depositETH(
         bytes32 commitment
     )
         external
@@ -283,7 +327,14 @@ contract PrivacyRouterUpgradeable is
     }
 
     /// @notice Deposit ERC20 tokens — user approves THIS router, router handles pool approval
-    function depositERC20(
+        /**
+     * @notice Deposits e r c20
+     * @param assetId The assetId identifier
+     * @param amount The amount to process
+     * @param commitment The cryptographic commitment
+     * @return operationId The operation id
+     */
+function depositERC20(
         bytes32 assetId,
         uint256 amount,
         bytes32 commitment
@@ -340,7 +391,12 @@ contract PrivacyRouterUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Withdraw from the shielded pool with a ZK proof
-    function withdraw(
+        /**
+     * @notice Withdraws the operation
+     * @param params The params
+     * @return operationId The operation id
+     */
+function withdraw(
         WithdrawParams calldata params
     ) external nonReentrant whenNotPaused returns (bytes32 operationId) {
         _requireComponent(shieldedPool, "shieldedPool");
@@ -377,7 +433,12 @@ contract PrivacyRouterUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Initiate a private cross-chain transfer via the Privacy Hub
-    function initiatePrivateTransfer(
+        /**
+     * @notice Initiates private transfer
+     * @param params The params
+     * @return operationId The operation id
+     */
+function initiatePrivateTransfer(
         CrossChainTransferParams calldata params
     )
         external
@@ -424,7 +485,14 @@ contract PrivacyRouterUpgradeable is
                        STEALTH ADDRESS OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
-    function registerStealthMetaAddress(
+        /**
+     * @notice Registers stealth meta address
+     * @param spendingPubKey The spending pub key
+     * @param viewingPubKey The viewing pub key
+     * @param curveType The curve type
+     * @param schemeId The schemeId identifier
+     */
+function registerStealthMetaAddress(
         bytes calldata spendingPubKey,
         bytes calldata viewingPubKey,
         uint8 curveType,
@@ -444,7 +512,15 @@ contract PrivacyRouterUpgradeable is
         );
     }
 
-    function deriveStealthAddress(
+        /**
+     * @notice Derive stealth address
+     * @param recipient The recipient address
+     * @param ephemeralPubKey The ephemeral pub key
+     * @param sharedSecretHash The sharedSecretHash hash value
+     * @return stealthAddress The stealth address
+     * @return viewTag The view tag
+     */
+function deriveStealthAddress(
         address recipient,
         bytes calldata ephemeralPubKey,
         bytes32 sharedSecretHash
@@ -466,7 +542,12 @@ contract PrivacyRouterUpgradeable is
                          QUERY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Checks if nullifier spent
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         if (nullifierManager == address(0)) return false;
         (bool success, bytes memory result) = nullifierManager.staticcall(
             abi.encodeWithSignature("isNullifierSpent(bytes32)", nullifier)
@@ -475,7 +556,12 @@ contract PrivacyRouterUpgradeable is
         return abi.decode(result, (bool));
     }
 
-    function checkCompliance(address user) external view returns (bool passes) {
+        /**
+     * @notice Checks compliance
+     * @param user The user
+     * @return passes The passes
+     */
+function checkCompliance(address user) external view returns (bool passes) {
         if (!complianceEnabled || compliance == address(0)) return true;
         (bool success, bytes memory result) = compliance.staticcall(
             abi.encodeWithSignature("isKYCValid(address)", user)
@@ -484,13 +570,23 @@ contract PrivacyRouterUpgradeable is
         passes = abi.decode(result, (bool));
     }
 
-    function getOperationCount(
+        /**
+     * @notice Returns the operation count
+     * @param opType The op type
+     * @return The result value
+     */
+function getOperationCount(
         OperationType opType
     ) external view returns (uint256) {
         return operationCounts[opType];
     }
 
-    function getReceipt(
+        /**
+     * @notice Returns the receipt
+     * @param operationId The operationId identifier
+     * @return The result value
+     */
+function getReceipt(
         bytes32 operationId
     ) external view returns (OperationReceipt memory) {
         return receipts[operationId];
@@ -500,7 +596,12 @@ contract PrivacyRouterUpgradeable is
                           ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setComponent(
+        /**
+     * @notice Sets the component
+     * @param name The name
+     * @param addr The target address
+     */
+function setComponent(
         string calldata name,
         address addr
     ) external onlyRole(OPERATOR_ROLE) {
@@ -519,7 +620,11 @@ contract PrivacyRouterUpgradeable is
     }
 
     /// @notice Sync all component addresses from SoulProtocolHub
-    function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sync from hub
+     * @param hub The hub
+     */
+function syncFromHub(address hub) external onlyRole(OPERATOR_ROLE) {
         if (hub == address(0)) revert ZeroAddress();
         ISoulProtocolHubUpgradeable h = ISoulProtocolHubUpgradeable(hub);
 
@@ -541,21 +646,33 @@ contract PrivacyRouterUpgradeable is
         emit SyncedFromHub(hub);
     }
 
-    function setComplianceEnabled(
+        /**
+     * @notice Sets the compliance enabled
+     * @param enabled Whether the feature is enabled
+     */
+function setComplianceEnabled(
         bool enabled
     ) external onlyRole(OPERATOR_ROLE) {
         complianceEnabled = enabled;
         emit ComplianceToggled(enabled);
     }
 
-    function setMinimumKYCTier(uint8 tier) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the minimum k y c tier
+     * @param tier The tier
+     */
+function setMinimumKYCTier(uint8 tier) external onlyRole(OPERATOR_ROLE) {
         uint8 oldTier = minimumKYCTier;
         minimumKYCTier = tier;
         emit MinimumKYCTierUpdated(oldTier, tier);
     }
 
     /// @notice Withdraw ETH accidentally sent to this contract
-    function withdrawETH(
+        /**
+     * @notice Withdraws e t h
+     * @param to The destination address
+     */
+function withdrawETH(
         address payable to
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert ZeroAddress();
@@ -566,11 +683,17 @@ contract PrivacyRouterUpgradeable is
         emit ETHWithdrawn(to, balance);
     }
 
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+ */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Unpauses the operation
+ */
+function unpause() external onlyRole(EMERGENCY_ROLE) {
         _unpause();
     }
 

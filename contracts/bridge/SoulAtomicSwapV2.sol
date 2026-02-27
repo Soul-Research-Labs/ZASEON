@@ -18,6 +18,11 @@ import {SecurityModule} from "../security/SecurityModule.sol";
 /// - Circuit breaker for abnormal swap volume
 /// - Flash loan guards prevent same-block claim attacks
 /// - Withdrawal limits for fee extraction
+/**
+ * @title SoulAtomicSwapV2
+ * @author Soul Protocol Team
+ * @notice Soul Atomic Swap V2 contract
+ */
 contract SoulAtomicSwapV2 is
     Ownable,
     ReentrancyGuard,
@@ -193,7 +198,15 @@ contract SoulAtomicSwapV2 is
     /// @param timeLock The time lock duration in seconds
     /// @param commitment Privacy commitment for stealth transfer
     /// @return swapId The unique swap identifier
-    function createSwapETH(
+        /**
+     * @notice Creates swap e t h
+     * @param recipient The recipient address
+     * @param hashLock The hashLock hash value
+     * @param timeLock The timeLock timestamp
+     * @param commitment The cryptographic commitment
+     * @return swapId The swap id
+     */
+function createSwapETH(
         address recipient,
         bytes32 hashLock,
         uint256 timeLock,
@@ -229,7 +242,17 @@ contract SoulAtomicSwapV2 is
     /// @param timeLock The time lock duration in seconds
     /// @param commitment Privacy commitment for stealth transfer
     /// @return swapId The unique swap identifier
-    function createSwapToken(
+        /**
+     * @notice Creates swap token
+     * @param recipient The recipient address
+     * @param token The token address
+     * @param amount The amount to process
+     * @param hashLock The hashLock hash value
+     * @param timeLock The timeLock timestamp
+     * @param commitment The cryptographic commitment
+     * @return swapId The swap id
+     */
+function createSwapToken(
         address recipient,
         address token,
         uint256 amount,
@@ -331,7 +354,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Commit to claiming a swap (step 1 of commit-reveal to prevent front-running)
     /// @param swapId The swap identifier
     /// @param commitHash keccak256(abi.encodePacked(secret, salt, msg.sender))
-    function commitClaim(
+        /**
+     * @notice Commit claim
+     * @param swapId The swapId identifier
+     * @param commitHash The commitHash hash value
+     */
+function commitClaim(
         bytes32 swapId,
         bytes32 commitHash
     ) external nonReentrant whenNotPaused {
@@ -351,7 +379,13 @@ contract SoulAtomicSwapV2 is
     /// @param swapId The swap identifier
     /// @param secret The secret that hashes to hashLock
     /// @param salt Random salt used in commit
-    function revealClaim(
+        /**
+     * @notice Reveal claim
+     * @param swapId The swapId identifier
+     * @param secret The secret value
+     * @param salt The random salt
+     */
+function revealClaim(
         bytes32 swapId,
         bytes32 secret,
         bytes32 salt
@@ -403,7 +437,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Legacy claim function for backwards compatibility (recipient only)
     /// @param swapId The swap identifier
     /// @param secret The secret that hashes to hashLock
-    function claim(
+        /**
+     * @notice Claims the operation
+     * @param swapId The swapId identifier
+     * @param secret The secret value
+     */
+function claim(
         bytes32 swapId,
         bytes32 secret
     ) external nonReentrant whenNotPaused {
@@ -434,7 +473,11 @@ contract SoulAtomicSwapV2 is
 
     /// @notice Refunds an expired swap to the initiator
     /// @param swapId The swap identifier
-    function refund(bytes32 swapId) external nonReentrant {
+        /**
+     * @notice Refund
+     * @param swapId The swapId identifier
+     */
+function refund(bytes32 swapId) external nonReentrant {
         Swap storage swap = swaps[swapId];
 
         // Cache storage reads (saves ~100 gas per avoided SLOAD)
@@ -466,7 +509,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Gets swap details by hash lock
     /// @param hashLock The hash lock to lookup
     /// @return swap The swap details
-    function getSwapByHashLock(
+        /**
+     * @notice Returns the swap by hash lock
+     * @param hashLock The hashLock hash value
+     * @return swap The swap
+     */
+function getSwapByHashLock(
         bytes32 hashLock
     ) external view returns (Swap memory swap) {
         bytes32 swapId = hashLockToSwap[hashLock];
@@ -476,7 +524,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Checks if a swap is claimable
     /// @param swapId The swap identifier
     /// @return claimable True if claimable
-    function isClaimable(
+        /**
+     * @notice Checks if claimable
+     * @param swapId The swapId identifier
+     * @return claimable The claimable
+     */
+function isClaimable(
         bytes32 swapId
     ) external view returns (bool claimable) {
         Swap storage swap = swaps[swapId];
@@ -488,7 +541,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Checks if a swap is refundable
     /// @param swapId The swap identifier
     /// @return refundable True if refundable
-    function isRefundable(
+        /**
+     * @notice Checks if refundable
+     * @param swapId The swapId identifier
+     * @return refundable The refundable
+     */
+function isRefundable(
         bytes32 swapId
     ) external view returns (bool refundable) {
         Swap storage swap = swaps[swapId];
@@ -499,7 +557,11 @@ contract SoulAtomicSwapV2 is
 
     /// @notice Updates the protocol fee
     /// @param newFeeBps New fee in basis points
-    function setProtocolFee(uint256 newFeeBps) external onlyOwner {
+        /**
+     * @notice Sets the protocol fee
+     * @param newFeeBps The new FeeBps value
+     */
+function setProtocolFee(uint256 newFeeBps) external onlyOwner {
         if (newFeeBps > MAX_FEE_BPS) revert InvalidAmount();
         uint256 oldFee = protocolFeeBps;
         protocolFeeBps = newFeeBps;
@@ -508,7 +570,11 @@ contract SoulAtomicSwapV2 is
 
     /// @notice Updates the fee recipient
     /// @param newRecipient New fee recipient address
-    function setFeeRecipient(address newRecipient) external onlyOwner {
+        /**
+     * @notice Sets the fee recipient
+     * @param newRecipient The new Recipient value
+     */
+function setFeeRecipient(address newRecipient) external onlyOwner {
         if (newRecipient == address(0)) revert ZeroAddress();
         address oldRecipient = feeRecipient;
         feeRecipient = newRecipient;
@@ -518,7 +584,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Request fee withdrawal (starts timelock)
     /// @param token Token address (address(0) for ETH)
     /// @return withdrawalId The withdrawal request ID
-    function requestFeeWithdrawal(
+        /**
+     * @notice Requests fee withdrawal
+     * @param token The token address
+     * @return withdrawalId The withdrawal id
+     */
+function requestFeeWithdrawal(
         address token
     ) external onlyOwner returns (bytes32 withdrawalId) {
         uint256 amount = collectedFees[token];
@@ -536,7 +607,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Execute fee withdrawal after timelock
     /// @param token Token address (address(0) for ETH)
     /// @param withdrawalId The withdrawal request ID
-    function executeFeeWithdrawal(
+        /**
+     * @notice Executes fee withdrawal
+     * @param token The token address
+     * @param withdrawalId The withdrawalId identifier
+     */
+function executeFeeWithdrawal(
         address token,
         bytes32 withdrawalId
     ) external nonReentrant onlyOwner {
@@ -567,7 +643,11 @@ contract SoulAtomicSwapV2 is
     /// @notice Emergency fee withdrawal (legacy, still has timelock via governance)
     /// @param token Token address (address(0) for ETH)
     /// @dev Deprecated: Use requestFeeWithdrawal + executeFeeWithdrawal
-    function withdrawFees(address token) external onlyOwner {
+        /**
+     * @notice Withdraws fees
+     * @param token The token address
+     */
+function withdrawFees(address token) external onlyOwner {
         // For backwards compatibility, initiate a withdrawal request
         uint256 amount = collectedFees[token];
         bytes32 withdrawalId = keccak256(
@@ -579,12 +659,18 @@ contract SoulAtomicSwapV2 is
     }
 
     /// @notice Pause the contract
-    function pause() external onlyOwner {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyOwner {
         _pause();
     }
 
     /// @notice Unpause the contract
-    function unpause() external onlyOwner {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyOwner {
         _unpause();
     }
 
@@ -593,7 +679,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Configure rate limiting parameters
     /// @param window Window duration in seconds
     /// @param maxActions Max actions per window
-    function setRateLimitConfig(
+        /**
+     * @notice Sets the rate limit config
+     * @param window The window
+     * @param maxActions The maxActions bound
+     */
+function setRateLimitConfig(
         uint256 window,
         uint256 maxActions
     ) external onlyOwner {
@@ -603,7 +694,12 @@ contract SoulAtomicSwapV2 is
     /// @notice Configure circuit breaker parameters
     /// @param threshold Volume threshold
     /// @param cooldown Cooldown period after trip
-    function setCircuitBreakerConfig(
+        /**
+     * @notice Sets the circuit breaker config
+     * @param threshold The threshold value
+     * @param cooldown The cooldown
+     */
+function setCircuitBreakerConfig(
         uint256 threshold,
         uint256 cooldown
     ) external onlyOwner {
@@ -615,7 +711,14 @@ contract SoulAtomicSwapV2 is
     /// @param circuitBreakers Enable circuit breaker
     /// @param flashLoanGuard Enable flash loan guard
     /// @param withdrawalLimits Enable withdrawal limits
-    function setSecurityFeatures(
+        /**
+     * @notice Sets the security features
+     * @param rateLimiting The rate limiting
+     * @param circuitBreakers The circuit breakers
+     * @param flashLoanGuard The flash loan guard
+     * @param withdrawalLimits The withdrawal limits
+     */
+function setSecurityFeatures(
         bool rateLimiting,
         bool circuitBreakers,
         bool flashLoanGuard,
@@ -630,7 +733,10 @@ contract SoulAtomicSwapV2 is
     }
 
     /// @notice Emergency reset circuit breaker
-    function resetCircuitBreaker() external onlyOwner {
+        /**
+     * @notice Resets circuit breaker
+     */
+function resetCircuitBreaker() external onlyOwner {
         _resetCircuitBreaker();
     }
 

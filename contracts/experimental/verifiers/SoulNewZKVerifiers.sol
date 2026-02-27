@@ -274,7 +274,13 @@ contract SoulPlonky3Verifier is Ownable {
     // Admin Functions
     // ============================================
 
-    function registerCircuit(
+        /**
+     * @notice Registers circuit
+     * @param circuitHash The circuitHash hash value
+     * @param numPublicInputs The num public inputs
+     * @param degree The degree
+     */
+function registerCircuit(
         bytes32 circuitHash,
         uint256 numPublicInputs,
         uint256 degree
@@ -293,7 +299,12 @@ contract SoulPlonky3Verifier is Ownable {
     // Verification
     // ============================================
 
-    function verify(Plonky3Proof calldata proof) external returns (bool) {
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @return The result value
+     */
+function verify(Plonky3Proof calldata proof) external returns (bool) {
         CircuitConfig storage config = circuits[proof.circuitHash];
         if (!config.active) revert CircuitNotRegistered();
         if (proof.publicInputs.length != config.numPublicInputs)
@@ -386,7 +397,12 @@ contract SoulJoltVerifier is Ownable {
     // Admin Functions
     // ============================================
 
-    function registerProgram(
+        /**
+     * @notice Registers program
+     * @param programHash The programHash hash value
+     * @param maxCycles The maxCycles bound
+     */
+function registerProgram(
         bytes32 programHash,
         uint256 maxCycles
     ) external onlyOwner {
@@ -403,7 +419,12 @@ contract SoulJoltVerifier is Ownable {
     // Verification
     // ============================================
 
-    function verify(JoltProof calldata proof) external returns (bool) {
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @return The result value
+     */
+function verify(JoltProof calldata proof) external returns (bool) {
         JoltProgram storage program = programs[proof.programHash];
         if (!program.active) revert ProgramNotRegistered();
 
@@ -497,7 +518,11 @@ contract SoulBiniusVerifier is Ownable {
     // Admin Functions
     // ============================================
 
-    function registerCircuit(bytes32 circuitHash) external onlyOwner {
+        /**
+     * @notice Registers circuit
+     * @param circuitHash The circuitHash hash value
+ */
+function registerCircuit(bytes32 circuitHash) external onlyOwner {
         registeredCircuits[circuitHash] = true;
     }
 
@@ -505,7 +530,12 @@ contract SoulBiniusVerifier is Ownable {
     // Verification
     // ============================================
 
-    function verify(BiniusProof calldata proof) external returns (bool) {
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @return The result value
+     */
+function verify(BiniusProof calldata proof) external returns (bool) {
         if (!registeredCircuits[proof.circuitHash])
             revert CircuitNotRegistered();
 

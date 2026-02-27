@@ -569,6 +569,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get current Merkle root (public)
+          * @return The result value
      */
     function getMerkleRoot() external view returns (bytes32) {
         return _getMerkleRoot();
@@ -690,6 +691,8 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Check if a commitment exists
+          * @param commitment The cryptographic commitment
+     * @return The result value
      */
     function commitmentExists(bytes32 commitment) external view returns (bool) {
         return commitments[commitment];
@@ -697,6 +700,8 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Check if a nullifier is spent
+          * @param nullifier The nullifier hash
+     * @return The result value
      */
     function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
         return nullifierSpent[nullifier];
@@ -704,6 +709,8 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get pool token info
+          * @param token The token address
+     * @return The result value
      */
     function getPoolToken(
         address token
@@ -713,6 +720,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get all supported tokens
+          * @return The result value
      */
     function getSupportedTokens() external view returns (address[] memory) {
         return supportedTokens;
@@ -720,6 +728,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get total commitments count
+          * @return The result value
      */
     function getCommitmentCount() external view returns (uint256) {
         return nextLeafIndex;

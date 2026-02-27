@@ -64,7 +64,14 @@ contract HyperlaneBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function bridgeMessage(
+        /**
+     * @notice Bridges message
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @param refundAddress The refundAddress address
+     * @return messageId The message id
+     */
+function bridgeMessage(
         address targetAddress,
         bytes calldata payload,
         address refundAddress
@@ -100,7 +107,13 @@ contract HyperlaneBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function estimateFee(
+        /**
+     * @notice Estimate fee
+     * @param targetAddress The targetAddress address
+     * @param payload The message payload
+     * @return nativeFee The native fee
+     */
+function estimateFee(
         address targetAddress,
         bytes calldata payload
     ) external view override returns (uint256 nativeFee) {
@@ -125,7 +138,12 @@ contract HyperlaneBridgeWrapper is
     }
 
     /// @inheritdoc IBridgeAdapter
-    function isMessageVerified(
+        /**
+     * @notice Checks if message verified
+     * @param messageId The message identifier
+     * @return The result value
+     */
+function isMessageVerified(
         bytes32 messageId
     ) external view override returns (bool) {
         // Check Hyperlane mailbox delivered status
@@ -140,14 +158,22 @@ contract HyperlaneBridgeWrapper is
 
     /// @notice Update the Hyperlane mailbox address
     /// @param _mailbox New mailbox contract address
-    function setMailbox(address _mailbox) external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Sets the mailbox
+     * @param _mailbox The _mailbox
+     */
+function setMailbox(address _mailbox) external onlyRole(ADMIN_ROLE) {
         if (_mailbox == address(0)) revert InvalidMailbox();
         mailbox = _mailbox;
     }
 
     /// @notice Update the default destination domain
     /// @param _domain New destination domain ID
-    function setDefaultDestDomain(
+        /**
+     * @notice Sets the default dest domain
+     * @param _domain The _domain
+     */
+function setDefaultDestDomain(
         uint32 _domain
     ) external onlyRole(ADMIN_ROLE) {
         defaultDestDomain = _domain;

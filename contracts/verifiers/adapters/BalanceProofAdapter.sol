@@ -15,14 +15,28 @@ contract BalanceProofAdapter {
     }
 
     /// @notice Standard interface for proof verification
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param balance The balance
+     * @param minRequired The minRequired bound
+     * @param commitment The cryptographic commitment
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         uint256 balance,
         uint256 minRequired,

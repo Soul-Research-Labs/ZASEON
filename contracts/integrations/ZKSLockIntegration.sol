@@ -15,6 +15,11 @@ import "../primitives/CrossDomainNullifierAlgebra.sol";
 /// - CDNA: Cross-domain nullifier generation and verification
 /// - EASC: Execution-agnostic state transitions
 /// - PBP: Policy-bound proof enforcement
+/**
+ * @title ZKSLockIntegration
+ * @author Soul Protocol Team
+ * @notice Z K S Lock Integration contract
+ */
 contract ZKSLockIntegration {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -119,7 +124,16 @@ contract ZKSLockIntegration {
     /// @param domainSeparator Domain separator to use
     /// @param unlockDeadline Deadline for unlock
     /// @return lockId The created lock ID
-    function lockContainer(
+        /**
+     * @notice Locks container
+     * @param containerId The container identifier
+     * @param transitionPredicateHash The transitionPredicateHash hash value
+     * @param policyBinding The policy binding
+     * @param domainSeparator The domain separator
+     * @param unlockDeadline The unlock deadline
+     * @return lockId The lock id
+     */
+function lockContainer(
         bytes32 containerId,
         bytes32 transitionPredicateHash,
         bytes32 policyBinding,
@@ -216,7 +230,12 @@ contract ZKSLockIntegration {
     /// @notice Unlocks a PC³ container with a ZK proof
     /// @param containerId The container to unlock
     /// @param unlockProof Full unlock proof struct
-    function unlockContainer(
+        /**
+     * @notice Unlocks container
+     * @param containerId The container identifier
+     * @param unlockProof The unlock proof
+     */
+function unlockContainer(
         bytes32 containerId,
         ZKBoundStateLocks.UnlockProof calldata unlockProof
     ) external {
@@ -255,7 +274,18 @@ contract ZKSLockIntegration {
     ///      block.timestamp is manipulable by miners/sequencers on L2s.
     /// @return lockId The created lock ID
     /// @return nullifier The generated CDNA nullifier
-    function createCrossDomainLock(
+        /**
+     * @notice Creates cross domain lock
+     * @param stateCommitment The state commitment
+     * @param transitionPredicateHash The transitionPredicateHash hash value
+     * @param domainId The domain identifier
+     * @param commitmentHash The commitmentHash hash value
+     * @param policyHash The policyHash hash value
+     * @param userEntropy The user entropy
+     * @return lockId The lock id
+     * @return nullifier The nullifier
+     */
+function createCrossDomainLock(
         bytes32 stateCommitment,
         bytes32 transitionPredicateHash,
         bytes32 domainId,
@@ -332,7 +362,14 @@ contract ZKSLockIntegration {
 
     /// @notice Creates an atomic lock across all integrated primitives
     /// @dev SECURITY: Requires userEntropy in params to prevent front-running
-    function createAtomicLock(
+        /**
+     * @notice Creates atomic lock
+     * @param params The params
+     * @return lockId The lock id
+     * @return containerId The container id
+     * @return nullifier The nullifier
+     */
+function createAtomicLock(
         AtomicLockParams calldata params
     )
         external
@@ -400,7 +437,16 @@ contract ZKSLockIntegration {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Batch create multiple locks
-    function batchCreateLocks(
+        /**
+     * @notice Batchs create locks
+     * @param stateCommitments The state commitments
+     * @param transitionPredicates The transition predicates
+     * @param policyHashes The policyHashes hash value
+     * @param domainSeparator The domain separator
+     * @param unlockDeadlines The unlock deadlines
+     * @return lockIds The lock ids
+     */
+function batchCreateLocks(
         bytes32[] calldata stateCommitments,
         bytes32[] calldata transitionPredicates,
         bytes32[] calldata policyHashes,
@@ -435,7 +481,15 @@ contract ZKSLockIntegration {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get full lock info including container and nullifier bindings
-    function getLockInfo(
+        /**
+     * @notice Returns the lock info
+     * @param lockId The lock identifier
+     * @return stateCommitment The state commitment
+     * @return containerId The container id
+     * @return nullifier The nullifier
+     * @return isLocked The is locked
+     */
+function getLockInfo(
         bytes32 lockId
     )
         external
@@ -468,7 +522,12 @@ contract ZKSLockIntegration {
     }
 
     /// @notice Check if a container is currently locked
-    function isContainerLocked(
+        /**
+     * @notice Checks if container locked
+     * @param containerId The container identifier
+     * @return The result value
+     */
+function isContainerLocked(
         bytes32 containerId
     ) external view returns (bool) {
         bytes32 lockId = containerToLock[containerId];
@@ -477,7 +536,12 @@ contract ZKSLockIntegration {
     }
 
     /// @notice Get the lock ID for a nullifier
-    function getLockForNullifier(
+        /**
+     * @notice Returns the lock for nullifier
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function getLockForNullifier(
         bytes32 nullifier
     ) external view returns (bytes32) {
         return nullifierToLock[nullifier];
@@ -488,13 +552,21 @@ contract ZKSLockIntegration {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Toggle integration status
-    function setIntegrationEnabled(bool enabled) external {
+        /**
+     * @notice Sets the integration enabled
+     * @param enabled Whether the feature is enabled
+     */
+function setIntegrationEnabled(bool enabled) external {
         // In production, add access control
         integrationEnabled = enabled;
     }
 
     /// @notice Set default domain separator
-    function setDefaultDomainSeparator(bytes32 separator) external {
+        /**
+     * @notice Sets the default domain separator
+     * @param separator The separator
+     */
+function setDefaultDomainSeparator(bytes32 separator) external {
         // In production, add access control
         defaultDomainSeparator = separator;
     }

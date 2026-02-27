@@ -569,7 +569,12 @@ contract MultiBridgeRouter is
         }
     }
 
-    function _callBridge(
+        /**
+     * @notice _call bridge
+     * @param adapter The bridge adapter address
+     * @param message The message data
+ */
+function _callBridge(
         address adapter,
         uint256 /* chainId */,
         bytes calldata message

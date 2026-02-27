@@ -100,14 +100,26 @@ def parse_function_signature(content: str, start_idx: int) -> Tuple[str, int, in
 
     name = func_match.group(1)
 
-    # Count parameters
+    # Count named parameters (unnamed params can't be documented)
     paren_start = content.find('(', start_idx)
     paren_end = find_matching_paren(content, paren_start)
     params_str = content[paren_start + 1:paren_end]
 
     param_count = 0
     if params_str.strip():
-        param_count = len([p for p in params_str.split(',') if p.strip()])
+        for p in params_str.split(','):
+            p = p.strip()
+            if not p:
+                continue
+            parts = p.split()
+            if len(parts) >= 2:
+                last = parts[-1]
+                # If last token is memory/storage/calldata, param is unnamed
+                if last in ('memory', 'storage', 'calldata'):
+                    continue
+                param_count += 1
+            # Single token = just a type with no name (unnamed param)
+            # Don't count it
 
     # Find visibility and returns
     after_params = content[paren_end:paren_end + 500]
@@ -121,7 +133,13 @@ def parse_function_signature(content: str, start_idx: int) -> Tuple[str, int, in
         visibility = "private"
 
     return_count = 0
-    returns_match = re.search(r'returns\s*\(([^)]+)\)', after_params)
+    # Stop at opening brace or semicolon to avoid matching next function
+    sig_after = after_params
+    for stop_char in ('{', ';'):
+        pos = sig_after.find(stop_char)
+        if pos >= 0:
+            sig_after = sig_after[:pos]
+    returns_match = re.search(r'returns\s*\(([^)]+)\)', sig_after)
     if returns_match:
         returns_str = returns_match.group(1)
         return_count = len([r for r in returns_str.split(',') if r.strip()])
@@ -144,7 +162,7 @@ def find_matching_paren(content: str, start: int) -> int:
 
 def extract_natspec_before(content: str, position: int) -> dict:
     """Extract NatSpec comments before a given position in the ORIGINAL content."""
-    search_start = max(0, position - 2000)
+    search_start = max(0, position - 8000)
     block = content[search_start:position]
 
     result = {

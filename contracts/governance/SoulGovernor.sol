@@ -105,7 +105,11 @@ contract SoulGovernor is
      * @dev Use block.timestamp for voting clock — required for L2 compatibility
      *      where block numbers are unreliable across chains.
      */
-    function clock()
+        /**
+     * @notice Clock
+     * @return The result value
+     */
+function clock()
         public
         view
         override(Governor, GovernorVotes, IERC6372)
@@ -118,7 +122,11 @@ contract SoulGovernor is
      * @dev Machine-readable description of the clock mode.
      */
     // solhint-disable-next-line func-name-mixedcase
-    function CLOCK_MODE()
+        /**
+     * @notice C l o c k_ m o d e
+     * @return The result value
+     */
+function CLOCK_MODE()
         public
         pure
         override(Governor, GovernorVotes, IERC6372)
@@ -132,7 +140,11 @@ contract SoulGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc GovernorSettings
-    function votingDelay()
+        /**
+     * @notice Voting delay
+     * @return The result value
+     */
+function votingDelay()
         public
         view
         override(Governor, GovernorSettings, IGovernor)
@@ -142,7 +154,11 @@ contract SoulGovernor is
     }
 
     /// @inheritdoc GovernorSettings
-    function votingPeriod()
+        /**
+     * @notice Voting period
+     * @return The result value
+     */
+function votingPeriod()
         public
         view
         override(Governor, GovernorSettings, IGovernor)
@@ -152,7 +168,12 @@ contract SoulGovernor is
     }
 
     /// @inheritdoc GovernorVotesQuorumFraction
-    function quorum(
+        /**
+     * @notice Quorum
+     * @param timepoint The timepoint timestamp
+     * @return The result value
+     */
+function quorum(
         uint256 timepoint
     )
         public
@@ -164,7 +185,12 @@ contract SoulGovernor is
     }
 
     /// @inheritdoc GovernorTimelockControl
-    function state(
+        /**
+     * @notice State
+     * @param proposalId The proposalId identifier
+     * @return The result value
+     */
+function state(
         uint256 proposalId
     )
         public
@@ -176,7 +202,12 @@ contract SoulGovernor is
     }
 
     /// @inheritdoc GovernorTimelockControl
-    function proposalNeedsQueuing(
+        /**
+     * @notice Proposal needs queuing
+     * @param proposalId The proposalId identifier
+     * @return The result value
+     */
+function proposalNeedsQueuing(
         uint256 proposalId
     )
         public
@@ -188,7 +219,11 @@ contract SoulGovernor is
     }
 
     /// @inheritdoc GovernorSettings
-    function proposalThreshold()
+        /**
+     * @notice Proposal threshold
+     * @return The result value
+     */
+function proposalThreshold()
         public
         view
         override(Governor, GovernorSettings, IGovernor)

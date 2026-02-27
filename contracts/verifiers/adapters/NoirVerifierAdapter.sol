@@ -51,7 +51,11 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function getPublicInputCount()
+        /**
+     * @notice Returns the public input count
+     * @return The result value
+     */
+function getPublicInputCount()
         external
         view
         virtual
@@ -61,7 +65,13 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function verifyProof(
+        /**
+     * @notice Verifys proof
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view override returns (bool) {
@@ -72,7 +82,13 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function verify(
+        /**
+     * @notice Verifys the operation
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verify(
         bytes calldata proof,
         uint256[] calldata publicInputs
     ) external view override returns (bool) {
@@ -93,7 +109,13 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function verifySingle(
+        /**
+     * @notice Verifys single
+     * @param proof The ZK proof data
+     * @param publicInput The public input
+     * @return The result value
+     */
+function verifySingle(
         bytes calldata proof,
         uint256 publicInput
     ) external view override returns (bool) {
@@ -105,7 +127,11 @@ abstract contract NoirVerifierAdapter is IProofVerifier {
     /**
      * @inheritdoc IProofVerifier
      */
-    function isReady() external view override returns (bool) {
+        /**
+     * @notice Checks if ready
+     * @return The result value
+     */
+function isReady() external view override returns (bool) {
         return noirVerifier != address(0);
     }
 

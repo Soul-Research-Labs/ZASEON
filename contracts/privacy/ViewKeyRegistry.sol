@@ -211,7 +211,11 @@ contract ViewKeyRegistry is
         _disableInitializers();
     }
 
-    function initialize(address admin) external initializer {
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     */
+function initialize(address admin) external initializer {
         if (admin == address(0)) revert ZeroAddress();
 
         __AccessControl_init();
@@ -312,6 +316,7 @@ contract ViewKeyRegistry is
      * @param keyType Type of access to grant
      * @param duration How long the grant lasts
      * @param scope Optional scope restriction
+          * @return grantId The grant id
      */
     function issueGrant(
         address grantee,
@@ -364,6 +369,7 @@ contract ViewKeyRegistry is
      * @param auditor Auditor address
      * @param duration Audit duration
      * @param scope Audit scope (e.g., specific chain or time range)
+          * @return grantId The grant id
      */
     function issueAuditGrant(
         address auditor,
@@ -490,6 +496,7 @@ contract ViewKeyRegistry is
      * @param account Account claiming ownership
      * @param keyType Key type being verified
      * @param proof Proof of key ownership
+          * @return The result value
      */
     function verifyKeyOwnership(
         address account,
@@ -507,6 +514,7 @@ contract ViewKeyRegistry is
     /**
      * @notice Check if a grant is currently valid
      * @param grantId Grant to check
+          * @return The result value
      */
     function isGrantValid(bytes32 grantId) external view returns (bool) {
         ViewGrant storage grant = grants[grantId];
@@ -517,6 +525,14 @@ contract ViewKeyRegistry is
 
     /**
      * @notice Get grant details
+          * @param grantId The grantId identifier
+     * @return granter The granter
+     * @return grantee The grantee
+     * @return keyType The key type
+     * @return startTime The start time
+     * @return endTime The end time
+     * @return status The status
+     * @return scope The scope
      */
     function getGrantDetails(
         bytes32 grantId
@@ -547,6 +563,8 @@ contract ViewKeyRegistry is
 
     /**
      * @notice Get all active grants for an account (as grantee)
+          * @param account The account address
+     * @return The result value
      */
     function getActiveGrantsReceived(
         address account
@@ -589,6 +607,8 @@ contract ViewKeyRegistry is
 
     /**
      * @notice Get audit trail for a grant
+          * @param grantId The grantId identifier
+     * @return The result value
      */
     function getAuditTrail(
         bytes32 grantId
@@ -649,11 +669,17 @@ contract ViewKeyRegistry is
     // ADMIN
     // =========================================================================
 
-    function pause() external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(ADMIN_ROLE) {
         _unpause();
     }
 

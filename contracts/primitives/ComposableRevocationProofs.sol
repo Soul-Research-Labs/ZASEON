@@ -696,51 +696,92 @@ contract ComposableRevocationProofs is
                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getAccumulator(
+        /**
+     * @notice Returns the accumulator
+     * @param accumulatorId The accumulatorId identifier
+     * @return The result value
+     */
+function getAccumulator(
         bytes32 accumulatorId
     ) external view returns (RevocationAccumulator memory) {
         return accumulators[accumulatorId];
     }
 
-    function getRevocationEntry(
+        /**
+     * @notice Returns the revocation entry
+     * @param entryId The entryId identifier
+     * @return The result value
+     */
+function getRevocationEntry(
         bytes32 entryId
     ) external view returns (RevocationEntry memory) {
         return revocationEntries[entryId];
     }
 
-    function getNonMembershipProof(
+        /**
+     * @notice Returns the non membership proof
+     * @param proofId The proofId identifier
+     * @return The result value
+     */
+function getNonMembershipProof(
         bytes32 proofId
     ) external view returns (NonMembershipProof memory) {
         return nonMembershipProofs[proofId];
     }
 
-    function getDeltaUpdate(
+        /**
+     * @notice Returns the delta update
+     * @param updateId The updateId identifier
+     * @return The result value
+     */
+function getDeltaUpdate(
         bytes32 updateId
     ) external view returns (DeltaUpdate memory) {
         return deltaUpdates[updateId];
     }
 
-    function getComposableProof(
+        /**
+     * @notice Returns the composable proof
+     * @param composableId The composableId identifier
+     * @return The result value
+     */
+function getComposableProof(
         bytes32 composableId
     ) external view returns (ComposableProof memory) {
         return composableProofs[composableId];
     }
 
-    function getAccumulatorValueAtVersion(
+        /**
+     * @notice Returns the accumulator value at version
+     * @param accumulatorId The accumulatorId identifier
+     * @param version The version number
+     * @return The result value
+     */
+function getAccumulatorValueAtVersion(
         bytes32 accumulatorId,
         uint256 version
     ) external view returns (bytes32) {
         return accumulatorHistory[accumulatorId][version];
     }
 
-    function isCredentialRevoked(
+        /**
+     * @notice Checks if credential revoked
+     * @param accumulatorId The accumulatorId identifier
+     * @param credentialHash The credentialHash hash value
+     * @return The result value
+     */
+function isCredentialRevoked(
         bytes32 accumulatorId,
         bytes32 credentialHash
     ) external view returns (bool) {
         return isRevoked[accumulatorId][credentialHash];
     }
 
-    function getActiveAccumulators() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the active accumulators
+     * @return The result value
+     */
+function getActiveAccumulators() external view returns (bytes32[] memory) {
         return activeAccumulators;
     }
 
@@ -748,21 +789,35 @@ contract ComposableRevocationProofs is
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
-    function deactivateAccumulator(
+        /**
+     * @notice Deactivate accumulator
+     * @param accumulatorId The accumulatorId identifier
+     */
+function deactivateAccumulator(
         bytes32 accumulatorId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         accumulators[accumulatorId].isActive = false;
     }
 
-    function setNonMembershipVerifier(
+        /**
+     * @notice Sets the non membership verifier
+     * @param verifier The verifier contract address
+     */
+function setNonMembershipVerifier(
         address verifier
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(verifier != address(0), "Zero address");

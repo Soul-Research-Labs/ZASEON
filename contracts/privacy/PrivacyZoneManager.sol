@@ -145,7 +145,12 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @inheritdoc IPrivacyZoneManager
-    function createZone(ZoneConfig calldata config)
+        /**
+     * @notice Creates zone
+     * @param config The config
+     * @return zoneId The zone id
+     */
+function createZone(ZoneConfig calldata config)
         external
         onlyRole(ZONE_ADMIN_ROLE)
         whenNotPaused
@@ -209,7 +214,12 @@ contract PrivacyZoneManager is
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function setZoneStatus(bytes32 zoneId, ZoneStatus newStatus)
+        /**
+     * @notice Sets the zone status
+     * @param zoneId The zoneId identifier
+     * @param newStatus The new Status value
+     */
+function setZoneStatus(bytes32 zoneId, ZoneStatus newStatus)
         external
         onlyRole(ZONE_ADMIN_ROLE)
     {
@@ -228,7 +238,12 @@ contract PrivacyZoneManager is
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function setZonePolicy(bytes32 zoneId, bytes32 newPolicyHash)
+        /**
+     * @notice Sets the zone policy
+     * @param zoneId The zoneId identifier
+     * @param newPolicyHash The newPolicyHash hash value
+     */
+function setZonePolicy(bytes32 zoneId, bytes32 newPolicyHash)
         external
         onlyRole(POLICY_MANAGER_ROLE)
     {
@@ -242,7 +257,12 @@ contract PrivacyZoneManager is
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function setZoneDepositCap(bytes32 zoneId, uint256 newCap)
+        /**
+     * @notice Sets the zone deposit cap
+     * @param zoneId The zoneId identifier
+     * @param newCap The new Cap value
+     */
+function setZoneDepositCap(bytes32 zoneId, uint256 newCap)
         external
         onlyRole(ZONE_ADMIN_ROLE)
     {
@@ -260,7 +280,12 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @inheritdoc IPrivacyZoneManager
-    function depositToZone(bytes32 zoneId, bytes32 commitment)
+        /**
+     * @notice Deposits to zone
+     * @param zoneId The zoneId identifier
+     * @param commitment The cryptographic commitment
+     */
+function depositToZone(bytes32 zoneId, bytes32 commitment)
         external
         payable
         nonReentrant
@@ -337,7 +362,15 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @inheritdoc IPrivacyZoneManager
-    function withdrawFromZone(
+        /**
+     * @notice Withdraws from zone
+     * @param zoneId The zoneId identifier
+     * @param nullifier The nullifier hash
+     * @param recipient The recipient address
+     * @param amount The amount to process
+     * @param proof The ZK proof data
+     */
+function withdrawFromZone(
         bytes32 zoneId,
         bytes32 nullifier,
         address recipient,
@@ -392,7 +425,16 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @inheritdoc IPrivacyZoneManager
-    function migrateState(
+        /**
+     * @notice Migrates state
+     * @param sourceZoneId The sourceZoneId identifier
+     * @param destZoneId The destZoneId identifier
+     * @param nullifier The nullifier hash
+     * @param newCommitment The new Commitment value
+     * @param proof The ZK proof data
+     * @return migrationId The migration id
+     */
+function migrateState(
         bytes32 sourceZoneId,
         bytes32 destZoneId,
         bytes32 nullifier,
@@ -479,13 +521,23 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @inheritdoc IPrivacyZoneManager
-    function getZone(bytes32 zoneId) external view returns (Zone memory) {
+        /**
+     * @notice Returns the zone
+     * @param zoneId The zoneId identifier
+     * @return The result value
+     */
+function getZone(bytes32 zoneId) external view returns (Zone memory) {
         if (_zones[zoneId].createdAt == 0) revert ZoneDoesNotExist(zoneId);
         return _zones[zoneId];
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function getZoneStats(bytes32 zoneId) external view returns (ZoneStats memory) {
+        /**
+     * @notice Returns the zone stats
+     * @param zoneId The zoneId identifier
+     * @return The result value
+     */
+function getZoneStats(bytes32 zoneId) external view returns (ZoneStats memory) {
         Zone storage zone = _zones[zoneId];
         if (zone.createdAt == 0) revert ZoneDoesNotExist(zoneId);
 
@@ -507,23 +559,42 @@ contract PrivacyZoneManager is
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function getActiveZoneIds() external view returns (bytes32[] memory) {
+        /**
+     * @notice Returns the active zone ids
+     * @return The result value
+     */
+function getActiveZoneIds() external view returns (bytes32[] memory) {
         return _activeZoneIds;
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function isNullifierSpent(bytes32 zoneId, bytes32 nullifier) external view returns (bool) {
+        /**
+     * @notice Checks if nullifier spent
+     * @param zoneId The zoneId identifier
+     * @param nullifier The nullifier hash
+     * @return The result value
+     */
+function isNullifierSpent(bytes32 zoneId, bytes32 nullifier) external view returns (bool) {
         return zoneNullifiers[zoneId][nullifier];
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function getZoneMerkleRoot(bytes32 zoneId) external view returns (bytes32) {
+        /**
+     * @notice Returns the zone merkle root
+     * @param zoneId The zoneId identifier
+     * @return The result value
+     */
+function getZoneMerkleRoot(bytes32 zoneId) external view returns (bytes32) {
         if (_zones[zoneId].createdAt == 0) revert ZoneDoesNotExist(zoneId);
         return _zones[zoneId].merkleRoot;
     }
 
     /// @inheritdoc IPrivacyZoneManager
-    function getTotalZones() external view returns (uint256) {
+        /**
+     * @notice Returns the total zones
+     * @return The result value
+     */
+function getTotalZones() external view returns (uint256) {
         return totalZonesCreated;
     }
 
@@ -532,28 +603,45 @@ contract PrivacyZoneManager is
     // ============================================
 
     /// @notice Set the migration proof verifier
-    function setMigrationVerifier(address _verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Sets the migration verifier
+     * @param _verifier The _verifier
+     */
+function setMigrationVerifier(address _verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
         migrationVerifier = _verifier;
     }
 
     /// @notice Set the withdrawal proof verifier
-    function setWithdrawalVerifier(address _verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Sets the withdrawal verifier
+     * @param _verifier The _verifier
+     */
+function setWithdrawalVerifier(address _verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
         withdrawalVerifier = _verifier;
     }
 
     /// @notice Permanently disable test mode
-    function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Disables test mode
+     */
+function disableTestMode() external onlyRole(DEFAULT_ADMIN_ROLE) {
         testMode = false;
         testModePermanentlyDisabled = true;
     }
 
     /// @notice Pause the contract
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the contract
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

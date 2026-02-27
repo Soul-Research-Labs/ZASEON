@@ -333,7 +333,14 @@ contract PrivateRelayerNetwork is
         _disableInitializers();
     }
 
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _protocolFeeRecipient The _protocol fee recipient
+     * @param _protocolFeeBps The _protocol fee bps
+     * @param _featureRegistry The _feature registry
+     */
+function initialize(
         address admin,
         address _protocolFeeRecipient,
         uint256 _protocolFeeBps,
@@ -641,6 +648,8 @@ contract PrivateRelayerNetwork is
 
     /**
      * @notice Get currently selected relayer for a round
+          * @param roundId The roundId identifier
+     * @return The result value
      */
     function getSelectedRelayer(
         bytes32 roundId
@@ -756,21 +765,39 @@ contract PrivateRelayerNetwork is
     // VIEW FUNCTIONS
     // =========================================================================
 
-    function getRelayerCount() external view returns (uint256) {
+        /**
+     * @notice Returns the relayer count
+     * @return The result value
+     */
+function getRelayerCount() external view returns (uint256) {
         return activeRelayers.length;
     }
 
-    function getRelayerInfo(
+        /**
+     * @notice Returns the relayer info
+     * @param relayerAddress The relayer address
+     * @return The result value
+     */
+function getRelayerInfo(
         address relayerAddress
     ) external view returns (Relayer memory) {
         return relayers[relayerAddress];
     }
 
-    function getActiveRelayers() external view returns (address[] memory) {
+        /**
+     * @notice Returns the active relayers
+     * @return The result value
+     */
+function getActiveRelayers() external view returns (address[] memory) {
         return activeRelayers;
     }
 
-    function getCommitment(
+        /**
+     * @notice Returns the commitment
+     * @param commitmentHash The commitmentHash hash value
+     * @return The result value
+     */
+function getCommitment(
         bytes32 commitmentHash
     ) external view returns (Commitment memory) {
         return commitments[commitmentHash];

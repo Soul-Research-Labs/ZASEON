@@ -45,6 +45,7 @@ contract RelayerHealthMonitor is AccessControl {
 
     /**
      * @notice Register a new relayer for monitoring
+          * @param _relayer The _relayer
      */
     function registerRelayer(
         address _relayer
@@ -91,6 +92,9 @@ contract RelayerHealthMonitor is AccessControl {
 
     /**
      * @notice Apply penalty points to a relayer (e.g. for downtime or censorship)
+          * @param _relayer The _relayer
+     * @param _points The _points
+     * @param _reason The _reason
      */
     function penalize(
         address _relayer,
@@ -104,6 +108,8 @@ contract RelayerHealthMonitor is AccessControl {
     /**
      * @notice Calculate a health score (0-100) for a relayer
      * @dev Simple formula: Base 100 - FailureRate - LatencyPenalty - AdminPenalty
+          * @param _relayer The _relayer
+     * @return The result value
      */
     function getHealthScore(address _relayer) external view returns (uint256) {
         RelayerStats memory stats = relayerStats[_relayer];

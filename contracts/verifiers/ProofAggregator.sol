@@ -8,6 +8,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /// @author Soul Protocol
 /// @notice Aggregates multiple ZK proofs into a single proof for gas-efficient batch verification
 /// @dev Supports recursive proof aggregation and merkle-based batch verification
+/**
+ * @title ProofAggregator
+ * @author Soul Protocol Team
+ * @notice Proof Aggregator contract
+ */
 contract ProofAggregator is AccessControl, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                  ROLES
@@ -145,7 +150,13 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param proofHash Hash of the proof
     /// @param publicInputsHash Hash of public inputs
     /// @param chainId Source chain ID
-    function registerProof(
+        /**
+     * @notice Registers proof
+     * @param proofHash The proofHash hash value
+     * @param publicInputsHash The publicInputsHash hash value
+     * @param chainId The chain identifier
+     */
+function registerProof(
         bytes32 proofHash,
         bytes32 publicInputsHash,
         uint64 chainId
@@ -169,7 +180,13 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param proofHashes Array of proof hashes
     /// @param publicInputsHashes Array of public input hashes
     /// @param chainIds Array of chain IDs
-    function registerProofsBatch(
+        /**
+     * @notice Registers proofs batch
+     * @param proofHashes The proofHashes hash value
+     * @param publicInputsHashes The publicInputsHashes hash value
+     * @param chainIds The chainIds identifier
+     */
+function registerProofsBatch(
         bytes32[] calldata proofHashes,
         bytes32[] calldata publicInputsHashes,
         uint64[] calldata chainIds
@@ -206,7 +223,12 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @notice Creates a merkle-aggregated batch from registered proofs
     /// @param proofHashes Array of proof hashes to aggregate
     /// @return batchId The created batch ID
-    function createMerkleBatch(
+        /**
+     * @notice Creates merkle batch
+     * @param proofHashes The proofHashes hash value
+     * @return batchId The batch id
+     */
+function createMerkleBatch(
         bytes32[] calldata proofHashes
     ) external onlyRole(AGGREGATOR_ROLE) returns (bytes32 batchId) {
         uint256 len = proofHashes.length;
@@ -268,7 +290,14 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param batchId The batch to verify
     /// @param aggregatedProof The aggregated proof for the entire batch
     /// @param publicInputs Public inputs for the aggregated proof
-    function verifyMerkleBatch(
+        /**
+     * @notice Verifys merkle batch
+     * @param batchId The batchId identifier
+     * @param aggregatedProof The aggregated proof
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyMerkleBatch(
         bytes32 batchId,
         bytes calldata aggregatedProof,
         bytes calldata publicInputs
@@ -318,7 +347,14 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param merkleProof Merkle proof of inclusion
     /// @param proofIndex Index in the batch
     /// @return valid Whether the proof is in the verified batch
-    function verifyProofInBatch(
+        /**
+     * @notice Verifys proof in batch
+     * @param proofHash The proofHash hash value
+     * @param merkleProof The merkle proof
+     * @param proofIndex The proof index
+     * @return valid The valid
+     */
+function verifyProofInBatch(
         bytes32 proofHash,
         bytes32[] calldata merkleProof,
         uint256 proofIndex
@@ -347,7 +383,13 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param proofHashes Array of proof hashes being aggregated
     /// @param aggregatedProofHash Hash of the pre-computed recursive proof
     /// @return batchId The created batch ID
-    function createRecursiveBatch(
+        /**
+     * @notice Creates recursive batch
+     * @param proofHashes The proofHashes hash value
+     * @param aggregatedProofHash The aggregatedProofHash hash value
+     * @return batchId The batch id
+     */
+function createRecursiveBatch(
         bytes32[] calldata proofHashes,
         bytes32 aggregatedProofHash
     ) external onlyRole(AGGREGATOR_ROLE) returns (bytes32 batchId) {
@@ -397,7 +439,14 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param batchId The batch to verify
     /// @param recursiveProof The recursive aggregated proof
     /// @param publicInputs Public inputs containing batch commitment
-    function verifyRecursiveBatch(
+        /**
+     * @notice Verifys recursive batch
+     * @param batchId The batchId identifier
+     * @param recursiveProof The recursive proof
+     * @param publicInputs The public inputs
+     * @return The result value
+     */
+function verifyRecursiveBatch(
         bytes32 batchId,
         bytes calldata recursiveProof,
         bytes calldata publicInputs
@@ -445,7 +494,13 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     /// @param proofHashes Initial proof hashes
     /// @param initialAccumulator Initial accumulator value
     /// @return batchId The created batch ID
-    function createAccumulatorBatch(
+        /**
+     * @notice Creates accumulator batch
+     * @param proofHashes The proofHashes hash value
+     * @param initialAccumulator The initial accumulator
+     * @return batchId The batch id
+     */
+function createAccumulatorBatch(
         bytes32[] calldata proofHashes,
         bytes32 initialAccumulator
     ) external onlyRole(AGGREGATOR_ROLE) returns (bytes32 batchId) {
@@ -498,7 +553,18 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Gets batch details
-    function getBatch(
+        /**
+     * @notice Returns the batch
+     * @param batchId The batchId identifier
+     * @return merkleRoot The merkle root
+     * @return aggregatedProofHash The aggregated proof hash
+     * @return proofCount The proof count
+     * @return createdAt The created at
+     * @return verifiedAt The verified at
+     * @return isVerified The is verified
+     * @return aggregationType The aggregation type
+     */
+function getBatch(
         bytes32 batchId
     )
         external
@@ -526,19 +592,37 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Gets proof hashes in a batch
-    function getBatchProofs(
+        /**
+     * @notice Returns the batch proofs
+     * @param batchId The batchId identifier
+     * @return The result value
+     */
+function getBatchProofs(
         bytes32 batchId
     ) external view returns (bytes32[] memory) {
         return aggregatedBatches[batchId].proofHashes;
     }
 
     /// @notice Checks if a proof has been verified
-    function isProofVerified(bytes32 proofHash) external view returns (bool) {
+        /**
+     * @notice Checks if proof verified
+     * @param proofHash The proofHash hash value
+     * @return The result value
+     */
+function isProofVerified(bytes32 proofHash) external view returns (bool) {
         return proofData[proofHash].verified;
     }
 
     /// @notice Gets gas savings estimate for batching
-    function estimateGasSavings(
+        /**
+     * @notice Estimate gas savings
+     * @param numProofs The num proofs
+     * @return individualGas The individual gas
+     * @return batchedGas The batched gas
+     * @return savings The savings
+     * @return savingsPercent The savings percent
+     */
+function estimateGasSavings(
         uint256 numProofs
     )
         external
@@ -573,7 +657,11 @@ contract ProofAggregator is AccessControl, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Updates the aggregated proof verifier
-    function setAggregatedProofVerifier(
+        /**
+     * @notice Sets the aggregated proof verifier
+     * @param _verifier The _verifier
+     */
+function setAggregatedProofVerifier(
         address _verifier
     ) external onlyRole(VERIFIER_ADMIN_ROLE) {
         address old = aggregatedProofVerifier;

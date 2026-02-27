@@ -873,7 +873,12 @@ contract BaseBridgeAdapter is AccessControl, ReentrancyGuard, Pausable {
      * @param amount Amount of ETH to withdraw
      */
     // slither-disable-next-line arbitrary-send-eth
-    function emergencyWithdraw(
+        /**
+     * @notice Emergency withdraw
+     * @param to The destination address
+     * @param amount The amount to process
+     */
+function emergencyWithdraw(
         address to,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {

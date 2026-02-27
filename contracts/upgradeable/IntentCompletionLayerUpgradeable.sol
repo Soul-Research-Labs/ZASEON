@@ -97,7 +97,12 @@ contract IntentCompletionLayerUpgradeable is
     /// @notice Initializes the upgradeable intent completion layer
     /// @param admin Admin address (DEFAULT_ADMIN_ROLE + UPGRADER_ROLE)
     /// @param _intentVerifier ZK verifier for fulfillment proofs (address(0) to set later)
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _intentVerifier The _intent verifier
+     */
+function initialize(
         address admin,
         address _intentVerifier
     ) external initializer {
@@ -129,7 +134,11 @@ contract IntentCompletionLayerUpgradeable is
                          ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setIntentVerifier(
+        /**
+     * @notice Sets the intent verifier
+     * @param _verifier The _verifier
+     */
+function setIntentVerifier(
         address _verifier
     ) external onlyRole(OPERATOR_ROLE) {
         if (_verifier == address(0)) revert ZeroAddress();
@@ -137,7 +146,12 @@ contract IntentCompletionLayerUpgradeable is
         emit IntentVerifierUpdated(_verifier);
     }
 
-    function setSupportedChain(
+        /**
+     * @notice Sets the supported chain
+     * @param chainId The chain identifier
+     * @param enabled Whether the feature is enabled
+     */
+function setSupportedChain(
         uint256 chainId,
         bool enabled
     ) external onlyRole(OPERATOR_ROLE) {
@@ -146,7 +160,11 @@ contract IntentCompletionLayerUpgradeable is
         emit ChainSupportUpdated(chainId, enabled);
     }
 
-    function withdrawProtocolFees(
+        /**
+     * @notice Withdraws protocol fees
+     * @param to The destination address
+     */
+function withdrawProtocolFees(
         address to
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (to == address(0)) revert ZeroAddress();
@@ -157,11 +175,17 @@ contract IntentCompletionLayerUpgradeable is
         emit ProtocolFeesWithdrawn(to, amount);
     }
 
-    function pause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(EMERGENCY_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(EMERGENCY_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(EMERGENCY_ROLE) {
         _unpause();
     }
 
@@ -170,7 +194,18 @@ contract IntentCompletionLayerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IIntentCompletionLayer
-    function submitIntent(
+        /**
+     * @notice Submits intent
+     * @param sourceChainId The source chain identifier
+     * @param destChainId The destination chain identifier
+     * @param sourceCommitment The source commitment
+     * @param desiredStateHash The desiredStateHash hash value
+     * @param maxFee The maxFee bound
+     * @param deadline The deadline timestamp
+     * @param policyHash The policyHash hash value
+     * @return intentId The intent id
+     */
+function submitIntent(
         uint256 sourceChainId,
         uint256 destChainId,
         bytes32 sourceCommitment,
@@ -239,7 +274,11 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function cancelIntent(bytes32 intentId) external nonReentrant {
+        /**
+     * @notice Cancels intent
+     * @param intentId The intentId identifier
+     */
+function cancelIntent(bytes32 intentId) external nonReentrant {
         Intent storage intent = _intents[intentId];
         if (intent.user == address(0)) revert IntentNotFound();
         if (intent.user != msg.sender) revert NotIntentUser();
@@ -255,7 +294,10 @@ contract IntentCompletionLayerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IIntentCompletionLayer
-    function registerSolver() external payable nonReentrant whenNotPaused {
+        /**
+     * @notice Registers solver
+     */
+function registerSolver() external payable nonReentrant whenNotPaused {
         if (msg.value < MIN_SOLVER_STAKE) revert InsufficientStake();
         Solver storage solver = _solvers[msg.sender];
         if (solver.isActive) revert SolverAlreadyRegistered();
@@ -269,7 +311,10 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function deactivateSolver() external nonReentrant {
+        /**
+     * @notice Deactivate solver
+     */
+function deactivateSolver() external nonReentrant {
         Solver storage solver = _solvers[msg.sender];
         if (!solver.isActive) revert SolverNotActive();
 
@@ -283,7 +328,11 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function claimIntent(bytes32 intentId) external nonReentrant whenNotPaused {
+        /**
+     * @notice Claims intent
+     * @param intentId The intentId identifier
+     */
+function claimIntent(bytes32 intentId) external nonReentrant whenNotPaused {
         Intent storage intent = _intents[intentId];
         if (intent.user == address(0)) revert IntentNotFound();
         if (intent.status != IntentStatus.PENDING) revert IntentNotPending();
@@ -300,7 +349,14 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function fulfillIntent(
+        /**
+     * @notice Fulfill intent
+     * @param intentId The intentId identifier
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param newCommitment The new Commitment value
+     */
+function fulfillIntent(
         bytes32 intentId,
         bytes calldata proof,
         bytes calldata publicInputs,
@@ -340,7 +396,13 @@ contract IntentCompletionLayerUpgradeable is
         emit IntentFulfilled(intentId, msg.sender, proofId);
     }
 
-    function disputeIntent(
+        /**
+     * @notice Dispute intent
+     * @param intentId The intentId identifier
+     * @param disputeProof The dispute proof
+     * @param disputeInputs The dispute inputs
+     */
+function disputeIntent(
         bytes32 intentId,
         bytes calldata disputeProof,
         bytes calldata disputeInputs
@@ -380,7 +442,11 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function finalizeIntent(bytes32 intentId) external nonReentrant {
+        /**
+     * @notice Finalizes intent
+     * @param intentId The intentId identifier
+     */
+function finalizeIntent(bytes32 intentId) external nonReentrant {
         Intent storage intent = _intents[intentId];
         if (intent.user == address(0)) revert IntentNotFound();
         if (intent.status != IntentStatus.FULFILLED)
@@ -407,7 +473,11 @@ contract IntentCompletionLayerUpgradeable is
         emit IntentFinalized(intentId, intent.solver, solverPayout);
     }
 
-    function expireIntent(bytes32 intentId) external nonReentrant {
+        /**
+     * @notice Expire intent
+     * @param intentId The intentId identifier
+     */
+function expireIntent(bytes32 intentId) external nonReentrant {
         Intent storage intent = _intents[intentId];
         if (intent.user == address(0)) revert IntentNotFound();
 
@@ -447,17 +517,32 @@ contract IntentCompletionLayerUpgradeable is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IIntentCompletionLayer
-    function getIntent(bytes32 intentId) external view returns (Intent memory) {
+        /**
+     * @notice Returns the intent
+     * @param intentId The intentId identifier
+     * @return The result value
+     */
+function getIntent(bytes32 intentId) external view returns (Intent memory) {
         return _intents[intentId];
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function getSolver(address solver) external view returns (Solver memory) {
+        /**
+     * @notice Returns the solver
+     * @param solver The solver
+     * @return The result value
+     */
+function getSolver(address solver) external view returns (Solver memory) {
         return _solvers[solver];
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function canFinalize(bytes32 intentId) external view returns (bool) {
+        /**
+     * @notice Can finalize
+     * @param intentId The intentId identifier
+     * @return The result value
+     */
+function canFinalize(bytes32 intentId) external view returns (bool) {
         Intent storage intent = _intents[intentId];
         return
             intent.status == IntentStatus.FULFILLED &&
@@ -465,15 +550,29 @@ contract IntentCompletionLayerUpgradeable is
     }
 
     /// @inheritdoc IIntentCompletionLayer
-    function isFinalized(bytes32 intentId) external view returns (bool) {
+        /**
+     * @notice Checks if finalized
+     * @param intentId The intentId identifier
+     * @return The result value
+     */
+function isFinalized(bytes32 intentId) external view returns (bool) {
         return _intents[intentId].status == IntentStatus.FINALIZED;
     }
 
-    function activeSolverCount() external view returns (uint256) {
+        /**
+     * @notice Active solver count
+     * @return The result value
+     */
+function activeSolverCount() external view returns (uint256) {
         return activeSolvers.length;
     }
 
-    function intentStatus(
+        /**
+     * @notice Intent status
+     * @param intentId The intentId identifier
+     * @return The result value
+     */
+function intentStatus(
         bytes32 intentId
     ) external view returns (IntentStatus) {
         return _intents[intentId].status;

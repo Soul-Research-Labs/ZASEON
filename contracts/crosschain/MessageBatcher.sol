@@ -43,6 +43,12 @@ contract MessageBatcher is AccessControl, ReentrancyGuard {
     /**
      * @notice Queue a proof for batch relay.
      *         User sends ETH to cover their share of the bridge fee.
+          * @param proofId The proofId identifier
+     * @param proof The ZK proof data
+     * @param publicInputs The public inputs
+     * @param commitment The cryptographic commitment
+     * @param destChainId The destination chain identifier
+     * @param proofType The proof type
      */
     function queueProof(
         bytes32 proofId,
@@ -85,6 +91,7 @@ contract MessageBatcher is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Manually trigger batch sending (e.g. by keeper if time aligns)
+          * @param destChainId The destination chain identifier
      */
     function sendBatch(uint64 destChainId) external nonReentrant {
         // Only allow if not empty
@@ -118,7 +125,11 @@ contract MessageBatcher is AccessControl, ReentrancyGuard {
 
     /// @notice Update the maximum number of messages per batch
     /// @param _size New maximum batch size
-    function setMaxBatchSize(
+        /**
+     * @notice Sets the max batch size
+     * @param _size The _size
+     */
+function setMaxBatchSize(
         uint256 _size
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxBatchSize = _size;
@@ -127,7 +138,12 @@ contract MessageBatcher is AccessControl, ReentrancyGuard {
     /// @notice Rescue stuck tokens or ETH from the contract
     /// @param token Token address (address(0) for native ETH)
     /// @param amount Amount to rescue
-    function rescueFunds(
+        /**
+     * @notice Rescue funds
+     * @param token The token address
+     * @param amount The amount to process
+     */
+function rescueFunds(
         address token,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -59,6 +59,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  *
  * @custom:security-contact security@soulprotocol.io
  */
+/**
+ * @title CrossChainBridgeIntegration
+ * @author Soul Protocol Team
+ * @notice Cross Chain Bridge Integration contract
+ */
 contract CrossChainBridgeIntegration is
     ReentrancyGuard,
     AccessControl,
@@ -316,6 +321,11 @@ contract CrossChainBridgeIntegration is
 
     /**
      * @notice Configure a supported chain
+          * @param chainId The chain identifier
+     * @param chainType The chain type
+     * @param minConfirmations The minConfirmations bound
+     * @param maxTransfer The maxTransfer bound
+     * @param dailyLimit The daily limit
      */
     function configureChain(
         uint256 chainId,
@@ -346,6 +356,11 @@ contract CrossChainBridgeIntegration is
 
     /**
      * @notice Register a bridge adapter
+          * @param chainId The chain identifier
+     * @param protocol The protocol
+     * @param adapter The bridge adapter address
+     * @param baseFee The base fee
+     * @param percentageFee The percentage fee
      */
     function registerRelayAdapter(
         uint256 chainId,
@@ -372,6 +387,10 @@ contract CrossChainBridgeIntegration is
 
     /**
      * @notice Configure route between chains
+          * @param sourceChain The source chain
+     * @param destChain The destination chain ID
+     * @param protocols The protocols
+     * @param preferredProtocol The preferred protocol
      */
     function configureRoute(
         uint256 sourceChain,
@@ -417,7 +436,17 @@ contract CrossChainBridgeIntegration is
         BridgeProtocol protocol;
     }
 
-    function bridgeTransfer(
+        /**
+     * @notice Bridges transfer
+     * @param destChain The destination chain ID
+     * @param recipient The recipient address
+     * @param token The token address
+     * @param amount The amount to process
+     * @param protocol The protocol
+     * @param extraData The extra data
+     * @return transferId The transfer id
+     */
+function bridgeTransfer(
         uint256 destChain,
         bytes32 recipient,
         address token,
@@ -566,6 +595,11 @@ contract CrossChainBridgeIntegration is
 
     /**
      * @notice Complete transfer (called by relayer on destination)
+          * @param transferId The transferId identifier
+     * @param recipient The recipient address
+     * @param token The token address
+     * @param amount The amount to process
+     * @param proof The ZK proof data
      */
     function completeRelay(
         bytes32 transferId,
@@ -656,6 +690,12 @@ contract CrossChainBridgeIntegration is
 
     /**
      * @notice Get quote for transfer
+          * @param destChain The destination chain ID
+     * @param amount The amount to process
+     * @param protocol The protocol
+     * @return bridgeFee The bridge fee
+     * @return protocolFee The protocol fee
+     * @return estimatedLatency The estimated latency
      */
     function getQuote(
         uint256 destChain,
@@ -780,7 +820,10 @@ contract CrossChainBridgeIntegration is
     }
 
     /// @notice Claim accrued protocol fees
-    function claimProtocolFees() external nonReentrant {
+        /**
+     * @notice Claims protocol fees
+     */
+function claimProtocolFees() external nonReentrant {
         if (msg.sender != feeRecipient) revert Unauthorized();
         uint256 amount = accruedProtocolFees;
         if (amount == 0) revert ZeroAmount();
@@ -793,43 +836,79 @@ contract CrossChainBridgeIntegration is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getChainConfig(
+        /**
+     * @notice Returns the chain config
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function getChainConfig(
         uint256 chainId
     ) external view returns (ChainConfig memory) {
         return chainConfigs[chainId];
     }
 
-    function getRelayAdapter(
+        /**
+     * @notice Returns the relay adapter
+     * @param chainId The chain identifier
+     * @param protocol The protocol
+     * @return The result value
+     */
+function getRelayAdapter(
         uint256 chainId,
         BridgeProtocol protocol
     ) external view returns (BridgeAdapter memory) {
         return relayAdapters[chainId][protocol];
     }
 
-    function getRoute(
+        /**
+     * @notice Returns the route
+     * @param source The source
+     * @param dest The dest
+     * @return The result value
+     */
+function getRoute(
         uint256 source,
         uint256 dest
     ) external view returns (Route memory) {
         return routes[_getRouteKey(source, dest)];
     }
 
-    function getRelayRecord(
+        /**
+     * @notice Returns the relay record
+     * @param transferId The transferId identifier
+     * @return The result value
+     */
+function getRelayRecord(
         bytes32 transferId
     ) external view returns (TransferRecord memory) {
         return transfers[transferId];
     }
 
-    function getUserTransfers(
+        /**
+     * @notice Returns the user transfers
+     * @param user The user
+     * @return The result value
+     */
+function getUserTransfers(
         address user
     ) external view returns (bytes32[] memory) {
         return userTransfers[user];
     }
 
-    function getSupportedChains() external view returns (uint256[] memory) {
+        /**
+     * @notice Returns the supported chains
+     * @return The result value
+     */
+function getSupportedChains() external view returns (uint256[] memory) {
         return supportedChains;
     }
 
-    function isChainSupported(uint256 chainId) external view returns (bool) {
+        /**
+     * @notice Checks if chain supported
+     * @param chainId The chain identifier
+     * @return The result value
+     */
+function isChainSupported(uint256 chainId) external view returns (bool) {
         return chainConfigs[chainId].isSupported;
     }
 
@@ -837,25 +916,44 @@ contract CrossChainBridgeIntegration is
                          ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function setAutoRouter(bool enabled) external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Sets the auto router
+     * @param enabled Whether the feature is enabled
+     */
+function setAutoRouter(bool enabled) external onlyRole(OPERATOR_ROLE) {
         autoRouterEnabled = enabled;
     }
 
-    function setFeeRecipient(
+        /**
+     * @notice Sets the fee recipient
+     * @param _feeRecipient The _fee recipient
+     */
+function setFeeRecipient(
         address _feeRecipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_feeRecipient == address(0)) revert ZeroAddress();
         feeRecipient = _feeRecipient;
     }
 
-    function setProtocolFee(
+        /**
+     * @notice Sets the protocol fee
+     * @param _protocolFeeBps The _protocol fee bps
+     */
+function setProtocolFee(
         uint256 _protocolFeeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_protocolFeeBps > 500) revert InvalidRoute();
         protocolFeeBps = _protocolFeeBps;
     }
 
-    function updateAdapterMetrics(
+        /**
+     * @notice Updates adapter metrics
+     * @param chainId The chain identifier
+     * @param protocol The protocol
+     * @param avgLatency The avg latency
+     * @param reliability The reliability
+     */
+function updateAdapterMetrics(
         uint256 chainId,
         BridgeProtocol protocol,
         uint256 avgLatency,
@@ -866,23 +964,36 @@ contract CrossChainBridgeIntegration is
         adapter.reliability = reliability;
     }
 
-    function deactivateAdapter(
+        /**
+     * @notice Deactivate adapter
+     * @param chainId The chain identifier
+     * @param protocol The protocol
+     */
+function deactivateAdapter(
         uint256 chainId,
         BridgeProtocol protocol
     ) external onlyRole(GUARDIAN_ROLE) {
         relayAdapters[chainId][protocol].isActive = false;
     }
 
-    function pause() external onlyRole(GUARDIAN_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
     /**
      * @notice Emergency withdraw
+          * @param token The token address
+     * @param to The destination address
      */
     function emergencyWithdraw(
         address token,

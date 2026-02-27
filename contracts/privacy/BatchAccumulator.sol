@@ -120,7 +120,13 @@ contract BatchAccumulator is
         _disableInitializers();
     }
 
-    function initialize(
+        /**
+     * @notice Initializes the operation
+     * @param admin The admin bound
+     * @param _proofVerifier The _proof verifier
+     * @param _crossChainHub The _cross chain hub
+     */
+function initialize(
         address admin,
         address _proofVerifier,
         address _crossChainHub
@@ -177,6 +183,8 @@ contract BatchAccumulator is
 
     /**
      * @notice Deactivate a route
+          * @param sourceChainId The source chain identifier
+     * @param targetChainId The target chain identifier
      */
     function deactivateRoute(
         uint256 sourceChainId,
@@ -292,6 +300,7 @@ contract BatchAccumulator is
 
     /**
      * @notice Force release a batch (operator only, for emergency)
+          * @param batchId The batchId identifier
      */
     function forceReleaseBatch(
         bytes32 batchId
@@ -374,6 +383,12 @@ contract BatchAccumulator is
 
     /**
      * @notice Get batch status and info
+          * @param batchId The batchId identifier
+     * @return size The size
+     * @return age The age
+     * @return status The status
+     * @return isReady The is ready
+     * @return targetChainId The target chain id
      */
     function getBatchInfo(
         bytes32 batchId
@@ -399,6 +414,12 @@ contract BatchAccumulator is
 
     /**
      * @notice Get active batch for a route
+          * @param sourceChainId The source chain identifier
+     * @param targetChainId The target chain identifier
+     * @return batchId The batch id
+     * @return currentSize The current size
+     * @return minSize The min size
+     * @return timeRemaining The time remaining
      */
     function getActiveBatch(
         uint256 sourceChainId,
@@ -433,6 +454,11 @@ contract BatchAccumulator is
 
     /**
      * @notice Get transaction info by commitment
+          * @param commitment The cryptographic commitment
+     * @return batchId The batch id
+     * @return submittedAt The submitted at
+     * @return processed The processed
+     * @return batchStatus The batch status
      */
     function getTransactionByCommitment(
         bytes32 commitment
@@ -471,6 +497,8 @@ contract BatchAccumulator is
 
     /**
      * @notice Calculate anonymity set size for a commitment
+          * @param commitment The cryptographic commitment
+     * @return The result value
      */
     function getAnonymitySet(
         bytes32 commitment
@@ -622,22 +650,36 @@ contract BatchAccumulator is
     // ADMIN FUNCTIONS
     // =========================================================================
 
-    function pause() external override onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Pauses the operation
+     */
+function pause() external override onlyRole(OPERATOR_ROLE) {
         _pause();
     }
 
-    function unpause() external override onlyRole(OPERATOR_ROLE) {
+        /**
+     * @notice Unpauses the operation
+     */
+function unpause() external override onlyRole(OPERATOR_ROLE) {
         _unpause();
     }
 
-    function setProofVerifier(
+        /**
+     * @notice Sets the proof verifier
+     * @param _proofVerifier The _proof verifier
+     */
+function setProofVerifier(
         address _proofVerifier
     ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_proofVerifier == address(0)) revert ZeroAddress();
         proofVerifier = _proofVerifier;
     }
 
-    function setCrossChainHub(
+        /**
+     * @notice Sets the cross chain hub
+     * @param _crossChainHub The _cross chain hub
+     */
+function setCrossChainHub(
         address _crossChainHub
     ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_crossChainHub == address(0)) revert ZeroAddress();

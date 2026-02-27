@@ -128,7 +128,11 @@ contract SoulToken is
      * @dev Use block.timestamp for the voting clock — required for L2 compatibility
      *      where block numbers are unreliable. Matches SoulGovernor.clock().
      */
-    function clock() public view override returns (uint48) {
+        /**
+     * @notice Clock
+     * @return The result value
+     */
+function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
 
@@ -136,7 +140,11 @@ contract SoulToken is
      * @dev Machine-readable clock mode descriptor (ERC-6372).
      */
     // solhint-disable-next-line func-name-mixedcase
-    function CLOCK_MODE() public pure override returns (string memory) {
+        /**
+     * @notice C l o c k_ m o d e
+     * @return The result value
+     */
+function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp&from=default";
     }
 
@@ -145,7 +153,13 @@ contract SoulToken is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ERC20Capped
-    function _update(
+        /**
+     * @notice _update
+     * @param from The source address
+     * @param to The destination address
+     * @param value The value to set
+     */
+function _update(
         address from,
         address to,
         uint256 value
@@ -154,7 +168,12 @@ contract SoulToken is
     }
 
     /// @inheritdoc ERC20Permit
-    function nonces(
+        /**
+     * @notice Nonces
+     * @param owner The owner address
+     * @return The result value
+     */
+function nonces(
         address owner
     ) public view override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
