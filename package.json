@@ -91,16 +91,12 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.4",
-    "@nomicfoundation/hardhat-ignition": "^3.0.0",
-    "@nomicfoundation/hardhat-ignition-viem": "^3.0.0",
     "@nomicfoundation/hardhat-keystore": "^3.0.0",
     "@nomicfoundation/hardhat-mocha": "^3.0.9",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.1",
     "@nomicfoundation/hardhat-verify": "^3.0.9",
     "@nomicfoundation/hardhat-viem": "^3.0.0",
-    "@nomicfoundation/ignition-core": "^3.0.0",
-    "@openzeppelin/contracts": "^5.4.0",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.0.9",
@@ -113,6 +109,7 @@
     "viem": "^2.30.0"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
     "poseidon-lite": "^0.3.0"
   },

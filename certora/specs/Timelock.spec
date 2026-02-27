@@ -81,22 +81,12 @@ hook Sstore operations[KEY bytes32 id].confirmations uint8 count (uint8 old_coun
  */
 invariant minDelayBounds()
     minDelay() >= MIN_DELAY_FLOOR() && minDelay() <= MAX_DELAY()
-    {
-        preserved {
-            require true;
-        }
-    }
 
 /**
  * @notice emergencyDelay is always <= minDelay
  */
 invariant emergencyDelayBounds()
     emergencyDelay() >= MIN_DELAY_FLOOR() && emergencyDelay() <= minDelay()
-    {
-        preserved {
-            require true;
-        }
-    }
 
 /**
  * @notice Confirmations can only increase

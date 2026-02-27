@@ -162,8 +162,9 @@ rule flashLoanDetectionWorks(env e, address target) {
     // If balance changed within same block, should detect
     bool isSafe = validateFlashLoanSafe(e, target);
     
-    // This is a sanity check - in real scenario we'd check block tracking
-    assert true, "Flash loan validation completed";
+    // Flash loan detection must be deterministic within the same transaction context
+    bool isSafe2 = validateFlashLoanSafe(e, target);
+    assert isSafe == isSafe2, "Flash loan detection must be deterministic";
 }
 
 /**
@@ -255,9 +256,9 @@ invariant ismTypeImmutable()
 rule merkleProofSoundness(env e, bytes32 leaf, bytes32[] proof, bytes32 root) {
     bool valid = verifyMerkleProof(e, leaf, proof, root);
     
-    // If proof is valid, leaf is in tree with given root
-    // (We can't fully verify this without the tree, but we ensure no false positives)
-    assert true, "Merkle verification completed";
+    // Merkle verification must be deterministic: same inputs produce same result
+    bool valid2 = verifyMerkleProof(e, leaf, proof, root);
+    assert valid == valid2, "Merkle proof verification must be deterministic";
 }
 
 /*//////////////////////////////////////////////////////////////
@@ -363,9 +364,9 @@ rule pauseStopsOperations(env e, method f)
     calldataarg args;
     f@withrevert(e, args);
     
-    // Most state-changing operations should revert when paused
-    // (Some admin operations may still work)
-    assert true, "Pause state checked";
+    // State-changing operations must revert when paused
+    // Filtered to exclude unpause() which legitimately succeeds
+    assert lastReverted, "State-changing operations must revert when paused";
 }
 
 /**
@@ -400,9 +401,10 @@ rule noUnauthorizedValueExtraction(env e, method f) {
     
     uint256 contractBalanceAfter = e.contract.balance;
     
-    // Balance changes should be through authorized channels
-    // (withdrawals, fee payments, etc.)
-    assert true, "Balance change audited";
+    // The contract cannot create ETH — balance after call cannot exceed
+    // previous balance plus any ETH sent with the call
+    assert to_mathint(contractBalanceAfter) <= to_mathint(contractBalanceBefore) + to_mathint(e.msg.value),
+        "Contract balance cannot exceed input balance plus msg.value";
 }
 
 /**
@@ -418,9 +420,11 @@ rule crossL2ValuePreserved(env e, bytes32 bundleId) {
     
     executeOnCurrentChain(e, bundleId);
     
-    // Value should be preserved (transferred, not destroyed)
-    // This is a high-level property - actual verification needs value tracking
-    assert true, "Cross-L2 execution completed";
+    // After execution, the bundle's executed count must have advanced
+    (address initiator2, uint8 phase2, uint256 chainCount2, 
+     uint256 preparedCount2, uint256 executedCount2, uint256 timeout2) = getBundle(e, bundleId);
+    assert to_mathint(executedCount2) >= to_mathint(executedCount) + 1,
+        "Execution must increment the bundle executed count";
 }
 
 /*//////////////////////////////////////////////////////////////

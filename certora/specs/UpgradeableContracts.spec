@@ -275,8 +275,10 @@ rule implementationNotCallable() {
     calldataarg args;
     impl.f@withrevert(e, args);
     
-    // If it doesn't revert, state should be on implementation, not proxy
-    assert true, "Direct implementation calls shouldn't affect proxy";
+    // Direct calls to implementation must not change the proxy's implementation slot
+    address implAfter = getImplementation();
+    assert implAfter == impl,
+        "Direct implementation calls must not change proxy implementation address";
 }
 
 /**

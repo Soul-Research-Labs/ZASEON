@@ -64,22 +64,12 @@ hook Sstore verificationKeys[KEY bytes32 vk].policyHash bytes32 policy (bytes32 
  */
 invariant policyCountConsistent()
     totalPolicies() == ghostPolicyCount
-    {
-        preserved {
-            require true;
-        }
-    }
 
 /**
  * @notice Deactivated policies stay deactivated
  */
 invariant deactivationPermanent(bytes32 policyId)
     !policyActive[policyId] && policyExists[policyId] => always(!isPolicyActive(policyId))
-    {
-        preserved {
-            require true;
-        }
-    }
 
 /*//////////////////////////////////////////////////////////////
                           RULES

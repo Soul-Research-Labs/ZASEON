@@ -158,6 +158,7 @@ scroll_sepolia = { key = "${SCROLLSCAN_API_KEY}", url = "https://api-sepolia.scr
 linea_sepolia = { key = "${LINEASCAN_API_KEY}", url = "https://api-sepolia.lineascan.build/api" }
 polygon_amoy = { key = "${POLYGONSCAN_API_KEY}", url = "https://api-amoy.polygonscan.com/api" }
 zksync = { key = "${ZKSYNC_API_KEY}", url = "https://block-explorer-api.mainnet.zksync.io/api", chain = 324 }
+zksync_sepolia = { key = "${ZKSYNC_API_KEY}", url = "https://block-explorer-api.sepolia.zksync.dev/api", chain = 300 }
 scroll = { key = "${SCROLLSCAN_API_KEY}", url = "https://api.scrollscan.com/api", chain = 534352 }
 linea = { key = "${LINEASCAN_API_KEY}", url = "https://api.lineascan.build/api", chain = 59144 }
 polygon_zkevm = { key = "${POLYGONSCAN_API_KEY}", url = "https://api-zkevm.polygonscan.com/api", chain = 1101 }

@@ -1,0 +1,24 @@
+{
+  "name": "@soul/sdk-quickstart-examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Quick-start examples for the Soul Protocol SDK",
+  "scripts": {
+    "cross-chain": "tsx cross-chain-transfer.ts",
+    "stealth": "tsx stealth-address.ts",
+    "shielded": "tsx shielded-deposit.ts",
+    "zk-proof": "tsx zk-proof.ts",
+    "disclosure": "tsx selective-disclosure.ts",
+    "routing": "tsx dynamic-routing.ts",
+    "intent": "tsx intent-settlement.ts"
+  },
+  "dependencies": {
+    "@soul/sdk": "file:../../sdk"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0",
+    "dotenv": "^17.2.0"
+  }
+}

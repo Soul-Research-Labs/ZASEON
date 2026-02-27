@@ -184,9 +184,13 @@ rule cannotRevokeInactive(env e1, env e2) {
     // Second revoke: meta is now REVOKED, but revokeMetaAddress only checks INACTIVE
     // Actually it succeeds (sets REVOKED again) — this tests the behavior
     revokeMetaAddress@withrevert(e2);
+    bool secondReverted = lastReverted;
 
-    // Both paths are valid: either it re-sets REVOKED or it reverts
-    assert true, "Double revoke handled";
+    // Whether the second revoke succeeded or reverted, behavior must be
+    // idempotent — a third call should behave identically to the second
+    revokeMetaAddress@withrevert(e2);
+    assert lastReverted == secondReverted,
+        "Repeated revocation must be idempotent — consistent behavior on every call";
 }
 
 /* ============================================================================

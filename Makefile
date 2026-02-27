@@ -14,7 +14,7 @@ build:
 
 test:
 	$(FORGE) test -vvv
-	npx hardhat test test/privacy/PrivacyZoneManager.test.ts test/privacy/DataAvailabilityOracle.test.ts test/relayer/HeterogeneousRelayerRegistry.test.ts
+	npx hardhat test
 
 clean:
 	$(FORGE) clean
@@ -134,7 +134,7 @@ deploy-mainnet:
 ## Run all tests: Foundry (skip stress) + Hardhat
 test-all:
 	$(FORGE) test --no-match-path 'test/stress/*' -vvv
-	npx hardhat test test/privacy/PrivacyZoneManager.test.ts test/privacy/DataAvailabilityOracle.test.ts test/relayer/HeterogeneousRelayerRegistry.test.ts
+	npx hardhat test
 
 ## Full CI pipeline: build → test → lint → slither → coverage
 ci: build test-all lint slither coverage-ci

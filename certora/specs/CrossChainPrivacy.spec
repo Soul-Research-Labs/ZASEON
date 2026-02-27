@@ -433,8 +433,12 @@ rule noValueCreation(
     // This is enforced by commitment verification in the contract
     submitRingTransaction(e, inputs, outputs, fee, signature, rangeProofs);
 
-    // If we reach here without revert, value conservation holds
-    assert true, "Value conservation verified by commitment verification";
+    // If submitRingTransaction succeeded (no revert), the contract enforced
+    // value conservation: sum(input_values) >= sum(output_values) + fee.
+    // Verify that the inputs are now spent — replaying the same transaction must fail
+    submitRingTransaction@withrevert(e, inputs, outputs, fee, signature, rangeProofs);
+    assert lastReverted,
+        "Replaying the same ring transaction must fail (key images consumed)";
 }
 
 /**

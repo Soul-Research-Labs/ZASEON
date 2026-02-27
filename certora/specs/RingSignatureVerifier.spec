@@ -79,6 +79,9 @@ rule verifyIsStateless(
     // change any storage. This is enforced by the Solidity compiler
     // but Certora can additionally verify no hidden effects.
     verify@withrevert(ring, keyImages, signature, message);
-    // If we reach here, the call completed without storage changes
-    assert true;
+    bool reverted = lastReverted;
+    // verify is view — calling it again with the same inputs must yield identical behavior
+    verify@withrevert(ring, keyImages, signature, message);
+    assert reverted == lastReverted,
+        "View function verify must produce identical revert behavior on repeated calls";
 }

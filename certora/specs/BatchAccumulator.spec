@@ -100,7 +100,6 @@ rule setCrossChainHubRejectsZero(env e) {
 /// @title Once a nullifier is used, it stays used (monotonicity)
 invariant nullifierMonotonicity(bytes32 nullifier)
     nullifierUsed(nullifier) => nullifierUsed(nullifier)
-    { preserved { require true; } }
 
 /*//////////////////////////////////////////////////////////////
                     ROUTE CONFIGURATION BOUNDS

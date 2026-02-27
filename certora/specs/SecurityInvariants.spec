@@ -348,7 +348,13 @@ rule roleProtectedFunctionsRequireAuth(bytes32 role) {
     env e;
     
     require !hasRole(role, e.msg.sender);
+    require !hasRole(0x00, e.msg.sender); // caller is not DEFAULT_ADMIN_ROLE
     
-    // This is a parametric rule - specific implementations needed per contract
-    assert true, "Authorization required for protected functions";
+    calldataarg args;
+    method f;
+    f@withrevert(e, args);
+    
+    // A non-admin caller cannot escalate to DEFAULT_ADMIN_ROLE via any call
+    assert !hasRole(0x00, e.msg.sender),
+        "Non-admin callers cannot self-escalate to DEFAULT_ADMIN_ROLE";
 }

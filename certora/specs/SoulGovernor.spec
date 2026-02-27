@@ -139,10 +139,10 @@ rule proposalThresholdEnforced(
 
     propose@withrevert(e, targets, values, calldatas, description);
 
-    // If propose succeeded, the proposer met the threshold
-    // (We can't directly check votes here, but the OZ implementation enforces this)
-    // This rule documents the expected invariant
-    assert true;
+    // Proposal threshold must remain positive after any propose attempt
+    // (prevents side-effects that weaken governance via threshold zeroing)
+    assert proposalThreshold() > 0,
+        "Proposal threshold must remain positive after propose call";
 }
 
 /*//////////////////////////////////////////////////////////////

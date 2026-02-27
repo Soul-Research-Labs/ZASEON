@@ -49,7 +49,6 @@ ghost mapping(bytes32 => uint256) ghostRoundCounter {
 /// @title Signature threshold must be at least 1
 invariant thresholdMinimum()
     signatureThreshold() >= 1
-    { preserved { require true; } }
 
 /*//////////////////////////////////////////////////////////////
                     ROUND COUNTER RULES
@@ -72,7 +71,6 @@ rule roundCounterMonotonicity(env e, method f, calldataarg args, bytes32 pairId)
 /// @title Oracle node list cannot exceed MAX_ORACLE_NODES
 invariant oracleNodeLimit()
     ghostOracleNodeCount <= MAX_ORACLE_NODES()
-    { preserved { require true; } }
 
 /*//////////////////////////////////////////////////////////////
                     ACCESS CONTROL RULES
@@ -82,10 +80,14 @@ invariant oracleNodeLimit()
 rule addPairAccessControl(env e) {
     bytes32 pairId;
     require !hasRole(OPERATOR_ROLE(), e.msg.sender);
+    require !hasRole(0x00, e.msg.sender); // not admin either
     
-    // Any function that could add a pair should revert for non-operators
-    // This is a parametric check - actual function names depend on contract
-    assert true, "Access control checked via invariants";
+    // Non-operator, non-admin callers cannot self-escalate to OPERATOR_ROLE
+    calldataarg args;
+    method f;
+    f@withrevert(e, args);
+    assert !hasRole(OPERATOR_ROLE(), e.msg.sender),
+        "Non-operator callers cannot self-escalate to OPERATOR_ROLE";
 }
 
 /// @title Threshold cannot be zero

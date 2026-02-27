@@ -33,9 +33,11 @@ rule messageProcessedOnce(bytes32 messageId, env e) {
     bytes32 sender;
     bytes message;
     handle@withrevert(e, origin, sender, message);
-    // If the message ID matches, it should revert
-    // Note: actual messageId depends on handle computing same ID
-    assert true, "Processed message handling checked";
+
+    // Regardless of the handle call outcome, previously processed messages
+    // must remain in the processed set (monotonicity)
+    assert processedMessages(messageId) == true,
+        "Once processed, a message must remain marked as processed";
 }
 
 // Invariant: Only mailbox can call handle
