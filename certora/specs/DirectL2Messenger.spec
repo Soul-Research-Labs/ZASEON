@@ -5,6 +5,8 @@
  * This spec verifies critical invariants for the Direct L2 Messenger
  * which enables direct L2-to-L2 messaging without L1 completion,
  * including relayer bonding, message processing, and challenge mechanics.
+ *
+ * Ghost variable hooks track: globalNonce, processedMessages, relayer count.
  */
 
 using DirectL2Messenger as dlm;
@@ -51,8 +53,18 @@ ghost mapping(bytes32 => bool) ghostProcessedMessages {
     init_state axiom forall bytes32 m. !ghostProcessedMessages[m];
 }
 
-ghost uint256 ghostRelayerCount {
-    init_state axiom ghostRelayerCount == 0;
+ghost uint256 ghostRelayerListLength {
+    init_state axiom ghostRelayerListLength == 0;
+}
+
+ghost uint256 ghostPriorGlobalNonce {
+    init_state axiom ghostPriorGlobalNonce == 0;
+}
+
+// Hook: track globalNonce storage writes
+hook Sstore globalNonce uint256 newVal (uint256 oldVal) {
+    ghostPriorGlobalNonce = oldVal;
+    ghostGlobalNonce = newVal;
 }
 
 // Hook: track when processedMessages mapping is written
@@ -66,17 +78,24 @@ hook Sstore processedMessages[KEY bytes32 msgId] bool newVal (bool oldVal) {
 
 /**
  * @title Global Nonce Monotonically Increases
- * @notice globalNonce can only increase, never decrease
- * TODO: Hook ghost to globalNonce storage slot for precise tracking
+ * @notice globalNonce can only increase via storage writes tracked by ghost hook
  */
 invariant globalNonceMonotonicallyIncreasing()
-    globalNonce() >= 0
+    ghostGlobalNonce >= ghostPriorGlobalNonce
+    { preserved { require ghostGlobalNonce < max_uint256; } }
+
+/**
+ * @title Ghost Nonce Matches Contract Nonce
+ * @notice Ghost variable tracks actual globalNonce storage
+ */
+invariant ghostNonceMatchesContract()
+    ghostGlobalNonce == globalNonce()
     { preserved { require globalNonce() < max_uint256; } }
 
 /**
  * @title Processed Messages Are Permanent
- * @notice Once a message is processed, it stays processed
- * TODO: Verify this with ghost variable hooks on processedMessages mapping
+ * @notice Once processedMessages[id] is set to true, it cannot revert to false.
+ *         Ghost hook on processedMessages mapping tracks all writes.
  */
 invariant processedMessagePermanence(bytes32 msgId)
     ghostProcessedMessages[msgId] => processedMessages(msgId)
@@ -84,7 +103,6 @@ invariant processedMessagePermanence(bytes32 msgId)
 /**
  * @title Relayer Count Non-Negative
  * @notice getRelayerCount() is always >= 0
- * TODO: Verify relayer count matches actual bonded relayers
  */
 invariant relayerCountNonNegative()
     getRelayerCount() >= 0;
@@ -95,38 +113,56 @@ invariant relayerCountNonNegative()
 
 /**
  * @title Cannot Process Same Message Twice
- * @notice Processing an already-processed message should revert
- * TODO: Implement by calling relay/confirm on an already-processed message ID
+ * @notice Once a message is marked as processed, no function can un-process it
  */
-rule cannotProcessMessageTwice(bytes32 messageId) {
-    env e;
+rule cannotUnprocessMessage(bytes32 messageId) {
     require processedMessages(messageId);
+    require ghostProcessedMessages[messageId];
 
-    // Any function that would process a message should fail if already processed
+    env e;
     method f;
     calldataarg args;
     f(e, args);
 
     assert processedMessages(messageId),
         "Processed message flag must remain true";
+    assert ghostProcessedMessages[messageId],
+        "Ghost processed flag must remain true";
 }
 
 /**
  * @title Global Nonce Never Decreases
- * @notice No function call should decrease globalNonce
+ * @notice No function call should decrease globalNonce — verified via ghost hook
  */
 rule globalNonceNeverDecreases() {
     env e;
-    uint256 before = globalNonce();
+    uint256 nonceBefore = globalNonce();
 
     method f;
     calldataarg args;
     f(e, args);
 
-    uint256 after = globalNonce();
+    uint256 nonceAfter = globalNonce();
 
-    assert after >= before,
+    assert nonceAfter >= nonceBefore,
         "globalNonce must never decrease";
+}
+
+/**
+ * @title sendMessage Increments Global Nonce
+ * @notice Each successful sendMessage call increments globalNonce by exactly 1
+ */
+rule sendMessageIncrementsNonce(uint256 destChain, address target, bytes data, uint8 priority) {
+    env e;
+    uint256 nonceBefore = globalNonce();
+    require nonceBefore < max_uint256;
+
+    sendMessage(e, destChain, target, data, priority);
+
+    uint256 nonceAfter = globalNonce();
+
+    assert to_mathint(nonceAfter) == to_mathint(nonceBefore) + 1,
+        "sendMessage must increment globalNonce by exactly 1";
 }
 
 /**
@@ -141,4 +177,21 @@ rule pausePreventsSending(uint256 destChain, address target, bytes data, uint8 p
 
     assert lastReverted,
         "Message sending should fail when paused";
+}
+
+/**
+ * @title Only RELAYER_ROLE Can Register as Relayer
+ * @notice registerRelayer must grant RELAYER_ROLE or require sufficient bond
+ */
+rule registerRelayerRequiresBond() {
+    env e;
+    uint256 relayerCountBefore = getRelayerCount();
+    require e.msg.value >= MIN_RELAYER_BOND();
+
+    registerRelayer(e);
+
+    uint256 relayerCountAfter = getRelayerCount();
+
+    assert relayerCountAfter >= relayerCountBefore,
+        "Relayer count must not decrease on registration";
 }

@@ -1,31 +1,41 @@
 mutate:
-  # ── Core (existing) ──
+  # ── Core ──
   - filename: contracts/security/SecurityModule.sol
     contract: SecurityModule
   - filename: contracts/primitives/ZKBoundStateLocks.sol
     contract: ZKBoundStateLocks
   - filename: contracts/core/NullifierRegistryV3.sol
     contract: NullifierRegistryV3
-  - filename: contracts/crosschain/CrossChainProofHubV3.sol
+  - filename: contracts/bridge/CrossChainProofHubV3.sol
     contract: CrossChainProofHubV3
-  - filename: contracts/privacy/SoulAtomicSwapV2.sol
+  - filename: contracts/bridge/SoulAtomicSwapV2.sol
     contract: SoulAtomicSwapV2
   - filename: contracts/privacy/UniversalShieldedPool.sol
     contract: UniversalShieldedPool
   - filename: contracts/crosschain/DirectL2Messenger.sol
     contract: DirectL2Messenger
-  - filename: contracts/privacy/ConfidentialStateContainerV3.sol
+  - filename: contracts/core/ConfidentialStateContainerV3.sol
     contract: ConfidentialStateContainerV3
-
-  # ── Core (new) ──
   - filename: contracts/core/SoulProtocolHub.sol
     contract: SoulProtocolHub
   - filename: contracts/core/PrivacyRouter.sol
     contract: PrivacyRouter
-  - filename: contracts/core/ExperimentalFeatureRegistry.sol
+  - filename: contracts/security/ExperimentalFeatureRegistry.sol
     contract: ExperimentalFeatureRegistry
+  - filename: contracts/core/InstantCompletionGuarantee.sol
+    contract: InstantCompletionGuarantee
+  - filename: contracts/core/IntentCompletionLayer.sol
+    contract: IntentCompletionLayer
+  - filename: contracts/core/DynamicRoutingOrchestrator.sol
+    contract: DynamicRoutingOrchestrator
 
-  # ── Privacy (new) ──
+  # ── Bridge ──
+  - filename: contracts/bridge/MultiBridgeRouter.sol
+    contract: MultiBridgeRouter
+  - filename: contracts/bridge/CapacityAwareRouter.sol
+    contract: CapacityAwareRouter
+
+  # ── Privacy ──
   - filename: contracts/privacy/BatchAccumulator.sol
     contract: BatchAccumulator
   - filename: contracts/privacy/CrossChainPrivacyHub.sol
@@ -38,8 +48,60 @@ mutate:
     contract: PrivacyZoneManager
   - filename: contracts/privacy/DataAvailabilityOracle.sol
     contract: DataAvailabilityOracle
+  - filename: contracts/privacy/UnifiedNullifierManager.sol
+    contract: UnifiedNullifierManager
+  - filename: contracts/privacy/EncryptedStealthAnnouncements.sol
+    contract: EncryptedStealthAnnouncements
+  - filename: contracts/privacy/DelayedClaimVault.sol
+    contract: DelayedClaimVault
+  - filename: contracts/privacy/StealthContractFactory.sol
+    contract: StealthContractFactory
 
-  # ── Governance (new) ──
+  # ── Primitives ──
+  - filename: contracts/primitives/ProofCarryingContainer.sol
+    contract: ProofCarryingContainer
+  - filename: contracts/primitives/ExecutionAgnosticStateCommitments.sol
+    contract: ExecutionAgnosticStateCommitments
+  - filename: contracts/primitives/CrossDomainNullifierAlgebra.sol
+    contract: CrossDomainNullifierAlgebra
+  - filename: contracts/primitives/PolicyBoundProofs.sol
+    contract: PolicyBoundProofs
+  - filename: contracts/primitives/Soulv2Orchestrator.sol
+    contract: Soulv2Orchestrator
+  - filename: contracts/primitives/HomomorphicHiding.sol
+    contract: HomomorphicHiding
+  - filename: contracts/primitives/AggregateDisclosureAlgebra.sol
+    contract: AggregateDisclosureAlgebra
+  - filename: contracts/primitives/ComposableRevocationProofs.sol
+    contract: ComposableRevocationProofs
+
+  # ── Security ──
+  - filename: contracts/security/GriefingProtection.sol
+    contract: GriefingProtection
+  - filename: contracts/security/OptimisticRelayVerifier.sol
+    contract: OptimisticRelayVerifier
+  - filename: contracts/security/RelayRateLimiter.sol
+    contract: RelayRateLimiter
+  - filename: contracts/security/RelayCircuitBreaker.sol
+    contract: RelayCircuitBreaker
+  - filename: contracts/security/RelayProofValidator.sol
+    contract: RelayProofValidator
+  - filename: contracts/security/EmergencyRecovery.sol
+    contract: EmergencyRecovery
+  - filename: contracts/security/MEVProtection.sol
+    contract: MEVProtection
+  - filename: contracts/security/ProtocolEmergencyCoordinator.sol
+    contract: ProtocolEmergencyCoordinator
+  - filename: contracts/security/FlashLoanGuard.sol
+    contract: FlashLoanGuard
+  - filename: contracts/security/EnhancedKillSwitch.sol
+    contract: EnhancedKillSwitch
+  - filename: contracts/security/CrossChainMessageVerifier.sol
+    contract: CrossChainMessageVerifier
+  - filename: contracts/security/ZKFraudProof.sol
+    contract: ZKFraudProof
+
+  # ── Governance ──
   - filename: contracts/governance/SoulGovernor.sol
     contract: SoulGovernor
   - filename: contracts/governance/SoulGovernance.sol
@@ -48,8 +110,10 @@ mutate:
     contract: SoulToken
   - filename: contracts/governance/SoulUpgradeTimelock.sol
     contract: SoulUpgradeTimelock
+  - filename: contracts/governance/OperationTimelockModule.sol
+    contract: OperationTimelockModule
 
-  # ── Relayer (new) ──
+  # ── Relayer ──
   - filename: contracts/relayer/GelatoRelayAdapter.sol
     contract: GelatoRelayAdapter
   - filename: contracts/relayer/RelayerStaking.sol
@@ -58,14 +122,26 @@ mutate:
     contract: RelayerFeeMarket
   - filename: contracts/relayer/HeterogeneousRelayerRegistry.sol
     contract: HeterogeneousRelayerRegistry
+  - filename: contracts/relayer/DecentralizedRelayerRegistry.sol
+    contract: DecentralizedRelayerRegistry
+  - filename: contracts/relayer/RelayerHealthMonitor.sol
+    contract: RelayerHealthMonitor
+  - filename: contracts/relayer/RelayerSLAEnforcer.sol
+    contract: RelayerSLAEnforcer
+  - filename: contracts/relayer/MultiRelayerRouter.sol
+    contract: MultiRelayerRouter
 
-  # ── Compliance (new) ──
+  # ── Compliance ──
   - filename: contracts/compliance/CrossChainSanctionsOracle.sol
     contract: CrossChainSanctionsOracle
   - filename: contracts/compliance/SoulComplianceV2.sol
     contract: SoulComplianceV2
+  - filename: contracts/compliance/ComplianceReportingModule.sol
+    contract: ComplianceReportingModule
+  - filename: contracts/compliance/SelectiveDisclosureManager.sol
+    contract: SelectiveDisclosureManager
 
-  # ── Cross-chain (new) ──
+  # ── Cross-chain ──
   - filename: contracts/crosschain/ArbitrumBridgeAdapter.sol
     contract: ArbitrumBridgeAdapter
   - filename: contracts/crosschain/OptimismBridgeAdapter.sol
@@ -76,18 +152,6 @@ mutate:
     contract: LayerZeroBridgeAdapter
   - filename: contracts/crosschain/EthereumL1Bridge.sol
     contract: EthereumL1Bridge
-
-  # ── Adapters (new) ──
-  - filename: contracts/adapters/EVMUniversalAdapter.sol
-    contract: EVMUniversalAdapter
-
-  # ── Graduated from experimental ──
-  - filename: contracts/primitives/HomomorphicHiding.sol
-    contract: HomomorphicHiding
-  - filename: contracts/primitives/AggregateDisclosureAlgebra.sol
-    contract: AggregateDisclosureAlgebra
-  - filename: contracts/primitives/ComposableRevocationProofs.sol
-    contract: ComposableRevocationProofs
   - filename: contracts/crosschain/ScrollBridgeAdapter.sol
     contract: ScrollBridgeAdapter
   - filename: contracts/crosschain/LineaBridgeAdapter.sol
@@ -96,6 +160,52 @@ mutate:
     contract: zkSyncBridgeAdapter
   - filename: contracts/crosschain/PolygonZkEVMBridgeAdapter.sol
     contract: PolygonZkEVMBridgeAdapter
+  - filename: contracts/crosschain/CrossChainEmergencyRelay.sol
+    contract: CrossChainEmergencyRelay
+  - filename: contracts/crosschain/HyperlaneAdapter.sol
+    contract: HyperlaneAdapter
+  - filename: contracts/crosschain/CrossChainNullifierSync.sol
+    contract: CrossChainNullifierSync
+  - filename: contracts/crosschain/SoulL2Messenger.sol
+    contract: SoulL2Messenger
+  - filename: contracts/crosschain/L2ProofRouter.sol
+    contract: L2ProofRouter
+
+  # ── Experimental privacy ──
+  - filename: contracts/experimental/privacy/RecursiveProofAggregator.sol
+    contract: RecursiveProofAggregator
+  - filename: contracts/experimental/privacy/MixnetNodeRegistry.sol
+    contract: MixnetNodeRegistry
+  - filename: contracts/experimental/privacy/PrivacyPreservingRelayerSelection.sol
+    contract: PrivacyPreservingRelayerSelection
+  - filename: contracts/experimental/privacy/PrivateRelayerNetwork.sol
+    contract: PrivateRelayerNetwork
+  - filename: contracts/experimental/privacy/GasNormalizer.sol
+    contract: GasNormalizer
+
+  # ── Verifiers (non-generated) ──
+  - filename: contracts/verifiers/SoulUniversalVerifier.sol
+    contract: SoulUniversalVerifier
+  - filename: contracts/verifiers/VerifierRegistryV2.sol
+    contract: VerifierRegistryV2
+  - filename: contracts/verifiers/CrossChainProofVerifier.sol
+    contract: CrossChainProofVerifier
+  - filename: contracts/verifiers/ProofAggregator.sol
+    contract: ProofAggregator
+
+  # ── Adapters ──
+  - filename: contracts/adapters/EVMUniversalAdapter.sol
+    contract: EVMUniversalAdapter
+  - filename: contracts/adapters/UniversalAdapterRegistry.sol
+    contract: UniversalAdapterRegistry
+
+  # ── Integrations ──
+  - filename: contracts/integrations/PrivacyPoolIntegration.sol
+    contract: PrivacyPoolIntegration
+  - filename: contracts/integrations/CorePrivacyIntegration.sol
+    contract: CorePrivacyIntegration
+  - filename: contracts/integrations/CrossChainBridgeIntegration.sol
+    contract: CrossChainBridgeIntegration
 
 remappings:
   - "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"

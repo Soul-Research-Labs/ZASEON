@@ -129,7 +129,7 @@ contract DataAvailabilityOracle is
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Submits d a commitment
      * @param payloadHash The payloadHash hash value
      * @param erasureCodingRoot The erasure coding root
@@ -138,7 +138,7 @@ contract DataAvailabilityOracle is
      * @param ttlSeconds The ttl seconds
      * @return commitmentId The commitment id
      */
-function submitDACommitment(
+    function submitDACommitment(
         bytes32 payloadHash,
         bytes32 erasureCodingRoot,
         uint256 dataSize,
@@ -190,11 +190,11 @@ function submitDACommitment(
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Attest availability
      * @param commitmentId The commitmentId identifier
      */
-function attestAvailability(bytes32 commitmentId) external whenNotPaused {
+    function attestAvailability(bytes32 commitmentId) external whenNotPaused {
         DACommitment storage commitment = _commitments[commitmentId];
         if (commitment.submittedAt == 0)
             revert CommitmentDoesNotExist(commitmentId);
@@ -239,12 +239,12 @@ function attestAvailability(bytes32 commitmentId) external whenNotPaused {
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Challenge availability
      * @param commitmentId The commitmentId identifier
      * @return challengeId The challenge id
      */
-function challengeAvailability(
+    function challengeAvailability(
         bytes32 commitmentId
     )
         external
@@ -296,12 +296,12 @@ function challengeAvailability(
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Resolves challenge
      * @param challengeId The challengeId identifier
      * @param retrievalProof The retrieval proof
      */
-function resolveChallenge(
+    function resolveChallenge(
         bytes32 challengeId,
         bytes calldata retrievalProof
     ) external nonReentrant {
@@ -340,11 +340,11 @@ function resolveChallenge(
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Finalizes expired challenge
      * @param challengeId The challengeId identifier
      */
-function finalizeExpiredChallenge(
+    function finalizeExpiredChallenge(
         bytes32 challengeId
     ) external nonReentrant {
         Challenge storage challenge = _challenges[challengeId];
@@ -381,10 +381,10 @@ function finalizeExpiredChallenge(
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Registers attestor
      */
-function registerAttestor() external payable nonReentrant {
+    function registerAttestor() external payable nonReentrant {
         if (msg.value < MIN_ATTESTOR_STAKE) {
             revert InsufficientStake(msg.value, MIN_ATTESTOR_STAKE);
         }
@@ -411,10 +411,10 @@ function registerAttestor() external payable nonReentrant {
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Exit attestor
      */
-function exitAttestor() external nonReentrant {
+    function exitAttestor() external nonReentrant {
         Attestor storage attestor = _attestors[msg.sender];
         if (!attestor.active) revert NotActiveAttestor(msg.sender);
 
@@ -437,46 +437,46 @@ function exitAttestor() external nonReentrant {
     // ============================================
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Returns the commitment
      * @param commitmentId The commitmentId identifier
      * @return The result value
      */
-function getCommitment(
+    function getCommitment(
         bytes32 commitmentId
     ) external view returns (DACommitment memory) {
         return _commitments[commitmentId];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Returns the attestor
      * @param addr The target address
      * @return The result value
      */
-function getAttestor(address addr) external view returns (Attestor memory) {
+    function getAttestor(address addr) external view returns (Attestor memory) {
         return _attestors[addr];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Returns the challenge
      * @param challengeId The challengeId identifier
      * @return The result value
      */
-function getChallenge(
+    function getChallenge(
         bytes32 challengeId
     ) external view returns (Challenge memory) {
         return _challenges[challengeId];
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Checks if data available
      * @param commitmentId The commitmentId identifier
      * @return The result value
      */
-function isDataAvailable(
+    function isDataAvailable(
         bytes32 commitmentId
     ) external view returns (bool) {
         DACommitment storage c = _commitments[commitmentId];
@@ -486,20 +486,20 @@ function isDataAvailable(
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Returns the min attestor stake
      * @return The result value
      */
-function getMinAttestorStake() external pure returns (uint256) {
+    function getMinAttestorStake() external pure returns (uint256) {
         return MIN_ATTESTOR_STAKE;
     }
 
     /// @inheritdoc IDataAvailabilityOracle
-        /**
+    /**
      * @notice Returns the min challenger bond
      * @return The result value
      */
-function getMinChallengerBond() external pure returns (uint256) {
+    function getMinChallengerBond() external pure returns (uint256) {
         return MIN_CHALLENGER_BOND;
     }
 
@@ -508,11 +508,11 @@ function getMinChallengerBond() external pure returns (uint256) {
     // ============================================
 
     /// @notice Withdraw accumulated protocol fees
-        /**
+    /**
      * @notice Withdraws protocol fees
      * @param to The destination address
      */
-function withdrawProtocolFees(
+    function withdrawProtocolFees(
         address to
     ) external onlyRole(DA_ADMIN_ROLE) nonReentrant {
         require(to != address(0), "Zero address");
@@ -523,18 +523,18 @@ function withdrawProtocolFees(
     }
 
     /// @notice Pause the oracle
-        /**
+    /**
      * @notice Pauses the operation
      */
-function pause() external onlyRole(DA_ADMIN_ROLE) {
+    function pause() external onlyRole(DA_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpause the oracle
-        /**
+    /**
      * @notice Unpauses the operation
- */
-function unpause() external onlyRole(DA_ADMIN_ROLE) {
+     */
+    function unpause() external onlyRole(DA_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -585,6 +585,26 @@ function unpause() external onlyRole(DA_ADMIN_ROLE) {
                 }
             }
         }
+    }
+
+    // ============================================
+    // ETH RECOVERY
+    // ============================================
+
+    /**
+     * @notice Rescue ETH accidentally sent to this contract.
+     * @param to The recipient address
+     * @param amount The amount of ETH to rescue
+     * @dev Only callable by DEFAULT_ADMIN_ROLE. Cannot withdraw bonded/staked ETH;
+     *      only excess ETH beyond tracked obligations.
+     */
+    function rescueETH(
+        address to,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert InvalidPayloadHash(); // reuse existing zero-check error
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "ETH transfer failed");
     }
 
     /// @dev Accept ETH for bonds and stakes

@@ -439,13 +439,13 @@ contract CrossChainPrivacyHub is
         _disableInitializers();
     }
 
-        /**
+    /**
      * @notice Initializes the operation
      * @param admin The admin bound
      * @param guardian The guardian
      * @param _feeRecipient The _fee recipient
      */
-function initialize(
+    function initialize(
         address admin,
         address guardian,
         address _feeRecipient
@@ -475,7 +475,7 @@ function initialize(
 
     /**
      * @notice Register a new chain adapter
-          * @param chainId The chain identifier
+     * @param chainId The chain identifier
      * @param adapter The bridge adapter address
      * @param chainType The chain type
      * @param proofSystem The proof system
@@ -519,7 +519,7 @@ function initialize(
 
     /**
      * @notice Update adapter configuration
-          * @param chainId The chain identifier
+     * @param chainId The chain identifier
      * @param isActive Whether isActive
      * @param maxRelayAmount The maxRelayAmount amount
      * @param dailyLimit The daily limit
@@ -549,7 +549,7 @@ function initialize(
      * @param amount Relay amount
      * @param privacyLevel Desired privacy level
      * @param proof Privacy proof (if required)
-          * @return requestId The request id
+     * @return requestId The request id
      */
     function initiatePrivateTransfer(
         uint256 destChainId,
@@ -883,7 +883,7 @@ function initialize(
 
     /**
      * @notice Refund expired or failed relay request
-          * @param requestId The requestId identifier
+     * @param requestId The requestId identifier
      * @param reason The reason string
      */
     function refundRelay(
@@ -933,7 +933,7 @@ function initialize(
      *      For production use, ephemeral keys should be generated off-chain with proper
      *      randomness (e.g., CSPRNG) and only verified on-chain. This on-chain generation
      *      is provided for testing and low-value use cases only.
-          * @return stealthPubKey The stealth pub key
+     * @return stealthPubKey The stealth pub key
      * @return ephemeralPubKey The ephemeral pub key
      */
     function generateStealthAddress(
@@ -979,7 +979,7 @@ function initialize(
      * @param stealthPubKey The stealth public key
      * @param ephemeralPubKey The ephemeral public key from sender
      * @param viewingPrivKey The recipient's viewing private key (hashed)
-          * @return The result value
+     * @return The result value
      */
     function canClaimStealth(
         bytes32 stealthPubKey,
@@ -1010,7 +1010,7 @@ function initialize(
      * @param amount The amount to relay (hidden)
      * @param decoyKeys Public keys of decoy outputs
      * @param blindingFactor Random blinding factor
-          * @return confidentialAmount The confidential amount
+     * @return confidentialAmount The confidential amount
      * @return keyImage The key image
      */
     function createRingCT(
@@ -1060,7 +1060,7 @@ function initialize(
      * @notice Verify a ring signature
      * @param signature The ring signature
      * @param message The signed message
-          * @return The result value
+     * @return The result value
      */
     function verifyRingSignature(
         RingSignature calldata signature,
@@ -1117,7 +1117,7 @@ function initialize(
 
     /**
      * @notice Check if nullifier is valid (not consumed)
-          * @param nullifier The nullifier hash
+     * @param nullifier The nullifier hash
      * @return The result value
      */
     function isNullifierValid(bytes32 nullifier) external view returns (bool) {
@@ -1126,7 +1126,7 @@ function initialize(
 
     /**
      * @notice Get nullifier binding
-          * @param sourceNullifier The source nullifier
+     * @param sourceNullifier The source nullifier
      * @return The result value
      */
     function getNullifierBinding(
@@ -1345,11 +1345,11 @@ function initialize(
     // CIRCUIT BREAKER
     // =========================================================================
 
-        /**
+    /**
      * @notice Triggers circuit breaker
      * @param reason The reason string
      */
-function triggerCircuitBreaker(
+    function triggerCircuitBreaker(
         string calldata reason
     ) external onlyRole(GUARDIAN_ROLE) {
         circuitBreakerActive = true;
@@ -1359,10 +1359,10 @@ function triggerCircuitBreaker(
         emit CircuitBreakerTriggered(msg.sender, reason, block.timestamp);
     }
 
-        /**
+    /**
      * @notice Resets circuit breaker
      */
-function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
         circuitBreakerActive = false;
 
         emit CircuitBreakerReset(msg.sender, block.timestamp);
@@ -1372,11 +1372,11 @@ function resetCircuitBreaker() external onlyRole(DEFAULT_ADMIN_ROLE) {
     // ADMIN FUNCTIONS
     // =========================================================================
 
-        /**
+    /**
      * @notice Sets the protocol fee
      * @param feeBps The fee bps
      */
-function setProtocolFee(
+    function setProtocolFee(
         uint256 feeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (feeBps > MAX_FEE_BPS) revert FeeTooHigh();
@@ -1385,11 +1385,11 @@ function setProtocolFee(
         emit ProtocolFeeUpdated(oldFeeBps, feeBps);
     }
 
-        /**
+    /**
      * @notice Sets the fee recipient
      * @param recipient The recipient address
      */
-function setFeeRecipient(
+    function setFeeRecipient(
         address recipient
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (recipient == address(0)) revert ZeroAddress();
@@ -1398,11 +1398,11 @@ function setFeeRecipient(
         emit FeeRecipientUpdated(oldRecipient, recipient);
     }
 
-        /**
+    /**
      * @notice Sets the default ring size
      * @param size The size
      */
-function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
+    function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
         if (size < MIN_RING_SIZE || size > MAX_RING_SIZE)
             revert InvalidRingSize(size);
         uint256 oldSize = defaultRingSize;
@@ -1425,17 +1425,17 @@ function setDefaultRingSize(uint256 size) external onlyRole(OPERATOR_ROLE) {
         emit ProofVerifierUpdated(system, oldVerifier, verifier);
     }
 
-        /**
+    /**
      * @notice Pauses the operation
      */
-function pause() external onlyRole(GUARDIAN_ROLE) {
+    function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
 
-        /**
+    /**
      * @notice Unpauses the operation
- */
-function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+     */
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -1443,59 +1443,59 @@ function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
     // VIEW FUNCTIONS
     // =========================================================================
 
-        /**
+    /**
      * @notice Returns the relay request
      * @param requestId The requestId identifier
      * @return The result value
      */
-function getRelayRequest(
+    function getRelayRequest(
         bytes32 requestId
     ) external view returns (RelayRequest memory) {
         return relayRequests[requestId];
     }
 
-        /**
+    /**
      * @notice Returns the user requests
      * @param user The user
      * @return The result value
      */
-function getUserRequests(
+    function getUserRequests(
         address user
     ) external view returns (bytes32[] memory) {
         return userRequests[user];
     }
 
-        /**
+    /**
      * @notice Returns the user stealth addresses
      * @param user The user
      * @return The result value
      */
-function getUserStealthAddresses(
+    function getUserStealthAddresses(
         address user
     ) external view returns (bytes32[] memory) {
         return userStealthAddresses[user];
     }
 
-        /**
+    /**
      * @notice Returns the supported chains
      * @return The result value
      */
-function getSupportedChains() external view returns (uint256[] memory) {
+    function getSupportedChains() external view returns (uint256[] memory) {
         return supportedChainIds;
     }
 
-        /**
+    /**
      * @notice Returns the adapter config
      * @param chainId The chain identifier
      * @return The result value
      */
-function getAdapterConfig(
+    function getAdapterConfig(
         uint256 chainId
     ) external view returns (AdapterConfig memory) {
         return adapters[chainId];
     }
 
-        /**
+    /**
      * @notice Returns the stats
      * @return _totalRelays The _total relays
      * @return _totalVolume The _total volume
@@ -1503,7 +1503,7 @@ function getAdapterConfig(
      * @return _supportedChainsCount The _supported chains count
      * @return _circuitBreakerActive The _circuit breaker active
      */
-function getStats()
+    function getStats()
         external
         view
         returns (
@@ -1530,6 +1530,24 @@ function getStats()
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
+
+    // =========================================================================
+    // ETH RECOVERY
+    // =========================================================================
+
+    /**
+     * @notice Rescue ETH accidentally sent to this contract.
+     * @param to The recipient address
+     * @param amount The amount of ETH to rescue
+     */
+    function rescueETH(
+        address to,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert ZeroAddress();
+        (bool success, ) = to.call{value: amount}("");
+        if (!success) revert FeePaymentFailed();
+    }
 
     // =========================================================================
     // RECEIVE

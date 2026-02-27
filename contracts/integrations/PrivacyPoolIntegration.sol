@@ -569,7 +569,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get current Merkle root (public)
-          * @return The result value
+     * @return The result value
      */
     function getMerkleRoot() external view returns (bytes32) {
         return _getMerkleRoot();
@@ -691,7 +691,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Check if a commitment exists
-          * @param commitment The cryptographic commitment
+     * @param commitment The cryptographic commitment
      * @return The result value
      */
     function commitmentExists(bytes32 commitment) external view returns (bool) {
@@ -700,7 +700,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Check if a nullifier is spent
-          * @param nullifier The nullifier hash
+     * @param nullifier The nullifier hash
      * @return The result value
      */
     function isNullifierSpent(bytes32 nullifier) external view returns (bool) {
@@ -709,7 +709,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get pool token info
-          * @param token The token address
+     * @param token The token address
      * @return The result value
      */
     function getPoolToken(
@@ -720,7 +720,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get all supported tokens
-          * @return The result value
+     * @return The result value
      */
     function getSupportedTokens() external view returns (address[] memory) {
         return supportedTokens;
@@ -728,7 +728,7 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
 
     /**
      * @notice Get total commitments count
-          * @return The result value
+     * @return The result value
      */
     function getCommitmentCount() external view returns (uint256) {
         return nextLeafIndex;
@@ -750,6 +750,25 @@ contract PrivacyPoolIntegration is ReentrancyGuard, AccessControl, Pausable {
      */
     function unpause() external onlyRole(OPERATOR_ROLE) {
         _unpause();
+    }
+
+    /**
+     * @notice Rescue ETH or ERC20 tokens accidentally sent to this contract.
+     * @param token Address of the token to rescue (address(0) for native ETH)
+     * @param to The recipient address
+     */
+    function emergencyWithdraw(
+        address token,
+        address to
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert ZeroAddress();
+        if (token == address(0)) {
+            (bool success, ) = to.call{value: address(this).balance}("");
+            if (!success) revert InvalidRecipient();
+        } else {
+            uint256 balance = IERC20(token).balanceOf(address(this));
+            SafeERC20.safeTransfer(IERC20(token), to, balance);
+        }
     }
 
     /**

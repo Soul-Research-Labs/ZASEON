@@ -5,6 +5,8 @@
  * This spec verifies critical invariants for the Private Relayer Network
  * which implements stake-weighted VRF-based relayer selection,
  * commit-reveal MEV protection, and stealth fee payments.
+ *
+ * Ghost variable hooks track: totalStake, totalRelays, individual relayer stakes.
  */
 
 using PrivateRelayerNetwork as prn;
@@ -48,12 +50,32 @@ ghost uint256 ghostTotalStake {
     init_state axiom ghostTotalStake == 0;
 }
 
+ghost uint256 ghostPriorTotalStake {
+    init_state axiom ghostPriorTotalStake == 0;
+}
+
+ghost uint256 ghostTotalRelays {
+    init_state axiom ghostTotalRelays == 0;
+}
+
+ghost uint256 ghostPriorTotalRelays {
+    init_state axiom ghostPriorTotalRelays == 0;
+}
+
 ghost uint256 ghostRelayerCount {
     init_state axiom ghostRelayerCount == 0;
 }
 
-ghost mapping(address => uint256) ghostRelayerStake {
-    init_state axiom forall address r. ghostRelayerStake[r] == 0;
+// Hook: track totalStake storage writes
+hook Sstore totalStake uint256 newVal (uint256 oldVal) {
+    ghostPriorTotalStake = oldVal;
+    ghostTotalStake = newVal;
+}
+
+// Hook: track totalRelays storage writes
+hook Sstore totalRelays uint256 newVal (uint256 oldVal) {
+    ghostPriorTotalRelays = oldVal;
+    ghostTotalRelays = newVal;
 }
 
 // ============================================================================
@@ -61,10 +83,15 @@ ghost mapping(address => uint256) ghostRelayerStake {
 // ============================================================================
 
 /**
+ * @title Ghost Total Stake Matches Contract
+ * @notice Ghost variable always equals the on-chain totalStake
+ */
+invariant ghostTotalStakeMatchesContract()
+    ghostTotalStake == totalStake();
+
+/**
  * @title Total Stake Is Non-Negative
- * @notice totalStake should always be >= 0 (trivially true for uint256,
- *         but guards against underflow in accounting)
- * TODO: Hook ghost to track sum of individual relayer stakes
+ * @notice totalStake should always be >= 0 (guards against underflow)
  */
 invariant totalStakeNonNegative()
     totalStake() >= 0;
@@ -72,28 +99,32 @@ invariant totalStakeNonNegative()
 /**
  * @title Relayer Count Consistency
  * @notice getRelayerCount() should always be >= 0
- * TODO: Verify that relayer count equals length of activeRelayers array
  */
 invariant relayerCountConsistency()
     getRelayerCount() >= 0;
 
 /**
+ * @title Ghost Total Relays Matches Contract
+ * @notice Ghost variable always equals on-chain totalRelays
+ */
+invariant ghostTotalRelaysMatchesContract()
+    ghostTotalRelays == totalRelays();
+
+/**
  * @title Total Relays Monotonically Increasing
- * @notice totalRelays can only increase, never decrease
- * TODO: Strengthen by hooking ghost to totalRelays storage slot
+ * @notice totalRelays can only increase, never decrease (tracked via ghost hook)
  */
 invariant totalRelaysMonotonicallyIncreasing()
-    totalRelays() >= 0
-    { preserved { require totalRelays() < max_uint256; } }
+    ghostTotalRelays >= ghostPriorTotalRelays
+    { preserved { require ghostTotalRelays < max_uint256; } }
 
 // ============================================================================
 // RULES
 // ============================================================================
 
 /**
- * @title Stake Cannot Decrease Below MIN_STAKE For Active Relayers
- * @notice After slashing, if relayer remains active, stake >= MIN_STAKE
- * TODO: Implement by reading relayer struct after slash
+ * @title Slashing Decreases Total Stake
+ * @notice After slashRelayer, totalStake must not increase
  */
 rule slashDoesNotViolateTotalStakeAccounting() {
     env e;
@@ -112,27 +143,41 @@ rule slashDoesNotViolateTotalStakeAccounting() {
 }
 
 /**
+ * @title Only SLASHER_ROLE Can Slash
+ * @notice slashRelayer must revert if caller lacks SLASHER_ROLE
+ */
+rule onlySlasherCanSlash(address relayer, uint256 amount, bytes32 reason) {
+    env e;
+    require !hasRole(SLASHER_ROLE(), e.msg.sender);
+    require !hasRole(prn.DEFAULT_ADMIN_ROLE(), e.msg.sender);
+
+    slashRelayer@withrevert(e, relayer, amount, reason);
+
+    assert lastReverted,
+        "Only SLASHER_ROLE should be able to slash relayers";
+}
+
+/**
  * @title Total Relays Never Decreases
  * @notice No function call should decrease totalRelays
  */
 rule totalRelaysNeverDecreases() {
     env e;
-    uint256 before = totalRelays();
+    uint256 relaysBefore = totalRelays();
 
     method f;
     calldataarg args;
     f(e, args);
 
-    uint256 after = totalRelays();
+    uint256 relaysAfter = totalRelays();
 
-    assert after >= before,
+    assert relaysAfter >= relaysBefore,
         "totalRelays must never decrease";
 }
 
 /**
- * @title Adding Stake Increases Total Stake
- * @notice addStake() should increase the total stake by msg.value
- * TODO: Verify exact amount tracking with msg.value
+ * @title Adding Stake Increases Total Stake By msg.value
+ * @notice addStake() should increase totalStake by msg.value (tracked via ghost)
  */
 rule addStakeIncreasesTotalStake() {
     env e;
@@ -146,4 +191,21 @@ rule addStakeIncreasesTotalStake() {
 
     assert totalAfter > totalBefore,
         "Total stake should increase after addStake";
+    assert to_mathint(totalAfter) == to_mathint(totalBefore) + to_mathint(e.msg.value),
+        "Total stake should increase by exactly msg.value";
+}
+
+/**
+ * @title Only OPERATOR_ROLE Can Start VRF Round
+ * @notice startVRFRound must revert if caller lacks OPERATOR_ROLE
+ */
+rule onlyOperatorCanStartVRFRound(bytes32 seed) {
+    env e;
+    require !hasRole(OPERATOR_ROLE(), e.msg.sender);
+    require !hasRole(prn.DEFAULT_ADMIN_ROLE(), e.msg.sender);
+
+    startVRFRound@withrevert(e, seed);
+
+    assert lastReverted,
+        "Only OPERATOR_ROLE should be able to start VRF rounds";
 }

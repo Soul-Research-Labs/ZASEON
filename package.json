@@ -18,7 +18,7 @@
     "test:fuzz:nightly": "FOUNDRY_PROFILE=nightly forge test",
     "test:invariant": "forge test --match-path 'test/invariant/*' --fuzz-runs 256",
     "test:invariant:deep": "FOUNDRY_PROFILE=deep-fuzz forge test --match-path 'test/invariant/*'",
-    "test:symbolic": "forge test --match-path 'test/symbolic/*'",
+    "test:symbolic": "FOUNDRY_PROFILE=halmos halmos --match-path 'test/formal/*' --solver-timeout-assertion 120",
     "coverage": "echo 'NOTE: Hardhat coverage requires solidity-coverage (incompatible with Hardhat 3). Use coverage:modular or coverage:stub instead.' && exit 1",
     "coverage:forge": "echo 'NOTE: forge coverage fails with stack-too-deep on full build. Use coverage:modular for per-module coverage.' && forge coverage --ir-minimum --report lcov",
     "coverage:stub": "python3 scripts/run_coverage.py --report=summary",

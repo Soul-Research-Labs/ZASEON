@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../interfaces/IProofVerifier.sol";
+import "../libraries/VerifierGasUtils.sol";
 
 /**
  * @title VerifierRegistryV2
@@ -341,7 +342,47 @@ contract VerifierRegistryV2 is AccessControl {
     }
 
     /**
+     * @notice Verify a proof with field element validation on public inputs
+     * @dev Validates all public inputs are valid BN254 field elements before verification.
+     *      Reverts early with FieldElementOutOfBounds if any input >= BN254_SCALAR_FIELD.
+     * @param circuitType The circuit type to use
+     * @param proof The proof bytes
+     * @param publicInputs The public inputs as uint256 array
+     * @return valid Whether the proof is valid
+     */
+    function verify(
+        CircuitType circuitType,
+        bytes calldata proof,
+        uint256[] calldata publicInputs
+    )
+        external
+        view
+        whenNotPaused
+        validCircuitType(circuitType)
+        returns (bool valid)
+    {
+        VerifierEntry storage entry = verifiers[circuitType];
+
+        if (entry.adapter == address(0)) {
+            revert VerifierNotRegistered(circuitType);
+        }
+        if (entry.deprecated) {
+            revert VerifierDeprecatedError(circuitType);
+        }
+
+        // Validate all public inputs are valid BN254 field elements
+        VerifierGasUtils.validateFieldElements(publicInputs);
+
+        return
+            IProofVerifier(entry.adapter).verifyProof(
+                proof,
+                abi.encode(publicInputs)
+            );
+    }
+
+    /**
      * @notice Batch verify multiple proofs of the same type
+     * @dev Deduplicates identical (proof, publicInputs) pairs to save gas.
      * @param circuitType The circuit type for all proofs
      * @param proofs Array of proof bytes
      * @param publicInputsArray Array of public inputs
@@ -369,10 +410,60 @@ contract VerifierRegistryV2 is AccessControl {
         }
 
         IProofVerifier adapter = IProofVerifier(entry.adapter);
-        results = new bool[](proofs.length);
+        uint256 len = proofs.length;
+        results = new bool[](len);
 
-        for (uint256 i = 0; i < proofs.length; ) {
-            results[i] = adapter.verifyProof(proofs[i], publicInputsArray[i]);
+        // Dedup: track seen proof hashes to avoid re-verifying identical pairs
+        bytes32[] memory seenHashes = new bytes32[](len);
+        uint256 uniqueCount;
+
+        for (uint256 i = 0; i < len; ) {
+            bytes32 h = keccak256(
+                abi.encodePacked(proofs[i], publicInputsArray[i])
+            );
+
+            // Check if we already verified this exact (proof, inputs) pair
+            bool duplicate = false;
+            for (uint256 j = 0; j < uniqueCount; ) {
+                if (seenHashes[j] == h) {
+                    // Find the original index by scanning results
+                    // The first occurrence was already verified at some earlier index
+                    // Re-scan to find its result
+                    for (uint256 k = 0; k < i; ) {
+                        if (
+                            keccak256(
+                                abi.encodePacked(
+                                    proofs[k],
+                                    publicInputsArray[k]
+                                )
+                            ) == h
+                        ) {
+                            results[i] = results[k];
+                            break;
+                        }
+                        unchecked {
+                            ++k;
+                        }
+                    }
+                    duplicate = true;
+                    break;
+                }
+                unchecked {
+                    ++j;
+                }
+            }
+
+            if (!duplicate) {
+                seenHashes[uniqueCount] = h;
+                unchecked {
+                    ++uniqueCount;
+                }
+                results[i] = adapter.verifyProof(
+                    proofs[i],
+                    publicInputsArray[i]
+                );
+            }
+
             unchecked {
                 ++i;
             }
@@ -655,25 +746,25 @@ contract VerifierRegistryV2 is AccessControl {
  * @notice Interface for VerifierRegistryV2
  */
 interface IVerifierRegistryV2 {
-        /**
+    /**
      * @notice Verifys the operation
      * @param circuitType The circuit type
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verify(
+    function verify(
         VerifierRegistryV2.CircuitType circuitType,
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool);
 
-        /**
+    /**
      * @notice Returns the adapter
      * @param circuitType The circuit type
      * @return The result value
      */
-function getAdapter(
+    function getAdapter(
         VerifierRegistryV2.CircuitType circuitType
     ) external view returns (address);
 }

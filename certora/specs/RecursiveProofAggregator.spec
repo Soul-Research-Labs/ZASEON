@@ -5,6 +5,9 @@
  * This spec verifies critical invariants for the Recursive Proof Aggregator
  * which implements IVC-based proof aggregation (Nova/SuperNova-style folding)
  * for cross-chain privacy proof compression.
+ *
+ * Ghost variable hooks track: totalProofsSubmitted, totalBatches, verifiedRoots,
+ * totalParallelGroups.
  */
 
 using RecursiveProofAggregator as rpa;
@@ -51,12 +54,36 @@ ghost uint256 ghostTotalProofsSubmitted {
     init_state axiom ghostTotalProofsSubmitted == 0;
 }
 
+ghost uint256 ghostPriorTotalProofs {
+    init_state axiom ghostPriorTotalProofs == 0;
+}
+
 ghost uint256 ghostTotalBatches {
     init_state axiom ghostTotalBatches == 0;
 }
 
+ghost uint256 ghostPriorTotalBatches {
+    init_state axiom ghostPriorTotalBatches == 0;
+}
+
 ghost mapping(bytes32 => bool) ghostVerifiedRoots {
     init_state axiom forall bytes32 r. !ghostVerifiedRoots[r];
+}
+
+ghost uint256 ghostTotalParallelGroups {
+    init_state axiom ghostTotalParallelGroups == 0;
+}
+
+// Hook: track totalProofsSubmitted storage writes
+hook Sstore totalProofsSubmitted uint256 newVal (uint256 oldVal) {
+    ghostPriorTotalProofs = oldVal;
+    ghostTotalProofsSubmitted = newVal;
+}
+
+// Hook: track totalBatches storage writes
+hook Sstore totalBatches uint256 newVal (uint256 oldVal) {
+    ghostPriorTotalBatches = oldVal;
+    ghostTotalBatches = newVal;
 }
 
 // Hook: track when verifiedRoots mapping is written
@@ -66,23 +93,34 @@ hook Sstore verifiedRoots[KEY bytes32 root] bool newVal (bool oldVal) {
     }
 }
 
+// Hook: track totalParallelGroups storage writes
+hook Sstore totalParallelGroups uint256 newVal (uint256 oldVal) {
+    ghostTotalParallelGroups = newVal;
+}
+
 // ============================================================================
 // INVARIANTS
 // ============================================================================
 
 /**
+ * @title Ghost Proofs Match Contract
+ * @notice Ghost variable always equals on-chain totalProofsSubmitted
+ */
+invariant ghostProofsMatchContract()
+    ghostTotalProofsSubmitted == totalProofsSubmitted()
+    { preserved { require totalProofsSubmitted() < max_uint256; } }
+
+/**
  * @title Total Proofs Submitted Monotonically Increasing
- * @notice totalProofsSubmitted can only increase, never decrease
- * TODO: Hook ghost to totalProofsSubmitted storage slot
+ * @notice totalProofsSubmitted can only increase (tracked via ghost hook)
  */
 invariant totalProofsSubmittedMonotonicallyIncreasing()
-    totalProofsSubmitted() >= 0
-    { preserved { require totalProofsSubmitted() < max_uint256; } }
+    ghostTotalProofsSubmitted >= ghostPriorTotalProofs
+    { preserved { require ghostTotalProofsSubmitted < max_uint256; } }
 
 /**
  * @title Aggregated Proofs Never Exceed Submitted
  * @notice totalProofsAggregated <= totalProofsSubmitted
- * TODO: Strengthen with ghost tracking for exact proof lifecycle
  */
 invariant aggregatedNeverExceedsSubmitted()
     totalProofsAggregated() <= totalProofsSubmitted()
@@ -92,9 +130,18 @@ invariant aggregatedNeverExceedsSubmitted()
     } }
 
 /**
+ * @title Ghost Batches Match Contract
+ * @notice Ghost variable always equals on-chain totalBatches
+ */
+invariant ghostBatchesMatchContract()
+    ghostTotalBatches == totalBatches()
+    { preserved { require totalBatches() < max_uint256; } }
+
+/**
  * @title Verified Roots Are Permanent
- * @notice Once a root is verified, it stays verified
- * TODO: Express with ghost mapping hooks on verifiedRoots
+ * @notice Once root is verified, ghost hook ensures it stays verified.
+ *         The Sstore hook only sets ghostVerifiedRoots[root] = true when
+ *         newVal is true, so it can never be reverted to false.
  */
 invariant verifiedRootsPermanent(bytes32 root)
     ghostVerifiedRoots[root] => verifiedRoots(root)
@@ -109,15 +156,15 @@ invariant verifiedRootsPermanent(bytes32 root)
  */
 rule totalProofsNeverDecreases() {
     env e;
-    uint256 before = totalProofsSubmitted();
+    uint256 proofsBefore = totalProofsSubmitted();
 
     method f;
     calldataarg args;
     f(e, args);
 
-    uint256 after = totalProofsSubmitted();
+    uint256 proofsAfter = totalProofsSubmitted();
 
-    assert after >= before,
+    assert proofsAfter >= proofsBefore,
         "totalProofsSubmitted must never decrease";
 }
 
@@ -127,15 +174,15 @@ rule totalProofsNeverDecreases() {
  */
 rule totalBatchesNeverDecreases() {
     env e;
-    uint256 before = totalBatches();
+    uint256 batchesBefore = totalBatches();
 
     method f;
     calldataarg args;
     f(e, args);
 
-    uint256 after = totalBatches();
+    uint256 batchesAfter = totalBatches();
 
-    assert after >= before,
+    assert batchesAfter >= batchesBefore,
         "totalBatches must never decrease";
 }
 
@@ -155,6 +202,20 @@ rule verifiedRootStaysVerified(bytes32 root) {
         "A verified root must remain verified";
 }
 
+/**
+ * @title Pause Prevents Proof Submission
+ * @notice When paused, submitProof should revert
+ */
+rule pausePreventsSubmission(uint8 proofSystem, bytes proof, bytes32 circuitHash, bytes32 nullifier, uint256 chainId) {
+    env e;
+    require paused();
+
+    submitProof@withrevert(e, proofSystem, proof, circuitHash, nullifier, chainId);
+
+    assert lastReverted,
+        "Proof submission should fail when paused";
+}
+
 // ============================================================================
 // FAFO PARALLEL SCHEDULING RULES
 // ============================================================================
@@ -165,15 +226,15 @@ rule verifiedRootStaysVerified(bytes32 root) {
  */
 rule totalParallelGroupsNeverDecreases() {
     env e;
-    uint256 before = totalParallelGroups();
+    uint256 groupsBefore = totalParallelGroups();
 
     method f;
     calldataarg args;
     f(e, args);
 
-    uint256 after = totalParallelGroups();
+    uint256 groupsAfter = totalParallelGroups();
 
-    assert after >= before,
+    assert groupsAfter >= groupsBefore,
         "totalParallelGroups must never decrease";
 }
 
@@ -182,14 +243,14 @@ rule totalParallelGroupsNeverDecreases() {
  * @notice scheduleParallelAggregation should increase totalParallelGroups by 1
  */
 rule scheduleParallelIncrementsCounter(env e) {
-    uint256 before = totalParallelGroups();
-    require before < max_uint256;
+    uint256 groupsBefore = totalParallelGroups();
+    require groupsBefore < max_uint256;
 
     bytes32[] batchIds; uint256[] chainDomains;
     scheduleParallelAggregation(e, batchIds, chainDomains);
 
-    uint256 after = totalParallelGroups();
+    uint256 groupsAfter = totalParallelGroups();
 
-    assert to_mathint(after) == to_mathint(before) + 1,
+    assert to_mathint(groupsAfter) == to_mathint(groupsBefore) + 1,
         "scheduleParallelAggregation must increment totalParallelGroups by exactly 1";
 }

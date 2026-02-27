@@ -390,7 +390,9 @@ jobs:
           sudo mv echidna /usr/local/bin/
 
       - name: Run Echidna
-        run: echidna . --config test/fuzz/echidna.config.yaml --contract EchidnaHarness
+        run: |
+          echidna . --config test/fuzz/echidna.config.yaml --contract EchidnaHarness
+          echidna . --config test/fuzz/echidna-crosschain.config.yaml --contract EchidnaCrossChainHarness
 
   certora:
     name: Certora Formal Verification

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../libraries/VerifierGasUtils.sol";
 
 /**
  * @title SoulUniversalVerifier
@@ -158,14 +159,14 @@ contract SoulUniversalVerifier is Ownable, ReentrancyGuard {
      * @return gasUsed Gas used for verification
      */
     // slither-disable-start reentrancy-no-eth
-        /**
+    /**
      * @notice Verifys the operation
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return valid The valid
      * @return gasUsed The gas used
      */
-function verify(
+    function verify(
         UniversalProof calldata proof,
         bytes calldata publicInputs
     ) external nonReentrant returns (bool valid, uint256 gasUsed) {
@@ -217,6 +218,8 @@ function verify(
 
     /**
      * @notice Batch verify multiple proofs
+     * @dev Skips already-verified proofs instead of reverting, making batch
+     *      calls resilient to duplicates.
      * @param proofs Array of proofs
      * @param publicInputsArray Array of public inputs
      * @return results Array of verification results
@@ -230,8 +233,23 @@ function verify(
         results = new bool[](proofs.length);
 
         for (uint256 i = 0; i < proofs.length; ) {
-            (bool valid, ) = this.verify(proofs[i], publicInputsArray[i]);
-            results[i] = valid;
+            // Compute proof hash to check if already verified (skip instead of revert)
+            bytes32 proofHash = keccak256(
+                abi.encode(
+                    proofs[i].system,
+                    proofs[i].vkeyOrCircuitHash,
+                    proofs[i].publicInputsHash,
+                    keccak256(proofs[i].proof)
+                )
+            );
+
+            if (verifiedProofs[proofHash]) {
+                // Already verified — mark as valid, skip costly re-verification
+                results[i] = true;
+            } else {
+                (bool valid, ) = this.verify(proofs[i], publicInputsArray[i]);
+                results[i] = valid;
+            }
             unchecked {
                 ++i;
             }
@@ -309,12 +327,27 @@ function verify(
         bytes memory callData;
 
         if (system == ProofSystem.Groth16) {
+            uint256[] memory inputs = abi.decode(publicInputs, (uint256[]));
+            // Validate all public inputs are valid BN254 field elements
+            // Reverts early if any input >= BN254_SCALAR_FIELD, saving ~200k gas
+            // vs a failed pairing check
+            for (uint256 idx = 0; idx < inputs.length; ) {
+                if (!VerifierGasUtils.isValidFieldElement(inputs[idx])) {
+                    revert VerifierGasUtils.FieldElementOutOfBounds(
+                        idx,
+                        inputs[idx]
+                    );
+                }
+                unchecked {
+                    ++idx;
+                }
+            }
             callData = abi.encodeWithSignature(
                 "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[])",
                 _extractG1Point(proof.proof, 0),
                 _extractG2Point(proof.proof, 64),
                 _extractG1Point(proof.proof, 192),
-                abi.decode(publicInputs, (uint256[]))
+                inputs
             );
         } else if (system == ProofSystem.SP1) {
             // For SP1, pass proof directly without decoding
