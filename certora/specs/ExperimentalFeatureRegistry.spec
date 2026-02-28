@@ -64,17 +64,18 @@ rule emergencyDisableAlwaysWorks(bytes32 featureId) {
 
 /**
  * RULE-EFR-003: lockValue cannot exceed risk limit
- * After a successful lockValue, the feature still has non-negative remaining capacity.
+ * After a successful lockValue, currentValueLocked <= maxValueLocked.
  */
 rule lockValueRespectsRiskLimit(bytes32 featureId, uint256 amount) {
     env e;
 
+    uint256 capacityBefore = getRemainingCapacity(featureId);
     lockValue(e, featureId, amount);
+    uint256 capacityAfter = getRemainingCapacity(featureId);
 
-    // If lockValue succeeded, remaining capacity is >= 0
-    // (i.e., currentValueLocked <= maxValueLocked)
-    uint256 remaining = getRemainingCapacity(featureId);
-    assert remaining >= 0;
+    // Remaining capacity must decrease by exactly the locked amount
+    assert capacityBefore - capacityAfter == to_mathint(amount),
+        "Capacity must decrease by exact lock amount";
 }
 
 /**

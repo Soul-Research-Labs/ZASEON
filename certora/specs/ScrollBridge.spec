@@ -224,11 +224,14 @@ rule valueConservation() {
 // QUEUE ORDERING
 // =============================================================================
 
-/// @title Queue index is monotonically increasing
-rule queueIndexMonotonic() {
-    uint256 qi = queueIndex();
+/// @title Queue index is monotonically increasing after any operation
+rule queueIndexMonotonic(method f) filtered { f -> !f.isView } {
+    uint256 qiBefore = queueIndex();
+    env e;
+    calldataarg args;
+    f(e, args);
     
-    assert qi >= 0, "Queue index should be non-negative";
+    assert queueIndex() >= qiBefore, "Queue index must never decrease";
 }
 
 /// @title L1 message queue ordering

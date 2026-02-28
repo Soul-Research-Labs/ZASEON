@@ -152,17 +152,19 @@ rule totalChallengesNeverDecreases() {
 }
 
 /**
- * @title Total Attestors Never Becomes Negative
- * @notice totalAttestors >= 0 after any transition
+ * @title Total Attestors Monotonically Increases
+ * @notice Attestors are only added, never removed
+ * (replaced vacuous uint256 >= 0 with meaningful monotonicity check)
  */
-rule totalAttestorsNeverNegative() {
+rule totalAttestorsMonotonic() {
     env e;
     method f;
     calldataarg args;
+    uint256 before = totalAttestors();
     f(e, args);
 
-    assert totalAttestors() >= 0,
-        "totalAttestors must never be negative";
+    assert totalAttestors() >= before,
+        "totalAttestors must never decrease";
 }
 
 /**

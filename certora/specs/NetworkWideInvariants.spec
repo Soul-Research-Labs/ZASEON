@@ -55,11 +55,10 @@ methods {
     function paused() external returns (bool) envfree;
 }
 
-// Global pause affects all operations
-rule globalPauseDocumented() {
-    env e;
-    require paused();
-    // Verify that the pause state is observable and persistent within a single context
-    bool stillPaused = paused();
-    assert stillPaused, "Pause state must remain consistent within a single observation";
-}
+// NOTE: Cross-contract invariants listed above are verified individually
+// in each contract's dedicated spec. This file serves as a central
+// reference for the 8 network-wide properties.
+//
+// The previous rule here (globalPauseDocumented) was tautological:
+// it asserted paused() after requiring paused(). Pause enforcement
+// is properly verified in SecurityInvariants.spec and per-contract specs.

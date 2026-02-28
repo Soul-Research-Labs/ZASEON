@@ -552,7 +552,7 @@ See [sdk/README.md](sdk/README.md) for full documentation.
 
 ### Base Sepolia Testnet ✅
 
-**Deployed:** July 22, 2026 | **Chain ID:** 84532
+**Deployed:** TBD (planned) | **Chain ID:** 84532
 
 | Contract                     | Address                                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -573,9 +573,9 @@ See [sdk/README.md](sdk/README.md) for full documentation.
 npx hardhat run scripts/deploy-v3.ts --network sepolia
 
 # L2 testnets
-npx hardhat run scripts/deploy-l2.js --network optimism-sepolia
-npx hardhat run scripts/deploy-l2.js --network arbitrum-sepolia
-npx hardhat run scripts/deploy-l2.js --network base-sepolia
+npx hardhat run scripts/deploy/deploy-l2-bridges.ts --network optimism-sepolia
+npx hardhat run scripts/deploy/deploy-l2-bridges.ts --network arbitrum-sepolia
+npx hardhat run scripts/deploy/deploy-l2-bridges.ts --network base-sepolia
 ```
 
 ---

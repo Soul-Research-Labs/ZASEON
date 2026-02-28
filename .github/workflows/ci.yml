@@ -141,12 +141,21 @@ jobs:
       - name: Run upgradeable tests
         run: forge test --match-path "test/upgradeable/*" -vvv
 
+      - name: Run primitives tests
+        run: forge test --match-path "test/primitives/*" -vvv
+
+      - name: Run experimental tests
+        run: forge test --match-path "test/experimental/*" -vvv
+
+      - name: Run benchmark tests
+        run: forge test --match-path "test/benchmarks/*" -vvv
+
       - name: Run gas benchmarks
         run: forge test --match-path "test/gas/*" -vvv --gas-report
 
       - name: Run fork tests
         if: env.FORK_TESTS == 'true'
-        run: forge test --match-path "test/fork/*" -vvv --fork-url "${{ secrets.RPC_URL }}" --fork-block-number 0
+        run: forge test --match-path "test/fork/*" -vvv --fork-url "${{ secrets.RPC_URL }}"
         env:
           FORK_TESTS: ${{ vars.FORK_TESTS }}
 
@@ -198,7 +207,7 @@ jobs:
             sanctions_check accredited_investor aggregator encrypted_transfer ring_signature; do
             echo "=== Checking $circuit ==="
             cd "$circuit"
-            nargo check 2>&1 || echo "⚠️ $circuit check failed"
+            nargo check 2>&1 || { echo "❌ $circuit check failed"; exit 1; }
             cd ..
           done
 
@@ -211,7 +220,7 @@ jobs:
             sanctions_check accredited_investor aggregator encrypted_transfer ring_signature; do
             echo "=== Testing $circuit ==="
             cd "$circuit"
-            nargo test 2>&1 || echo "⚠️ $circuit test failed"
+            nargo test 2>&1 || { echo "❌ $circuit test failed"; exit 1; }
             cd ..
           done
 
@@ -280,7 +289,7 @@ jobs:
         run: cd sdk && npm ci && npm run build
 
       - name: SDK unit tests (smoke)
-        run: node test/sdk.test.mjs
+        run: node sdk/test/sdk.test.mjs
 
       - name: SDK full test suite
         run: cd sdk && npm run test:all
@@ -302,7 +311,6 @@ jobs:
     name: Coverage Report
     runs-on: ubuntu-latest
     needs: [foundry-tests]
-    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -407,7 +415,7 @@ jobs:
     name: Certora Formal Verification
     runs-on: ubuntu-latest
     needs: [foundry-tests]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:

@@ -159,16 +159,21 @@ rule slashReducesTotalStaked(address relayer, string reason) {
 }
 
 /**
- * RULE-RS-009: totalStaked is monotonically non-negative
- * After any operation, totalStaked remains non-negative.
+ * RULE-RS-009: totalStaked conservation across non-reward operations
+ * totalStaked can only increase via stake() or decrease via slash/unstake.
+ * (replaced vacuous uint256 >= 0 with meaningful monotonicity check)
  */
-rule totalStakedNonNegative(method f) filtered { f -> !f.isView } {
+rule totalStakedMonotonic(method f) filtered { f -> !f.isView } {
     env e;
     calldataarg args;
+    uint256 before = totalStaked();
     f(e, args);
 
-    // totalStaked is uint256 so >= 0 by type, but we verify it doesn't underflow
-    assert totalStaked() >= 0;
+    assert totalStaked() >= before ||
+           f.selector == sig:slash(address, string).selector ||
+           f.selector == sig:requestUnstake(uint256).selector ||
+           f.selector == sig:completeUnstake().selector,
+        "totalStaked must not decrease outside slash/unstake paths";
 }
 
 /**

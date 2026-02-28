@@ -85,12 +85,19 @@ HonestBehaviorOptimal ==
         IN honestProfit > 0 /\ dishonestLoss > MaxProfit
 
 \* Collusion resistance: Collusion is unprofitable
+\* Combined slashing of colluding operators must exceed their combined profit.
+RECURSIVE SumBonds(_)
+SumBonds(S) ==
+    IF S = {} THEN 0
+    ELSE LET op == CHOOSE x \in S : TRUE
+         IN operatorBonds[op] + SumBonds(S \ {op})
+
 CollusionResistance ==
     \A subset \in SUBSET Operators:
         Cardinality(subset) > 1 =>
-            \* Combined slashing exceeds combined profit
-            LET combinedBonds == 0 \* Simplified
-            IN TRUE  \* Placeholder for full calculation
+            LET combinedBonds == SumBonds(subset)
+                combinedSlash == combinedBonds * SlashingRatio \div 100
+            IN combinedSlash > MaxProfit * Cardinality(subset)
 
 \* Griefing resistance: Griefing is expensive
 GriefingResistance ==

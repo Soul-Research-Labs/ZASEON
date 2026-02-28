@@ -300,13 +300,13 @@ certoraRun certora/conf/verify_security.conf
 
 | Bridge    | Adapter                | Verified Properties             |
 | --------- | ---------------------- | ------------------------------- |
-| Solana    | SolanaBridgeAdapter    | VAA replay, nonce, programs     |
 | LayerZero | LayerZeroBridgeAdapter | GUID dedup, peer auth, gas      |
-| Chainlink | ChainlinkBridgeAdapter | CCIP dedup, sender auth, tokens |
-| StarkNet  | StarkNetBridgeAdapter  | Message consumption, contracts  |
-| Bitcoin   | BitcoinBridgeAdapter   | TX hash dedup, confirmations    |
-| BitVM     | BitVMBridgeAdapter     | Proof dedup, challenges         |
-| Aztec     | AztecBridgeAdapter     | Nullifier, double-spend         |
+| Chainlink | ChainlinkCCIPAdapter   | CCIP dedup, sender auth, tokens |
+| Solana    | _(planned)_            | VAA replay, nonce, programs     |
+| StarkNet  | _(planned)_            | Message consumption, contracts  |
+| Bitcoin   | _(planned)_            | TX hash dedup, confirmations    |
+| BitVM     | _(planned)_            | Proof dedup, challenges         |
+| Aztec     | _(planned)_            | Nullifier, double-spend         |
 
 ### Security Invariants Categories
 

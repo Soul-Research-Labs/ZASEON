@@ -73,58 +73,24 @@ rule monotonicUnlockCount(method f) filtered { f -> !f.isView } {
 
 /**
  * RULE-ZKS-003: Nullifier permanence
+ * Once a nullifier is marked used, no function can clear it.
+ * (Subsumes former RULE-ZKS-004 which was an identical check)
  */
-rule nullifierPermanence(bytes32 nullifier) {
-    require nullifierUsed(nullifier);
-    
-    env e;
-    calldataarg args;
-    method f;
-    f(e, args);
-    
-    assert nullifierUsed(nullifier), "Used nullifier must stay used";
-}
-
-/**
- * RULE-ZKS-004: OptimisticUnlock marks nullifier immediately
- * Security Fix C-1: Prevents double-spend race condition
- * Simplified: verify that nullifiers are permanent once set
- */
-rule optimisticUnlockNullifierPermanence(bytes32 nullifier, method f) filtered { f -> !f.isView } {
+rule nullifierPermanence(bytes32 nullifier, method f) filtered { f -> !f.isView } {
     env e;
     calldataarg args;
     
-    // If nullifier was used before the call
     bool usedBefore = nullifierUsed(nullifier);
     
     f(e, args);
     
     bool usedAfter = nullifierUsed(nullifier);
     
-    // Once used, always used
-    assert usedBefore => usedAfter, "Nullifier must stay used once set";
+    assert usedBefore => usedAfter, "Used nullifier must stay used";
 }
 
 /**
- * RULE-ZKS-005: RecoverLock prevents double-recovery
- * Security Fix H-3: Recovery uses nullifiers
- * Simplified: verify total unlocks increases monotonically
- */
-rule recoverLockMonotonic(method f) filtered { f -> !f.isView } {
-    env e;
-    calldataarg args;
-    
-    mathint unlocksBefore = totalLocksUnlocked();
-    
-    f(e, args);
-    
-    mathint unlocksAfter = totalLocksUnlocked();
-    
-    assert unlocksAfter >= unlocksBefore, "Unlocks must be monotonically increasing";
-}
-
-/**
- * RULE-ZKS-006: MAX_ACTIVE_LOCKS enforced
+ * RULE-ZKS-004: MAX_ACTIVE_LOCKS enforced
  * Security Fix M-23: Prevents unbounded array growth
  */
 rule maxActiveLocksEnforced(method f) filtered { f -> !f.isView } {

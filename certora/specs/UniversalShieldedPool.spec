@@ -70,9 +70,6 @@ ghost uint256 ghostLeafIndex {
     init_state axiom ghostLeafIndex == 0;
 }
 
-/// @dev Ghost tracking test mode state
-ghost bool ghostTestMode;
-
 // =============================================================================
 // INVARIANTS
 // =============================================================================
@@ -82,7 +79,7 @@ ghost bool ghostTestMode;
  * The Merkle tree is append-only; commitments can never be removed.
  */
 invariant leafIndexMonotonicity()
-    to_mathint(nextLeafIndex()) >= 0
+    to_mathint(nextLeafIndex()) >= to_mathint(ghostLeafIndex)
     {
         preserved depositETH(bytes32 c) with (env e) {
             require to_mathint(nextLeafIndex()) < 2^32 - 1;

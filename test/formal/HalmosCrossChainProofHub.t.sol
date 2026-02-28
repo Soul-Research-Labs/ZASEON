@@ -3,143 +3,76 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {SymTest} from "halmos-cheatcodes/SymTest.sol";
+import {CrossChainProofHubV3} from "contracts/bridge/CrossChainProofHubV3.sol";
 
 /**
  * @title HalmosCrossChainProofHub
- * @notice Symbolic execution tests for CrossChainProofHubV3 invariants
- * @dev Run with: halmos --contract HalmosCrossChainProofHub --solver-timeout-assertion 120
- *
- * Properties verified:
- *   1. Stake deposit conservation: total staked = sum of individual stakes
- *   2. Proof count monotonicity: proof count only increases
- *   3. Challenge requires sufficient stake
- *   4. Chain support is properly gated
- *   5. Withdrawal reduces total correctly
+ * @notice Symbolic tests for CrossChainProofHubV3 — uses the REAL contract.
+ * @dev Run: halmos --contract HalmosCrossChainProofHub --solver-timeout-assertion 60000
  */
 contract HalmosCrossChainProofHub is SymTest, Test {
-    // Simplified proof hub state for symbolic verification
-    mapping(address => uint256) public stakes;
-    uint256 public totalStaked;
-    uint256 public proofCount;
-    uint256 public minStake;
-    mapping(uint256 => bool) public supportedChains;
+    CrossChainProofHubV3 internal hub;
 
-    /// @notice Verify stake deposit conserves total value
-    /// @dev For any operator depositing any amount, total += amount exactly
-    function check_stakeDepositConservation(
-        address operator,
-        uint256 amount
+    function setUp() public {
+        hub = new CrossChainProofHubV3();
+    }
+
+    /// @notice Deployer's own chain is auto-supported.
+    function check_ownChainSupported() public view {
+        assertTrue(
+            hub.supportedChains(block.chainid),
+            "Deployer chain must be supported"
+        );
+    }
+
+    /// @notice addSupportedChain can be called by admin.
+    function check_addChain(uint256 chainId) public {
+        vm.assume(chainId != block.chainid && chainId != 0);
+
+        hub.addSupportedChain(chainId);
+
+        assertTrue(
+            hub.supportedChains(chainId),
+            "Chain must be supported after adding"
+        );
+    }
+
+    /// @notice Non-admin cannot add a supported chain.
+    function check_nonAdminCannotAddChain(
+        address caller,
+        uint256 chainId
     ) public {
-        vm.assume(operator != address(0));
-        vm.assume(amount > 0 && amount <= 1e30);
-        vm.assume(stakes[operator] <= type(uint256).max - amount);
-        vm.assume(totalStaked <= type(uint256).max - amount);
+        vm.assume(caller != address(this));
 
-        uint256 prevTotal = totalStaked;
-        uint256 prevStake = stakes[operator];
-
-        // Simulate deposit
-        stakes[operator] += amount;
-        totalStaked += amount;
-
-        assert(totalStaked == prevTotal + amount);
-        assert(stakes[operator] == prevStake + amount);
-    }
-
-    /// @notice Verify stake withdrawal conserves total value
-    function check_stakeWithdrawalConservation(
-        address operator,
-        uint256 amount
-    ) public {
-        vm.assume(operator != address(0));
-        vm.assume(amount > 0);
-        vm.assume(stakes[operator] >= amount);
-
-        uint256 prevTotal = totalStaked;
-
-        // Simulate withdrawal
-        stakes[operator] -= amount;
-        totalStaked -= amount;
-
-        assert(totalStaked == prevTotal - amount);
-    }
-
-    /// @notice Verify proof count only increases (monotonicity)
-    function check_proofCountMonotonicity(uint256 numProofs) public {
-        vm.assume(numProofs > 0 && numProofs <= 100);
-        vm.assume(proofCount <= type(uint256).max - numProofs);
-
-        uint256 prevCount = proofCount;
-
-        for (uint256 i; i < numProofs; i++) {
-            proofCount++;
-        }
-
-        assert(proofCount > prevCount);
-        assert(proofCount == prevCount + numProofs);
-    }
-
-    /// @notice Verify challenge requires minimum stake
-    /// @dev An operator with stake < minStake should not be able to submit proofs
-    function check_challengeRequiresStake(
-        address operator,
-        uint256 stake,
-        uint256 minRequired
-    ) public pure {
-        vm.assume(minRequired > 0);
-
-        bool hasEnoughStake = stake >= minRequired;
-
-        // If stake is insufficient, submission must be blocked
-        if (!hasEnoughStake) {
-            assert(stake < minRequired);
-        } else {
-            assert(stake >= minRequired);
+        vm.prank(caller);
+        try hub.addSupportedChain(chainId) {
+            assert(false);
+        } catch {
+            // expected — caller lacks DEFAULT_ADMIN_ROLE
         }
     }
 
-    /// @notice Verify chain support state is binary and doesn't corrupt
-    function check_chainSupportConsistency(
-        uint256 chainId1,
-        uint256 chainId2
-    ) public {
-        vm.assume(chainId1 != chainId2);
+    /// @notice Stake deposit increases relayer stake.
+    function check_depositStakeAccounting() public {
+        vm.deal(address(this), 100 ether);
 
-        // Enable chain 1
-        supportedChains[chainId1] = true;
+        // Grant RELAYER_ROLE to this contract first
+        hub.grantRole(hub.RELAYER_ROLE(), address(this));
 
-        // Chain 2 should be unaffected
-        assert(!supportedChains[chainId2]);
+        hub.depositStake{value: 10 ether}();
 
-        // Chain 1 should remain enabled
-        assert(supportedChains[chainId1]);
-
-        // Disable chain 1
-        supportedChains[chainId1] = false;
-        assert(!supportedChains[chainId1]);
+        (uint256 stake, , ) = hub.getRelayerStats(address(this));
+        assertGe(stake, 10 ether, "Stake must be recorded");
     }
 
-    /// @notice Verify deposit+withdrawal cancellation
-    function check_depositWithdrawalCancellation(
-        address operator,
-        uint256 amount
-    ) public {
-        vm.assume(operator != address(0));
-        vm.assume(amount > 0 && amount <= 1e30);
+    /// @notice Pausing blocks proof submission.
+    function check_pauseBlocksSubmission(bytes memory proof) public {
+        hub.pause();
 
-        uint256 prevStake = stakes[operator];
-        uint256 prevTotal = totalStaked;
-        vm.assume(prevStake <= type(uint256).max - amount);
-        vm.assume(prevTotal <= type(uint256).max - amount);
-
-        // Deposit then withdraw same amount
-        stakes[operator] += amount;
-        totalStaked += amount;
-        stakes[operator] -= amount;
-        totalStaked -= amount;
-
-        // State should return to original
-        assert(stakes[operator] == prevStake);
-        assert(totalStaked == prevTotal);
+        try hub.submitProof(proof, hex"", bytes32(0), 1, 2) {
+            assert(false);
+        } catch {
+            // expected
+        }
     }
 }

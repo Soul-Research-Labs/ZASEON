@@ -2,6 +2,10 @@
  * @title Solana Bridge Adapter Formal Verification
  * @notice Certora specifications for Soul Solana cross-chain bridge
  * @dev Formal verification for Wormhole-based Solana bridge security
+ *
+ * STATUS: DISABLED — SolanaBridgeAdapter contract is not yet implemented.
+ * This spec is excluded from CI via verify_crosschain.conf.
+ * Re-enable when SolanaBridgeAdapter.sol is created.
  */
 
 /*//////////////////////////////////////////////////////////////
@@ -47,16 +51,6 @@ ghost mapping(bytes32 => bool) ghostUsedVAAs {
     init_state axiom forall bytes32 v. !ghostUsedVAAs[v];
 }
 
-// Track total messages sent
-ghost mathint ghostMessagesSent {
-    init_state axiom ghostMessagesSent == 0;
-}
-
-// Track total messages received
-ghost mathint ghostMessagesReceived {
-    init_state axiom ghostMessagesReceived == 0;
-}
-
 /*//////////////////////////////////////////////////////////////
                           HOOKS
 //////////////////////////////////////////////////////////////*/
@@ -85,20 +79,24 @@ invariant bridgeFeeWithinBounds()
     bridgeFee() <= 100;
 
 /**
- * INV-SOLANA-003: Statistics are non-negative
+ * INV-SOLANA-003: Messages received never exceeds messages sent
+ * (a bridge cannot deliver more messages than were sent)
  */
-invariant statisticsNonNegative()
-    totalMessagesSent() >= 0 && 
-    totalMessagesReceived() >= 0 && 
-    totalValueBridged() >= 0;
+invariant messagesReceivedBounded()
+    totalMessagesReceived() <= totalMessagesSent();
 
 /**
- * INV-SOLANA-004: Wormhole core cannot be zero after initialization
- * (with preserved to avoid vacuous truth on first set)
+ * INV-SOLANA-004: Wormhole core cannot be zeroed after initialization
+ * Once wormholeCore is set to non-zero, no function can zero it out.
  */
 invariant wormholeCoreNonZero()
     wormholeCore() != 0
-    { preserved { require wormholeCore() != 0; } }
+    {
+        preserved {
+            // Precondition: core was already initialized (non-zero)
+            require wormholeCore() != 0;
+        }
+    }
 
 /*//////////////////////////////////////////////////////////////
                           RULES
@@ -117,17 +115,21 @@ rule vaaCannotBeReplayed(bytes32 vaaHash) {
 }
 
 /**
- * RULE-SOLANA-002: Paused contract blocks state changes
- * When paused, critical operations should be blocked
+ * RULE-SOLANA-002: Paused contract blocks all non-view state changes
+ * Any non-view, non-admin function must revert when paused.
  */
-rule pausedBlocksOperations() {
+rule pausedBlocksOperations(method f) filtered {
+    f -> f.isView == false && f.isFallback == false
+         && f.selector != sig:unpause().selector
+} {
     env e;
+    calldataarg args;
     
     require paused();
     
-    // Attempting to set bridge fee while paused should still work for admin
-    // but user operations would be blocked by whenNotPaused modifier
-    assert paused(), "Contract must remain paused";
+    f@withrevert(e, args);
+    
+    assert lastReverted, "State-changing operations must revert when paused";
 }
 
 /**
@@ -278,13 +280,17 @@ rule vaaHashUniqueness(bytes32 vaaHash) {
 }
 
 /**
- * SEC-SOLANA-002: Message ID collision resistance
- * Total counts imply proper message tracking
+ * SEC-SOLANA-002: Message counting monotonicity
+ * Sending or receiving messages never decreases the respective counters.
  */
-rule messageCountingConsistency() {
-    mathint sent = totalMessagesSent();
-    mathint received = totalMessagesReceived();
+rule messageCountingMonotonic(method f) filtered { f -> !f.isView } {
+    mathint sentBefore = totalMessagesSent();
+    mathint receivedBefore = totalMessagesReceived();
     
-    // Both should be non-negative (covered by invariant)
-    assert sent >= 0 && received >= 0, "Message counts must be non-negative";
+    env e;
+    calldataarg args;
+    f(e, args);
+    
+    assert totalMessagesSent() >= sentBefore, "Sent count must never decrease";
+    assert totalMessagesReceived() >= receivedBefore, "Received count must never decrease";
 }

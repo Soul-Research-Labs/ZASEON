@@ -1,14 +1,18 @@
 /**
- * @title Soul v2 Formal Verification Specifications
+ * @title Soul v2 Formal Verification Specifications (DOCUMENTATION ONLY)
  * @author Soul Protocol
- * @notice Certora-style specifications for formal verification of Soul v2 contracts
- * @dev These specifications define invariants, pre/post conditions, and safety properties
+ * @notice This file documents invariants, pre/post conditions, and safety properties
+ *         in Certora-style pseudocode. It is NOT executable CVL — all content is in comments.
+ * @dev Executable specifications live in per-contract .spec files under certora/specs/.
+ *      This file serves as a design reference for the formal properties described below.
  *
- * To run verification with Certora:
- * $ certoraRun specs/Soul.spec --contract ProofCarryingContainer
- *
- * To run verification with Scribble:
- * $ scribble contracts/primitives/ProofCarryingContainer.sol --output-mode files
+ * Contracts covered:
+ *   - ProofCarryingContainer  → See certora/specs/ProofCarryingContainer.spec
+ *   - PolicyBoundProofs        → See certora/specs/PolicyBoundProofs.spec
+ *   - EASC                     → See certora/specs/EASC.spec
+ *   - CDNA                     → See certora/specs/NullifierRegistry.spec
+ *   - Orchestrator             → See certora/specs/Orchestrator.spec
+ *   - SoulUpgradeTimelock      → See certora/specs/SoulGovernance.spec
  */
 
 /*//////////////////////////////////////////////////////////////

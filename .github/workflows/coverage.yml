@@ -20,7 +20,6 @@ jobs:
   forge-coverage:
     name: Forge Coverage (stub-based)
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       FOUNDRY_PROFILE: coverage
     steps:
@@ -65,7 +64,6 @@ jobs:
   modular-coverage:
     name: Modular Forge Coverage (per-module)
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:

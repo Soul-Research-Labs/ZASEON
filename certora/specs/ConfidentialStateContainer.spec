@@ -31,13 +31,12 @@ rule totalStatesMonotonic(method f, env e, calldataarg args) {
         "Total states must be monotonically non-decreasing";
 }
 
-/// @notice Active states can decrease (deactivation) but never go negative
-rule activeStatesNonNegative(method f, env e, calldataarg args) {
-    uint256 activeBefore = activeStates();
+/// @notice Active states are bounded by total states
+/// (replaces vacuous uint256 >= 0 check with a meaningful bound)
+rule activeStatesBoundedByTotal(method f, env e, calldataarg args) {
     f(e, args);
-    uint256 activeAfter = activeStates();
-    assert activeAfter >= 0,
-        "Active states count must never be negative";
+    assert activeStates() <= totalStates(),
+        "Active states must never exceed total states";
 }
 
 /// @notice No state mutation while paused

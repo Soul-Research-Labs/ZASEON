@@ -42,13 +42,11 @@ invariant disputesCannotExceedOptimistic()
     totalDisputes() <= totalOptimisticUnlocks();
 
 /**
- * INV-ZKS-003: Statistics are non-negative (uint256 is always >= 0)
+ * INV-ZKS-003: Unlocked locks never exceed created locks
+ * (replaced 4 vacuous uint256 >= 0 checks with meaningful bound)
  */
-invariant statisticsNonNegative()
-    totalLocksCreated() >= 0 && 
-    totalLocksUnlocked() >= 0 && 
-    totalOptimisticUnlocks() >= 0 && 
-    totalDisputes() >= 0;
+invariant unlockedBoundedByCreated()
+    totalLocksUnlocked() <= totalLocksCreated();
 
 /**
  * INV-ZKS-004: Active lock count consistency

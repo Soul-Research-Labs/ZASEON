@@ -327,7 +327,8 @@ rule stakeNeverNegative(env e, method f, address relayer) filtered {
     uint256 stakeAfter; uint256 ra; uint256 ua; bool isRegA;
     stakeAfter, ra, ua, isRegA = relayers(relayer);
 
-    // Uint256 can't go negative, but verify no unexpected decrease
-    // outside of slash/withdraw which have explicit checks
-    assert stakeAfter >= 0, "Stake must never be negative";
+    // Verify stake only decreases via explicit slash/withdraw paths
+    // (stake is uint256, so >= 0 by type; this checks monotonicity instead)
+    assert stakeAfter <= stakeBefore || isRegA,
+        "Stake must not increase unless via registration";
 }

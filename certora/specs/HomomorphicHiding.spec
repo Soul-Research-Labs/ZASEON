@@ -41,21 +41,9 @@ methods {
 // GHOST VARIABLES
 // ============================================================================
 
-ghost uint256 ghostTotalCommitments {
-    init_state axiom ghostTotalCommitments == 0;
-}
-
-ghost uint256 ghostTotalOperations {
-    init_state axiom ghostTotalOperations == 0;
-}
-
-ghost mapping(bytes32 => bool) ghostCommitmentRevealed {
-    init_state axiom forall bytes32 c. !ghostCommitmentRevealed[c];
-}
-
-ghost mapping(bytes32 => bool) ghostCommitmentExists {
-    init_state axiom forall bytes32 c. !ghostCommitmentExists[c];
-}
+// NOTE: Ghosts removed — rules use contract view functions directly.
+// If hooks are added in the future, re-introduce ghosts to shadow
+// storage slots that need cross-transaction tracking.
 
 // ============================================================================
 // INVARIANTS - Removed trivial ones (uint256 is always >= 0)

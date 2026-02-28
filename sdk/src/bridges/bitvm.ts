@@ -241,6 +241,8 @@ export class BitVMBridgeClient {
     if (!this.walletClient) throw new Error("Wallet client required");
     try {
       const hash = await this.walletClient.writeContract({
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
         address: this.bridgeAddress,
         abi: BITVM_ABI,
         functionName: "claimDeposit",
@@ -264,6 +266,8 @@ export class BitVMBridgeClient {
     if (!this.walletClient) throw new Error("Wallet client required");
     try {
       const hash = await this.walletClient.writeContract({
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
         address: this.bridgeAddress,
         abi: BITVM_ABI,
         functionName: "challengeDeposit",
@@ -290,6 +294,8 @@ export class BitVMBridgeClient {
     if (!this.walletClient) throw new Error("Wallet client required");
     try {
       const hash = await this.walletClient.writeContract({
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
         address: this.bridgeAddress,
         abi: BITVM_ABI,
         functionName: "requestWithdrawal",
@@ -319,6 +325,8 @@ export class BitVMBridgeClient {
     if (!this.walletClient) throw new Error("Wallet client required");
     try {
       const hash = await this.walletClient.writeContract({
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
         address: this.bridgeAddress,
         abi: BITVM_ABI,
         functionName: "registerOperator",
