@@ -15,13 +15,32 @@ import {
   type ProofResult as NoirProofResult,
   type WitnessInput,
 } from "./NoirProver";
+import {
+  ProofPreprocessor,
+  MemoryPreprocessorStorage,
+  type PreprocessedData,
+  type FinalizedProofResult,
+  type PreprocessorConfig,
+  type PreprocessorStats,
+  type PreprocessorStorage,
+  type PreprocessableCircuit,
+} from "./ProofPreprocessor";
 
 /*//////////////////////////////////////////////////////////////
                     RE-EXPORTS
 //////////////////////////////////////////////////////////////*/
 
-export { NoirProver, Circuit };
-export type { NoirProofResult, WitnessInput };
+export { NoirProver, Circuit, ProofPreprocessor, MemoryPreprocessorStorage };
+export type {
+  NoirProofResult,
+  WitnessInput,
+  PreprocessedData,
+  FinalizedProofResult,
+  PreprocessorConfig,
+  PreprocessorStats,
+  PreprocessorStorage,
+  PreprocessableCircuit,
+};
 
 /*//////////////////////////////////////////////////////////////
                     POSEIDON HELPERS

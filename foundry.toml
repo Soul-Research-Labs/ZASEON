@@ -50,6 +50,14 @@ compilation_restrictions = [
 gas_reports = ["*"]
 gas_reports_ignore = ["test/*", "mocks/*"]
 
+[profile.fast]
+# Fast compilation profile: via_ir on (needed for stack depth) but no optimizer
+# Usage: FOUNDRY_PROFILE=fast forge test
+via_ir = true
+optimizer = false
+additional_compiler_profiles = []
+compilation_restrictions = []
+
 [profile.ci]
 # NOTE: compilation_restrictions are inherited from the default profile.
 # The 11 contracts with max_optimizer_runs = 1 will still compile at runs = 1 

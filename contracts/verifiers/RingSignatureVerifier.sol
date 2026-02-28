@@ -70,7 +70,7 @@ contract RingSignatureVerifier is IRingSignatureVerifier {
     uint256 public constant MAX_RING_SIZE = 64;
 
     /// @dev Domain separator for challenge computation
-    bytes13 internal constant DOMAIN = "Zaseon_CLSAG_v1";
+    bytes15 internal constant DOMAIN = "Zaseon_CLSAG_v1";
 
     /*//////////////////////////////////////////////////////////////
                           VERIFICATION
@@ -214,20 +214,20 @@ contract RingSignatureVerifier is IRingSignatureVerifier {
     }
 
     /// @inheritdoc IRingSignatureVerifier
-        /**
+    /**
      * @notice Returns the min ring size
      * @return The result value
      */
-function getMinRingSize() external pure override returns (uint256) {
+    function getMinRingSize() external pure override returns (uint256) {
         return MIN_RING_SIZE;
     }
 
     /// @inheritdoc IRingSignatureVerifier
-        /**
+    /**
      * @notice Returns the max ring size
      * @return The result value
      */
-function getMaxRingSize() external pure override returns (uint256) {
+    function getMaxRingSize() external pure override returns (uint256) {
         return MAX_RING_SIZE;
     }
 }
