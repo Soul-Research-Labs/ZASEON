@@ -221,7 +221,7 @@ contract FullDeploymentE2E is Test {
     // ═══════════════════════════════════════════════════════════
 
     function test_VerifierRegistryDeployed() public view {
-        assertEq(verifierRegistry.CIRCUIT_TYPE_COUNT(), 20);
+        assertEq(verifierRegistry.CIRCUIT_TYPE_COUNT(), 24);
         assertEq(verifierRegistry.totalRegistered(), 0);
         assertFalse(verifierRegistry.paused());
     }

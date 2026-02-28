@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {SymTest} from "halmos-cheatcodes/SymTest.sol";
 import {MultiBridgeRouter} from "contracts/bridge/MultiBridgeRouter.sol";
+import {IMultiBridgeRouter} from "contracts/interfaces/IMultiBridgeRouter.sol";
 
 /**
  * @title HalmosMultiBridgeRouter
@@ -26,7 +27,7 @@ contract HalmosMultiBridgeRouter is SymTest, Test {
         vm.prank(caller);
         try
             router.registerAdapter(
-                MultiBridgeRouter.BridgeType.HYPERLANE,
+                IMultiBridgeRouter.BridgeType.HYPERLANE,
                 address(0xBEEF),
                 80,
                 1000 ether

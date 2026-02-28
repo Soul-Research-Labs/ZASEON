@@ -110,7 +110,7 @@ contract SoulProtocolHubUpgradeableTest is Test {
         hub.registerVerifier(vType, verifier, 500_000);
 
         // Check stored verifier
-        (address storedVerifier, , ) = hub.verifiers(vType);
+        (address storedVerifier, , , ) = hub.verifiers(vType);
         assertEq(storedVerifier, verifier);
     }
 
@@ -158,7 +158,7 @@ contract SoulProtocolHubUpgradeableTest is Test {
         vm.prank(guardian);
         hub.deactivateVerifier(vType);
 
-        (, bool active, ) = hub.verifiers(vType);
+        (, , , bool active) = hub.verifiers(vType);
         assertFalse(active);
     }
 
@@ -206,7 +206,7 @@ contract SoulProtocolHubUpgradeableTest is Test {
         hub.upgradeToAndCall(address(newImpl), "");
 
         // Verify state preserved
-        (address storedVerifier, , ) = hub.verifiers(vType);
+        (address storedVerifier, , , ) = hub.verifiers(vType);
         assertEq(storedVerifier, verifier);
         assertTrue(hub.hasRole(OPERATOR_ROLE, operator));
         assertEq(hub.contractVersion(), 2);

@@ -6,6 +6,8 @@ import "../Groth16VerifierBN254.sol";
 /**
  * @title PedersenCommitmentAdapter
  * @notice Adapter for Pedersen commitment proof verification
+ * @custom:deprecated LEGACY — wraps Groth16VerifierBN254 from the Circom era.
+ *                    Use UltraHonkAdapter with the corresponding Noir/UltraHonk verifier instead.
  */
 contract PedersenCommitmentAdapter {
     Groth16VerifierBN254 public immutable verifier;
@@ -15,13 +17,13 @@ contract PedersenCommitmentAdapter {
     }
 
     /// @notice Standard interface for proof verification
-        /**
+    /**
      * @notice Verifys proof
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verifyProof(
+    function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
@@ -29,14 +31,14 @@ function verifyProof(
     }
 
     /// @notice Verify commitment ownership
-        /**
+    /**
      * @notice Verifys commitment
      * @param proof The ZK proof data
      * @param commitment The cryptographic commitment
      * @param ownerPubkey The owner pubkey
      * @return The result value
      */
-function verifyCommitment(
+    function verifyCommitment(
         bytes calldata proof,
         bytes32 commitment,
         bytes32 ownerPubkey
@@ -47,7 +49,7 @@ function verifyCommitment(
         return verifier.verify(proof, inputs);
     }
 
-        /**
+    /**
      * @notice Verifys the operation
      * @param proof The ZK proof data
      * @param commitment The cryptographic commitment
@@ -55,7 +57,7 @@ function verifyCommitment(
      * @param blinding The blinding
      * @return The result value
      */
-function verify(
+    function verify(
         bytes calldata proof,
         bytes32 commitment,
         uint256 value,

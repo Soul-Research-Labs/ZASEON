@@ -17,11 +17,33 @@ contract MockIntentVerifier is IProofVerifier {
         shouldPass = val;
     }
 
+    function verify(
+        bytes calldata,
+        uint256[] calldata
+    ) external view override returns (bool) {
+        return shouldPass;
+    }
+
     function verifyProof(
         bytes calldata,
         bytes calldata
     ) external view override returns (bool) {
         return shouldPass;
+    }
+
+    function verifySingle(
+        bytes calldata,
+        uint256
+    ) external view override returns (bool) {
+        return shouldPass;
+    }
+
+    function getPublicInputCount() external pure override returns (uint256) {
+        return 1;
+    }
+
+    function isReady() external pure override returns (bool) {
+        return true;
     }
 }
 

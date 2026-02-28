@@ -21,6 +21,9 @@ import "../../contracts/interfaces/ISoulProtocolHub.sol";
  *        - complianceOracle         (optional)
  *        - proofTranslator          (optional)
  *        - privacyRouter            (required for isFullyConfigured)
+ *        - multiProver              (required for isFullyConfigured)
+ *        - relayWatchtower          (required for isFullyConfigured)
+ *        - relayCircuitBreaker      (not in wireAll, wired via setter)
  *
  * Usage:
  *   SOUL_HUB=0x...         \
@@ -33,6 +36,9 @@ import "../../contracts/interfaces/ISoulProtocolHub.sol";
  *   COMPLIANCE_ORACLE=0x... \
  *   PROOF_TRANSLATOR=0x...  \
  *   PRIVACY_ROUTER=0x...    \
+ *   MULTI_PROVER=0x...       \
+ *   RELAY_WATCHTOWER=0x...   \
+ *   RELAY_CIRCUIT_BREAKER=0x... \
  *   forge script scripts/deploy/WireRemainingComponents.s.sol \
  *     --rpc-url $RPC_URL --broadcast --verify
  *
@@ -53,6 +59,9 @@ contract WireRemainingComponents is Script {
         address complianceOracle = _envOr("COMPLIANCE_ORACLE");
         address proofTranslator = _envOr("PROOF_TRANSLATOR");
         address privacyRouter = _envOr("PRIVACY_ROUTER");
+        address multiProver = _envOr("MULTI_PROVER");
+        address relayWatchtower = _envOr("RELAY_WATCHTOWER");
+        address relayCircuitBreaker = _envOr("RELAY_CIRCUIT_BREAKER");
 
         SoulProtocolHub hub = SoulProtocolHub(hubAddr);
 
@@ -67,6 +76,9 @@ contract WireRemainingComponents is Script {
         console.log("Compliance Oracle:  ", complianceOracle);
         console.log("Proof Translator:   ", proofTranslator);
         console.log("Privacy Router:     ", privacyRouter);
+        console.log("Multi Prover:       ", multiProver);
+        console.log("Relay Watchtower:   ", relayWatchtower);
+        console.log("Relay Circuit Breaker:", relayCircuitBreaker);
 
         vm.startBroadcast();
 
@@ -90,13 +102,19 @@ contract WireRemainingComponents is Script {
                 _proofCarryingContainer: address(0), // already set
                 _crossDomainNullifierAlgebra: address(0), // already set
                 _policyBoundProofs: address(0), // already set
-                _multiProver: address(0), // set separately if needed
-                _relayWatchtower: address(0), // set separately if needed
+                _multiProver: multiProver,
+                _relayWatchtower: relayWatchtower
                 _intentCompletionLayer: address(0),
                 _instantCompletionGuarantee: address(0),
                 _dynamicRoutingOrchestrator: address(0)
             })
         );
+
+        // Wire relay circuit breaker (not in wireAll struct)
+        if (relayCircuitBreaker != address(0)) {
+            hub.setRelayCircuitBreaker(relayCircuitBreaker);
+            console.log("RelayCircuitBreaker wired to Hub");
+        }
 
         vm.stopBroadcast();
 

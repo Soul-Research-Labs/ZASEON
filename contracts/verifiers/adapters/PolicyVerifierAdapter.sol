@@ -6,6 +6,8 @@ import "./NoirVerifierAdapter.sol";
 /**
  * @title PolicyVerifierAdapter
  * @notice Adapter for the Policy Compliance Noir circuit
+ * @custom:deprecated LEGACY — public input counts do not match UltraHonk-generated verifiers.
+ *                    Use UltraHonkAdapter with the corresponding generated verifier instead.
  */
 contract PolicyVerifierAdapter is NoirVerifierAdapter {
     constructor(address _noirVerifier) NoirVerifierAdapter(_noirVerifier) {}
@@ -27,23 +29,26 @@ contract PolicyVerifierAdapter is NoirVerifierAdapter {
         // 2. policy_hash
         // 3. user_commitment
         // 4. merkle_root
-        
+
         bytes32[] memory inputs = _prepareSignals(publicInputs);
-        require(inputs.length == getPublicInputCount(), "SIG_COUNT_MISMATCH: POLICY");
+        require(
+            inputs.length == getPublicInputCount(),
+            "SIG_COUNT_MISMATCH: POLICY"
+        );
 
         // Signal[0] is the return boolean from Noir main
         bool circuitPassed = uint256(inputs[0]) == 1;
 
         if (!circuitPassed) return false;
-        
+
         return INoirVerifier(noirVerifier).verify(proof, inputs);
     }
 
-        /**
+    /**
      * @notice Returns the public input count
      * @return The result value
      */
-function getPublicInputCount() public pure override returns (uint256) {
+    function getPublicInputCount() public pure override returns (uint256) {
         return 4;
     }
 }

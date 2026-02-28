@@ -25,6 +25,23 @@ contract ExperimentalFeatureGatedTest is Test {
     address admin = makeAddr("admin");
     bytes32 featureId = keccak256("TEST_FEATURE");
 
+    /// @dev Helper: register + enable a feature with all required params
+    function _registerAndEnable(bytes32 _featureId) internal {
+        registry.registerFeature(
+            _featureId,
+            "Test Feature",
+            ExperimentalFeatureRegistry.FeatureStatus.DISABLED,
+            address(0),
+            type(uint256).max,
+            false,
+            ""
+        );
+        registry.updateFeatureStatus(
+            _featureId,
+            ExperimentalFeatureRegistry.FeatureStatus.EXPERIMENTAL
+        );
+    }
+
     function setUp() public {
         vm.startPrank(admin);
         registry = new ExperimentalFeatureRegistry(admin);
@@ -60,8 +77,7 @@ contract ExperimentalFeatureGatedTest is Test {
     function test_guardedFunction_succeeds_whenEnabled() public {
         // Register and enable the feature
         vm.startPrank(admin);
-        registry.registerFeature(featureId, "Test Feature", "test");
-        registry.enableFeature(featureId);
+        _registerAndEnable(featureId);
         vm.stopPrank();
 
         gated.guardedIncrement();
@@ -72,8 +88,7 @@ contract ExperimentalFeatureGatedTest is Test {
 
     function test_guardedFunction_multipleCalls() public {
         vm.startPrank(admin);
-        registry.registerFeature(featureId, "Test Feature", "test");
-        registry.enableFeature(featureId);
+        _registerAndEnable(featureId);
         vm.stopPrank();
 
         gated.guardedIncrement();
@@ -86,15 +101,14 @@ contract ExperimentalFeatureGatedTest is Test {
 
     function test_guardedFunction_reverts_afterDisable() public {
         vm.startPrank(admin);
-        registry.registerFeature(featureId, "Test Feature", "test");
-        registry.enableFeature(featureId);
+        _registerAndEnable(featureId);
         vm.stopPrank();
 
         gated.guardedIncrement();
         assertEq(gated.counter(), 1);
 
         vm.prank(admin);
-        registry.disableFeature(featureId);
+        registry.emergencyDisable(featureId);
 
         vm.expectRevert(
             abi.encodeWithSelector(

@@ -65,11 +65,16 @@ contract VerifierRegistryV2 is AccessControl {
         // Phase 3 circuits (P2)
         AGGREGATOR, // 17
         RESERVED_18, // 18 (formerly PQC_VERIFIER, removed)
-        INVARIANT_CHECKER // 19
+        INVARIANT_CHECKER, // 19
+        // Phase 4 circuits (P3) — Noir/UltraHonk-generated verifiers
+        ACCREDITED_INVESTOR, // 20
+        ENCRYPTED_TRANSFER, // 21
+        SANCTIONS_CHECK, // 22
+        SHIELDED_POOL // 23
     }
 
     /// @notice Total number of circuit types
-    uint256 public constant CIRCUIT_TYPE_COUNT = 20;
+    uint256 public constant CIRCUIT_TYPE_COUNT = 24;
 
     /*//////////////////////////////////////////////////////////////
                           VERIFIER ENTRY

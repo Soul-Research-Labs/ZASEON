@@ -53,7 +53,7 @@ contract VerifierRegistryV2Test is Test {
     }
 
     function test_CircuitTypeCount() public view {
-        assertEq(registry.CIRCUIT_TYPE_COUNT(), 20);
+        assertEq(registry.CIRCUIT_TYPE_COUNT(), 24);
     }
 
     function test_CircuitNames() public view {

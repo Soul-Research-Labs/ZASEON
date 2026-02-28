@@ -282,6 +282,10 @@ contract DeployMainnet is Script {
         hub.setTimelock(address(upgradeTimelock));
         hub.setUpgradeTimelock(address(upgradeTimelock));
 
+        // Wire relay circuit breaker (not in wireAll struct)
+        hub.setRelayCircuitBreaker(address(circuitBreaker));
+        console.log("RelayCircuitBreaker wired to Hub");
+
         // Lock PCC verification to production mode (one-way, irreversible)
         proofCarryingContainer.lockVerificationMode();
         console.log("PCC verification mode locked (production)");

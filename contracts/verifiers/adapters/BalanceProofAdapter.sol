@@ -6,6 +6,8 @@ import "../Groth16VerifierBN254.sol";
 /**
  * @title BalanceProofAdapter
  * @notice Adapter for balance proof verification
+ * @custom:deprecated LEGACY — wraps Groth16VerifierBN254 from the Circom era.
+ *                    Use UltraHonkAdapter with the corresponding Noir/UltraHonk verifier instead.
  */
 contract BalanceProofAdapter {
     Groth16VerifierBN254 public immutable verifier;
@@ -15,20 +17,20 @@ contract BalanceProofAdapter {
     }
 
     /// @notice Standard interface for proof verification
-        /**
+    /**
      * @notice Verifys proof
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verifyProof(
+    function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-        /**
+    /**
      * @notice Verifys the operation
      * @param proof The ZK proof data
      * @param balance The balance
@@ -36,7 +38,7 @@ function verifyProof(
      * @param commitment The cryptographic commitment
      * @return The result value
      */
-function verify(
+    function verify(
         bytes calldata proof,
         uint256 balance,
         uint256 minRequired,

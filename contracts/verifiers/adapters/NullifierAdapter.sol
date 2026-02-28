@@ -6,6 +6,8 @@ import "../Groth16VerifierBN254.sol";
 /**
  * @title NullifierAdapter
  * @notice Adapter for nullifier proof verification
+ * @custom:deprecated LEGACY — wraps Groth16VerifierBN254 from the Circom era.
+ *                    Use UltraHonkAdapter with the corresponding Noir/UltraHonk verifier instead.
  */
 contract NullifierAdapter {
     Groth16VerifierBN254 public immutable verifier;
@@ -15,27 +17,27 @@ contract NullifierAdapter {
     }
 
     /// @notice Standard interface for proof verification
-        /**
+    /**
      * @notice Verifys proof
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verifyProof(
+    function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-        /**
+    /**
      * @notice Verifys the operation
      * @param proof The ZK proof data
      * @param nullifier The nullifier hash
      * @param commitment The cryptographic commitment
      * @return The result value
      */
-function verify(
+    function verify(
         bytes calldata proof,
         bytes32 nullifier,
         bytes32 commitment

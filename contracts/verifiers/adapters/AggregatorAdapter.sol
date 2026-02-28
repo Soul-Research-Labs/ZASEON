@@ -6,6 +6,8 @@ import "../Groth16VerifierBN254.sol";
 /**
  * @title AggregatorAdapter
  * @notice Adapter for aggregated proof verification
+ * @custom:deprecated LEGACY — wraps Groth16VerifierBN254 from the Circom era.
+ *                    Use UltraHonkAdapter with the corresponding Noir/UltraHonk verifier instead.
  */
 contract AggregatorAdapter {
     Groth16VerifierBN254 public immutable verifier;
@@ -15,26 +17,26 @@ contract AggregatorAdapter {
     }
 
     /// @notice Standard interface for proof verification
-        /**
+    /**
      * @notice Verifys proof
      * @param proof The ZK proof data
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verifyProof(
+    function verifyProof(
         bytes calldata proof,
         bytes calldata publicInputs
     ) external view returns (bool) {
         return verifier.verifyProof(proof, publicInputs);
     }
 
-        /**
+    /**
      * @notice Verifys batch
      * @param aggregatedProof The aggregated proof
      * @param publicInputs The public inputs
      * @return The result value
      */
-function verifyBatch(
+    function verifyBatch(
         bytes calldata aggregatedProof,
         bytes32[] calldata publicInputs
     ) external view returns (bool) {
